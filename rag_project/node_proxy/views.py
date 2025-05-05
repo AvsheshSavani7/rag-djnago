@@ -13,6 +13,7 @@ from document_processor.services import DocumentProcessingService
 from django.conf import settings
 from document_processor.models import ProcessingJob
 from bson import ObjectId
+import math
 
 
 logger = logging.getLogger(__name__)
@@ -22,6 +23,13 @@ logger = logging.getLogger(__name__)
 
 class ProcessView(APIView):
     parser_classes = [MultiPartParser]
+
+    def sanitize_row_dict(row):
+        return {
+            k: (None if isinstance(v, float) and (
+                math.isnan(v) or math.isinf(v)) else v)
+            for k, v in row.items()
+        }
 
     def post(self, request, format=None):
         try:
@@ -79,7 +87,8 @@ class ProcessView(APIView):
 
                     # Normal flow - call Node API
                     # Convert pandas Series to dict before sending to API
-                    row_dict = row.to_dict()
+                    # row_dict = row.to_dict()
+                    row_dict = ProcessView.sanitize_row_dict(row)
 
                     # Call Node API to get deal data
                     response = call_node_api(

@@ -75,8 +75,6 @@ class ProcessFileView(APIView):
     """
     API endpoint to process a file from a URL and save to S3
     """
-    authentication_classes = []
-    permission_classes = []
 
     def post(self, request, format=None):
 
@@ -155,8 +153,6 @@ class ProcessingJobDetailView(APIView):
     """
     API endpoint to get details of a processing job
     """
-    authentication_classes = []
-    permission_classes = []
 
     def get(self, request, id, format=None):
         try:
@@ -173,8 +169,6 @@ class ProcessEmbeddingsView(APIView):
     """
     API endpoint to process embeddings for an existing job
     """
-    authentication_classes = []
-    permission_classes = []
 
     def post(self, request, format=None):
         deal_id = request.data.get('deal_id')
@@ -218,8 +212,6 @@ class ListAllDealsView(APIView):
     """
     API endpoint to get a list of all deals
     """
-    authentication_classes = []
-    permission_classes = []
 
     def get(self, request, format=None):
         try:
@@ -249,8 +241,6 @@ class PineconeVectorListView(APIView):
     """
     API endpoint to list all Pinecone vectors for a specific deal
     """
-    authentication_classes = []
-    permission_classes = []
 
     def get(self, request, deal_id=None, format=None):
         if not deal_id:
@@ -342,8 +332,6 @@ class UpdatePineconeVectorView(APIView):
     """
     API endpoint to update metadata for a specific vector in Pinecone
     """
-    authentication_classes = []
-    permission_classes = []
 
     def patch(self, request, vector_id=None, format=None):
         if not vector_id:
@@ -388,8 +376,6 @@ class ChatWithAIView(APIView):
     """
     API endpoint for chat interactions with AI using document context
     """
-    authentication_classes = []
-    permission_classes = []
 
     def post(self, request, format=None):
         # Get request parameters
@@ -433,8 +419,6 @@ class SummaryGenerationView(APIView):
     """
     API endpoint for generating document summaries using AI
     """
-    authentication_classes = []
-    permission_classes = []
 
     def post(self, request, format=None):
         # Get request parameters

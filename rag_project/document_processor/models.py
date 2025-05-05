@@ -2,6 +2,7 @@ from django.db import models
 import uuid
 from djongo.models import ObjectIdField
 from datetime import datetime
+from pymongo import MongoClient
 
 
 class ProcessingJob(models.Model):
@@ -31,6 +32,11 @@ class ProcessingJob(models.Model):
     flattened_json_url = models.URLField(
         max_length=1000, blank=True, null=True, help_text="URL to the flattened JSON file")
 
+    # Add these fields to the ProcessingJob model
+    schema_results = models.JSONField(null=True, blank=True)
+    schema_processing_completed = models.BooleanField(default=False)
+    schema_processing_timestamp = models.DateTimeField(null=True, blank=True)
+
     # Error information
     error_message = models.TextField(null=True, blank=True)
 
@@ -49,6 +55,14 @@ class ProcessingJob(models.Model):
         self.embedding_status = status
         if error_message:
             self.error_message = error_message
+        self.save()
+        return self
+
+    def save_json_to_db(self, results, error_message=None):
+        """Update the embedding status of the job"""
+        self.schema_results = results
+        self.schema_processing_completed = True
+        self.schema_processing_timestamp = datetime.now()
         self.save()
         return self
 

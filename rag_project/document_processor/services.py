@@ -14,6 +14,9 @@ import logging
 from bson import ObjectId
 import concurrent.futures
 import traceback
+import json
+import re
+
 
 from .models import ProcessingJob
 
@@ -173,14 +176,21 @@ class DocumentProcessingService:
             logger.info(f"Downloaded {len(chunks)} chunks")
 
             # Process embeddings
-            logger.info("Initializing embedding service")
-            embedding_service = EmbeddingService()
-            logger.info(
-                f"Starting embedding creation for {len(chunks)} chunks")
-            result = embedding_service.process_chunks(chunks, str(job_id))
-            logger.info(f"Embedding completed with result: {result}")
+            # logger.info("Initializing embedding service")
+            # embedding_service = EmbeddingService()
+            # logger.info(
+            #     f"Starting embedding creation for {len(chunks)} chunks")
+            # result = embedding_service.process_chunks(chunks, str(job_id))
+            # logger.info(f"Embedding completed with result: {result}")
 
+            # Create an instance of the class
+            schema_search = SchemaCategorySearch()
+
+            category_results = schema_search.search_all_schema_categories(
+                deal_id=str(job_id))
+            logger.info(f"Category results: {category_results}")
             # Update job status to completed
+            job.save_json_to_db(category_results)
             job.update_embedding_status('COMPLETED')
             logger.info(f"Updated job status to COMPLETED")
 
@@ -272,6 +282,7 @@ class EmbeddingService:
         self.openai_client = openai.OpenAI(
             api_key=os.environ.get("OPENAI_API_KEY")
         )
+        self.MAX_METADATA_SIZE = 40960
         print(
             f"OpenAI API key set: {'Yes' if os.environ.get('OPENAI_API_KEY') else 'No'}")
 
@@ -325,6 +336,46 @@ class EmbeddingService:
             print(f"Error creating embedding: {str(e)}")
             raise
 
+    def trim_metadata(self, metadata):
+        # Try serializing first
+        meta_bytes = json.dumps(metadata).encode('utf-8')
+        if len(meta_bytes) <= self.MAX_METADATA_SIZE:
+            return metadata  # ✅ Already valid
+
+        # Sort keys by importance (edit this order as needed)
+        priority_keys = ['categories', 'chunk_index', 'clause_summary',
+                         'combined_text', 'deal_id', 'deal_name', 'label', 'original_text']
+
+        trimmed = {}
+        for key in priority_keys:
+            if key not in metadata:
+                continue
+            value = metadata[key]
+
+            # Temporarily add full value
+            trimmed[key] = value
+            size = len(json.dumps(trimmed).encode('utf-8'))
+
+            # Trim the value if adding it exceeds the limit
+            if size > self.MAX_METADATA_SIZE:
+                if isinstance(value, str):
+                    # Binary search to trim the string exactly to fit
+                    left, right = 0, len(value)
+                    while left < right:
+                        mid = (left + right) // 2
+                        trimmed[key] = value[:mid]
+                        size = len(json.dumps(trimmed).encode('utf-8'))
+                        if size <= self.MAX_METADATA_SIZE:
+                            left = mid + 1
+                        else:
+                            right = mid - 1
+                    trimmed[key] = value[:right]
+                else:
+                    # Remove non-string or too-large fields
+                    trimmed.pop(key)
+
+        return trimmed
+
     def process_chunks(self, chunks, deal_id):
         """Process a list of text chunks and store embeddings in Pinecone one by one"""
         total_chunks = len(chunks)
@@ -349,7 +400,7 @@ class EmbeddingService:
                     print(f"Enhancing metadata for chunk {i+1}")
                     enhanced_chunk = self.metadata_service.enhance_chunk_metadata(
                         chunk)
-                    category_name = enhanced_chunk.get("category_name", "")
+                    category_name = enhanced_chunk.get("categories", "")
                     print(
                         f"Category determined for chunk {i+1}: {category_name}")
                 except Exception as e:
@@ -357,7 +408,7 @@ class EmbeddingService:
                         f"Error enhancing metadata for chunk {i+1}: {str(e)}")
                     # Continue with original chunk if enhancement fails
                     enhanced_chunk = chunk
-                    enhanced_chunk["category_name"] = ""
+                    enhanced_chunk["categories"] = []
 
                 # Create embedding
                 try:
@@ -373,30 +424,33 @@ class EmbeddingService:
                 # Start with required metadata fields
                 metadata = {
                     "deal_id": str(deal_id),
+                    "deal_name": enhanced_chunk.get("deal_name", "") or "",
                     "label": enhanced_chunk.get("label", "") or "",
                     "definition_terms": "" if enhanced_chunk.get("definition_terms") is None else str(enhanced_chunk.get("definition_terms", "")),
                     "original_text": enhanced_chunk.get("original_text", "") or "",
                     "combined_text": enhanced_chunk.get("combined_text", "") or "",
-                    "category_name": enhanced_chunk.get("category_name", "") or "",
-                    "chunk_index": i
+                    "categories": enhanced_chunk.get("categories", "") or "",
+                    "chunk_index": i,
+                    "clause_summary": enhanced_chunk.get("clause_summary", "") or "",
                 }
 
                 # Add all other fields from enhanced_chunk
                 # This will include any fields added by extract_structured_metadata
-                for key, value in enhanced_chunk.items():
-                    # Skip fields we already added and those that start with underscore (private fields)
-                    if key not in metadata and not key.startswith('_'):
-                        # Convert lists and dicts to strings to ensure compatibility with Pinecone
-                        if isinstance(value, (list, dict)):
-                            metadata[key] = json.dumps(value)
-                        else:
-                            metadata[key] = str(
-                                value) if value is not None else ""
+                # for key, value in enhanced_chunk.items():
+                #     # Skip fields we already added and those that start with underscore (private fields)
+                #     if key not in metadata and not key.startswith('_'):
+                #         if key == "clause_tags_llm":
+                #             metadata[key] = value if value else []
+                #         elif isinstance(value, (list, dict)):
+                #             metadata[key] = value if value else ""
+                #         else:
+                #             metadata[key] = str(value) if value else ""
 
-                print(
-                    f"Metadata fields for chunk {i+1}: {list(metadata.keys())}")
+                # print(
+                #     f"Metadata fields for chunk {i+1}: {list(metadata.keys())}")
 
                 # Upsert single vector to Pinecone
+                metadata = self.trim_metadata(metadata)
                 try:
                     self.index.upsert(
                         vectors=[{
@@ -450,7 +504,10 @@ class EmbeddingService:
             # Prepare filter if deal_id is provided
             filter_dict = {}
             if deal_id:
-                filter_dict = {"deal_id": str(deal_id)}
+                filter_dict = {"deal_id": str(deal_id),
+                               #  "test_tag": {"$in": ["a"]}
+                               }
+
                 print(f"Filtering search to deal ID: {deal_id}")
 
             # Search in Pinecone
@@ -461,6 +518,9 @@ class EmbeddingService:
                 include_metadata=True,
                 filter=filter_dict
             )
+            print(f"Search response: {search_response}")
+            with open('search_response_matches.json', 'w') as f:
+                json.dump(search_response.matches, f, default=str, indent=4)
 
             # Format results
             results = []
@@ -495,7 +555,7 @@ class MetadataEnhancementService:
             api_key=os.environ.get("OPENAI_API_KEY")
         )
         # Schema URL
-        self.schema_url = "https://rag-mna.s3.eu-north-1.amazonaws.com/master-schema/enhanced_metadata_by_category.json"
+        self.schema_url = "https://mna-docs.s3.eu-north-1.amazonaws.com/clauses_category_template/Clauses_Category_Template.json"
         # Cache the categories
         self._schema_categories = None
         # Cache the full schema
@@ -525,7 +585,7 @@ class MetadataEnhancementService:
             self._full_schema = schema
 
             # Extract category names (keys)
-            categories = list(schema.keys())
+            categories = [item["category_name"] for item in schema]
             logger.info(f"Extracted {len(categories)} categories from schema")
 
             # Cache for future use
@@ -574,15 +634,26 @@ class MetadataEnhancementService:
             category_list = "\n".join(
                 [f"{i+1}. {category}" for i, category in enumerate(categories)])
 
-            prompt = f"""You are tasked with categorizing legal contract text into the most appropriate category.
-Given the following text from a contract:
+            prompt = f"""You are a legal AI assistant helping classify a merger-related clause in a transaction agreement.
 
-"{text}"
+Your task is to:
+1. Analyze the clause below.
+2. Identify the **most relevant** categories from the given list that **best describe the legal function, intent, or consequence** of the clause.
+3. Avoid overly broad or tangential categories — only include those that are **directly applicable**.
+4. Provide a concise summary of the clause (1–2 sentences) in plain English.
 
-Please determine which of the following categories best fits this text:
+Clause:
+'''{text}'''
+
+Available Categories:
 {category_list}
 
-Return ONLY the exact name of the single best matching category. If none match well, return an empty string."""
+Return a JSON object in this exact format:
+{{
+  \"categories\": [list of relevant categories],
+  \"clause_summary\": \"concise plain-language summary of the clause\"
+}}
+"""
 
             logger.info("Calling GPT to determine category")
             # Call GPT
@@ -592,30 +663,27 @@ Return ONLY the exact name of the single best matching category. If none match w
                     {"role": "system", "content": "You are a legal contract classifier assistant. Your task is to assign text to the most appropriate category."},
                     {"role": "user", "content": prompt}
                 ],
-                temperature=0.3,
-                max_tokens=1000
+                temperature=0.1,
+                max_tokens=750
             )
 
             # Extract the determined category
             category = response.choices[0].message.content.strip()
             logger.info(f"GPT determined category: {category}")
 
+            # Clean markdown code block like ```json ... ```  # Clean markdown code block like ```json ... ```
+            markdown_match = re.search(
+                r"```(?:json)?\s*([\s\S]+?)\s*```", category)
+            if markdown_match:
+                category = markdown_match.group(1).strip()
             # Validate if the returned category is in our list
-            if category in categories:
-                return category
-            elif category == "":
-                return ""
-            else:
-                # Try to find a close match
-                logger.warning(
-                    f"Category '{category}' not found in schema, trying to find a close match")
-                for schema_category in categories:
-                    if category.lower() in schema_category.lower():
-                        logger.info(f"Found close match: {schema_category}")
-                        return schema_category
-
-                logger.warning(f"No matching category found for: {category}")
-                return ""
+            try:
+                parsed = json.loads(category)
+                if isinstance(parsed, dict):
+                    return parsed.get("categories", []), parsed.get("clause_summary", "")
+            except json.JSONDecodeError:
+                logger.warning(f"GPT response could not be parsed: {category}")
+            return [], ""
 
         except Exception as e:
             logger.error(f"Error determining category: {str(e)}")
@@ -709,7 +777,7 @@ Return your answer as a valid JSON object with each field name as the key and th
 
                 structured_metadata = json.loads(metadata_text)
                 logger.info(
-                    f"Successfully parsed structured metadata with {len(structured_metadata)} fields")
+                    f"Successfully parsed structured metadata with {structured_metadata} fields")
                 return structured_metadata
             except json.JSONDecodeError as e:
                 logger.error(f"Failed to parse metadata as JSON: {str(e)}")
@@ -750,25 +818,25 @@ Return your answer as a valid JSON object with each field name as the key and th
             category = self.determine_category(text)
 
             # Add the category to the chunk
-            chunk["category_name"] = category
+            chunk["categories"] = category[0]
             chunk["category_tags"] = []
-            chunk["category_summary"] = ""
+            chunk["clause_summary"] = category[1]
+
             logger.info(f"Enhanced chunk with category: {category}")
 
             # If we have a valid category, extract structured metadata
-            if category:
-                logger.info(
-                    f"Extracting structured metadata for category: {category}")
-                structured_metadata = self.extract_structured_metadata(
-                    text, category)
+            # if category:
+            #     logger.info(
+            #         f"Extracting structured metadata for category: {category}")
+            #     structured_metadata = self.extract_structured_metadata(
+            #         text, category)
 
-                # Add structured metadata to chunk
-                if structured_metadata:
-                    logger.info(
-                        f"Adding {len(structured_metadata)} structured metadata fields to chunk")
-                    for key, value in structured_metadata.items():
-                        chunk[key] = value
-
+            #     # Add structured metadata to chunk
+            #     if structured_metadata:
+            #         logger.info(
+            #             f"Adding {len(structured_metadata)} structured metadata fields to chunk")
+            #         for key, value in structured_metadata.items():
+            #             chunk[key] = value
             return chunk
 
         except Exception as e:
@@ -787,6 +855,7 @@ class FlattenProcessor:
         self.output_bucket = output_bucket or os.environ.get("AWS_S3_BUCKET")
         self.total_definitions = 0
         self.total_clauses = 0
+        self.deal_name = self.extract_deal_name(file_url)
 
     def clean_unicode_quotes(self, text):
         if not text:
@@ -798,93 +867,109 @@ class FlattenProcessor:
     def is_definition_section(self, text):
         return bool(text and ":" in text and "means" in text)
 
+    @staticmethod
+    def extract_deal_name(url):
+        """
+        Extract and format deal name from S3 URL
+
+        Args:
+            url (str): The S3 URL containing the deal name
+
+        Returns:
+            str: The extracted and formatted deal name
+        """
+        try:
+            # Extract the filename from the URL
+            filename = url.split('/')[-1]
+
+            # Remove the file extension (.json)
+            if filename.endswith('.json'):
+                filename = filename[:-5]  # Remove .json
+
+            # Remove date part if present (format: YYYY-MM-DD)
+            deal_name = re.sub(r'_\d{4}-\d{2}-\d{2}$', '', filename)
+
+            # Format the deal name: replace underscores with spaces and capitalize words
+            formatted_name = ' '.join(word.capitalize()
+                                      for word in deal_name.split('_'))
+
+            return formatted_name
+        except Exception as e:
+            print(f"Error extracting deal name: {str(e)}")
+            return ""
+
     def walk_structure(self, article, path=None):
         if path is None:
             path = []
 
-        # Debug article data
-        try:
-            logger.info(f"Processing article type: {type(article)}")
-            if isinstance(article, dict):
-                logger.info(f"Article keys: {article.keys()}")
-            else:
-                logger.info(
-                    f"Article is not a dictionary: {str(article)[:100]}")
-                return []  # Return empty list for non-dict articles
-        except Exception as e:
-            logger.error(
-                f"Error examining article in walk_structure: {str(e)}")
-            return []  # Return empty list for problematic articles
-
         outputs = []
-        article_label = f"ARTICLE {article.get('article', '')} {article.get('title', '')}".strip(
-        )
-        article_text = self.clean_unicode_quotes(article.get("text", ""))
-        path = path + [article_label]
+        if article.get('article') == "Definitions":
 
-        if not article.get("sections"):
-            if article_text:
-                outputs.append({
-                    "label": " > ".join(path),
-                    "original_text": article_text.strip(),
-                    "combined_text": article_text.strip(),
-                    "definition_terms": article_text.strip() if self.is_definition_section(article_text) else None
-                })
+            outputs = []
+
+            for item in article.get('definitions'):
+                if "Material Adverse Effect" in item.get('term', ""):
+                    outputs.append({
+                        "label": f"Definition > {item['term']}",
+                        "original_text": f"{item['term']} {item['definition']}",
+                        "combined_text": f"{item['term']} {item['definition']}",
+                        "deal_name": self.deal_name
+                    })
             return outputs
 
-        for section in article["sections"]:
-            section_label = f"Section {section.get('section', '')} {section.get('title', '')}".strip(
+        else:
+            print(f"Article: else start")
+            article_label = f"ARTICLE {article.get('article', '')} {article.get('title', '')}".strip(
             )
-            section_text = self.clean_unicode_quotes(section.get("text", ""))
-            path_section = path + [section_label]
+            path = path + [article_label]
 
-            if section.get("clauses"):
-                for clause in section["clauses"]:
-                    clause_label = f"Clause {clause.get('clause', '')} {clause.get('title', '')}".strip(
+            article_text = self.clean_unicode_quotes(
+                article.get("text", "")).strip()
+
+            if not article.get("sections"):
+                if article_text:
+                    outputs.append({
+                        "label": " > ".join(path),
+                        "original_text": article_text,
+                        "combined_text": article_text,
+                        "deal_name": self.deal_name
+                    })
+                return outputs
+
+            for section in article["sections"]:
+
+                if "definition" in section.get('title', "").lower() and 'definitions' in section and section.get('definitions') is not None:
+                    section_label = f"Section {section.get('section', '')} {section.get('title', '')}".strip(
                     )
-                    clause_text = self.clean_unicode_quotes(
-                        clause.get("text", ""))
-                    path_clause = path_section + [clause_label]
+                    path_section = path + [section_label]
 
-                    subclauses = clause.get(
-                        "subclause") or clause.get("subclauses") or []
-                    for sub in subclauses:
-                        if isinstance(sub, dict):
-                            sub_label = f"Subclause {sub.get('subclause', '')}".strip(
-                            )
-                            path_sub = path_clause + [sub_label]
-                            sub_text = self.clean_unicode_quotes(
-                                sub.get("text", ""))
+                    for item in section.get('definitions'):
+                        if "Material Adverse Effect" in item.get('term', ""):
                             outputs.append({
-                                "label": " > ".join(path_sub),
-                                "original_text": sub_text.strip(),
-                                "combined_text": sub_text.strip(),
-                                "definition_terms": sub_text.strip() if self.is_definition_section(sub_text) else None
-                            })
-                        elif isinstance(sub, str):
-                            sub_text = self.clean_unicode_quotes(sub)
-                            outputs.append({
-                                "label": " > ".join(path_clause + ["Subclause"]),
-                                "original_text": sub_text.strip(),
-                                "combined_text": sub_text.strip(),
-                                "definition_terms": sub_text.strip() if self.is_definition_section(sub_text) else None
+                                "label": f"{' > '.join(path_section)} > {item['term']}",
+                                "original_text": f"{item['term']} {item['definition']}",
+                                "combined_text": f"{item['term']} {item['definition']}",
+                                "deal_name": self.deal_name
                             })
 
-                    if not subclauses and clause_text:
-                        outputs.append({
-                            "label": " > ".join(path_clause),
-                            "original_text": clause_text.strip(),
-                            "combined_text": clause_text.strip(),
-                            "definition_terms": clause_text.strip() if self.is_definition_section(clause_text) else None
-                        })
+                else:
+                    print(f"Section: else start")
+                    section_label = f"Section {section.get('section', '')} {section.get('title', '')}".strip(
+                    )
+                    # section_text = self.clean_unicode_quotes(section.get("text", "")).strip()
+                    section_text = " | ".join([f'"{item["term"]}" : {item["definition"]}' for item in section.get("definitions", [
+                    ])]) if "definition" in section.get('title', "").lower() else self.clean_unicode_quotes(section.get("text", ""))
+                    path_section = path + [section_label]
 
-            elif section_text:
-                outputs.append({
-                    "label": " > ".join(path_section),
-                    "original_text": section_text.strip(),
-                    "combined_text": section_text.strip(),
-                    "definition_terms": section_text.strip() if self.is_definition_section(section_text) else None
-                })
+                    # Combine article-level text and section-level text
+                    combined_text = f"{article_text}\n\n{section_text}" if article_text else section_text
+                    print(f"Section: else end")
+                    outputs.append({
+                        "label": " > ".join(path_section),
+                        "original_text": section_text,
+                        "combined_text": combined_text,
+                        "deal_name": self.deal_name
+                    })
 
         return outputs
 
@@ -1259,3 +1344,306 @@ Always cite specific sections when referring to the document content.
             context_text += f"[{i+1}] {chunk.get('label', 'Section')}{category_info} (Related to: {chunk.get('query', 'General')}): {chunk.get('content', '')}\n\n"
 
         return system_template.format(context=context_text)
+
+
+class SchemaCategorySearch:
+    """Service to search vector store for chunks matching specific schema categories and generate field values"""
+
+    def __init__(self):
+        # Initialize embedding service for vector search
+        self.embedding_service = EmbeddingService()
+        # S3 service to download schema JSON
+        self.s3_service = S3Service()
+        # OpenAI client for GPT queries
+        self.openai_client = openai.OpenAI(
+            api_key=os.environ.get("OPENAI_API_KEY")
+        )
+        # Schema URL
+        self.schema_url = "https://mna-docs.s3.eu-north-1.amazonaws.com/clauses_category_template/schema_by_summary_sections.json"
+        # Cache for schema
+        self._schema = None
+        logger.info("SchemaCategorySearch initialized")
+
+    def get_schema(self):
+        """
+        Fetch and cache the schema JSON
+
+        Returns:
+            dict: The schema JSON object
+        """
+        if self._schema:
+            return self._schema
+
+        try:
+            logger.info(f"Fetching schema from URL: {self.schema_url}")
+            schema = self.s3_service.download_from_url(self.schema_url)
+            self._schema = schema
+            logger.info(
+                f"Successfully downloaded schema with {len(schema)} sections")
+            return schema
+        except Exception as e:
+            logger.error(f"Error fetching schema: {str(e)}")
+            return {}
+
+    def extract_field_value_with_gpt(self, field, chunks, section_name):
+        """
+        Extract field value using GPT based on chunks
+
+        Args:
+            field (dict): The field information from schema
+            chunks (list): List of document chunks to analyze
+
+        Returns:
+            str: The extracted field value
+        """
+        try:
+            # Extract relevant info for prompt
+            field_name = field.get("field_name", "")
+            instructions = field.get("instructions", "")
+
+            # Skip if no chunks found
+            if not chunks:
+                logger.warning(f"No chunks found for field: {field_name}")
+                return "No relevant document sections found"
+
+            # Create prompt
+            prompt = f"""
+You are a legal AI assistant with expertise in analyzing M&A documents.
+
+Your task is to generate a professional-grade summary by extracting the most accurate and relevant value for a specific field, based solely on the provided document content.
+
+---
+
+📄 SECTION: {section_name}  
+🏷️ FIELD: {field_name}  
+🧾 EXTRACTION INSTRUCTIONS: {instructions}
+
+Below are document excerpts or summaries related to this section. Carefully review them to identify and extract the value that fulfills the field requirement:
+
+{chunks}
+
+---
+
+🎯 Based only on the provided content, extract the best possible value for the field **'{field_name}'**, following the instructions exactly.
+
+Your response must be in one of the following formats:
+1. If the value is found: return the extracted value as a string.
+2. If the field is clearly **not applicable** in the context: return `"NA"`.
+3. If the field **should exist** but is **not mentioned** in the provided content: return `"Not found"`.
+
+Return your answer in **exactly** this JSON format:
+{{
+  "answer": "THE EXTRACTED VALUE GOES HERE"
+}}
+"""
+
+            # Call GPT
+            logger.info(
+                f"Calling GPT to extract value for field: {field_name}")
+            response = self.openai_client.chat.completions.create(
+                model="gpt-4o",
+                messages=[
+                    {"role": "system", "content": "You are a precise legal mna document analyzer that extracts specific field values according to given instructions,section name and field name."},
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=0.1,
+                max_tokens=500
+            )
+
+            # Extract and return the value
+            value = response.choices[0].message.content.strip()
+            logger.info(
+                f"Extracted value for field '{field_name}': {value[:100]}...")
+            try:
+                # First check if the response is wrapped in markdown code block
+                markdown_match = re.search(
+                    r"```(?:json)?\s*([\s\S]+?)\s*```", value)
+                if markdown_match:
+                    # Extract the JSON content from the markdown code block
+                    json_content = markdown_match.group(1).strip()
+                    parsed_response = json.loads(json_content)
+                else:
+                    # Try parsing directly if not in markdown format
+                    parsed_response = json.loads(value)
+
+                # Extract just the answer field
+                answer = parsed_response.get("answer", "")
+                return answer
+
+            except json.JSONDecodeError as e:
+                logger.error(f"Failed to parse GPT response as JSON: {value}")
+                logger.error(f"JSON parse error: {str(e)}")
+
+                # If we can't parse the JSON, try to extract answer with regex
+                answer_match = re.search(r'"answer"\s*:\s*"([^"]*)"', value)
+                if answer_match:
+                    return answer_match.group(1)
+
+                # Default to empty string if all else fails
+                return ""
+
+        except Exception as e:
+            logger.error(f"Error extracting field value with GPT: {str(e)}")
+            logger.error(traceback.format_exc())
+            return f"Error: {str(e)}"
+
+    def process_schema_field(self, section_name, field, deal_id):
+        """
+        Process a single schema field - search chunks and extract value
+
+        Args:
+            section_name (str): The section name
+            field (dict): The field information
+            deal_id (str): The deal ID
+
+        Returns:
+            dict: Object with field information and extracted value
+        """
+        try:
+            field_name = field.get("field_name", "")
+            logger.info(
+                f"Processing field: {field_name} in section: {section_name}")
+
+            # Get top categories for this field
+            # Get all categories for this field without sorting or limiting
+            categories = []
+            if "category_mapping" in field and isinstance(field["category_mapping"], list):
+                # Extract all category names directly
+                categories = [mapping["category"]
+                              for mapping in field["category_mapping"] if "category" in mapping]
+
+                if not categories:
+                    logger.warning(
+                        f"No categories found for field: {field_name}")
+                    return {
+                        "section": section_name,
+                        "field_name": field_name,
+                        "value": "No categories defined for this field",
+                        "categories_used": []
+                    }
+
+            filter_dict = {}
+            if deal_id:
+
+                filter_dict = {"deal_id": str(deal_id),
+                               "categories": {"$in": categories}
+                               }
+
+            # Access the Pinecone index directly
+            index = self.embedding_service.index
+
+            # Use a dummy vector for metadata-only search
+            dummy_vector = [0.0] * 1536  # Dimension for text-embedding-3-small
+
+            # Search in Pinecone using metadata filtering
+            search_response = index.query(
+                vector=dummy_vector,
+                top_k=15,  # Get enough results for all categories
+                include_metadata=True,
+                filter=filter_dict
+            )
+
+            print(f"Search response length: {len(search_response.matches)}")
+
+            # Extract metadata from matches
+            all_chunks = [match.metadata for match in search_response.matches]
+
+            # Remove duplicates if any
+            unique_chunks = []
+            seen_texts = set()
+            for chunk in all_chunks:
+                text = chunk.get("combined_text", "")
+                if text not in seen_texts:
+                    seen_texts.add(text)
+                    unique_chunks.append(chunk)
+
+            logger.info(
+                f"Found {len(unique_chunks)} unique chunks matching categories")
+
+            # Combine all text into a single string
+            combined_text = ""
+            for chunk in unique_chunks:
+                chunk_text = chunk.get("combined_text", "")
+                if chunk_text:
+                    # Add a separator between chunks for readability
+                    if combined_text:
+                        combined_text += "\n\n" + "-" * 40 + "\n\n"
+                    # Add the actual text content
+                    combined_text += chunk_text
+
+            # Extract value with GPT
+            value = self.extract_field_value_with_gpt(
+                field, combined_text, section_name)
+
+            # Return result object
+            return {
+                "section": section_name,
+                "field_name": field_name,
+                "answer": value,
+                "categories_used": categories
+            }
+
+        except Exception as e:
+            logger.error(f"Error processing schema field: {str(e)}")
+            logger.error(traceback.format_exc())
+            return {
+                "section": section_name,
+                "field_name": field.get("field_name", "unknown"),
+                "value": f"Error: {str(e)}",
+                "categories_used": []
+            }
+
+    def search_all_schema_categories(self, deal_id):
+        """
+        Process all fields in the schema for a specific deal
+
+        Args:
+            deal_id (str): The deal ID to process
+
+        Returns:
+            dict: Dictionary with sections and their extracted field values
+        """
+        schema = self.get_schema()
+        if not schema:
+            logger.warning("No schema available")
+            return {"error": "Schema not available"}
+
+        try:
+            results = {}
+
+            # Process each section and field
+            # Process only the first section and limited fields
+            for i, (section_name, fields) in enumerate(schema.items()):
+                if i >= 1:  # Process only the first section
+                    break
+
+                logger.info(f"Processing section: {section_name}")
+                results[section_name] = []
+
+                # Limit to first 3 fields in the section
+                for field in fields[:1]:
+                    field_result = self.process_schema_field(
+                        section_name, field, deal_id)
+                    results[section_name].append(field_result)
+
+            # Create a timestamp for the filename
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+
+            # Create a filename with deal_id and timestamp
+            filename = f"schema_results_{deal_id}_{timestamp}.json"
+
+            # Save results to JSON file
+            try:
+                with open(filename, 'w', encoding='utf-8') as f:
+                    json.dump(results, f, indent=2, ensure_ascii=False)
+                logger.info(f"Results saved to file: {filename}")
+            except Exception as save_error:
+                logger.error(
+                    f"Error saving results to file: {str(save_error)}")
+
+            return results
+
+        except Exception as e:
+            logger.error(f"Error processing schema: {str(e)}")
+            logger.error(traceback.format_exc())
+            return {"error": str(e)}

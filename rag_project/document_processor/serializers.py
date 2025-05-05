@@ -17,7 +17,9 @@ class ProcessingJobSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'cik', 'acquire_name', 'target_name', 'announce_date',
             'embedding_status', 'file_url', 'parsed_json_url',
-            'flattened_json_url', 'error_message', 'createdAt', 'updatedAt'
+            'flattened_json_url', 'error_message', 'createdAt', 'updatedAt',
+            'schema_results', 'schema_processing_completed',
+            'schema_processing_timestamp'
         ]
         read_only_fields = [
             'id', 'error_message', 'createdAt', 'updatedAt'

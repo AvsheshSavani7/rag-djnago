@@ -19,6 +19,7 @@ def call_node_api(endpoint, method='GET', data=None, params=None):
     Returns:
         dict: Response from the Node.js API
     """
+
     url = f"{settings.NODE_API_BASE_URL}/{endpoint.lstrip('/')}"
     headers = {
         'Content-Type': 'application/json',
