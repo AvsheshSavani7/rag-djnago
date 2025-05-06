@@ -1,0 +1,3634 @@
+{
+  "Absolute_Carve-Outs": [
+    {
+      "section": "Absolute_Carve-Outs",
+      "field_name": "carved_out_events_or_conditions",
+      "answer": "changes in general economic conditions, acts of terrorism, changes in law",
+      "categories_used": [
+        "Definitions  >  Material Adverse Effects",
+        "Representations & Warranties  >  Material Adverse Effect",
+        "Termination  >  Other Termination Rights"
+      ]
+    },
+    {
+      "section": "Absolute_Carve-Outs",
+      "field_name": "carve_out_context_description",
+      "answer": "Not found",
+      "categories_used": [
+        "Definitions  >  Material Adverse Effects",
+        "Conditions to Closing  >  General and Mutual Conditions",
+        "Termination  >  Other Termination Rights"
+      ]
+    },
+    {
+      "section": "Absolute_Carve-Outs",
+      "field_name": "carve_outs_explicitly_unqualified",
+      "answer": "Not found",
+      "categories_used": [
+        "Definitions  >  Material Adverse Effects",
+        "Representations & Warranties  >  Material Adverse Effect",
+        "Covenants  >  Conduct of Business"
+      ]
+    },
+    {
+      "section": "Absolute_Carve-Outs",
+      "field_name": "number_of_absolute_carve_outs",
+      "answer": "Not found",
+      "categories_used": [
+        "Definitions  >  Material Adverse Effects",
+        "Representations & Warranties  >  Material Adverse Effect",
+        "Covenants  >  Conduct of Business"
+      ]
+    }
+  ],
+  "Acquirer": [
+    {
+      "section": "Acquirer",
+      "field_name": "acquirer_name",
+      "answer": "Parent",
+      "categories_used": [
+        "Representations & Warranties  >  By the Buyer",
+        "The Merger  >  Deal Structure",
+        "Preamble  >  Preamble"
+      ]
+    },
+    {
+      "section": "Acquirer",
+      "field_name": "is_acquirer_public_company",
+      "answer": "true",
+      "categories_used": [
+        "Covenants  >  Proxy Statement Filings",
+        "Covenants  >  Listing/Delisting",
+        "Representations & Warranties  >  By the Buyer"
+      ]
+    },
+    {
+      "section": "Acquirer",
+      "field_name": "acquirer_state_or_country_of_incorporation",
+      "answer": "Not found",
+      "categories_used": [
+        "Miscellaneous  >  Governing Law and Venue",
+        "Representations & Warranties  >  By the Buyer",
+        "The Merger  >  Organizational Documents"
+      ]
+    },
+    {
+      "section": "Acquirer",
+      "field_name": "acquirer_role_in_transaction",
+      "answer": "Not found",
+      "categories_used": [
+        "Representations & Warranties  >  By the Buyer",
+        "Covenants  >  Financing Cooperation",
+        "Conditions to Closing  >  Party-Specific Conditions"
+      ]
+    },
+    {
+      "section": "Acquirer",
+      "field_name": "acquirer_merger_sub_used",
+      "answer": "true",
+      "categories_used": [
+        "The Merger  >  Deal Structure",
+        "Representations & Warranties  >  By the Merger Sub",
+        "Covenants  >  Tax Matters"
+      ]
+    },
+    {
+      "section": "Acquirer",
+      "field_name": "acquirer_merger_sub_name",
+      "answer": "Not found",
+      "categories_used": [
+        "Representations & Warranties  >  By the Merger Sub",
+        "The Merger  >  Statutory Merger Filings",
+        "The Merger  >  Deal Structure"
+      ]
+    },
+    {
+      "section": "Acquirer",
+      "field_name": "acquirer_ownership_structure_summary",
+      "answer": "Not found",
+      "categories_used": [
+        "Representations & Warranties  >  By the Buyer",
+        "The Merger  >  Organizational Documents",
+        "Disclosure & Attachments  >  Disclosure Schedules"
+      ]
+    },
+    {
+      "section": "Acquirer",
+      "field_name": "acquirer_financing_sources",
+      "answer": "Debt Letters, cash on hand, amounts available to be drawn on the Parent Credit Facilities",
+      "categories_used": [
+        "Financing Provisions  >  Debt Financing",
+        "Financing Provisions  >  Equity Commitment Letter",
+        "Covenants  >  Financing Cooperation"
+      ]
+    },
+    {
+      "section": "Acquirer",
+      "field_name": "acquirer_guarantee_or_support_agreement",
+      "answer": "false",
+      "categories_used": [
+        "Financing Provisions  >  Limited Guarantee",
+        "Financing Provisions  >  Equity Commitment Letter",
+        "Covenants  >  Financing Cooperation"
+      ]
+    },
+    {
+      "section": "Acquirer",
+      "field_name": "acquirer_industry_description",
+      "answer": "Not found",
+      "categories_used": [
+        "Representations & Warranties  >  By the Buyer",
+        "The Merger  >  Deal Structure",
+        "Covenants  >  Conduct of Business"
+      ]
+    }
+  ],
+  "Best_Efforts": [
+    {
+      "section": "Best_Efforts",
+      "field_name": "best_efforts_standard",
+      "answer": "reasonable best efforts",
+      "categories_used": [
+        "Covenants  >  Efforts",
+        "Conditions to Closing  >  General and Mutual Conditions",
+        "Conditions to Closing  >  Party-Specific Conditions"
+      ]
+    },
+    {
+      "section": "Best_Efforts",
+      "field_name": "buyer_best_efforts_obligations",
+      "answer": "Parent shall use reasonable best efforts to cause the Parent Shares to be issued in connection with the Merger to be approved for listing on the NYSE, subject to official notice of issuance, at or prior to the Effective Time. Parent shall, and shall cause its Subsidiaries (including the Borrower) to, use reasonable best efforts to take, or cause to be taken, all actions, and to do, or cause to be done, all things reasonably necessary to consummate the Financing in an amount sufficient, together with cash on hand and amounts available to be drawn on the Parent Credit Facilities, to consummate the Merger and the other transactions contemplated hereby no later than the Closing.",
+      "categories_used": [
+        "Covenants  >  Efforts",
+        "Conditions to Closing  >  General and Mutual Conditions",
+        "Covenants  >  Conduct of Business"
+      ]
+    },
+    {
+      "section": "Best_Efforts",
+      "field_name": "seller_best_efforts_obligations",
+      "answer": "Prior to the Effective Time, the Company shall cooperate with Parent and use its reasonable best efforts, in accordance with applicable rules and policies of the NYSE, to facilitate the commencement of the delisting of the Company and of the shares of Company Common Stock from the NYSE as promptly as practicable after the Effective Time. Prior to the Effective Time, the Company shall not voluntarily delist the Company Common Stock from the NYSE.",
+      "categories_used": [
+        "Covenants  >  Efforts",
+        "Conditions to Closing  >  General and Mutual Conditions",
+        "The Merger  >  Closing Deliverables"
+      ]
+    },
+    {
+      "section": "Best_Efforts",
+      "field_name": "financing_best_efforts_standard",
+      "answer": "reasonable best efforts",
+      "categories_used": [
+        "Covenants  >  Financing Cooperation",
+        "Financing Provisions  >  Debt Financing",
+        "Miscellaneous  >  Specific Performance"
+      ]
+    },
+    {
+      "section": "Best_Efforts",
+      "field_name": "regulatory_best_efforts_standard",
+      "answer": "reasonable best efforts",
+      "categories_used": [
+        "Covenants  >  Efforts",
+        "Conditions to Closing  >  General and Mutual Conditions",
+        "Covenants  >  Conduct of Business"
+      ]
+    },
+    {
+      "section": "Best_Efforts",
+      "field_name": "failure_to_perform_remedy",
+      "answer": "Not found",
+      "categories_used": [
+        "Covenants  >  Efforts",
+        "Miscellaneous  >  Legal Enforcement",
+        "Miscellaneous  >  Specific Performance"
+      ]
+    },
+    {
+      "section": "Best_Efforts",
+      "field_name": "party_best_efforts_obligations",
+      "answer": "The Company and Parent both agree to use commercially reasonable efforts to conduct their businesses in the ordinary course and preserve their assets and business organization. The Company shall use reasonable best efforts to facilitate the delisting of its shares from the NYSE, while Parent shall use reasonable best efforts to have its shares approved for listing on the NYSE. Both parties are also obligated to cooperate and use reasonable best efforts to consummate the transactions and satisfy the conditions of the Merger, including obtaining necessary approvals and defending against any legal challenges.",
+      "categories_used": [
+        "Covenants  >  Efforts",
+        "Conditions to Closing  >  General and Mutual Conditions",
+        "Covenants  >  Financing Cooperation"
+      ]
+    },
+    {
+      "section": "Best_Efforts",
+      "field_name": "best_efforts_scope",
+      "answer": "the obtaining of all actions or non-actions, consents, approvals, registrations, waivers, permits, authorizations, orders, expirations or terminations of waiting periods and other confirmations from any Governmental Authority or other Person that are or may become necessary, proper or advisable in connection with the consummation of the transactions contemplated by this Agreement, including the Merger; the preparation and making of all registrations, filings, forms, notices, petitions, statements, submissions of information, applications and other documents (including filings with Governmental Authorities) that are or may become necessary, proper or advisable in connection with the consummation of the transactions contemplated by this Agreement, including the Merger; the taking of all reasonable steps as may be necessary, proper or advisable to obtain an approval from, or to avoid a Proceeding by, any Governmental Authority or other Person in connection with the consummation of the transactions contemplated by this Agreement, including the Merger; the defending of any lawsuits or other Proceedings, whether judicial or administrative, challenging this Agreement or that would otherwise prevent or delay the consummation of the transactions contemplated by this Agreement, including the Merger, performed or consummated by each party in accordance with the terms of this Agreement, including seeking to have any stay, temporary restraining order or injunction entered by any court or other Governmental Authority vacated or reversed; and the execution and delivery of any additional instruments that are or may become reasonably necessary, proper or advisable to consummate the transactions contemplated by this Agreement, including the Merger, and to carry out fully the purposes of this Agreement.",
+      "categories_used": [
+        "Covenants  >  Efforts",
+        "Conditions to Closing  >  General and Mutual Conditions",
+        "Covenants  >  Conduct of Business"
+      ]
+    },
+    {
+      "section": "Best_Efforts",
+      "field_name": "best_efforts_deadline",
+      "answer": "Not found",
+      "categories_used": [
+        "Covenants  >  Efforts",
+        "Conditions to Closing  >  General and Mutual Conditions",
+        "Termination  >  End Date Termination Right"
+      ]
+    },
+    {
+      "section": "Best_Efforts",
+      "field_name": "best_efforts_limitations",
+      "answer": "Not found",
+      "categories_used": [
+        "Covenants  >  Efforts",
+        "Conditions to Closing  >  General and Mutual Conditions",
+        "Representations & Warranties  >  Material Adverse Effect"
+      ]
+    },
+    {
+      "section": "Best_Efforts",
+      "field_name": "buyer_failure_remedy",
+      "answer": "Not found",
+      "categories_used": [
+        "Covenants  >  Efforts",
+        "Miscellaneous  >  Specific Performance",
+        "Termination  >  Other Termination Rights"
+      ]
+    },
+    {
+      "section": "Best_Efforts",
+      "field_name": "seller_failure_remedy",
+      "answer": "Not found",
+      "categories_used": [
+        "Covenants  >  Efforts",
+        "Miscellaneous  >  Specific Performance",
+        "Termination  >  Other Termination Rights"
+      ]
+    },
+    {
+      "section": "Best_Efforts",
+      "field_name": "best_efforts_interaction_with_other_covenants",
+      "answer": "Not found",
+      "categories_used": [
+        "Covenants  >  Efforts",
+        "Miscellaneous  >  Contract Construction Terms",
+        "Miscellaneous  >  Legal Enforcement"
+      ]
+    },
+    {
+      "section": "Best_Efforts",
+      "field_name": "custom_best_efforts_provisions",
+      "answer": "Not found",
+      "categories_used": [
+        "Covenants  >  Efforts",
+        "Conditions to Closing  >  General and Mutual Conditions",
+        "Covenants  >  Conduct of Business"
+      ]
+    }
+  ],
+  "Board_Approval": [
+    {
+      "section": "Board_Approval",
+      "field_name": "target_board_approval_given",
+      "answer": "true",
+      "categories_used": [
+        "Representations & Warranties  >  Recommendation of the Target Board",
+        "The Merger  >  Directors & Officers",
+        "Covenants  >  Shareholder Vote/Meeting"
+      ]
+    },
+    {
+      "section": "Board_Approval",
+      "field_name": "acquirer_board_approval_given",
+      "answer": "true",
+      "categories_used": [
+        "Representations & Warranties  >  By the Buyer",
+        "The Merger  >  Deal Structure",
+        "Conditions to Closing  >  General and Mutual Conditions"
+      ]
+    },
+    {
+      "section": "Board_Approval",
+      "field_name": "target_board_recommendation_included",
+      "answer": "true",
+      "categories_used": [
+        "Representations & Warranties  >  Recommendation of the Target Board",
+        "Covenants  >  Shareholder Vote/Meeting",
+        "The Merger  >  Shareholder Vote Mechanics"
+      ]
+    },
+    {
+      "section": "Board_Approval",
+      "field_name": "change_of_recommendation_right_present",
+      "answer": "Not found",
+      "categories_used": [
+        "Covenants  >  Shareholder Vote/Meeting",
+        "Representations & Warranties  >  Recommendation of the Target Board",
+        "The Merger  >  Shareholder Vote Mechanics"
+      ]
+    },
+    {
+      "section": "Board_Approval",
+      "field_name": "change_of_recommendation_conditions",
+      "answer": "superior proposal, intervening event, board fiduciary duties; procedural steps include notifying Parent, providing proposed agreements, negotiating in good faith for four business days, and determining in good faith that the proposal still constitutes a Superior Proposal or that failure to change recommendation would be inconsistent with fiduciary duties",
+      "categories_used": [
+        "Covenants  >  Deal Protection",
+        "Representations & Warranties  >  Recommendation of the Target Board",
+        "The Merger  >  Shareholder Vote Mechanics"
+      ]
+    },
+    {
+      "section": "Board_Approval",
+      "field_name": "buyer_notice_before_recommendation_change",
+      "answer": "true",
+      "categories_used": [
+        "Covenants  >  Notification / Publicity",
+        "Representations & Warranties  >  Recommendation of the Target Board",
+        "Miscellaneous  >  Notices"
+      ]
+    },
+    {
+      "section": "Board_Approval",
+      "field_name": "negotiation_period_before_change",
+      "answer": "four (4) Business Days",
+      "categories_used": [
+        "Covenants  >  Deal Protection",
+        "Miscellaneous  >  Notices",
+        "Miscellaneous  >  Contract Construction Terms"
+      ]
+    },
+    {
+      "section": "Board_Approval",
+      "field_name": "board_resolutions_required_at_closing",
+      "answer": "Not found",
+      "categories_used": [
+        "The Merger  >  Closing Deliverables",
+        "The Merger  >  Post-Closing Board and Management",
+        "Conditions to Closing  >  General and Mutual Conditions"
+      ]
+    },
+    {
+      "section": "Board_Approval",
+      "field_name": "board_approval_timing_summary",
+      "answer": "Not found",
+      "categories_used": [
+        "The Merger  >  Post-Closing Board and Management",
+        "Covenants  >  Shareholder Vote/Meeting",
+        "Conditions to Closing  >  General and Mutual Conditions"
+      ]
+    }
+  ],
+  "Breach_Monitoring_and_Ongoing_Operations": [
+    {
+      "section": "Breach_Monitoring_and_Ongoing_Operations",
+      "field_name": "breach_notification_obligation",
+      "answer": "true",
+      "categories_used": [
+        "Covenants  >  Notification / Publicity",
+        "Miscellaneous  >  Notices",
+        "Termination  >  Notice of Termination"
+      ]
+    },
+    {
+      "section": "Breach_Monitoring_and_Ongoing_Operations",
+      "field_name": "ongoing_accuracy_requirement",
+      "answer": "each of the representations and warranties of Parent and Merger Sub shall be true and correct in all respects (other than de minimis inaccuracies) as of the Closing Date, and in all material respects without giving effect to any materiality or 'Material Adverse Effect on Parent' qualifications therein, except where the failure to be true and correct has not had, and would not reasonably be expected to have, a Material Adverse Effect on Parent",
+      "categories_used": [
+        "Representations & Warranties  >  By the Buyer",
+        "Covenants  >  Conduct of Business",
+        "Conditions to Closing  >  General and Mutual Conditions"
+      ]
+    },
+    {
+      "section": "Breach_Monitoring_and_Ongoing_Operations",
+      "field_name": "disclosure_schedule_update_rights",
+      "answer": "Not found",
+      "categories_used": [
+        "Disclosure & Attachments  >  Disclosure Schedules",
+        "Covenants  >  Conduct of Business",
+        "Representations & Warranties  >  By the Target"
+      ]
+    },
+    {
+      "section": "Breach_Monitoring_and_Ongoing_Operations",
+      "field_name": "cure_period_for_breach",
+      "answer": "Not found",
+      "categories_used": [
+        "Miscellaneous  >  Legal Enforcement",
+        "Termination  >  Other Termination Rights",
+        "Miscellaneous  >  Dispute Resolution"
+      ]
+    },
+    {
+      "section": "Breach_Monitoring_and_Ongoing_Operations",
+      "field_name": "termination_right_for_breach",
+      "answer": "Not found",
+      "categories_used": [
+        "Termination  >  Other Termination Rights",
+        "Miscellaneous  >  Legal Enforcement",
+        "Miscellaneous  >  Dispute Resolution"
+      ]
+    },
+    {
+      "section": "Breach_Monitoring_and_Ongoing_Operations",
+      "field_name": "materiality_standard_for_breach",
+      "answer": "Material Adverse Effect",
+      "categories_used": [
+        "Termination  >  Other Termination Rights",
+        "Miscellaneous  >  Legal Enforcement",
+        "Representations & Warranties  >  Material Adverse Effect"
+      ]
+    },
+    {
+      "section": "Breach_Monitoring_and_Ongoing_Operations",
+      "field_name": "supplemental_disclosure_requirements",
+      "answer": "Not found",
+      "categories_used": [
+        "Covenants  >  Notification / Publicity",
+        "Disclosure & Attachments  >  Disclosure Schedules",
+        "Covenants  >  Conduct of Business"
+      ]
+    },
+    {
+      "section": "Breach_Monitoring_and_Ongoing_Operations",
+      "field_name": "buyer_operational_monitoring_rights",
+      "answer": "In each case solely for the purposes of preparing for and effecting the transactions and other matters contemplated by this Agreement (including the Financing), transition and integration planning and reviewing the performance and operation of the Company (and not following the commencement of any adverse Proceeding between the parties or their Affiliates) (the \"Intended Purpose\"), the Company shall (and shall cause each of its Subsidiaries to) afford reasonable access to Parent's Representatives, during normal business hours and upon reasonable notice, throughout the period from the date of this Agreement to the Effective Time (or until the earlier termination of this Agreement in accordance with Section 7.1), to the personnel, advisors, properties, books and records of the Company and its Subsidiaries and, during such period, shall (and shall cause each of its Subsidiaries to) furnish reasonably promptly to such Representatives all information concerning the business, properties and personnel of the Company and its Subsidiaries, and to provide copies thereof, as may reasonably be requested for the Intended Purpose; provided, however, that nothing herein shall require the Company or any of its Subsidiaries to disclose any information to Parent or Merger Sub if such disclosure would, in the reasonable judgment of the Company, (a) violate applicable Law or the provisions of any agreement to which the Company or any of its Subsidiaries is a party or (b) jeopardize any attorney-client or other legal privilege; provided, further, that in each such case, the Company shall cooperate with Parent to enable Parent and Parent's Representatives to enter into appropriate confidentiality, joint defense or similar documents or arrangements so that Parent and Parent's Representatives may have access to such information.",
+      "categories_used": [
+        "Covenants  >  Access",
+        "Covenants  >  Conduct of Business",
+        "Financing Provisions  >  Financial Statement Delivery"
+      ]
+    }
+  ],
+  "Clean_Room_Agreement": [
+    {
+      "section": "Clean_Room_Agreement",
+      "field_name": "clean_room_agreement_required",
+      "answer": "false",
+      "categories_used": [
+        "Covenants  >  AI, Privacy & Cybersecurity",
+        "Covenants  >  Access",
+        "Covenants  >  Conduct of Business"
+      ]
+    },
+    {
+      "section": "Clean_Room_Agreement",
+      "field_name": "clean_room_data_scope",
+      "answer": "Not found",
+      "categories_used": [
+        "Covenants  >  AI, Privacy & Cybersecurity",
+        "Covenants  >  Access",
+        "Covenants  >  Conduct of Business"
+      ]
+    },
+    {
+      "section": "Clean_Room_Agreement",
+      "field_name": "clean_room_access_restrictions",
+      "answer": "Not found",
+      "categories_used": [
+        "Covenants  >  Access",
+        "Covenants  >  AI, Privacy & Cybersecurity",
+        "Covenants  >  Conduct of Business"
+      ]
+    },
+    {
+      "section": "Clean_Room_Agreement",
+      "field_name": "third_party_clean_room_administrator",
+      "answer": "Not found",
+      "categories_used": [
+        "Covenants  >  AI, Privacy & Cybersecurity",
+        "Miscellaneous  >  Administrative Terms",
+        "Covenants  >  Access"
+      ]
+    },
+    {
+      "section": "Clean_Room_Agreement",
+      "field_name": "permitted_use_of_clean_room_data",
+      "answer": "Not found",
+      "categories_used": [
+        "Covenants  >  AI, Privacy & Cybersecurity",
+        "Covenants  >  Access",
+        "Covenants  >  Conduct of Business"
+      ]
+    },
+    {
+      "section": "Clean_Room_Agreement",
+      "field_name": "clean_room_data_destruction_or_return_obligation",
+      "answer": "Not found",
+      "categories_used": [
+        "Covenants  >  AI, Privacy & Cybersecurity",
+        "Covenants  >  Access",
+        "Miscellaneous  >  Legal Enforcement"
+      ]
+    },
+    {
+      "section": "Clean_Room_Agreement",
+      "field_name": "clean_room_restrictions_duration",
+      "answer": "until any termination of this Agreement in accordance with its terms",
+      "categories_used": [
+        "Covenants  >  AI, Privacy & Cybersecurity",
+        "Termination  >  End Date Termination Right",
+        "Covenants  >  Access"
+      ]
+    }
+  ],
+  "Closing": [
+    {
+      "section": "Closing",
+      "field_name": "closing_date_mechanics",
+      "answer": "no later than the third (3rd) Business Day after the satisfaction or waiver of the conditions set forth in Article VI",
+      "categories_used": [
+        "The Merger  >  Effective Time & Closing Process",
+        "Conditions to Closing  >  General and Mutual Conditions",
+        "The Merger  >  Mechanics and Statutory Effects"
+      ]
+    },
+    {
+      "section": "Closing",
+      "field_name": "closing_location_or_method",
+      "answer": "at the offices of Skadden, Arps, Slate, Meagher & Flom LLP, 320 South Canal Street, Chicago, Illinois 60606",
+      "categories_used": [
+        "The Merger  >  Effective Time & Closing Process",
+        "The Merger  >  Closing Deliverables",
+        "Miscellaneous  >  Administrative Terms"
+      ]
+    },
+    {
+      "section": "Closing",
+      "field_name": "target_closing_deliverables",
+      "answer": "Not found",
+      "categories_used": [
+        "The Merger  >  Closing Deliverables",
+        "Conditions to Closing  >  Party-Specific Conditions",
+        "The Merger  >  Effective Time & Closing Process"
+      ]
+    },
+    {
+      "section": "Closing",
+      "field_name": "acquirer_closing_deliverables",
+      "answer": "Not found",
+      "categories_used": [
+        "The Merger  >  Closing Deliverables",
+        "Conditions to Closing  >  Party-Specific Conditions",
+        "The Merger  >  Effective Time & Closing Process"
+      ]
+    },
+    {
+      "section": "Closing",
+      "field_name": "certificate_of_merger_effectiveness_timing",
+      "answer": "Not found",
+      "categories_used": [
+        "The Merger  >  Effectiveness",
+        "The Merger  >  Certificate of Merger",
+        "The Merger  >  Effective Time & Closing Process"
+      ]
+    },
+    {
+      "section": "Closing",
+      "field_name": "post_closing_deliverables",
+      "answer": "Not found",
+      "categories_used": [
+        "The Merger  >  Post-Closing Board and Management",
+        "Covenants  >  Conduct of Business",
+        "Financing Provisions  >  Financial Statement Delivery"
+      ]
+    },
+    {
+      "section": "Closing",
+      "field_name": "closing_triggered_board_or_officer_transitions",
+      "answer": "Prior to the Effective Time, upon Parent's request at least ten (10) days prior to the Effective Time, the Company shall use commercially reasonable efforts to cause any director of the Company to execute and deliver a letter in a form reasonably acceptable to Parent, effectuating his or her resignation as a director of such entity effective as of the Effective Time. Prior to the Effective Time, Parent shall take all necessary corporate action so that, upon the Effective Time, each of Jesse Singh, Gary Hendrickson and Howard Heckes is appointed to the Parent Board as a director.",
+      "categories_used": [
+        "The Merger  >  Directors & Officers",
+        "The Merger  >  Post-Closing Board and Management",
+        "The Merger  >  Effective Time & Closing Process"
+      ]
+    }
+  ],
+  "Company_Material_Adverse_Change": [
+    {
+      "section": "Company_Material_Adverse_Change",
+      "field_name": "cmac_definition_text",
+      "answer": "\\",
+      "categories_used": [
+        "Definitions  >  Material Adverse Effects",
+        "Representations & Warranties  >  Material Adverse Effect",
+        "Termination  >  Other Termination Rights"
+      ]
+    },
+    {
+      "section": "Company_Material_Adverse_Change",
+      "field_name": "cmac_used_as_closing_condition",
+      "answer": "Not found",
+      "categories_used": [
+        "Conditions to Closing  >  General and Mutual Conditions",
+        "Definitions  >  Material Adverse Effects",
+        "Termination  >  Other Termination Rights"
+      ]
+    },
+    {
+      "section": "Company_Material_Adverse_Change",
+      "field_name": "cmac_used_as_termination_right",
+      "answer": "Not found",
+      "categories_used": [
+        "Termination  >  Other Termination Rights",
+        "Definitions  >  Material Adverse Effects",
+        "Representations & Warranties  >  Material Adverse Effect"
+      ]
+    },
+    {
+      "section": "Company_Material_Adverse_Change",
+      "field_name": "cmac_exclusions_list",
+      "answer": "changes in general economic, financial market, regulatory, business, financial, political, geopolitical, credit or capital market conditions, including interest or exchange rates, tariffs and trade wars; general changes or developments in any of the industries or markets in which such Person or any of its Subsidiaries operate; adoption, implementation, repeal, modification or amendment of any applicable Laws or changes in GAAP; acts of war (whether or not declared), hostilities, military actions or acts of terrorism, cyberterrorism (to the extent not specifically targeting such Person), or any escalation or worsening of the foregoing, weather related events, fires, natural disasters, epidemics, pandemics, plagues or other outbreaks of illness or disease or public health events (including COVID-19) or any other acts of God",
+      "categories_used": [
+        "Definitions  >  Material Adverse Effects",
+        "Termination  >  Other Termination Rights",
+        "Representations & Warranties  >  Material Adverse Effect"
+      ]
+    },
+    {
+      "section": "Company_Material_Adverse_Change",
+      "field_name": "cmac_exclusion_carvebacks",
+      "answer": "the exceptions in clauses (i) through (iii) and (vi) shall not apply to the extent the events, circumstances, occurrences, effects, facts, developments or changes set forth in such clauses have a disproportionate impact on such Person and its Subsidiaries, taken as a whole, relative to the other participants in the industries in which such Person and its Subsidiaries operate.",
+      "categories_used": [
+        "Definitions  >  Material Adverse Effects",
+        "Termination  >  Other Termination Rights",
+        "Representations & Warranties  >  Material Adverse Effect"
+      ]
+    },
+    {
+      "section": "Company_Material_Adverse_Change",
+      "field_name": "cmac_temporal_scope_description",
+      "answer": "Not specified",
+      "categories_used": [
+        "Definitions  >  Material Adverse Effects",
+        "Termination  >  End Date Termination Right",
+        "The Merger  >  Effective Time & Closing Process"
+      ]
+    },
+    {
+      "section": "Company_Material_Adverse_Change",
+      "field_name": "cmac_quantitative_thresholds",
+      "answer": "Not stated",
+      "categories_used": [
+        "Definitions  >  Material Adverse Effects",
+        "Representations & Warranties  >  Material Adverse Effect",
+        "Termination  >  Other Termination Rights"
+      ]
+    },
+    {
+      "section": "Company_Material_Adverse_Change",
+      "field_name": "cmac_cross_referenced_sections",
+      "answer": "Section 6.3, Section 6.2",
+      "categories_used": [
+        "Definitions  >  Material Adverse Effects",
+        "Representations & Warranties  >  Material Adverse Effect",
+        "Conditions to Closing  >  General and Mutual Conditions"
+      ]
+    },
+    {
+      "section": "Company_Material_Adverse_Change",
+      "field_name": "mae_unusual_structure_flag",
+      "answer": "false",
+      "categories_used": [
+        "Definitions  >  Material Adverse Effects",
+        "Representations & Warranties  >  Material Adverse Effect",
+        "Termination  >  Other Termination Rights"
+      ]
+    },
+    {
+      "section": "Company_Material_Adverse_Change",
+      "field_name": "biotech_mae_carveouts_present",
+      "answer": "Not found",
+      "categories_used": [
+        "Definitions  >  Material Adverse Effects",
+        "Representations & Warranties  >  Material Adverse Effect",
+        "Covenants  >  Conduct of Business"
+      ]
+    },
+    {
+      "section": "Company_Material_Adverse_Change",
+      "field_name": "biotech_mae_carveouts_summary",
+      "answer": "Not found",
+      "categories_used": [
+        "Definitions  >  Material Adverse Effects",
+        "Representations & Warranties  >  Material Adverse Effect",
+        "Covenants  >  Conduct of Business"
+      ]
+    },
+    {
+      "section": "Company_Material_Adverse_Change",
+      "field_name": "biotech_mae_disproportionate_effects",
+      "answer": "Not found",
+      "categories_used": [
+        "Definitions  >  Material Adverse Effects",
+        "Representations & Warranties  >  Material Adverse Effect",
+        "Covenants  >  Conduct of Business"
+      ]
+    }
+  ],
+  "Complete_Effects_on_Capital_Stock": [
+    {
+      "section": "Complete_Effects_on_Capital_Stock",
+      "field_name": "stock_effect_summary",
+      "answer": "The merger results in the cancellation of each share of Company Common Stock issued and outstanding immediately prior to the Effective Time, which is converted into the right to receive $26.45 per share in cash and a number of Parent Shares equal to the Exchange Ratio. Company RSU Awards and PSU Awards are assumed by Parent and converted into Adjusted RSUs and Cash Awards. Company Stock Options are either canceled for cash or assumed by Parent and converted into options to purchase Parent Shares. No fractional Parent Shares are issued; instead, cash is paid in lieu of fractional shares.",
+      "categories_used": [
+        "The Merger  >  Mechanics and Statutory Effects",
+        "The Merger  >  Merger Consideration",
+        "The Merger  >  Effectiveness"
+      ]
+    },
+    {
+      "section": "Complete_Effects_on_Capital_Stock",
+      "field_name": "treatment_of_common_stock",
+      "answer": "Each share of Company Common Stock issued and outstanding immediately prior to the Effective Time (other than Canceled Shares and Dissenting Shares) shall be automatically canceled and converted into the right to receive, in accordance with the terms of this Agreement (A) $26.45 per share in cash, without interest, from Parent (such amount of cash, the \"Cash Consideration\"), and (B) a number of validly issued, fully paid and nonassessable shares, par value EUR 0.59 per share, of Parent (the \"Parent Shares\") equal to the Exchange Ratio (and, if applicable, cash in lieu of fractional Parent Shares payable in accordance with Section 2.1(c)) (such Parent Shares and any such cash in lieu of fractional shares, together with the Cash Consideration, the \"Merger Consideration\"), subject to any required Tax withholding as provided in Section 2.8.",
+      "categories_used": [
+        "The Merger  >  Merger Consideration",
+        "The Merger  >  Exchange Procedures",
+        "The Merger  >  Mechanics and Statutory Effects"
+      ]
+    },
+    {
+      "section": "Complete_Effects_on_Capital_Stock",
+      "field_name": "treatment_of_preferred_stock",
+      "answer": "Not found",
+      "categories_used": [
+        "The Merger  >  Merger Consideration",
+        "The Merger  >  Mechanics and Statutory Effects",
+        "The Merger  >  Residual Terms"
+      ]
+    },
+    {
+      "section": "Complete_Effects_on_Capital_Stock",
+      "field_name": "treatment_of_options",
+      "answer": "As of the Effective Time, each compensatory option to purchase Company Common Stock (each, a 'Company Stock Option') that is outstanding immediately prior to the Effective Time and (A) that is vested, (B) that was granted to a holder who, as of immediately prior to the Effective Time, is no longer an employee of the Company or its Subsidiaries or (C) that was granted to a non-employee member of the Company Board (each, a 'Settled Stock Option'), shall be canceled without any action on the part of any holder thereof in consideration for the right to receive the Merger Consideration Value in respect of each Net Option Share subject to such Company Stock Option immediately prior to the Effective Time (the 'Settled Stock Option Consideration').",
+      "categories_used": [
+        "The Merger  >  Merger Consideration",
+        "Covenants  >  Employee Matters",
+        "The Merger  >  Mechanics and Statutory Effects"
+      ]
+    },
+    {
+      "section": "Complete_Effects_on_Capital_Stock",
+      "field_name": "treatment_of_restricted_stock",
+      "answer": "As of the Effective Time, each time-based restricted stock unit award relating to shares of Company Common Stock that was granted to a non-employee member of the Company Board shall, to the extent not vested, become fully vested, and shall be canceled in consideration for the right to receive the Merger Consideration. Each Company RSU Award, other than any Company Director RSU Award, shall be assumed by Parent and converted into a time-based restricted stock unit award of Parent and a cash award. Each performance-based restricted stock unit shall be assumed by Parent and converted into an Adjusted RSU and a Cash Award, with performance-based vesting conditions not applying from and after the Effective Time.",
+      "categories_used": [
+        "The Merger  >  Mechanics and Statutory Effects",
+        "Covenants  >  Employee Matters",
+        "The Merger  >  Merger Consideration"
+      ]
+    },
+    {
+      "section": "Complete_Effects_on_Capital_Stock",
+      "field_name": "treatment_of_warrants",
+      "answer": "Not found",
+      "categories_used": [
+        "The Merger  >  Merger Consideration",
+        "The Merger  >  Mechanics and Statutory Effects",
+        "The Merger  >  Deal Structure"
+      ]
+    },
+    {
+      "section": "Complete_Effects_on_Capital_Stock",
+      "field_name": "new_issuance_rights",
+      "answer": "false",
+      "categories_used": [
+        "The Merger  >  Merger Consideration",
+        "The Merger  >  Mechanics and Statutory Effects",
+        "The Merger  >  Post-Closing Board and Management"
+      ]
+    },
+    {
+      "section": "Complete_Effects_on_Capital_Stock",
+      "field_name": "changes_in_voting_rights",
+      "answer": "Not found",
+      "categories_used": [
+        "The Merger  >  Charter & Bylaws Amendments",
+        "Covenants  >  Shareholder Vote/Meeting",
+        "The Merger  >  Shareholder Vote Mechanics"
+      ]
+    },
+    {
+      "section": "Complete_Effects_on_Capital_Stock",
+      "field_name": "fractional_share_handling",
+      "answer": "In lieu of any such fractional shares, each record holder of Company Common Stock who would otherwise be entitled to such fractional shares shall be entitled to an amount in cash, without interest, rounded down to the nearest cent, equal to the product of (i) the amount of the fractional share interest in a share of Parent Shares to which such holder would, but for this Section 2.1(c), be entitled under Section 2.1(a)(ii) and (ii) the Parent Share Price.",
+      "categories_used": [
+        "The Merger  >  Merger Consideration",
+        "The Merger  >  Mechanics and Statutory Effects",
+        "The Merger  >  Exchange Procedures"
+      ]
+    },
+    {
+      "section": "Complete_Effects_on_Capital_Stock",
+      "field_name": "conversion_ratios",
+      "answer": "Exchange Ratio",
+      "categories_used": [
+        "The Merger  >  Merger Consideration",
+        "The Merger  >  Mechanics and Statutory Effects",
+        "Financing Provisions  >  Purchase Price Allocation"
+      ]
+    },
+    {
+      "section": "Complete_Effects_on_Capital_Stock",
+      "field_name": "capitalization_table_post_merger",
+      "answer": "Not found",
+      "categories_used": [
+        "The Merger  >  Post-Closing Board and Management",
+        "The Merger  >  Merger Consideration",
+        "Disclosure & Attachments  >  Disclosure Schedules"
+      ]
+    },
+    {
+      "section": "Complete_Effects_on_Capital_Stock",
+      "field_name": "conditions_affecting_conversion",
+      "answer": "Not found",
+      "categories_used": [
+        "The Merger  >  Merger Consideration",
+        "The Merger  >  Mechanics and Statutory Effects",
+        "Financing Provisions  >  Equity Commitment Letter"
+      ]
+    },
+    {
+      "section": "Complete_Effects_on_Capital_Stock",
+      "field_name": "tax_treatment_of_stockholders",
+      "answer": "Not found",
+      "categories_used": [
+        "Covenants  >  Tax Matters",
+        "The Merger  >  Merger Consideration",
+        "Financing Provisions  >  Tax Treatment of Transaction"
+      ]
+    },
+    {
+      "section": "Complete_Effects_on_Capital_Stock",
+      "field_name": "exceptions_to_standard_treatment",
+      "answer": "Dissenting Shares",
+      "categories_used": [
+        "The Merger  >  Merger Consideration",
+        "The Merger  >  Mechanics and Statutory Effects",
+        "The Merger  >  Exchange Procedures"
+      ]
+    },
+    {
+      "section": "Complete_Effects_on_Capital_Stock",
+      "field_name": "different_treatment_for_stock_classes",
+      "answer": "true",
+      "categories_used": [
+        "The Merger  >  Merger Consideration",
+        "The Merger  >  Mechanics and Statutory Effects",
+        "The Merger  >  Exchange Procedures"
+      ]
+    },
+    {
+      "section": "Complete_Effects_on_Capital_Stock",
+      "field_name": "special_treatment_for_management_or_investors",
+      "answer": "Not found",
+      "categories_used": [
+        "The Merger  >  Post-Closing Board and Management",
+        "Covenants  >  Employee Matters",
+        "The Merger  >  Merger Consideration"
+      ]
+    },
+    {
+      "section": "Complete_Effects_on_Capital_Stock",
+      "field_name": "formulas_or_tables_referenced",
+      "answer": "Not found",
+      "categories_used": [
+        "The Merger  >  Merger Consideration",
+        "The Merger  >  Mechanics and Statutory Effects",
+        "Disclosure & Attachments  >  Disclosure Schedules"
+      ]
+    },
+    {
+      "section": "Complete_Effects_on_Capital_Stock",
+      "field_name": "consideration_election_mechanics",
+      "answer": "Not found",
+      "categories_used": [
+        "The Merger  >  Merger Consideration",
+        "The Merger  >  Exchange Procedures",
+        "The Merger  >  Shareholder Vote Mechanics"
+      ]
+    },
+    {
+      "section": "Complete_Effects_on_Capital_Stock",
+      "field_name": "proration_calculation_method",
+      "answer": "Not found",
+      "categories_used": [
+        "The Merger  >  Merger Consideration",
+        "The Merger  >  Exchange Procedures",
+        "Financing Provisions  >  Purchase Price Allocation"
+      ]
+    },
+    {
+      "section": "Complete_Effects_on_Capital_Stock",
+      "field_name": "cvr_terms_summary",
+      "answer": "Not found",
+      "categories_used": [
+        "The Merger  >  Merger Consideration",
+        "Financing Provisions  >  Purchase Price Allocation",
+        "Conditions to Closing  >  General and Mutual Conditions"
+      ]
+    },
+    {
+      "section": "Complete_Effects_on_Capital_Stock",
+      "field_name": "contingent_payment_conditions",
+      "answer": "Not found",
+      "categories_used": [
+        "The Merger  >  Merger Consideration",
+        "Financing Provisions  >  Purchase Price Allocation",
+        "Conditions to Closing  >  General and Mutual Conditions"
+      ]
+    },
+    {
+      "section": "Complete_Effects_on_Capital_Stock",
+      "field_name": "forms_of_consideration_used",
+      "answer": "cash, Parent Shares",
+      "categories_used": [
+        "The Merger  >  Merger Consideration",
+        "Financing Provisions  >  Purchase Price Allocation",
+        "The Merger  >  Deal Structure"
+      ]
+    }
+  ],
+  "Conditions_to_Closing": [
+    {
+      "section": "Conditions_to_Closing",
+      "field_name": "shareholder_approval_condition",
+      "answer": "true",
+      "categories_used": [
+        "Conditions to Closing  >  General and Mutual Conditions",
+        "Conditions to Closing  >  Party-Specific Conditions",
+        "Covenants  >  Shareholder Vote/Meeting"
+      ]
+    },
+    {
+      "section": "Conditions_to_Closing",
+      "field_name": "regulatory_approval_condition",
+      "answer": "HSR Act",
+      "categories_used": [
+        "Conditions to Closing  >  General and Mutual Conditions",
+        "The Merger  >  Statutory Merger Filings",
+        "Covenants  >  Efforts"
+      ]
+    },
+    {
+      "section": "Conditions_to_Closing",
+      "field_name": "no_legal_restraints_condition",
+      "answer": "true",
+      "categories_used": [
+        "Conditions to Closing  >  General and Mutual Conditions",
+        "Miscellaneous  >  Legal Enforcement",
+        "Covenants  >  Transaction Litigation"
+      ]
+    },
+    {
+      "section": "Conditions_to_Closing",
+      "field_name": "accuracy_of_representations_condition",
+      "answer": "true and correct in all material respects as of the Closing Date",
+      "categories_used": [
+        "Conditions to Closing  >  General and Mutual Conditions",
+        "Representations & Warranties  >  By the Buyer",
+        "Representations & Warranties  >  By the Target"
+      ]
+    },
+    {
+      "section": "Conditions_to_Closing",
+      "field_name": "compliance_with_covenants_condition",
+      "answer": "true",
+      "categories_used": [
+        "Conditions to Closing  >  General and Mutual Conditions",
+        "Covenants  >  Conduct of Business",
+        "Representations & Warranties  >  By the Target"
+      ]
+    },
+    {
+      "section": "Conditions_to_Closing",
+      "field_name": "officers_certificate_condition",
+      "answer": "true",
+      "categories_used": [
+        "Conditions to Closing  >  General and Mutual Conditions",
+        "The Merger  >  Closing Deliverables",
+        "Representations & Warranties  >  By the Target"
+      ]
+    },
+    {
+      "section": "Conditions_to_Closing",
+      "field_name": "third_party_consents_condition",
+      "answer": "Not found",
+      "categories_used": [
+        "Conditions to Closing  >  General and Mutual Conditions",
+        "Conditions to Closing  >  Party-Specific Conditions",
+        "Covenants  >  Conduct of Business"
+      ]
+    },
+    {
+      "section": "Conditions_to_Closing",
+      "field_name": "absence_of_material_adverse_effect_condition",
+      "answer": "true",
+      "categories_used": [
+        "Conditions to Closing  >  General and Mutual Conditions",
+        "Representations & Warranties  >  Material Adverse Effect",
+        "Definitions  >  Material Adverse Effects"
+      ]
+    },
+    {
+      "section": "Conditions_to_Closing",
+      "field_name": "financing_condition",
+      "answer": "false",
+      "categories_used": [
+        "Conditions to Closing  >  Party-Specific Conditions",
+        "Financing Provisions  >  Debt Financing",
+        "Covenants  >  Financing Cooperation"
+      ]
+    },
+    {
+      "section": "Conditions_to_Closing",
+      "field_name": "stock_exchange_listing_condition",
+      "answer": "true",
+      "categories_used": [
+        "Conditions to Closing  >  General and Mutual Conditions",
+        "Covenants  >  Listing/Delisting",
+        "The Merger  >  Merger Consideration"
+      ]
+    },
+    {
+      "section": "Conditions_to_Closing",
+      "field_name": "execution_of_ancillary_agreements_condition",
+      "answer": "Not found",
+      "categories_used": [
+        "Conditions to Closing  >  General and Mutual Conditions",
+        "The Merger  >  Closing Deliverables",
+        "Covenants  >  Employee Matters"
+      ]
+    },
+    {
+      "section": "Conditions_to_Closing",
+      "field_name": "tax_opinion_condition",
+      "answer": "Not found",
+      "categories_used": [
+        "Conditions to Closing  >  General and Mutual Conditions",
+        "Covenants  >  Tax Matters",
+        "Financing Provisions  >  Tax Treatment of Transaction"
+      ]
+    },
+    {
+      "section": "Conditions_to_Closing",
+      "field_name": "other_mutual_conditions_condition",
+      "answer": "Not found",
+      "categories_used": [
+        "Conditions to Closing  >  General and Mutual Conditions",
+        "Miscellaneous  >  Specific Performance",
+        "Miscellaneous  >  Dispute Resolution"
+      ]
+    },
+    {
+      "section": "Conditions_to_Closing",
+      "field_name": "buyer_no_target_mae_condition",
+      "answer": "true",
+      "categories_used": [
+        "Conditions to Closing  >  Party-Specific Conditions",
+        "Definitions  >  Material Adverse Effects",
+        "Termination  >  Other Termination Rights"
+      ]
+    },
+    {
+      "section": "Conditions_to_Closing",
+      "field_name": "buyer_officer_certificate_condition",
+      "answer": "true",
+      "categories_used": [
+        "Conditions to Closing  >  Party-Specific Conditions",
+        "Representations & Warranties  >  By the Buyer",
+        "The Merger  >  Closing Deliverables"
+      ]
+    },
+    {
+      "section": "Conditions_to_Closing",
+      "field_name": "buyer_target_compliance_with_covenants_condition",
+      "answer": "true",
+      "categories_used": [
+        "Conditions to Closing  >  Party-Specific Conditions",
+        "Covenants  >  Conduct of Business",
+        "The Merger  >  Closing Deliverables"
+      ]
+    },
+    {
+      "section": "Conditions_to_Closing",
+      "field_name": "buyer_target_representations_and_warranties_true_condition",
+      "answer": "true",
+      "categories_used": [
+        "Conditions to Closing  >  Party-Specific Conditions",
+        "Representations & Warranties  >  By the Buyer",
+        "Representations & Warranties  >  By the Target"
+      ]
+    },
+    {
+      "section": "Conditions_to_Closing",
+      "field_name": "buyer_tax_representations_condition",
+      "answer": "Not found",
+      "categories_used": [
+        "Conditions to Closing  >  Party-Specific Conditions",
+        "Covenants  >  Tax Matters",
+        "Representations & Warranties  >  By the Buyer"
+      ]
+    },
+    {
+      "section": "Conditions_to_Closing",
+      "field_name": "target_no_parent_mae_condition",
+      "answer": "true",
+      "categories_used": [
+        "Conditions to Closing  >  Party-Specific Conditions",
+        "Definitions  >  Material Adverse Effects",
+        "Representations & Warranties  >  Material Adverse Effect"
+      ]
+    },
+    {
+      "section": "Conditions_to_Closing",
+      "field_name": "target_officer_certificate_condition",
+      "answer": "true",
+      "categories_used": [
+        "Conditions to Closing  >  Party-Specific Conditions",
+        "Conditions to Closing  >  General and Mutual Conditions",
+        "The Merger  >  Closing Deliverables"
+      ]
+    },
+    {
+      "section": "Conditions_to_Closing",
+      "field_name": "target_parent_compliance_with_covenants_condition",
+      "answer": "true",
+      "categories_used": [
+        "Conditions to Closing  >  Party-Specific Conditions",
+        "Conditions to Closing  >  General and Mutual Conditions",
+        "Covenants  >  Conduct of Business"
+      ]
+    },
+    {
+      "section": "Conditions_to_Closing",
+      "field_name": "target_parent_representations_and_warranties_true_condition",
+      "answer": "true",
+      "categories_used": [
+        "Conditions to Closing  >  Party-Specific Conditions",
+        "Representations & Warranties  >  By the Target",
+        "The Merger  >  Closing Deliverables"
+      ]
+    },
+    {
+      "section": "Conditions_to_Closing",
+      "field_name": "unusual_or_deal_specific_closing_conditions",
+      "answer": "Not found",
+      "categories_used": [
+        "Conditions to Closing  >  General and Mutual Conditions",
+        "Conditions to Closing  >  Party-Specific Conditions",
+        "The Merger  >  Closing Deliverables"
+      ]
+    }
+  ],
+  "Confidentiality_Agreement": [
+    {
+      "section": "Confidentiality_Agreement",
+      "field_name": "pre_existing_confidentiality_agreement_referenced",
+      "answer": "true",
+      "categories_used": [
+        "Covenants  >  Access",
+        "Miscellaneous  >  Contract Construction Terms",
+        "Covenants  >  Notification / Publicity"
+      ]
+    },
+    {
+      "section": "Confidentiality_Agreement",
+      "field_name": "confidentiality_terms_superseded_by_merger_agreement",
+      "answer": "true",
+      "categories_used": [
+        "Covenants  >  Access",
+        "Miscellaneous  >  Contract Construction Terms",
+        "Miscellaneous  >  Legal Enforcement"
+      ]
+    },
+    {
+      "section": "Confidentiality_Agreement",
+      "field_name": "confidentiality_obligations_survive_termination",
+      "answer": "true",
+      "categories_used": [
+        "Covenants  >  AI, Privacy & Cybersecurity",
+        "Termination  >  Other Termination Rights",
+        "Miscellaneous  >  Legal Enforcement"
+      ]
+    },
+    {
+      "section": "Confidentiality_Agreement",
+      "field_name": "confidentiality_obligations_survive_closing",
+      "answer": "Not found",
+      "categories_used": [
+        "Covenants  >  AI, Privacy & Cybersecurity",
+        "Miscellaneous  >  Legal Enforcement",
+        "The Merger  >  Residual Terms"
+      ]
+    },
+    {
+      "section": "Confidentiality_Agreement",
+      "field_name": "confidentiality_duration",
+      "answer": "Not found",
+      "categories_used": [
+        "Covenants  >  AI, Privacy & Cybersecurity",
+        "Miscellaneous  >  Legal Enforcement",
+        "Covenants  >  Conduct of Business"
+      ]
+    },
+    {
+      "section": "Confidentiality_Agreement",
+      "field_name": "permitted_disclosure_exceptions",
+      "answer": "Not found",
+      "categories_used": [
+        "Covenants  >  AI, Privacy & Cybersecurity",
+        "Covenants  >  Notification / Publicity",
+        "Miscellaneous  >  Legal Enforcement"
+      ]
+    },
+    {
+      "section": "Confidentiality_Agreement",
+      "field_name": "mutual_confidentiality_obligations",
+      "answer": "Not found",
+      "categories_used": [
+        "Covenants  >  AI, Privacy & Cybersecurity",
+        "Covenants  >  Notification / Publicity",
+        "Miscellaneous  >  Legal Enforcement"
+      ]
+    },
+    {
+      "section": "Confidentiality_Agreement",
+      "field_name": "confidential_materials_return_or_destruction_clause",
+      "answer": "true",
+      "categories_used": [
+        "Covenants  >  AI, Privacy & Cybersecurity",
+        "Miscellaneous  >  Legal Enforcement",
+        "Termination  >  Other Termination Rights"
+      ]
+    }
+  ],
+  "Covenants": [
+    {
+      "section": "Covenants",
+      "field_name": "conduct_of_business_pre_closing",
+      "answer": "",
+      "categories_used": [
+        "Covenants  >  Conduct of Business",
+        "Covenants  >  Deal Protection",
+        "Covenants  >  Efforts"
+      ]
+    },
+    {
+      "section": "Covenants",
+      "field_name": "access_to_information",
+      "answer": "The Company shall (and shall cause each of its Subsidiaries to) afford reasonable access to Parent's Representatives, during normal business hours and upon reasonable notice, throughout the period from the date of this Agreement to the Effective Time (or until the earlier termination of this Agreement in accordance with Section 7.1), to the personnel, advisors, properties, books and records of the Company and its Subsidiaries and, during such period, shall (and shall cause each of its Subsidiaries to) furnish reasonably promptly to such Representatives all information concerning the business, properties and personnel of the Company and its Subsidiaries, and to provide copies thereof, as may reasonably be requested for the Intended Purpose; provided, however, that nothing herein shall require the Company or any of its Subsidiaries to disclose any information to Parent or Merger Sub if such disclosure would, in the reasonable judgment of the Company, (a) violate applicable Law or the provisions of any agreement to which the Company or any of its Subsidiaries is a party or (b) jeopardize any attorney-client or other legal privilege; provided, further, that in each such case, the Company shall cooperate with Parent to enable Parent and Parent's Representatives to enter into appropriate confidentiality, joint defense or similar documents or arrangements so that Parent and Parent's Representatives may have access to such information.",
+      "categories_used": [
+        "Covenants  >  Access",
+        "Covenants  >  AI, Privacy & Cybersecurity",
+        "Financing Provisions  >  Auditor Access or Coordination"
+      ]
+    },
+    {
+      "section": "Covenants",
+      "field_name": "efforts_to_close_transaction",
+      "answer": "reasonable best efforts",
+      "categories_used": [
+        "Covenants  >  Efforts",
+        "Conditions to Closing  >  General and Mutual Conditions",
+        "The Merger  >  Effective Time & Closing Process"
+      ]
+    },
+    {
+      "section": "Covenants",
+      "field_name": "regulatory_filings_and_approvals",
+      "answer": "Not found",
+      "categories_used": [
+        "Covenants  >  Conduct of Business",
+        "Conditions to Closing  >  General and Mutual Conditions",
+        "The Merger  >  Statutory Merger Filings"
+      ]
+    },
+    {
+      "section": "Covenants",
+      "field_name": "public_announcements",
+      "answer": "So long as this Agreement is in effect, neither Parent, nor the Company, nor any of their respective Affiliates, will disseminate any press release or other public announcement or disclosure concerning this Agreement, the Merger or the other transactions contemplated by this Agreement, except as may be required by Law or the rules of a national securities exchange or to the extent disclosed in or consistent with the Proxy Statement or the Form F-4, without the prior consent of each of the other parties hereto, which consent shall not be unreasonably withheld, conditioned or delayed.",
+      "categories_used": [
+        "Covenants  >  Notification / Publicity",
+        "Covenants  >  Conduct of Business",
+        "Covenants  >  Deal Protection"
+      ]
+    },
+    {
+      "section": "Covenants",
+      "field_name": "no_solicitation",
+      "answer": "The Company shall not, and shall not authorize, and shall use its reasonable best efforts not to permit, any of its Representatives to, directly or indirectly through another Person, (A) initiate, seek, solicit, knowingly facilitate, knowingly encourage (including by way of furnishing any non-public information) or knowingly induce or knowingly take any other action which would reasonably be expected to lead to an Acquisition Proposal, (B) engage in negotiations or discussions with, or provide any non-public information or non-public data to, any Person (other than Parent or any of its Representatives) relating to or for the purpose of encouraging or facilitating, any Acquisition Proposal or grant any waiver or release under any standstill, confidentiality or other similar agreement (except that if the Company Board determines in good faith that the failure to grant any waiver or release would be inconsistent with its fiduciary duties under applicable Law, the Company may waive any such standstill provision in order to permit a third party to make and pursue an Acquisition Proposal).",
+      "categories_used": [
+        "Covenants  >  Deal Protection",
+        "Covenants  >  Conduct of Business",
+        "Termination  >  Other Termination Rights"
+      ]
+    },
+    {
+      "section": "Covenants",
+      "field_name": "stockholder_meeting_and_approval",
+      "answer": "As promptly as reasonably practicable after the execution of this Agreement, the Company shall duly call, give notice of, convene and hold a meeting of its stockholders (the 'Company Stockholders' Meeting') for the purpose of seeking the Company Stockholder Approval, and shall submit such proposal to such holders at the Company Stockholders' Meeting.",
+      "categories_used": [
+        "Covenants  >  Shareholder Vote/Meeting",
+        "The Merger  >  Shareholder Vote Mechanics",
+        "Covenants  >  Proxy Statement Filings"
+      ]
+    },
+    {
+      "section": "Covenants",
+      "field_name": "employee_matters",
+      "answer": "Except where applicable Law requires more favorable treatment, during the Continuation Period, Parent shall, or shall cause a Subsidiary of Parent to, provide to each Covered Employee for so long as such Covered Employee remains an employee of Parent or any of its Subsidiaries during the Continuation Period, (i) base salary or annualized base wage rate, target annual cash incentive opportunity and target annual equity incentive opportunity that are, in each case, no less favorable than the base salary or annualized base wage rate, target annual cash incentive opportunity and target annual equity incentive opportunity provided by the Company or its Subsidiaries to the Covered Employee immediately prior to the Effective Time, (ii) severance payments and benefits that are no less favorable than the severance payments and benefits that such Covered Employee would have been eligible to receive upon a termination of employment under any applicable severance plan, policy, practice or arrangement sponsored or maintained by the Company as of the date of this Agreement (as listed on Section 3.12(a) of the Company Disclosure Letter) and (iii) retirement and health and welfare benefits (excluding any defined benefit pension benefits, retiree welfare benefits, deferred compensation and retiree medical) that are substantially comparable, in the aggregate, to the retirement and health and welfare benefits (excluding any defined benefit pension benefits, retiree welfare benefits, deferred compensation and retiree medical) provided by the Company or its Subsidiaries to Covered Employees immediately prior to the Effective Time.",
+      "categories_used": [
+        "Covenants  >  Employee Matters",
+        "Covenants  >  Conduct of Business",
+        "Covenants  >  Indemnification and Insurance"
+      ]
+    },
+    {
+      "section": "Covenants",
+      "field_name": "indemnification_of_directors_and_officers",
+      "answer": "Parent and Merger Sub agree that all rights to indemnification and exculpation from liabilities, including advancement of expenses, for acts or omissions occurring at or prior to the Effective Time now existing in favor of the current or former directors or officers of the Company shall survive the Merger and shall continue in full force and effect. For a period of six (6) years from the Effective Time, the Surviving Corporation shall, and Parent shall cause the Surviving Corporation to, maintain in effect the exculpation, indemnification and advancement of expenses equivalent to the provisions of the Company's Certificate of Incorporation and Bylaws as in effect immediately prior to the Effective Time. Prior to the Effective Time, the Company shall or, if the Company is unable to, Parent shall cause the Surviving Corporation as of or after the Effective Time to, purchase a six (6)-year prepaid 'tail' policy, with terms, conditions, retentions and limits of liability that are no less favorable than the coverage provided under the Company's existing policies of directors' and officers' liability insurance.",
+      "categories_used": [
+        "Covenants  >  Indemnification and Insurance",
+        "The Merger  >  Directors & Officers",
+        "Covenants  >  Conduct of Business"
+      ]
+    },
+    {
+      "section": "Covenants",
+      "field_name": "buyer_financing_covenants",
+      "answer": "Parent shall, and shall cause its Subsidiaries (including the Borrower) to, use reasonable best efforts to take, or cause to be taken, all actions, and to do, or cause to be done, all things reasonably necessary to consummate the Financing in an amount sufficient, together with cash on hand and amounts available to be drawn on the Parent Credit Facilities, to consummate the Merger and the other transactions contemplated hereby no later than the Closing, including, to the extent necessary to consummate the Merger and such other transactions, using reasonable best efforts to (i) (A) maintain in effect the Debt Letters and in all material respects comply with all of their respective obligations thereunder and (B) negotiate, enter into and deliver definitive agreements with respect to the Financing reflecting the terms contained in the Debt Letters (or with other terms agreed by Parent and the Financing Parties, subject to the restrictions on amendments of the Debt Letters set forth below), so that such agreements are in effect no later than the Closing, and (ii) satisfy on a timely basis all the conditions to the Financing and the definitive agreements related thereto that are in Parent's (or its Subsidiaries' (including the Borrower's)) control.",
+      "categories_used": [
+        "Financing Provisions  >  Debt Financing",
+        "Covenants  >  Financing Cooperation",
+        "Financing Provisions  >  Equity Commitment Letter"
+      ]
+    },
+    {
+      "section": "Covenants",
+      "field_name": "interim_dividend_and_distribution_restrictions",
+      "answer": "The Company shall not, and shall cause its Subsidiaries not to, directly or indirectly: (d) declare, set aside, authorize, make or pay any dividend or other distribution, payable in cash, stock, property or otherwise, with respect to the Company's or any of its Subsidiaries' capital stock or other equity interests, other than cash dividends and distributions paid by any direct or indirect wholly owned Subsidiary of the Company to the Company or any direct or indirect wholly owned Subsidiary of the Company.",
+      "categories_used": [
+        "Covenants  >  Conduct of Business",
+        "Covenants  >  Deal Protection",
+        "Financing Provisions  >  Equity Commitment Letter"
+      ]
+    },
+    {
+      "section": "Covenants",
+      "field_name": "notification_obligations",
+      "answer": "Subject to applicable Law, the Company shall give prompt notice to Parent, and Parent shall give prompt notice to the Company, of (a) the occurrence or non-occurrence of any event whose occurrence or non-occurrence, as the case may be, would reasonably be expected to cause, in the case of the Company, any condition set forth in Section 6.2 not to be satisfied, or in the case of Parent, any condition set forth in Section 6.3 not to be satisfied, at any time from the date of this Agreement to the Effective Time, (b) any notice or other communication received by such party from any Governmental Authority in connection with this Agreement, the Merger or the other transactions contemplated by this Agreement, or from any Person alleging that the consent of such Person is or may be required in connection with the Merger or the other transactions contemplated by this Agreement, if the subject matter of such notice or other communication or the failure of such party to obtain such consent would reasonably be expected to be material to the Company, the Surviving Corporation or Parent and (c) any claims, investigations or Proceedings commenced or, to such party's Knowledge, threatened in writing against, relating to or involving or otherwise affecting such party (including its board of directors) or any of its Subsidiaries that relate to this Agreement, the Merger or the other transactions contemplated by this Agreement.",
+      "categories_used": [
+        "Covenants  >  Notification / Publicity",
+        "Miscellaneous  >  Notices",
+        "Covenants  >  Conduct of Business"
+      ]
+    },
+    {
+      "section": "Covenants",
+      "field_name": "cooperation_covenants",
+      "answer": "",
+      "categories_used": [
+        "Covenants  >  Efforts",
+        "Covenants  >  Access",
+        "Covenants  >  Financing Cooperation"
+      ]
+    },
+    {
+      "section": "Covenants",
+      "field_name": "ai_privacy_and_cybersecurity_compliance",
+      "answer": "Not found",
+      "categories_used": [
+        "Covenants  >  AI, Privacy & Cybersecurity",
+        "Representations & Warranties  >  By the Target",
+        "Covenants  >  Indemnification and Insurance"
+      ]
+    },
+    {
+      "section": "Covenants",
+      "field_name": "change_of_recommendation_conditions",
+      "answer": "superior proposal, intervening event, board fiduciary duties; procedural steps include notifying Parent in writing, providing a copy of proposed agreements, a four-business day negotiation period, and determining in good faith after consultation that the proposal still constitutes a Superior Proposal",
+      "categories_used": [
+        "Covenants  >  Deal Protection",
+        "Representations & Warranties  >  Recommendation of the Target Board",
+        "Covenants  >  Conduct of Business"
+      ]
+    },
+    {
+      "section": "Covenants",
+      "field_name": "go_shop_duration_and_conditions",
+      "answer": "Not found",
+      "categories_used": [
+        "Covenants  >  Deal Protection",
+        "Covenants  >  Conduct of Business",
+        "The Merger  >  Deal Structure"
+      ]
+    },
+    {
+      "section": "Covenants",
+      "field_name": "no_shop_restrictions",
+      "answer": "no solicitation of other offers",
+      "categories_used": [
+        "Covenants  >  Deal Protection",
+        "Covenants  >  Conduct of Business",
+        "Termination  >  Other Termination Rights"
+      ]
+    },
+    {
+      "section": "Covenants",
+      "field_name": "employee_severance_packages",
+      "answer": "Not found",
+      "categories_used": [
+        "Covenants  >  Employee Matters",
+        "Covenants  >  Conduct of Business",
+        "Financing Provisions  >  Purchase Price Allocation"
+      ]
+    },
+    {
+      "section": "Covenants",
+      "field_name": "esg_compliance_and_commitments",
+      "answer": "Not found",
+      "categories_used": [
+        "Covenants  >  ESG & Sustainability",
+        "Representations & Warranties  >  By the Target",
+        "Conditions to Closing  >  General and Mutual Conditions"
+      ]
+    },
+    {
+      "section": "Covenants",
+      "field_name": "financing_commitments",
+      "answer": "Parent shall, and shall cause its Subsidiaries (including the Borrower) to, use reasonable best efforts to take, or cause to be taken, all actions, and to do, or cause to be done, all things reasonably necessary to consummate the Financing in an amount sufficient, together with cash on hand and amounts available to be drawn on the Parent Credit Facilities, to consummate the Merger and the other transactions contemplated hereby no later than the Closing, including, to the extent necessary to consummate the Merger and such other transactions, using reasonable best efforts to (i) (A) maintain in effect the Debt Letters and in all material respects comply with all of their respective obligations thereunder and (B) negotiate, enter into and deliver definitive agreements with respect to the Financing reflecting the terms contained in the Debt Letters (or with other terms agreed by Parent and the Financing Parties, subject to the restrictions on amendments of the Debt Letters set forth below), so that such agreements are in effect no later than the Closing, and (ii) satisfy on a timely basis all the conditions to the Financing and the definitive agreements related thereto that are in Parent's (or its Subsidiaries' (including the Borrower's)) control.",
+      "categories_used": [
+        "Financing Provisions  >  Debt Financing",
+        "Financing Provisions  >  Equity Commitment Letter",
+        "Covenants  >  Financing Cooperation"
+      ]
+    },
+    {
+      "section": "Covenants",
+      "field_name": "post_closing_indemnification",
+      "answer": "Parent and Merger Sub agree that all rights to indemnification and exculpation from liabilities, including advancement of expenses, for acts or omissions occurring at or prior to the Effective Time now existing in favor of the current or former directors or officers of the Company shall survive the Merger and shall continue in full force and effect. For a period of six (6) years from the Effective Time, the Surviving Corporation shall, and Parent shall cause the Surviving Corporation to, maintain in effect the exculpation, indemnification and advancement of expenses equivalent to the provisions of the Company's Certificate of Incorporation and Bylaws as in effect immediately prior to the Effective Time with respect to acts or omissions occurring prior to the Effective Time. Prior to the Effective Time, the Company shall or, if the Company is unable to, Parent shall cause the Surviving Corporation as of or after the Effective Time to, purchase a six (6)-year prepaid 'tail' policy, with terms, conditions, retentions and limits of liability that are no less favorable than the coverage provided under the Company's existing policies of directors' and officers' liability insurance and fiduciary liability insurance, with respect to matters arising on or before the Effective Time.",
+      "categories_used": [
+        "Covenants  >  Indemnification and Insurance",
+        "Miscellaneous  >  Legal Enforcement",
+        "The Merger  >  Post-Closing Board and Management"
+      ]
+    },
+    {
+      "section": "Covenants",
+      "field_name": "proxy_statement_timing_and_filing",
+      "answer": "As promptly as reasonably practicable after the execution of this Agreement, (i) the Company (with Parent's reasonable cooperation) shall prepare and file with the SEC the Proxy Statement in preliminary form and (ii) Parent (with the Company's reasonable cooperation) shall prepare and file with the SEC a registration statement on Form F-4, in which the Proxy Statement will be included as a prospectus, in connection with the registration under the Securities Act of the Parent Shares to be issued in the Merger; provided that, if the SEC determines that Parent is not eligible to file a registration statement on Form F-4, or if Parent and the Company, acting in good faith, so elect, Parent shall instead prepare and file a registration statement on Form S-4 (or successor form) with respect to the Parent Share Issuance, and all references herein to the Form F-4 shall be deemed instead to refer to such registration statement on Form S-4 (or successor form). Each of Parent and the Company shall use its reasonable best efforts to (A) cause the Form F-4 and the Proxy Statement to comply with the applicable rules and regulations promulgated by the SEC, (B) have the Form F-4 declared effective under the Securities Act as promptly as practicable after such filing (including by responding to comments from the SEC), and, prior to the effective date of the Form F-4, take all action reasonably required to be taken under any applicable state securities Laws in connection with the issuance of Parent Shares in connection with the Merger (the \"Parent Share Issuance\") and (C) keep the Form F-4 effective through the Closing Date in order to permit the consummation of the Merger. Each of Parent and the Company shall furnish all information as may be reasonably requested by the other in connection with any such action and the preparation, filing and distribution of the Form F-4 and the Proxy Statement. As promptly as reasonably practicable after the Form F-4 shall have become effective, the Company shall use its reasonable best efforts to cause the Proxy Statement to be mailed to its stockholders.",
+      "categories_used": [
+        "Covenants  >  Proxy Statement Filings",
+        "Covenants  >  Shareholder Vote/Meeting",
+        "The Merger  >  Statutory Merger Filings"
+      ]
+    },
+    {
+      "section": "Covenants",
+      "field_name": "tax_covenants_and_obligations",
+      "answer": "After the date of this Agreement and prior to the Effective Time, Parent and the Company shall cooperate in good faith with respect to Tax matters relevant to integrating their respective Subsidiaries and operations. Each of Parent, the Company, the Surviving Corporation and the Exchange Agent shall be entitled to deduct and withhold, or cause to be deducted and withheld, from any amounts otherwise payable pursuant to this Agreement to any Person such amounts as are required to be deducted and withheld with respect to the making of such payment under the Code or any provision of applicable Tax Law. Except as otherwise provided in Section 2.2(e), all transfer, documentary, sales, use, stamp, registration and other similar Taxes and fees imposed with respect to the cancelation of Company Common Stock and issuance of Parent Shares pursuant to the Merger shall be borne by Parent or Merger Sub and expressly shall not be a liability of holders of Company Common Stock.",
+      "categories_used": [
+        "Covenants  >  Tax Matters",
+        "Financing Provisions  >  Tax Treatment of Transaction",
+        "Covenants  >  Conduct of Business"
+      ]
+    },
+    {
+      "section": "Covenants",
+      "field_name": "litigation_cooperation",
+      "answer": "The Company shall give Parent notice, as soon as possible, of any Proceeding brought by any stockholder of the Company against the Company or its directors or executive officers relating to or in connection with the Merger or the other transactions contemplated by this Agreement, whether commenced prior to or after the execution and delivery of this Agreement. Subject to entry into a customary joint defense agreement, Parent shall have the right to participate in the defense of any such Proceeding. The Company agrees that it shall not compromise or settle or offer to compromise or settle any such Proceeding commenced prior to or after the date of this Agreement against the Company or any of its directors or executive officers by any stockholder of the Company relating to this Agreement, the Merger, any other transaction contemplated by this Agreement or otherwise, without the prior written consent of Parent, such consent not to be unreasonably withheld, conditioned or delayed.",
+      "categories_used": [
+        "Covenants  >  Transaction Litigation",
+        "Miscellaneous  >  Legal Enforcement",
+        "Covenants  >  Access"
+      ]
+    },
+    {
+      "section": "Covenants",
+      "field_name": "ticking_fee_terms",
+      "answer": "Not found",
+      "categories_used": [
+        "Covenants  >  Efforts",
+        "Covenants  >  Deal Protection",
+        "Financing Provisions  >  Debt Financing"
+      ]
+    },
+    {
+      "section": "Covenants",
+      "field_name": "regulatory_efforts_standard",
+      "answer": "reasonable best efforts",
+      "categories_used": [
+        "Covenants  >  Efforts",
+        "Covenants  >  Conduct of Business",
+        "Conditions to Closing  >  General and Mutual Conditions"
+      ]
+    },
+    {
+      "section": "Covenants",
+      "field_name": "regulatory_remedy_commitments",
+      "answer": "Parent, Merger Sub and Parent's Subsidiaries shall take all actions necessary to eliminate each and every impediment under any Antitrust Law and to obtain the consent or cooperation of any other Person, including agreeing to, committing to, proffering, proposing or taking any action required to sell, divest, hold separate, lease, license, transfer, dispose of or otherwise encumber or impair or take any other action with respect to the Company's or any of their respective Affiliate's assets, properties, businesses or product lines, provided that Parent and its Subsidiaries shall not be required to agree to any Remedy Actions with respect to any businesses and products of the Company and its Subsidiaries that generated net sales in excess of $140,000,000 during the Company's 2024 fiscal year.",
+      "categories_used": [
+        "Covenants  >  Conduct of Business",
+        "Covenants  >  Efforts",
+        "Conditions to Closing  >  Party-Specific Conditions"
+      ]
+    },
+    {
+      "section": "Covenants",
+      "field_name": "regulatory_divestiture_caps",
+      "answer": "Parent and its Subsidiaries shall not be required to agree to, commit to, proffer, propose or take any Remedy Actions with respect to any businesses and products of the Company and its Subsidiaries that individually or in the aggregate, generated net sales in excess of $140,000,000 during the Company's 2024 fiscal year.",
+      "categories_used": [
+        "Covenants  >  Conduct of Business",
+        "Conditions to Closing  >  General and Mutual Conditions",
+        "Covenants  >  Efforts"
+      ]
+    }
+  ],
+  "Definitions_Section.csv": [
+    {
+      "section": "Definitions_Section.csv",
+      "field_name": "defined_terms",
+      "answer": "Material Adverse Effect shall mean, with respect to Parent or the Company, any event, circumstance, occurrence, effect, fact, development or change that, individually or in the aggregate, has a material adverse effect on the business, financial condition or results of operations of such Person and its Subsidiaries, taken as a whole; provided that none of the following (or the results thereof) shall constitute or be taken into account in determining whether a Material Adverse Effect shall have occurred: (i) changes in general economic, financial market, regulatory, business, financial, political, geopolitical, credit or capital market conditions, including interest or exchange rates, tariffs and trade wars; (ii) general changes or developments in any of the industries or markets in which such Person or any of its Subsidiaries operate; (iii) (A) adoption, implementation, repeal, modification or amendment of any applicable Laws or (B) changes in GAAP, or in the case of each of clause (A) and (B), any proposal therefor or change in interpretations or enforcement thereof; (iv) any change in the price or trading volume of such Person's securities or other financial instruments or change in such Person's credit rating, in and of itself (provided that the facts or occurrences giving rise to or contributing to such change that are not otherwise excluded from the definition of \\",
+      "categories_used": [
+        "Definitions  >  Material Adverse Effects",
+        "Miscellaneous  >  Contract Construction Terms",
+        "Representations & Warranties  >  Material Adverse Effect"
+      ]
+    }
+  ],
+  "Dividends": [
+    {
+      "section": "Dividends",
+      "field_name": "interim_dividends_allowed",
+      "answer": "false",
+      "categories_used": [
+        "Covenants  >  Conduct of Business",
+        "Financing Provisions  >  Equity Commitment Letter",
+        "The Merger  >  Merger Consideration"
+      ]
+    },
+    {
+      "section": "Dividends",
+      "field_name": "buyer_consent_required_for_dividends",
+      "answer": "Not found",
+      "categories_used": [
+        "Covenants  >  Conduct of Business",
+        "Financing Provisions  >  Equity Commitment Letter",
+        "Covenants  >  Deal Protection"
+      ]
+    },
+    {
+      "section": "Dividends",
+      "field_name": "dividends_adjust_merger_consideration",
+      "answer": "Not found",
+      "categories_used": [
+        "The Merger  >  Merger Consideration",
+        "Financing Provisions  >  Accounting Principles for Adjustments",
+        "Covenants  >  Conduct of Business"
+      ]
+    },
+    {
+      "section": "Dividends",
+      "field_name": "special_dividends_disclosed",
+      "answer": "Not found",
+      "categories_used": [
+        "Disclosure & Attachments  >  Disclosure Schedules",
+        "Financing Provisions  >  Equity Commitment Letter",
+        "The Merger  >  Merger Consideration"
+      ]
+    },
+    {
+      "section": "Dividends",
+      "field_name": "dividend_participation_mechanics",
+      "answer": "Not found",
+      "categories_used": [
+        "The Merger  >  Merger Consideration",
+        "Financing Provisions  >  Equity Commitment Letter",
+        "Covenants  >  Shareholder Vote/Meeting"
+      ]
+    },
+    {
+      "section": "Dividends",
+      "field_name": "dividend_cutoff_or_record_date_logic",
+      "answer": "Not found",
+      "categories_used": [
+        "Conditions to Closing  >  General and Mutual Conditions",
+        "The Merger  >  Closing Deliverables",
+        "Covenants  >  Conduct of Business"
+      ]
+    },
+    {
+      "section": "Dividends",
+      "field_name": "dividend_impact_on_proration_or_escrow",
+      "answer": "Not found",
+      "categories_used": [
+        "The Merger  >  Merger Consideration",
+        "Financing Provisions  >  Purchase Price Allocation",
+        "Covenants  >  Conduct of Business"
+      ]
+    }
+  ],
+  "Financing": [
+    {
+      "section": "Financing",
+      "field_name": "financing_required_for_closing",
+      "answer": "true",
+      "categories_used": [
+        "Financing Provisions  >  Debt Financing",
+        "Conditions to Closing  >  General and Mutual Conditions",
+        "The Merger  >  Closing Deliverables"
+      ]
+    },
+    {
+      "section": "Financing",
+      "field_name": "types_of_financing",
+      "answer": "Debt Letters, Parent Credit Facilities, Substitute Financing",
+      "categories_used": [
+        "Financing Provisions  >  Debt Financing",
+        "Financing Provisions  >  Equity Commitment Letter",
+        "Covenants  >  Financing Cooperation"
+      ]
+    },
+    {
+      "section": "Financing",
+      "field_name": "financing_commitment_letters_disclosed",
+      "answer": "false",
+      "categories_used": [
+        "Financing Provisions  >  Debt Financing",
+        "Financing Provisions  >  Equity Commitment Letter",
+        "Disclosure & Attachments  >  Disclosure Schedules"
+      ]
+    },
+    {
+      "section": "Financing",
+      "field_name": "conditions_to_financing_summary",
+      "answer": "Not found",
+      "categories_used": [
+        "Financing Provisions  >  Financing Cooperation",
+        "Conditions to Closing  >  General and Mutual Conditions",
+        "Financing Provisions  >  Debt Financing"
+      ]
+    },
+    {
+      "section": "Financing",
+      "field_name": "specific_performance_rights_available",
+      "answer": "true",
+      "categories_used": [
+        "Miscellaneous  >  Specific Performance",
+        "Miscellaneous  >  Legal Enforcement",
+        "Financing Provisions  >  Financing Cooperation"
+      ]
+    },
+    {
+      "section": "Financing",
+      "field_name": "buyer_efforts_standard_to_obtain_financing",
+      "answer": "reasonable best efforts",
+      "categories_used": [
+        "Covenants  >  Efforts",
+        "Financing Provisions  >  Debt Financing",
+        "Financing Provisions  >  Financing Cooperation"
+      ]
+    },
+    {
+      "section": "Financing",
+      "field_name": "equity_commitment_letter_provided",
+      "answer": "false",
+      "categories_used": [
+        "Financing Provisions  >  Equity Commitment Letter",
+        "Covenants  >  Financing Cooperation",
+        "Miscellaneous  >  Specific Performance"
+      ]
+    },
+    {
+      "section": "Financing",
+      "field_name": "financing_failure_consequences_summary",
+      "answer": "Not found",
+      "categories_used": [
+        "Termination  >  Other Termination Rights",
+        "Financing Provisions  >  Debt Financing",
+        "Miscellaneous  >  Legal Enforcement"
+      ]
+    }
+  ],
+  "Guarantee": [
+    {
+      "section": "Guarantee",
+      "field_name": "guarantee_type",
+      "answer": "Not found",
+      "categories_used": [
+        "Financing Provisions  >  Limited Guarantee",
+        "Miscellaneous  >  Legal Enforcement",
+        "Covenants  >  Indemnification and Insurance"
+      ]
+    },
+    {
+      "section": "Guarantee",
+      "field_name": "guarantee_cap_amount",
+      "answer": "Not found",
+      "categories_used": [
+        "Financing Provisions  >  Limited Guarantee",
+        "Covenants  >  Indemnification and Insurance",
+        "Miscellaneous  >  Legal Enforcement"
+      ]
+    },
+    {
+      "section": "Guarantee",
+      "field_name": "guarantee_trigger_events",
+      "answer": "Not found",
+      "categories_used": [
+        "Financing Provisions  >  Limited Guarantee",
+        "Conditions to Closing  >  General and Mutual Conditions",
+        "Covenants  >  Indemnification and Insurance"
+      ]
+    },
+    {
+      "section": "Guarantee",
+      "field_name": "non_recourse_language_summary",
+      "answer": "Not found",
+      "categories_used": [
+        "Financing Provisions  >  Limited Guarantee",
+        "Miscellaneous  >  Legal Enforcement",
+        "Covenants  >  Indemnification and Insurance"
+      ]
+    },
+    {
+      "section": "Guarantee",
+      "field_name": "enforcement_and_remedies_summary",
+      "answer": "The parties agree that irreparable damage for which monetary damages, even if available, would not be an adequate remedy, would occur in the event that any party hereto does not perform the provisions of this Agreement. Accordingly, the parties shall be entitled to an injunction, specific performance and other equitable relief to prevent breaches of this Agreement and to enforce specifically the terms and provisions hereof, in addition to any other remedy to which they are entitled at law or in equity.",
+      "categories_used": [
+        "Miscellaneous  >  Legal Enforcement",
+        "Miscellaneous  >  Specific Performance",
+        "Covenants  >  Indemnification and Insurance"
+      ]
+    },
+    {
+      "section": "Guarantee",
+      "field_name": "guarantee_survival_period",
+      "answer": "Not found",
+      "categories_used": [
+        "Covenants  >  Indemnification and Insurance",
+        "Miscellaneous  >  Legal Enforcement",
+        "Financing Provisions  >  Limited Guarantee"
+      ]
+    },
+    {
+      "section": "Guarantee",
+      "field_name": "guarantee_payment_mechanics",
+      "answer": "Not found",
+      "categories_used": [
+        "Financing Provisions  >  Limited Guarantee",
+        "Miscellaneous  >  Legal Enforcement",
+        "The Merger  >  Mechanics and Statutory Effects"
+      ]
+    },
+    {
+      "section": "Guarantee",
+      "field_name": "limitations_on_enforcement_rights",
+      "answer": "The Company shall have the right, on behalf of the holders of shares of Company Common Stock and Company Equity Awards, to pursue and recover damages against Parent and Merger Sub for loss of the Merger Consideration and any other applicable amount pursuant to this Agreement, provided that the rights granted shall be enforceable on behalf of the holders only by the Company, in its sole and absolute discretion.",
+      "categories_used": [
+        "Miscellaneous  >  Legal Enforcement",
+        "Financing Provisions  >  Limited Guarantee",
+        "Miscellaneous  >  Dispute Resolution"
+      ]
+    }
+  ],
+  "Guarantor": [
+    {
+      "section": "Guarantor",
+      "field_name": "guarantor_name",
+      "answer": "Not found",
+      "categories_used": [
+        "Financing Provisions  >  Limited Guarantee",
+        "Covenants  >  Indemnification and Insurance",
+        "Miscellaneous  >  Legal Enforcement"
+      ]
+    },
+    {
+      "section": "Guarantor",
+      "field_name": "guarantor_relationship_to_acquirer",
+      "answer": "Not found",
+      "categories_used": [
+        "Financing Provisions  >  Limited Guarantee",
+        "Representations & Warranties  >  By the Buyer",
+        "The Merger  >  Deal Structure"
+      ]
+    },
+    {
+      "section": "Guarantor",
+      "field_name": "guarantee_type",
+      "answer": "Not found",
+      "categories_used": [
+        "Financing Provisions  >  Limited Guarantee",
+        "Financing Provisions  >  Equity Commitment Letter",
+        "Covenants  >  Indemnification and Insurance"
+      ]
+    },
+    {
+      "section": "Guarantor",
+      "field_name": "guarantee_scope_description",
+      "answer": "Not found",
+      "categories_used": [
+        "Financing Provisions  >  Limited Guarantee",
+        "Covenants  >  Indemnification and Insurance",
+        "Miscellaneous  >  Legal Enforcement"
+      ]
+    },
+    {
+      "section": "Guarantor",
+      "field_name": "guarantee_cap_or_limitations",
+      "answer": "Not found",
+      "categories_used": [
+        "Financing Provisions  >  Limited Guarantee",
+        "Covenants  >  Indemnification and Insurance",
+        "Miscellaneous  >  Legal Enforcement"
+      ]
+    },
+    {
+      "section": "Guarantor",
+      "field_name": "guarantee_governing_law",
+      "answer": "State of Delaware",
+      "categories_used": [
+        "Miscellaneous  >  Governing Law and Venue",
+        "Miscellaneous  >  Dispute Resolution",
+        "Miscellaneous  >  Legal Enforcement"
+      ]
+    },
+    {
+      "section": "Guarantor",
+      "field_name": "equity_commitment_letter_provided",
+      "answer": "false",
+      "categories_used": [
+        "Financing Provisions  >  Equity Commitment Letter",
+        "Financing Provisions  >  Debt Financing",
+        "Covenants  >  Financing Cooperation"
+      ]
+    },
+    {
+      "section": "Guarantor",
+      "field_name": "guarantee_exhibit_included",
+      "answer": "Not found",
+      "categories_used": [
+        "Financing Provisions  >  Limited Guarantee",
+        "Disclosure & Attachments  >  Disclosure Schedules",
+        "Miscellaneous  >  Legal Enforcement"
+      ]
+    }
+  ],
+  "Law_and_Jurisdiction": [
+    {
+      "section": "Law_and_Jurisdiction",
+      "field_name": "governing_law",
+      "answer": "Delaware",
+      "categories_used": [
+        "Miscellaneous  >  Governing Law and Venue",
+        "Miscellaneous  >  Dispute Resolution",
+        "Miscellaneous  >  Legal Enforcement"
+      ]
+    },
+    {
+      "section": "Law_and_Jurisdiction",
+      "field_name": "forum_selection_clause_present",
+      "answer": "true",
+      "categories_used": [
+        "Miscellaneous  >  Governing Law and Venue",
+        "Miscellaneous  >  Dispute Resolution",
+        "Miscellaneous  >  Legal Enforcement"
+      ]
+    },
+    {
+      "section": "Law_and_Jurisdiction",
+      "field_name": "selected_forum",
+      "answer": "Delaware Court of Chancery",
+      "categories_used": [
+        "Miscellaneous  >  Governing Law and Venue",
+        "Miscellaneous  >  Dispute Resolution",
+        "Miscellaneous  >  Legal Enforcement"
+      ]
+    },
+    {
+      "section": "Law_and_Jurisdiction",
+      "field_name": "forum_exclusivity",
+      "answer": "exclusive",
+      "categories_used": [
+        "Miscellaneous  >  Governing Law and Venue",
+        "Miscellaneous  >  Dispute Resolution",
+        "Miscellaneous  >  Legal Enforcement"
+      ]
+    },
+    {
+      "section": "Law_and_Jurisdiction",
+      "field_name": "jury_trial_waiver_present",
+      "answer": "true",
+      "categories_used": [
+        "Miscellaneous  >  Dispute Resolution",
+        "Miscellaneous  >  Legal Enforcement",
+        "Miscellaneous  >  Governing Law and Venue"
+      ]
+    },
+    {
+      "section": "Law_and_Jurisdiction",
+      "field_name": "arbitration_clause_present",
+      "answer": "false",
+      "categories_used": [
+        "Miscellaneous  >  Dispute Resolution",
+        "Miscellaneous  >  Governing Law and Venue",
+        "Miscellaneous  >  Legal Enforcement"
+      ]
+    },
+    {
+      "section": "Law_and_Jurisdiction",
+      "field_name": "dispute_resolution_process_summary",
+      "answer": "Direct to litigation",
+      "categories_used": [
+        "Miscellaneous  >  Dispute Resolution",
+        "Miscellaneous  >  Governing Law and Venue",
+        "Miscellaneous  >  Legal Enforcement"
+      ]
+    }
+  ],
+  "Merger_Agreement_Details": [
+    {
+      "section": "Merger_Agreement_Details",
+      "field_name": "agreement_title",
+      "answer": "Not found",
+      "categories_used": [
+        "Miscellaneous  >  Headings",
+        "Preamble  >  Preamble",
+        "Miscellaneous  >  Boilerplate"
+      ]
+    },
+    {
+      "section": "Merger_Agreement_Details",
+      "field_name": "signing_date",
+      "answer": "Not found",
+      "categories_used": [
+        "Miscellaneous  >  Administrative Terms",
+        "The Merger  >  Effective Time & Closing Process",
+        "Preamble  >  Preamble"
+      ]
+    },
+    {
+      "section": "Merger_Agreement_Details",
+      "field_name": "deal_type",
+      "answer": "merger",
+      "categories_used": [
+        "The Merger  >  Deal Structure",
+        "The Merger  >  Mechanics and Statutory Effects",
+        "The Merger  >  Merger Consideration"
+      ]
+    },
+    {
+      "section": "Merger_Agreement_Details",
+      "field_name": "parent_party_name",
+      "answer": "Not found",
+      "categories_used": [
+        "Preamble  >  Preamble",
+        "Miscellaneous  >  Notices",
+        "Representations & Warranties  >  By the Buyer"
+      ]
+    },
+    {
+      "section": "Merger_Agreement_Details",
+      "field_name": "target_party_name",
+      "answer": "Not found",
+      "categories_used": [
+        "Preamble  >  Preamble",
+        "Definitions  >  Material Adverse Effects",
+        "Representations & Warranties  >  By the Target"
+      ]
+    },
+    {
+      "section": "Merger_Agreement_Details",
+      "field_name": "merger_sub_name",
+      "answer": "Not found",
+      "categories_used": [
+        "Representations & Warranties  >  By the Merger Sub",
+        "The Merger  >  Deal Structure",
+        "The Merger  >  Mechanics and Statutory Effects"
+      ]
+    },
+    {
+      "section": "Merger_Agreement_Details",
+      "field_name": "governing_law",
+      "answer": "Delaware",
+      "categories_used": [
+        "Miscellaneous  >  Governing Law and Venue",
+        "Miscellaneous  >  Legal Enforcement",
+        "Miscellaneous  >  Dispute Resolution"
+      ]
+    },
+    {
+      "section": "Merger_Agreement_Details",
+      "field_name": "state_of_incorporation_target",
+      "answer": "Not found",
+      "categories_used": [
+        "Representations & Warranties  >  By the Target",
+        "The Merger  >  Organizational Documents",
+        "Miscellaneous  >  Governing Law and Venue"
+      ]
+    },
+    {
+      "section": "Merger_Agreement_Details",
+      "field_name": "state_of_incorporation_parent",
+      "answer": "Not found",
+      "categories_used": [
+        "Miscellaneous  >  Governing Law and Venue",
+        "The Merger  >  Organizational Documents",
+        "Preamble  >  Preamble"
+      ]
+    },
+    {
+      "section": "Merger_Agreement_Details",
+      "field_name": "state_of_incorporation_merger_sub",
+      "answer": "Delaware",
+      "categories_used": [
+        "Representations & Warranties  >  By the Merger Sub",
+        "The Merger  >  Organizational Documents",
+        "Miscellaneous  >  Governing Law and Venue"
+      ]
+    },
+    {
+      "section": "Merger_Agreement_Details",
+      "field_name": "document_version_type",
+      "answer": "Not specified",
+      "categories_used": [
+        "Miscellaneous  >  Contract Construction Terms",
+        "Miscellaneous  >  Legal Enforcement",
+        "Preamble  >  Preamble"
+      ]
+    },
+    {
+      "section": "Merger_Agreement_Details",
+      "field_name": "agreement_structure_summary",
+      "answer": "Not found",
+      "categories_used": [
+        "The Merger  >  Deal Structure",
+        "The Merger  >  Post-Closing Board and Management",
+        "Preamble  >  Preamble"
+      ]
+    },
+    {
+      "section": "Merger_Agreement_Details",
+      "field_name": "consideration_structure_type",
+      "answer": "cash and stock mix",
+      "categories_used": [
+        "The Merger  >  Merger Consideration",
+        "Financing Provisions  >  Purchase Price Allocation",
+        "Financing Provisions  >  Tax Treatment of Transaction"
+      ]
+    },
+    {
+      "section": "Merger_Agreement_Details",
+      "field_name": "tender_offer_included",
+      "answer": "Not found",
+      "categories_used": [
+        "The Merger  >  Tender Offer Mechanics",
+        "The Merger  >  Deal Structure",
+        "Covenants  >  Financing Cooperation"
+      ]
+    }
+  ],
+  "No_Solicitation": [
+    {
+      "section": "No_Solicitation",
+      "field_name": "go_shop_period_included",
+      "answer": "true",
+      "categories_used": [
+        "Covenants  >  Deal Protection",
+        "Covenants  >  Conduct of Business",
+        "Termination  >  Other Termination Rights"
+      ]
+    },
+    {
+      "section": "No_Solicitation",
+      "field_name": "go_shop_duration_and_conditions",
+      "answer": "Not found",
+      "categories_used": [
+        "Covenants  >  Deal Protection",
+        "The Merger  >  Deal Structure",
+        "Covenants  >  Conduct of Business"
+      ]
+    },
+    {
+      "section": "No_Solicitation",
+      "field_name": "no_shop_restrictions_summary",
+      "answer": "The Company shall not solicit, encourage, or facilitate any Acquisition Proposal and must cease existing discussions. Passive receipt of proposals is allowed if unsolicited and not in violation of the agreement. The Company may engage with a proposal if it is a bona fide written Acquisition Proposal that was not solicited and is likely to result in a Superior Proposal, provided it follows specific procedures including notifying Parent and negotiating in good faith.",
+      "categories_used": [
+        "Covenants  >  Deal Protection",
+        "Covenants  >  Conduct of Business",
+        "Termination  >  Termination Fee"
+      ]
+    },
+    {
+      "section": "No_Solicitation",
+      "field_name": "fiduciary_out_clause_present",
+      "answer": "true",
+      "categories_used": [
+        "Covenants  >  Deal Protection",
+        "Termination  >  Other Termination Rights",
+        "Representations & Warranties  >  Recommendation of the Target Board"
+      ]
+    },
+    {
+      "section": "No_Solicitation",
+      "field_name": "buyer_matching_rights_included",
+      "answer": "true",
+      "categories_used": [
+        "Covenants  >  Deal Protection",
+        "Termination  >  Other Termination Rights",
+        "The Merger  >  Deal Structure"
+      ]
+    },
+    {
+      "section": "No_Solicitation",
+      "field_name": "notice_and_negotiation_requirements",
+      "answer": "The Company must provide Parent notice within twenty-four (24) hours of receiving an Acquisition Proposal, including a complete, unredacted copy of all written proposals and material terms. The Company must also keep Parent informed of the status and material details of any Acquisition Proposal within twenty-four (24) hours of any significant development. If the Company Board intends to effect an Adverse Recommendation Change or terminate the Agreement due to a Superior Proposal, the Company must notify Parent in writing and provide a copy of the proposed definitive agreements. The Company must then negotiate in good faith with Parent for four (4) Business Days to modify the terms of the Agreement so that the Acquisition Proposal is no longer a Superior Proposal.",
+      "categories_used": [
+        "Covenants  >  Deal Protection",
+        "Covenants  >  Notification / Publicity",
+        "Miscellaneous  >  Notices"
+      ]
+    },
+    {
+      "section": "No_Solicitation",
+      "field_name": "termination_right_for_superior_proposal",
+      "answer": "true",
+      "categories_used": [
+        "Termination  >  Other Termination Rights",
+        "Covenants  >  Deal Protection",
+        "Covenants  >  Notification / Publicity"
+      ]
+    },
+    {
+      "section": "No_Solicitation",
+      "field_name": "termination_fee_triggered_by_competing_deal",
+      "answer": "true",
+      "categories_used": [
+        "Termination  >  Termination Fee",
+        "Covenants  >  Deal Protection",
+        "Termination  >  Other Termination Rights"
+      ]
+    },
+    {
+      "section": "No_Solicitation",
+      "field_name": "solicitation_structure_summary",
+      "answer": "Not found",
+      "categories_used": [
+        "Covenants  >  Deal Protection",
+        "The Merger  >  Deal Structure",
+        "Covenants  >  Conduct of Business"
+      ]
+    }
+  ],
+  "Ordinary_Course": [
+    {
+      "section": "Ordinary_Course",
+      "field_name": "ordinary_course_definition_text",
+      "answer": "Not explicitly defined",
+      "categories_used": [
+        "Definitions  >  Material Adverse Effects",
+        "Covenants  >  Conduct of Business",
+        "Miscellaneous  >  Contract Construction Terms"
+      ]
+    },
+    {
+      "section": "Ordinary_Course",
+      "field_name": "ordinary_course_operating_covenant_present",
+      "answer": "true",
+      "categories_used": [
+        "Covenants  >  Conduct of Business",
+        "Conditions to Closing  >  General and Mutual Conditions",
+        "Covenants  >  Efforts"
+      ]
+    },
+    {
+      "section": "Ordinary_Course",
+      "field_name": "ordinary_course_subject_to_past_practice_standard",
+      "answer": "false",
+      "categories_used": [
+        "Covenants  >  Conduct of Business",
+        "Covenants  >  Employee Matters",
+        "Covenants  >  Access"
+      ]
+    },
+    {
+      "section": "Ordinary_Course",
+      "field_name": "actions_restricted_as_not_ordinary_course",
+      "answer": "",
+      "categories_used": [
+        "Covenants  >  Conduct of Business",
+        "Covenants  >  Deal Protection",
+        "Conditions to Closing  >  General and Mutual Conditions"
+      ]
+    },
+    {
+      "section": "Ordinary_Course",
+      "field_name": "buyer_consent_required_for_deviation",
+      "answer": "true",
+      "categories_used": [
+        "Covenants  >  Conduct of Business",
+        "Covenants  >  Deal Protection",
+        "Conditions to Closing  >  Party-Specific Conditions"
+      ]
+    },
+    {
+      "section": "Ordinary_Course",
+      "field_name": "standard_of_compliance_language",
+      "answer": "commercially reasonable efforts",
+      "categories_used": [
+        "Covenants  >  Conduct of Business",
+        "Covenants  >  Efforts",
+        "Conditions to Closing  >  General and Mutual Conditions"
+      ]
+    },
+    {
+      "section": "Ordinary_Course",
+      "field_name": "ordinary_course_breach_consequences_summary",
+      "answer": "Not found",
+      "categories_used": [
+        "Covenants  >  Conduct of Business",
+        "Termination  >  Other Termination Rights",
+        "Miscellaneous  >  Legal Enforcement"
+      ]
+    }
+  ],
+  "Out_Date": [
+    {
+      "section": "Out_Date",
+      "field_name": "initial_outside_date",
+      "answer": "Not found",
+      "categories_used": [
+        "Termination  >  End Date Termination Right",
+        "Conditions to Closing  >  General and Mutual Conditions",
+        "The Merger  >  Effective Time & Closing Process"
+      ]
+    },
+    {
+      "section": "Out_Date",
+      "field_name": "outside_date_extension_rights_present",
+      "answer": "Not found",
+      "categories_used": [
+        "Termination  >  End Date Termination Right",
+        "Termination  >  Other Termination Rights",
+        "The Merger  >  Effective Time & Closing Process"
+      ]
+    },
+    {
+      "section": "Out_Date",
+      "field_name": "conditions_to_extend_outside_date",
+      "answer": "Not found",
+      "categories_used": [
+        "Termination  >  End Date Termination Right",
+        "The Merger  >  Effective Time & Closing Process",
+        "Miscellaneous  >  Legal Enforcement"
+      ]
+    },
+    {
+      "section": "Out_Date",
+      "field_name": "extension_exercise_mechanism",
+      "answer": "Not found",
+      "categories_used": [
+        "Termination  >  End Date Termination Right",
+        "Miscellaneous  >  Notices",
+        "Miscellaneous  >  Specific Performance"
+      ]
+    },
+    {
+      "section": "Out_Date",
+      "field_name": "parties_allowed_to_terminate_at_outside_date",
+      "answer": "Not found",
+      "categories_used": [
+        "Termination  >  End Date Termination Right",
+        "Termination  >  Other Termination Rights",
+        "Conditions to Closing  >  General and Mutual Conditions"
+      ]
+    },
+    {
+      "section": "Out_Date",
+      "field_name": "maximum_extended_outside_date",
+      "answer": "Not specified",
+      "categories_used": [
+        "Termination  >  End Date Termination Right",
+        "The Merger  >  Effective Time & Closing Process",
+        "Conditions to Closing  >  General and Mutual Conditions"
+      ]
+    }
+  ],
+  "Proxy_Statement": [
+    {
+      "section": "Proxy_Statement",
+      "field_name": "proxy_statement_required",
+      "answer": "true",
+      "categories_used": [
+        "Covenants  >  Proxy Statement Filings",
+        "Covenants  >  Shareholder Vote/Meeting",
+        "The Merger  >  Shareholder Vote Mechanics"
+      ]
+    },
+    {
+      "section": "Proxy_Statement",
+      "field_name": "joint_proxy_or_registration_statement",
+      "answer": "Form F-4",
+      "categories_used": [
+        "Covenants  >  Proxy Statement Filings",
+        "The Merger  >  Statutory Merger Filings",
+        "Covenants  >  Efforts"
+      ]
+    },
+    {
+      "section": "Proxy_Statement",
+      "field_name": "proxy_filing_deadline",
+      "answer": "Not stated",
+      "categories_used": [
+        "Covenants  >  Proxy Statement Filings",
+        "Covenants  >  Shareholder Vote/Meeting",
+        "The Merger  >  Shareholder Vote Mechanics"
+      ]
+    },
+    {
+      "section": "Proxy_Statement",
+      "field_name": "sec_review_clearance_required",
+      "answer": "false",
+      "categories_used": [
+        "Covenants  >  Proxy Statement Filings",
+        "Conditions to Closing  >  General and Mutual Conditions",
+        "The Merger  >  Statutory Merger Filings"
+      ]
+    },
+    {
+      "section": "Proxy_Statement",
+      "field_name": "proxy_accuracy_representation_present",
+      "answer": "Not found",
+      "categories_used": [
+        "Representations & Warranties  >  By the Buyer",
+        "Covenants  >  Proxy Statement Filings",
+        "Miscellaneous  >  Legal Enforcement"
+      ]
+    },
+    {
+      "section": "Proxy_Statement",
+      "field_name": "proxy_mailing_deadline",
+      "answer": "Not found",
+      "categories_used": [
+        "Covenants  >  Proxy Statement Filings",
+        "Covenants  >  Shareholder Vote/Meeting",
+        "The Merger  >  Shareholder Vote Mechanics"
+      ]
+    },
+    {
+      "section": "Proxy_Statement",
+      "field_name": "proxy_update_obligation",
+      "answer": "true",
+      "categories_used": [
+        "Covenants  >  Proxy Statement Filings",
+        "Covenants  >  Notification / Publicity",
+        "Covenants  >  Shareholder Vote/Meeting"
+      ]
+    }
+  ],
+  "R_W_Parent": [
+    {
+      "section": "R_W_Parent",
+      "field_name": "parent_organization_and_good_standing",
+      "answer": "Not found",
+      "categories_used": [
+        "Representations & Warranties  >  By the Buyer",
+        "The Merger  >  Organizational Documents",
+        "Conditions to Closing  >  General and Mutual Conditions"
+      ]
+    },
+    {
+      "section": "R_W_Parent",
+      "field_name": "parent_corporate_authority",
+      "answer": "Not found",
+      "categories_used": [
+        "Representations & Warranties  >  By the Buyer",
+        "Miscellaneous  >  Legal Enforcement",
+        "The Merger  >  Organizational Documents"
+      ]
+    },
+    {
+      "section": "R_W_Parent",
+      "field_name": "parent_no_conflict",
+      "answer": "Neither the execution and delivery of this Agreement by Parent and Merger Sub nor the consummation by Parent and Merger Sub of the transactions contemplated by this Agreement, nor compliance by Parent and Merger Sub with any of the applicable terms or provisions of this Agreement, will (i) violate any provision of the Parent Organizational Documents or the certificate of incorporation or bylaws (or equivalent organizational documents) of any Subsidiary of Parent, (ii) assuming that the Consents, registrations, declarations, filings and notices referenced in Section 4.5(b) have been obtained or made, conflict with or violate any Law applicable to Parent or any of its Subsidiaries or by which any property or asset of Parent or any of its Subsidiaries is bound or affected or (iii) violate, conflict with or result in any breach of any provision of, or loss of any benefit, or constitute a default (with or without notice or lapse of time, or both) under, give rise to any right of termination, acceleration or cancelation of or require the Consent of, notice to or filing with any third party pursuant to any of the terms or provisions of any Contract to which Parent or any of its Subsidiaries is a party or by which any property or asset of Parent or any of its Subsidiaries is bound or affected, or result in the creation of a Lien, other than any Permitted Lien, upon any of the property or assets of Parent or any of its Subsidiaries, other than, in the case of clause (i) with respect to the certificate of incorporation or bylaws (or equivalent organizational documents) of any Subsidiary of Parent (other than Merger Sub), clause (ii) and clause (iii), any such conflict, violation, breach, default, termination, acceleration, cancelation or Lien that (A) has not had, and would not reasonably be expected to have, individually or in the aggregate, a Material Adverse Effect on Parent and (B) would not reasonably be expected to, individually or in the aggregate, impair in any material respect the ability of Parent or Merger Sub to perform their respective obligations under this Agreement or to consummate the Merger, or prevent or materially delay the consummation of any of the Merger and the other transactions contemplated by this Agreement.",
+      "categories_used": [
+        "Representations & Warranties  >  By the Buyer",
+        "The Merger  >  Organizational Documents",
+        "Miscellaneous  >  Legal Enforcement"
+      ]
+    },
+    {
+      "section": "R_W_Parent",
+      "field_name": "parent_consents_and_approvals_required",
+      "answer": "applicable requirements of and filings with (x) the SEC under the Exchange Act or the Securities Act (including the filing with the SEC of the Form F-4 and the Proxy Statement), (y) the Registrar of Companies under the Companies Act 2014 of Ireland and (z) the ASIC, (ii) the filing of the Certificate of Merger with the Delaware Secretary of State, (iii) applicable requirements under non-United States qualification, state securities or \"blue sky\" laws of various states or any applicable other securities Laws, (iv) compliance with applicable rules and regulations of ASX, the NYSE and any other applicable stock exchanges or marketplaces, (v) compliance with the Irish Companies Act 2014 (as amended), (vi) such other items required solely by reason of the participation and identity of the Company in the transactions contemplated by this Agreement, (vii) compliance with and filings or notifications under Antitrust Laws",
+      "categories_used": [
+        "Conditions to Closing  >  Party-Specific Conditions",
+        "Representations & Warranties  >  By the Buyer",
+        "The Merger  >  Statutory Merger Filings"
+      ]
+    },
+    {
+      "section": "R_W_Parent",
+      "field_name": "parent_sec_filings_and_financials",
+      "answer": "Since March 31, 2023, Parent has timely lodged or filed with (or furnished to) the SEC or ASIC all forms, reports, schedules, statements, exhibits and other documents (including exhibits, financial statements and schedules thereto and all other information incorporated therein and amendments and supplements thereto) required by it to be filed (or furnished) under the applicable requirements of ASIC, the ASX Listing Rules, the Exchange Act or the Securities Act (collectively, the \\",
+      "categories_used": [
+        "Representations & Warranties  >  By the Buyer",
+        "Financing Provisions  >  Financial Statement Delivery",
+        "Financing Provisions  >  Accounting Principles"
+      ]
+    },
+    {
+      "section": "R_W_Parent",
+      "field_name": "parent_absence_of_litigation",
+      "answer": "Not found",
+      "categories_used": [
+        "Representations & Warranties  >  By the Buyer",
+        "Covenants  >  Transaction Litigation",
+        "Miscellaneous  >  Legal Enforcement"
+      ]
+    },
+    {
+      "section": "R_W_Parent",
+      "field_name": "parent_compliance_with_law",
+      "answer": "Since January 1, 2023, Parent and its Subsidiaries have been and are in compliance with (i) all applicable Laws and (ii) all Parent Permits, except where any failure to be in such compliance (A) has not had, and would not reasonably be expected to have, individually or in the aggregate, a Material Adverse Effect on Parent and (B) would not reasonably be expected to, individually or in the aggregate, impair in any material respect the ability of Parent or Merger Sub to perform its respective obligations under this Agreement or to consummate the Merger, or prevent or materially delay the consummation of any of the Merger and the other transactions contemplated by this Agreement.",
+      "categories_used": [
+        "Representations & Warranties  >  By the Buyer",
+        "Covenants  >  Conduct of Business",
+        "Conditions to Closing  >  General and Mutual Conditions"
+      ]
+    },
+    {
+      "section": "R_W_Parent",
+      "field_name": "parent_brokers_fees",
+      "answer": "Not found",
+      "categories_used": [
+        "Financing Provisions  >  Debt Financing",
+        "Representations & Warranties  >  By the Buyer",
+        "Covenants  >  Deal Protection"
+      ]
+    },
+    {
+      "section": "R_W_Parent",
+      "field_name": "parent_financing_representations",
+      "answer": "Parent has delivered to the Company true and complete fully executed copies of (a) the commitment letter, dated as of the date hereof, among JH North America Holdings Inc., a Delaware corporation and a wholly owned indirect Subsidiary of Parent (the \"Borrower\"), and Bank of America, N.A. and Jeffries Finance LLC (together, the \"Initial Lenders\") and (b) the fee letters related thereto (as redacted to remove only the fee amounts, pricing caps and the rates and amounts included in the \"market flex\"), in each case, including all exhibits, term sheets, schedules, annexes and amendments to such letters in effect as of the date of this Agreement (collectively, the \"Debt Letters\"), pursuant to which and subject to the terms and conditions thereof each of the Initial Lenders party thereto have severally committed to lend the amounts set forth therein to the Borrower (the provision of such funds as set forth therein, but subject to the provisions of Section 5.15(b) (the \"Financing\")) for the purposes set forth in such Debt Letters.",
+      "categories_used": [
+        "Representations & Warranties  >  By the Buyer",
+        "Financing Provisions  >  Debt Financing",
+        "Financing Provisions  >  Equity Commitment Letter"
+      ]
+    },
+    {
+      "section": "R_W_Parent",
+      "field_name": "parent_valid_issuance_of_shares",
+      "answer": "Not found",
+      "categories_used": [
+        "Representations & Warranties  >  By the Buyer",
+        "The Merger  >  Merger Consideration",
+        "The Merger  >  Organizational Documents"
+      ]
+    },
+    {
+      "section": "R_W_Parent",
+      "field_name": "parent_finders_fees",
+      "answer": "Not found",
+      "categories_used": [
+        "Representations & Warranties  >  By the Buyer",
+        "Financing Provisions  >  Debt Financing",
+        "Covenants  >  Indemnification and Insurance"
+      ]
+    }
+  ],
+  "R_W_Target": [
+    {
+      "section": "R_W_Target",
+      "field_name": "target_organization_and_good_standing",
+      "answer": "Each of the Company and each of its Subsidiaries is a legal entity duly organized and validly existing under the laws of the jurisdiction of its incorporation, formation or organization, as applicable, and has the requisite corporate or similar power and authority to conduct its business as it is now being conducted and to own, lease and operate its properties and assets in the manner in which its properties and assets are currently operated, except where the failure to be so validly existing and authorized (a) has not been, and would not reasonably be expected to be, individually or in the aggregate, materially adverse to the Company and its Subsidiaries, taken as a whole, and (b) would not reasonably be expected to, individually or in the aggregate, impair in any material respect the ability of the Company to perform its obligations under this Agreement or to consummate the Merger, or prevent or materially delay the consummation of any of the Merger and the other transactions contemplated by this Agreement. Each of the Company and each of its Subsidiaries is duly qualified or licensed to do business and is in good standing in each jurisdiction in which the character or location of the property owned, leased or operated by it or the nature of the business conducted by it makes such qualification or licensing necessary, except where the failure to be so duly qualified or licensed and in good standing (x) has not had, and would not reasonably be expected to have, individually or in the aggregate, a Material Adverse Effect on the Company and (y) would not reasonably be expected to, individually or in the aggregate, impair in any material respect the ability of the Company to perform its obligations under this Agreement or to consummate the Merger, or prevent or materially delay the consummation of any of the Merger and the other transactions contemplated by this Agreement.",
+      "categories_used": [
+        "Representations & Warranties  >  By the Target",
+        "The Merger  >  Organizational Documents",
+        "Miscellaneous  >  Legal Enforcement"
+      ]
+    },
+    {
+      "section": "R_W_Target",
+      "field_name": "target_corporate_authority",
+      "answer": "Each of the Company and each of its Subsidiaries is a legal entity duly organized and validly existing under the laws of the jurisdiction of its incorporation, formation or organization, as applicable, and has the requisite corporate or similar power and authority to conduct its business as it is now being conducted and to own, lease and operate its properties and assets in the manner in which its properties and assets are currently operated, except where the failure to be so validly existing and authorized (a) has not been, and would not reasonably be expected to be, individually or in the aggregate, materially adverse to the Company and its Subsidiaries, taken as a whole, and (b) would not reasonably be expected to, individually or in the aggregate, impair in any material respect the ability of the Company to perform its obligations under this Agreement or to consummate the Merger, or prevent or materially delay the consummation of any of the Merger and the other transactions contemplated by this Agreement.",
+      "categories_used": [
+        "Representations & Warranties  >  By the Target",
+        "The Merger  >  Organizational Documents",
+        "Miscellaneous  >  Legal Enforcement"
+      ]
+    },
+    {
+      "section": "R_W_Target",
+      "field_name": "target_no_conflict",
+      "answer": "",
+      "categories_used": [
+        "Representations & Warranties  >  By the Target",
+        "Miscellaneous  >  Legal Enforcement",
+        "Conditions to Closing  >  General and Mutual Conditions"
+      ]
+    },
+    {
+      "section": "R_W_Target",
+      "field_name": "target_consents_and_approvals_required",
+      "answer": "applicable requirements of and filings with the SEC under the Exchange Act or the Securities Act (including the filing with the SEC of the Form F-4 and the Proxy Statement), the filing of the Certificate of Merger with the Delaware Secretary of State, applicable requirements under non-United States qualification, state securities or 'blue sky' laws of various states or any other applicable other securities Laws, compliance with applicable rules and regulations of the NYSE and any other applicable stock exchanges or marketplaces, such other items required solely by reason of the participation and identity of Parent in the transactions contemplated by this Agreement, compliance with and filings or notifications under the HSR Act and any other applicable United States or non-United States competition, antitrust, merger control or investment Laws",
+      "categories_used": [
+        "Conditions to Closing  >  Party-Specific Conditions",
+        "The Merger  >  Closing Deliverables",
+        "Representations & Warranties  >  By the Target"
+      ]
+    },
+    {
+      "section": "R_W_Target",
+      "field_name": "target_capitalization",
+      "answer": "As of the close of business on March 19, 2025 (the \\",
+      "categories_used": [
+        "Representations & Warranties  >  By the Target",
+        "The Merger  >  Merger Consideration",
+        "Financing Provisions  >  Equity Commitment Letter"
+      ]
+    },
+    {
+      "section": "R_W_Target",
+      "field_name": "target_subsidiaries",
+      "answer": "Not found",
+      "categories_used": [
+        "Representations & Warranties  >  By the Target",
+        "Disclosure & Attachments  >  Disclosure Schedules",
+        "The Merger  >  Deal Structure"
+      ]
+    },
+    {
+      "section": "R_W_Target",
+      "field_name": "target_sec_filings_and_financials",
+      "answer": "Since September 30, 2023, the Company has timely filed with (or furnished to) the SEC all forms, reports, schedules, statements, exhibits and other documents (including exhibits, financial statements and schedules thereto and all other information incorporated therein and amendments and supplements thereto) required by it to be filed (or furnished) under the Exchange Act or the Securities Act (collectively, the \\",
+      "categories_used": [
+        "Representations & Warranties  >  By the Target",
+        "Financing Provisions  >  Financial Statement Delivery",
+        "Financing Provisions  >  Accounting Principles"
+      ]
+    },
+    {
+      "section": "R_W_Target",
+      "field_name": "target_absence_of_litigation",
+      "answer": "As of the date of this Agreement, there is no Proceeding pending or, to the Knowledge of the Company, threatened against the Company or any of its Subsidiaries or any asset or property of the Company or any of its Subsidiaries, and neither the Company nor any of its Subsidiaries nor any asset or property of the Company or any of its Subsidiaries is subject to a continuing Order, in each case, that (a) has had, or would reasonably be expected to have, individually or in the aggregate, a Material Adverse Effect on the Company or (b) would reasonably be expected to, individually or in the aggregate, impair in any material respect the ability of the Company to perform its obligations under this Agreement or to consummate the Merger, or prevent or materially delay the consummation of any of the Merger and the other transactions contemplated by this Agreement.",
+      "categories_used": [
+        "Representations & Warranties  >  By the Target",
+        "Covenants  >  Transaction Litigation",
+        "Miscellaneous  >  Legal Enforcement"
+      ]
+    },
+    {
+      "section": "R_W_Target",
+      "field_name": "target_intellectual_property",
+      "answer": "Not found",
+      "categories_used": [
+        "Representations & Warranties  >  By the Target",
+        "Covenants  >  AI, Privacy & Cybersecurity",
+        "The Merger  >  Deal Structure"
+      ]
+    },
+    {
+      "section": "R_W_Target",
+      "field_name": "target_material_contracts",
+      "answer": "Not found",
+      "categories_used": [
+        "Representations & Warranties  >  By the Target",
+        "Disclosure & Attachments  >  Disclosure Schedules",
+        "Covenants  >  Conduct of Business"
+      ]
+    },
+    {
+      "section": "R_W_Target",
+      "field_name": "target_compliance_with_law",
+      "answer": "Since January 1, 2023, the Company and its Subsidiaries have been and are in compliance with (i) all applicable Laws and (ii) all Company Permits, except where any failure to be in such compliance (A) has not had, and would not reasonably be expected to have, individually or in the aggregate, a Material Adverse Effect on the Company and (B) would not reasonably be expected to, individually or in the aggregate, impair in any material respect the ability of the Company to perform its obligations under this Agreement or to consummate the Merger, or prevent or materially delay the consummation of any of the Merger and the other transactions contemplated by this Agreement.",
+      "categories_used": [
+        "Representations & Warranties  >  By the Target",
+        "Covenants  >  Conduct of Business",
+        "Conditions to Closing  >  General and Mutual Conditions"
+      ]
+    },
+    {
+      "section": "R_W_Target",
+      "field_name": "target_employee_matters",
+      "answer": "Not found",
+      "categories_used": [
+        "Covenants  >  Employee Matters",
+        "Representations & Warranties  >  By the Target",
+        "The Merger  >  Post-Closing Board and Management"
+      ]
+    },
+    {
+      "section": "R_W_Target",
+      "field_name": "target_real_property",
+      "answer": "Not found",
+      "categories_used": [
+        "Representations & Warranties  >  By the Target",
+        "Disclosure & Attachments  >  Disclosure Schedules",
+        "Covenants  >  Indemnification and Insurance"
+      ]
+    },
+    {
+      "section": "R_W_Target",
+      "field_name": "target_taxes",
+      "answer": "Except as has not had, and would not reasonably be expected to have, individually or in the aggregate, a Material Adverse Effect on the Company, the Company and each of its Subsidiaries have (i) timely filed or caused to be timely filed (taking into account any extension of time within which to file) all Tax Returns required to be filed by any of them, and all such filed Tax Returns (taking into account all amendments thereto) are true, complete and accurate and (ii) paid (or have had paid on their behalf) all Taxes due and owing, except, in the case of clause (ii) hereof, with respect to Taxes contested in good faith by appropriate Proceedings or for which adequate reserves or accruals have been established (as of the date of this Agreement and as of the Closing) in accordance with GAAP.",
+      "categories_used": [
+        "Covenants  >  Tax Matters",
+        "Representations & Warranties  >  By the Target",
+        "Financing Provisions  >  Tax Treatment of Transaction"
+      ]
+    },
+    {
+      "section": "R_W_Target",
+      "field_name": "target_brokers_fees",
+      "answer": "Not found",
+      "categories_used": [
+        "Financing Provisions  >  Debt Financing",
+        "Representations & Warranties  >  By the Target",
+        "Covenants  >  Financing Cooperation"
+      ]
+    },
+    {
+      "section": "R_W_Target",
+      "field_name": "target_no_undisclosed_liabilities",
+      "answer": "Not found",
+      "categories_used": [
+        "Representations & Warranties  >  By the Target",
+        "Financing Provisions  >  Financial Statement Delivery",
+        "Disclosure & Attachments  >  Disclosure Schedules"
+      ]
+    }
+  ],
+  "Regulatory_Approvals": [
+    {
+      "section": "Regulatory_Approvals",
+      "field_name": "required_regulatory_approvals_list",
+      "answer": "HSR Act clearance",
+      "categories_used": [
+        "Conditions to Closing  >  General and Mutual Conditions",
+        "The Merger  >  Statutory Merger Filings",
+        "Covenants  >  Efforts"
+      ]
+    },
+    {
+      "section": "Regulatory_Approvals",
+      "field_name": "regulatory_efforts_standard",
+      "answer": "reasonable best efforts",
+      "categories_used": [
+        "Covenants  >  Efforts",
+        "Conditions to Closing  >  General and Mutual Conditions",
+        "Covenants  >  Conduct of Business"
+      ]
+    },
+    {
+      "section": "Regulatory_Approvals",
+      "field_name": "regulatory_filing_deadlines_summary",
+      "answer": "Not found",
+      "categories_used": [
+        "Covenants  >  Efforts",
+        "Conditions to Closing  >  General and Mutual Conditions",
+        "The Merger  >  Statutory Merger Filings"
+      ]
+    },
+    {
+      "section": "Regulatory_Approvals",
+      "field_name": "divestiture_or_remedy_obligation_present",
+      "answer": "true",
+      "categories_used": [
+        "Conditions to Closing  >  General and Mutual Conditions",
+        "Covenants  >  Efforts",
+        "The Merger  >  Deal Structure"
+      ]
+    },
+    {
+      "section": "Regulatory_Approvals",
+      "field_name": "scope_of_divestiture_or_remedy_obligation",
+      "answer": "Parent and its Subsidiaries shall not be required to agree to, commit to, proffer, propose or take any Remedy Actions with respect to any businesses and products of the Company and its Subsidiaries that individually or in the aggregate, generated net sales in excess of $140,000,000 during the Company's 2024 fiscal year.",
+      "categories_used": [
+        "Conditions to Closing  >  General and Mutual Conditions",
+        "Covenants  >  Efforts",
+        "The Merger  >  Deal Structure"
+      ]
+    },
+    {
+      "section": "Regulatory_Approvals",
+      "field_name": "termination_right_due_to_regulatory_failure",
+      "answer": "Not found",
+      "categories_used": [
+        "Termination  >  Other Termination Rights",
+        "Conditions to Closing  >  General and Mutual Conditions",
+        "The Merger  >  Deal Structure"
+      ]
+    },
+    {
+      "section": "Regulatory_Approvals",
+      "field_name": "reverse_termination_fee_due_to_regulatory_failure",
+      "answer": "Not found",
+      "categories_used": [
+        "Termination  >  Reverse Termination Fee",
+        "Conditions to Closing  >  General and Mutual Conditions",
+        "Termination  >  Other Termination Rights"
+      ]
+    },
+    {
+      "section": "Regulatory_Approvals",
+      "field_name": "regulatory_cooperation_covenants_summary",
+      "answer": "Each party will cooperate with each other and use their respective reasonable best efforts to consummate the transactions and cause the conditions to the Merger to be satisfied, including obtaining necessary consents and approvals, making required filings, and defending against any legal challenges. They will also consult and cooperate with each other in preparing and making governmental filings and responding to inquiries from Governmental Authorities.",
+      "categories_used": [
+        "Covenants  >  Efforts",
+        "Covenants  >  Financing Cooperation",
+        "Conditions to Closing  >  General and Mutual Conditions"
+      ]
+    }
+  ],
+  "Regulatory_Obligations_Best_Efforts": [
+    {
+      "section": "Regulatory_Obligations_Best_Efforts",
+      "field_name": "buyer_regulatory_efforts_standard",
+      "answer": "Not found",
+      "categories_used": [
+        "Covenants  >  Efforts",
+        "Conditions to Closing  >  Party-Specific Conditions",
+        "Representations & Warranties  >  By the Buyer"
+      ]
+    },
+    {
+      "section": "Regulatory_Obligations_Best_Efforts",
+      "field_name": "seller_regulatory_efforts_standard",
+      "answer": "reasonable best efforts",
+      "categories_used": [
+        "Covenants  >  Efforts",
+        "Conditions to Closing  >  Party-Specific Conditions",
+        "The Merger  >  Statutory Merger Filings"
+      ]
+    },
+    {
+      "section": "Regulatory_Obligations_Best_Efforts",
+      "field_name": "buyer_divestiture_or_remedy_obligation",
+      "answer": "true",
+      "categories_used": [
+        "Covenants  >  Efforts",
+        "Conditions to Closing  >  Party-Specific Conditions",
+        "Covenants  >  Conduct of Business"
+      ]
+    },
+    {
+      "section": "Regulatory_Obligations_Best_Efforts",
+      "field_name": "buyer_remedy_scope_summary",
+      "answer": "Not found",
+      "categories_used": [
+        "Covenants  >  Indemnification and Insurance",
+        "Miscellaneous  >  Specific Performance",
+        "Miscellaneous  >  Dispute Resolution"
+      ]
+    },
+    {
+      "section": "Regulatory_Obligations_Best_Efforts",
+      "field_name": "hell_or_high_water_standard_explicitly_applies",
+      "answer": "Not found",
+      "categories_used": [
+        "Covenants  >  Efforts",
+        "Conditions to Closing  >  General and Mutual Conditions",
+        "Representations & Warranties  >  By the Buyer"
+      ]
+    },
+    {
+      "section": "Regulatory_Obligations_Best_Efforts",
+      "field_name": "material_adverse_effect_burden_exception_present",
+      "answer": "true",
+      "categories_used": [
+        "Covenants  >  Efforts",
+        "Definitions  >  Material Adverse Effects",
+        "Conditions to Closing  >  General and Mutual Conditions"
+      ]
+    },
+    {
+      "section": "Regulatory_Obligations_Best_Efforts",
+      "field_name": "financial_cap_on_buyer_remedies",
+      "answer": "Not found",
+      "categories_used": [
+        "Covenants  >  Indemnification and Insurance",
+        "Miscellaneous  >  Legal Enforcement",
+        "Covenants  >  Efforts"
+      ]
+    }
+  ],
+  "Regulatory_Obligations_Timing": [
+    {
+      "section": "Regulatory_Obligations_Timing",
+      "field_name": "initial_regulatory_filing_deadlines",
+      "answer": "Not found",
+      "categories_used": [
+        "Covenants  >  Efforts",
+        "The Merger  >  Statutory Merger Filings",
+        "Conditions to Closing  >  General and Mutual Conditions"
+      ]
+    },
+    {
+      "section": "Regulatory_Obligations_Timing",
+      "field_name": "response_timing_to_agency_requests",
+      "answer": "as promptly as reasonably practicable",
+      "categories_used": [
+        "Covenants  >  Efforts",
+        "Conditions to Closing  >  General and Mutual Conditions",
+        "Covenants  >  Conduct of Business"
+      ]
+    },
+    {
+      "section": "Regulatory_Obligations_Timing",
+      "field_name": "pull_and_refile_commitments",
+      "answer": "Not found",
+      "categories_used": [
+        "Covenants  >  Efforts",
+        "The Merger  >  Statutory Merger Filings",
+        "Conditions to Closing  >  General and Mutual Conditions"
+      ]
+    },
+    {
+      "section": "Regulatory_Obligations_Timing",
+      "field_name": "second_request_compliance_timing_commitments",
+      "answer": "Not specified",
+      "categories_used": [
+        "Covenants  >  Efforts",
+        "Conditions to Closing  >  General and Mutual Conditions",
+        "The Merger  >  Effective Time & Closing Process"
+      ]
+    },
+    {
+      "section": "Regulatory_Obligations_Timing",
+      "field_name": "foreign_regulatory_filing_timing",
+      "answer": "Not found",
+      "categories_used": [
+        "Covenants  >  Efforts",
+        "The Merger  >  Statutory Merger Filings",
+        "Conditions to Closing  >  General and Mutual Conditions"
+      ]
+    },
+    {
+      "section": "Regulatory_Obligations_Timing",
+      "field_name": "standstill_period_cooperation_summary",
+      "answer": "Not found",
+      "categories_used": [
+        "Covenants  >  Efforts",
+        "Covenants  >  Conduct of Business",
+        "Conditions to Closing  >  General and Mutual Conditions"
+      ]
+    },
+    {
+      "section": "Regulatory_Obligations_Timing",
+      "field_name": "extended_review_engagement_obligations",
+      "answer": "Each of the parties hereto will (i) furnish to the other such necessary information and reasonable assistance as the other may request in connection with the preparation of any governmental filings, submissions or other documents; (ii) give the other reasonable prior notice of any such filing, submission or other document and, to the extent reasonably practicable, of any communication with or from any Governmental Authority regarding the transactions contemplated by this Agreement, and permit the other to review and discuss in advance, and consider in good faith the views, and secure the participation, of the other in connection with any such filing, submission, document or communication; and (iii) cooperate in responding as promptly as reasonably practicable to any investigation or other inquiry from a Governmental Authority or in connection with any Proceeding initiated by a Governmental Authority or private party, including informing the other party as soon as reasonably practicable of any such investigation, inquiry or Proceeding, and consulting in advance, to the extent practicable, before making any presentations or submissions to a Governmental Authority, or, in connection with any Proceeding initiated by a private party, to any other Person.",
+      "categories_used": [
+        "Covenants  >  Efforts",
+        "Conditions to Closing  >  General and Mutual Conditions",
+        "Covenants  >  Conduct of Business"
+      ]
+    }
+  ],
+  "Shareholder_Approval": [
+    {
+      "section": "Shareholder_Approval",
+      "field_name": "approval_required_from",
+      "answer": "Company Stockholders",
+      "categories_used": [
+        "Conditions to Closing  >  General and Mutual Conditions",
+        "The Merger  >  Shareholder Vote Mechanics",
+        "Covenants  >  Shareholder Vote/Meeting"
+      ]
+    },
+    {
+      "section": "Shareholder_Approval",
+      "field_name": "approval_method",
+      "answer": "stockholder vote",
+      "categories_used": [
+        "Covenants  >  Shareholder Vote/Meeting",
+        "The Merger  >  Shareholder Vote Mechanics",
+        "The Merger  >  Written Consent Mechanics"
+      ]
+    },
+    {
+      "section": "Shareholder_Approval",
+      "field_name": "approval_threshold_required",
+      "answer": "majority of the outstanding shares of Company Common Stock entitled to vote",
+      "categories_used": [
+        "Covenants  >  Shareholder Vote/Meeting",
+        "The Merger  >  Shareholder Vote Mechanics",
+        "The Merger  >  Deal Structure"
+      ]
+    },
+    {
+      "section": "Shareholder_Approval",
+      "field_name": "shareholder_approval_as_closing_condition",
+      "answer": "true",
+      "categories_used": [
+        "Conditions to Closing  >  General and Mutual Conditions",
+        "The Merger  >  Shareholder Vote Mechanics",
+        "Covenants  >  Shareholder Vote/Meeting"
+      ]
+    },
+    {
+      "section": "Shareholder_Approval",
+      "field_name": "board_recommendation_required_prior_to_approval",
+      "answer": "true",
+      "categories_used": [
+        "Covenants  >  Shareholder Vote/Meeting",
+        "Representations & Warranties  >  Recommendation of the Target Board",
+        "The Merger  >  Shareholder Vote Mechanics"
+      ]
+    },
+    {
+      "section": "Shareholder_Approval",
+      "field_name": "stockholder_consent_delivered_at_signing",
+      "answer": "false",
+      "categories_used": [
+        "Covenants  >  Shareholder Vote/Meeting",
+        "The Merger  >  Written Consent Mechanics",
+        "Conditions to Closing  >  General and Mutual Conditions"
+      ]
+    },
+    {
+      "section": "Shareholder_Approval",
+      "field_name": "vote_or_consent_delivery_timing",
+      "answer": "Not specified",
+      "categories_used": [
+        "Covenants  >  Shareholder Vote/Meeting",
+        "The Merger  >  Shareholder Vote Mechanics",
+        "The Merger  >  Effective Time & Closing Process"
+      ]
+    },
+    {
+      "section": "Shareholder_Approval",
+      "field_name": "appraisal_rights_available",
+      "answer": "true",
+      "categories_used": [
+        "The Merger  >  Appraisal / Dissenters Rights",
+        "Covenants  >  Shareholder Vote/Meeting",
+        "Conditions to Closing  >  General and Mutual Conditions"
+      ]
+    }
+  ],
+  "Specific_Performance": [
+    {
+      "section": "Specific_Performance",
+      "field_name": "specific_performance_available",
+      "answer": "true",
+      "categories_used": [
+        "Miscellaneous  >  Specific Performance",
+        "Miscellaneous  >  Legal Enforcement",
+        "Miscellaneous  >  Dispute Resolution"
+      ]
+    },
+    {
+      "section": "Specific_Performance",
+      "field_name": "specific_performance_conditions_summary",
+      "answer": "Not found",
+      "categories_used": [
+        "Miscellaneous  >  Specific Performance",
+        "Miscellaneous  >  Legal Enforcement",
+        "Miscellaneous  >  Dispute Resolution"
+      ]
+    },
+    {
+      "section": "Specific_Performance",
+      "field_name": "specific_performance_financing_availability_required",
+      "answer": "false",
+      "categories_used": [
+        "Miscellaneous  >  Specific Performance",
+        "Financing Provisions  >  Debt Financing",
+        "Conditions to Closing  >  General and Mutual Conditions"
+      ]
+    },
+    {
+      "section": "Specific_Performance",
+      "field_name": "specific_performance_rights_mutual",
+      "answer": "true",
+      "categories_used": [
+        "Miscellaneous  >  Specific Performance",
+        "Miscellaneous  >  Legal Enforcement",
+        "Miscellaneous  >  Dispute Resolution"
+      ]
+    },
+    {
+      "section": "Specific_Performance",
+      "field_name": "specific_performance_exclusive_remedy",
+      "answer": "false",
+      "categories_used": [
+        "Miscellaneous  >  Specific Performance",
+        "Miscellaneous  >  Legal Enforcement",
+        "Miscellaneous  >  Dispute Resolution"
+      ]
+    },
+    {
+      "section": "Specific_Performance",
+      "field_name": "specific_performance_limitations_summary",
+      "answer": "Not found",
+      "categories_used": [
+        "Miscellaneous  >  Specific Performance",
+        "Miscellaneous  >  Legal Enforcement",
+        "Miscellaneous  >  Dispute Resolution"
+      ]
+    }
+  ],
+  "Termination": [
+    {
+      "section": "Termination",
+      "field_name": "mutual_termination_rights",
+      "answer": "Not found",
+      "categories_used": [
+        "Termination  >  Other Termination Rights",
+        "Miscellaneous  >  Legal Enforcement",
+        "Conditions to Closing  >  General and Mutual Conditions"
+      ]
+    },
+    {
+      "section": "Termination",
+      "field_name": "outside_date_termination_right",
+      "answer": "Not found",
+      "categories_used": [
+        "Termination  >  End Date Termination Right",
+        "Termination  >  Other Termination Rights",
+        "The Merger  >  Effective Time & Closing Process"
+      ]
+    },
+    {
+      "section": "Termination",
+      "field_name": "termination_due_to_breach",
+      "answer": "Not found",
+      "categories_used": [
+        "Termination  >  Other Termination Rights",
+        "Miscellaneous  >  Legal Enforcement",
+        "Miscellaneous  >  Dispute Resolution"
+      ]
+    },
+    {
+      "section": "Termination",
+      "field_name": "termination_due_to_closing_conditions_failure",
+      "answer": "Not found",
+      "categories_used": [
+        "Conditions to Closing  >  General and Mutual Conditions",
+        "Termination  >  Other Termination Rights",
+        "The Merger  >  Closing Deliverables"
+      ]
+    },
+    {
+      "section": "Termination",
+      "field_name": "termination_due_to_superior_proposal",
+      "answer": "true",
+      "categories_used": [
+        "Termination  >  Other Termination Rights",
+        "Covenants  >  Deal Protection",
+        "Termination  >  Termination Fee"
+      ]
+    },
+    {
+      "section": "Termination",
+      "field_name": "termination_due_to_shareholder_vote_failure",
+      "answer": "Not found",
+      "categories_used": [
+        "Termination  >  Other Termination Rights",
+        "Covenants  >  Shareholder Vote/Meeting",
+        "The Merger  >  Shareholder Vote Mechanics"
+      ]
+    },
+    {
+      "section": "Termination",
+      "field_name": "termination_due_to_regulatory_block",
+      "answer": "true",
+      "categories_used": [
+        "Termination  >  Other Termination Rights",
+        "Covenants  >  Efforts",
+        "Conditions to Closing  >  General and Mutual Conditions"
+      ]
+    },
+    {
+      "section": "Termination",
+      "field_name": "target_termination_fee",
+      "answer": "The Company shall pay the Termination Amount to Merger Sub if the Agreement is terminated under certain conditions, such as if an Acquisition Proposal is publicly disclosed and not withdrawn, and within twelve months, an Acquisition Proposal is consummated or a definitive agreement is entered into. The Termination Amount is also payable if the Company terminates the Agreement to enter into a Superior Proposal or if Parent terminates the Agreement due to a breach by the Company.",
+      "categories_used": [
+        "Termination  >  Termination Fee",
+        "Covenants  >  Deal Protection",
+        "Financing Provisions  >  Debt Financing"
+      ]
+    },
+    {
+      "section": "Termination",
+      "field_name": "reverse_termination_fee",
+      "answer": "Not found",
+      "categories_used": [
+        "Termination  >  Reverse Termination Fee",
+        "Financing Provisions  >  Debt Financing",
+        "Termination  >  Other Termination Rights"
+      ]
+    },
+    {
+      "section": "Termination",
+      "field_name": "termination_notice_requirements",
+      "answer": "Not found",
+      "categories_used": [
+        "Termination  >  Notice of Termination",
+        "Miscellaneous  >  Notices",
+        "Miscellaneous  >  Legal Enforcement"
+      ]
+    },
+    {
+      "section": "Termination",
+      "field_name": "survival_of_provisions_post_termination",
+      "answer": "the Confidentiality Agreement, the penultimate sentence of Section 5.15(c), this Section 7.2, Section 7.3, Section 7.4, Section 7.5 and Article VIII",
+      "categories_used": [
+        "Covenants  >  Indemnification and Insurance",
+        "Miscellaneous  >  Legal Enforcement",
+        "Termination  >  Other Termination Rights"
+      ]
+    },
+    {
+      "section": "Termination",
+      "field_name": "end_date_termination_right",
+      "answer": "Not found",
+      "categories_used": [
+        "Termination  >  End Date Termination Right",
+        "Termination  >  Other Termination Rights",
+        "Miscellaneous  >  Legal Enforcement"
+      ]
+    },
+    {
+      "section": "Termination",
+      "field_name": "termination_notice_of_right",
+      "answer": "Not found",
+      "categories_used": [
+        "Termination  >  Notice of Termination",
+        "Miscellaneous  >  Notices",
+        "Termination  >  Other Termination Rights"
+      ]
+    },
+    {
+      "section": "Termination",
+      "field_name": "other_termination_rights",
+      "answer": "The Company may terminate this Agreement pursuant to Section 7.1(c)(ii) in order to enter into a definitive agreement providing for a Superior Proposal, provided that the Company has paid the Termination Amount in accordance with Section 7.3(a) prior to or substantially concurrently with such termination.",
+      "categories_used": [
+        "Termination  >  Other Termination Rights",
+        "Miscellaneous  >  Legal Enforcement",
+        "Termination  >  End Date Termination Right"
+      ]
+    },
+    {
+      "section": "Termination",
+      "field_name": "termination_fee",
+      "answer": "The Company shall pay, or cause to be paid, to Merger Sub (or a United States Affiliate of Merger Sub as Merger Sub may designate) the Termination Amount if: (i) Parent terminates the Agreement due to a breach of a covenant or agreement, or either Parent or the Company terminates under specific sections, and an Acquisition Proposal was publicly disclosed and not withdrawn, and within twelve months an Acquisition Proposal is consummated or a definitive agreement is entered into; (ii) the Company terminates the Agreement to enter into a definitive agreement for a Superior Proposal; or (iii) Parent terminates the Agreement under specific conditions. The payment must be made by wire transfer of same-day funds to the account designated by Merger Sub, with timing depending on the clause under which the termination occurs.",
+      "categories_used": [
+        "Termination  >  Termination Fee",
+        "Termination  >  Other Termination Rights",
+        "Covenants  >  Deal Protection"
+      ]
+    },
+    {
+      "section": "Termination",
+      "field_name": "reverse_termination_fee_regulatory",
+      "answer": "Not found",
+      "categories_used": [
+        "Termination  >  Reverse Termination Fee",
+        "Termination  >  Other Termination Rights",
+        "Covenants  >  Efforts"
+      ]
+    },
+    {
+      "section": "Termination",
+      "field_name": "reverse_termination_fee_bid_financing",
+      "answer": "Not found",
+      "categories_used": [
+        "Termination  >  Reverse Termination Fee",
+        "Financing Provisions  >  Debt Financing",
+        "Covenants  >  Financing Cooperation"
+      ]
+    },
+    {
+      "section": "Termination",
+      "field_name": "termination_fee_triggers",
+      "answer": "accepting a superior proposal, board withdrawal of recommendation, failure to hold a shareholder vote",
+      "categories_used": [
+        "Termination  >  Termination Fee",
+        "Termination  >  Other Termination Rights",
+        "Miscellaneous  >  Dispute Resolution"
+      ]
+    },
+    {
+      "section": "Termination",
+      "field_name": "reverse_termination_fee_triggers",
+      "answer": "Not found",
+      "categories_used": [
+        "Termination  >  Reverse Termination Fee",
+        "Financing Provisions  >  Debt Financing",
+        "Representations & Warranties  >  By the Buyer"
+      ]
+    }
+  ],
+  "Termination_Fees__Other_": [
+    {
+      "section": "Termination_Fees__Other_",
+      "field_name": "other_termination_fees_present",
+      "answer": "false",
+      "categories_used": [
+        "Termination  >  Termination Fee",
+        "Termination  >  Other Termination Rights",
+        "Financing Provisions  >  Debt Financing"
+      ]
+    },
+    {
+      "section": "Termination_Fees__Other_",
+      "field_name": "other_termination_fees_description",
+      "answer": "Not found",
+      "categories_used": [
+        "Termination  >  Other Termination Rights",
+        "Termination  >  Termination Fee",
+        "Financing Provisions  >  Debt Financing"
+      ]
+    },
+    {
+      "section": "Termination_Fees__Other_",
+      "field_name": "other_termination_fees_amount",
+      "answer": "Not found",
+      "categories_used": [
+        "Termination  >  Termination Fee",
+        "Termination  >  Other Termination Rights",
+        "Miscellaneous  >  Administrative Terms"
+      ]
+    },
+    {
+      "section": "Termination_Fees__Other_",
+      "field_name": "other_termination_fees_triggers_list",
+      "answer": "Not found",
+      "categories_used": [
+        "Termination  >  Other Termination Rights",
+        "Termination  >  Termination Fee",
+        "Covenants  >  Deal Protection"
+      ]
+    },
+    {
+      "section": "Termination_Fees__Other_",
+      "field_name": "other_termination_fees_cap_summary",
+      "answer": "No cap specified",
+      "categories_used": [
+        "Termination  >  Termination Fee",
+        "Termination  >  Other Termination Rights",
+        "Covenants  >  Deal Protection"
+      ]
+    }
+  ],
+  "Termination_Fees__Parent_to_Target_": [
+    {
+      "section": "Termination_Fees__Parent_to_Target_",
+      "field_name": "termination_fee_amount",
+      "answer": "Not found",
+      "categories_used": [
+        "Termination  >  Termination Fee",
+        "Covenants  >  Deal Protection",
+        "Miscellaneous  >  Legal Enforcement"
+      ]
+    },
+    {
+      "section": "Termination_Fees__Parent_to_Target_",
+      "field_name": "termination_fee_triggers_list",
+      "answer": "superior proposal accepted, change of recommendation, stockholder vote fails",
+      "categories_used": [
+        "Termination  >  Termination Fee",
+        "Covenants  >  Deal Protection",
+        "Termination  >  Other Termination Rights"
+      ]
+    },
+    {
+      "section": "Termination_Fees__Parent_to_Target_",
+      "field_name": "termination_fee_due_to_financing_failure",
+      "answer": "Not found",
+      "categories_used": [
+        "Termination  >  Termination Fee",
+        "Financing Provisions  >  Debt Financing",
+        "Covenants  >  Financing Cooperation"
+      ]
+    },
+    {
+      "section": "Termination_Fees__Parent_to_Target_",
+      "field_name": "termination_fee_due_to_regulatory_failure",
+      "answer": "Not found",
+      "categories_used": [
+        "Termination  >  Termination Fee",
+        "Termination  >  Other Termination Rights",
+        "Conditions to Closing  >  General and Mutual Conditions"
+      ]
+    },
+    {
+      "section": "Termination_Fees__Parent_to_Target_",
+      "field_name": "termination_fee_due_to_parent_breach",
+      "answer": "false",
+      "categories_used": [
+        "Termination  >  Termination Fee",
+        "Covenants  >  Deal Protection",
+        "Miscellaneous  >  Legal Enforcement"
+      ]
+    },
+    {
+      "section": "Termination_Fees__Parent_to_Target_",
+      "field_name": "termination_fee_as_exclusive_remedy",
+      "answer": "true",
+      "categories_used": [
+        "Termination  >  Termination Fee",
+        "Miscellaneous  >  Legal Enforcement",
+        "Miscellaneous  >  Specific Performance"
+      ]
+    },
+    {
+      "section": "Termination_Fees__Parent_to_Target_",
+      "field_name": "parent_liability_cap_summary",
+      "answer": "No cap stated",
+      "categories_used": [
+        "Termination  >  Termination Fee",
+        "Covenants  >  Indemnification and Insurance",
+        "Miscellaneous  >  Legal Enforcement"
+      ]
+    }
+  ],
+  "Termination_Fees__Target_to_Parent_": [
+    {
+      "section": "Termination_Fees__Target_to_Parent_",
+      "field_name": "termination_fee_amount",
+      "answer": "Not found",
+      "categories_used": [
+        "Termination  >  Termination Fee",
+        "Covenants  >  Deal Protection",
+        "Financing Provisions  >  Debt Financing"
+      ]
+    },
+    {
+      "section": "Termination_Fees__Target_to_Parent_",
+      "field_name": "termination_fee_triggers_list",
+      "answer": "superior proposal accepted, change of recommendation",
+      "categories_used": [
+        "Termination  >  Termination Fee",
+        "Covenants  >  Deal Protection",
+        "Representations & Warranties  >  Recommendation of the Target Board"
+      ]
+    },
+    {
+      "section": "Termination_Fees__Target_to_Parent_",
+      "field_name": "termination_fee_due_to_superior_proposal",
+      "answer": "true",
+      "categories_used": [
+        "Termination  >  Termination Fee",
+        "Covenants  >  Deal Protection",
+        "Termination  >  Other Termination Rights"
+      ]
+    },
+    {
+      "section": "Termination_Fees__Target_to_Parent_",
+      "field_name": "termination_fee_due_to_board_recommendation_change",
+      "answer": "true",
+      "categories_used": [
+        "Termination  >  Termination Fee",
+        "Covenants  >  Deal Protection",
+        "Representations & Warranties  >  Recommendation of the Target Board"
+      ]
+    },
+    {
+      "section": "Termination_Fees__Target_to_Parent_",
+      "field_name": "termination_fee_due_to_stockholder_vote_failure",
+      "answer": "Not found",
+      "categories_used": [
+        "Termination  >  Termination Fee",
+        "Covenants  >  Shareholder Vote/Meeting",
+        "The Merger  >  Shareholder Vote Mechanics"
+      ]
+    },
+    {
+      "section": "Termination_Fees__Target_to_Parent_",
+      "field_name": "termination_fee_as_exclusive_remedy",
+      "answer": "true",
+      "categories_used": [
+        "Termination  >  Termination Fee",
+        "Miscellaneous  >  Legal Enforcement",
+        "Miscellaneous  >  Specific Performance"
+      ]
+    },
+    {
+      "section": "Termination_Fees__Target_to_Parent_",
+      "field_name": "specific_performance_rights_preserved_for_buyer",
+      "answer": "true",
+      "categories_used": [
+        "Miscellaneous  >  Specific Performance",
+        "Miscellaneous  >  Legal Enforcement",
+        "Termination  >  Other Termination Rights"
+      ]
+    }
+  ],
+  "Timeline": [
+    {
+      "section": "Timeline",
+      "field_name": "signing_date",
+      "answer": "Not found",
+      "categories_used": [
+        "Preamble  >  Preamble",
+        "Miscellaneous  >  Administrative Terms",
+        "The Merger  >  Effective Time & Closing Process"
+      ]
+    },
+    {
+      "section": "Timeline",
+      "field_name": "stockholder_vote_or_consent_deadline",
+      "answer": "within 50 days of the effectiveness of the Form F-4",
+      "categories_used": [
+        "Covenants  >  Shareholder Vote/Meeting",
+        "The Merger  >  Shareholder Vote Mechanics",
+        "Termination  >  End Date Termination Right"
+      ]
+    },
+    {
+      "section": "Timeline",
+      "field_name": "regulatory_filing_deadlines",
+      "answer": "Not found",
+      "categories_used": [
+        "Covenants  >  Notification / Publicity",
+        "Conditions to Closing  >  General and Mutual Conditions",
+        "The Merger  >  Statutory Merger Filings"
+      ]
+    },
+    {
+      "section": "Timeline",
+      "field_name": "marketing_period_end_date",
+      "answer": "Not found",
+      "categories_used": [
+        "Covenants  >  Deal Protection",
+        "Financing Provisions  >  Financing Cooperation",
+        "Conditions to Closing  >  General and Mutual Conditions"
+      ]
+    },
+    {
+      "section": "Timeline",
+      "field_name": "outside_date",
+      "answer": "Not found",
+      "categories_used": [
+        "Termination  >  End Date Termination Right",
+        "The Merger  >  Effective Time & Closing Process",
+        "Miscellaneous  >  Legal Enforcement"
+      ]
+    },
+    {
+      "section": "Timeline",
+      "field_name": "targeted_closing_date_or_range",
+      "answer": "Not found",
+      "categories_used": [
+        "The Merger  >  Effective Time & Closing Process",
+        "Conditions to Closing  >  General and Mutual Conditions",
+        "Covenants  >  Notification / Publicity"
+      ]
+    },
+    {
+      "section": "Timeline",
+      "field_name": "no_shop_or_go_shop_expiration",
+      "answer": "Not found",
+      "categories_used": [
+        "Covenants  >  Deal Protection",
+        "Termination  >  End Date Termination Right",
+        "Covenants  >  Conduct of Business"
+      ]
+    },
+    {
+      "section": "Timeline",
+      "field_name": "termination_fee_expiration_date",
+      "answer": "Not disclosed",
+      "categories_used": [
+        "Termination  >  Termination Fee",
+        "Termination  >  End Date Termination Right",
+        "Termination  >  Other Termination Rights"
+      ]
+    },
+    {
+      "section": "Timeline",
+      "field_name": "other_material_milestones",
+      "answer": "Not found",
+      "categories_used": [
+        "Conditions to Closing  >  General and Mutual Conditions",
+        "Covenants  >  Conduct of Business",
+        "Representations & Warranties  >  By the Target"
+      ]
+    },
+    {
+      "section": "Timeline",
+      "field_name": "confidentiality_agreement_signing_date",
+      "answer": "Not found",
+      "categories_used": [
+        "Covenants  >  Notification / Publicity",
+        "Miscellaneous  >  Legal Enforcement",
+        "The Merger  >  Closing Deliverables"
+      ]
+    },
+    {
+      "section": "Timeline",
+      "field_name": "outside_date_extension_terms",
+      "answer": "Not found",
+      "categories_used": [
+        "Termination  >  End Date Termination Right",
+        "The Merger  >  Effective Time & Closing Process",
+        "Conditions to Closing  >  General and Mutual Conditions"
+      ]
+    },
+    {
+      "section": "Timeline",
+      "field_name": "outside_date_final_extended_calendar_date",
+      "answer": "Not found",
+      "categories_used": [
+        "Termination  >  End Date Termination Right",
+        "Conditions to Closing  >  General and Mutual Conditions",
+        "The Merger  >  Effective Time & Closing Process"
+      ]
+    },
+    {
+      "section": "Timeline",
+      "field_name": "marketing_period_duration_and_triggers",
+      "answer": "Not found",
+      "categories_used": [
+        "Conditions to Closing  >  General and Mutual Conditions",
+        "Covenants  >  Deal Protection",
+        "The Merger  >  Effective Time & Closing Process"
+      ]
+    }
+  ],
+  "Voting_Agreement": [
+    {
+      "section": "Voting_Agreement",
+      "field_name": "voting_agreement_required",
+      "answer": "false",
+      "categories_used": [
+        "Covenants  >  Shareholder Vote/Meeting",
+        "The Merger  >  Shareholder Vote Mechanics",
+        "Conditions to Closing  >  General and Mutual Conditions"
+      ]
+    },
+    {
+      "section": "Voting_Agreement",
+      "field_name": "voting_agreement_parties",
+      "answer": "Not found",
+      "categories_used": [
+        "Covenants  >  Shareholder Vote/Meeting",
+        "The Merger  >  Shareholder Vote Mechanics",
+        "Representations & Warranties  >  By the Target"
+      ]
+    },
+    {
+      "section": "Voting_Agreement",
+      "field_name": "voting_commitment_summary",
+      "answer": "Not found",
+      "categories_used": [
+        "Covenants  >  Shareholder Vote/Meeting",
+        "The Merger  >  Shareholder Vote Mechanics",
+        "Covenants  >  Deal Protection"
+      ]
+    },
+    {
+      "section": "Voting_Agreement",
+      "field_name": "lockup_or_support_duration",
+      "answer": "until the earlier of the Effective Time and the termination of this Agreement in accordance with Section 7.1",
+      "categories_used": [
+        "Covenants  >  Shareholder Vote/Meeting",
+        "The Merger  >  Shareholder Vote Mechanics",
+        "Covenants  >  Deal Protection"
+      ]
+    },
+    {
+      "section": "Voting_Agreement",
+      "field_name": "revocation_rights_description",
+      "answer": "Not revocable",
+      "categories_used": [
+        "Termination  >  Other Termination Rights",
+        "Covenants  >  Shareholder Vote/Meeting",
+        "Miscellaneous  >  Legal Enforcement"
+      ]
+    },
+    {
+      "section": "Voting_Agreement",
+      "field_name": "voting_agreement_coverage_shares",
+      "answer": "Not found",
+      "categories_used": [
+        "Covenants  >  Shareholder Vote/Meeting",
+        "The Merger  >  Shareholder Vote Mechanics",
+        "Covenants  >  Deal Protection"
+      ]
+    },
+    {
+      "section": "Voting_Agreement",
+      "field_name": "voting_agreements_delivered_at_signing",
+      "answer": "Not found",
+      "categories_used": [
+        "Covenants  >  Shareholder Vote/Meeting",
+        "The Merger  >  Shareholder Vote Mechanics",
+        "The Merger  >  Closing Deliverables"
+      ]
+    },
+    {
+      "section": "Voting_Agreement",
+      "field_name": "voting_agreement_remedies",
+      "answer": "The parties shall be entitled to an injunction, specific performance and other equitable relief to prevent breaches of this Agreement and to enforce specifically the terms and provisions hereof, in addition to any other remedy to which they are entitled at law or in equity.",
+      "categories_used": [
+        "Miscellaneous  >  Specific Performance",
+        "Miscellaneous  >  Legal Enforcement",
+        "Miscellaneous  >  Dispute Resolution"
+      ]
+    }
+  ]
+}

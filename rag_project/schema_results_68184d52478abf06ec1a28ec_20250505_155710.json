@@ -1,0 +1,144 @@
+{
+  "Best_Efforts": [
+    {
+      "section": "Best_Efforts",
+      "field_name": "best_efforts_standard",
+      "answer": "reasonable best efforts",
+      "categories_used": [
+        "Covenants  >  Efforts",
+        "Conditions to Closing  >  General and Mutual Conditions",
+        "Conditions to Closing  >  Party-Specific Conditions"
+      ]
+    },
+    {
+      "section": "Best_Efforts",
+      "field_name": "buyer_best_efforts_obligations",
+      "answer": "Parent shall, and shall cause its Subsidiaries (including the Borrower) to, use reasonable best efforts to take, or cause to be taken, all actions, and to do, or cause to be done, all things reasonably necessary to consummate the Financing in an amount sufficient, together with cash on hand and amounts available to be drawn on the Parent Credit Facilities, to consummate the Merger and the other transactions contemplated hereby no later than the Closing, including, to the extent necessary to consummate the Merger and such other transactions, using reasonable best efforts to (i) (A) maintain in effect the Debt Letters and in all material respects comply with all of their respective obligations thereunder and (B) negotiate, enter into and deliver definitive agreements with respect to the Financing reflecting the terms contained in the Debt Letters (or with other terms agreed by Parent and the Financing Parties, subject to the restrictions on amendments of the Debt Letters set forth below), so that such agreements are in effect no later than the Closing, and (ii) satisfy on a timely basis all the conditions to the Financing and the definitive agreements related thereto that are in Parent's (or its Subsidiaries' (including the Borrower's)) control.",
+      "categories_used": [
+        "Covenants  >  Efforts",
+        "Conditions to Closing  >  General and Mutual Conditions",
+        "Covenants  >  Conduct of Business"
+      ]
+    },
+    {
+      "section": "Best_Efforts",
+      "field_name": "seller_best_efforts_obligations",
+      "answer": "Prior to the Effective Time, the Company shall cooperate with Parent and use its reasonable best efforts, in accordance with applicable rules and policies of the NYSE, to facilitate the commencement of the delisting of the Company and of the shares of Company Common Stock from the NYSE as promptly as practicable after the Effective Time. Prior to the Effective Time, the Company shall not voluntarily delist the Company Common Stock from the NYSE.",
+      "categories_used": [
+        "Covenants  >  Efforts",
+        "Conditions to Closing  >  General and Mutual Conditions",
+        "The Merger  >  Closing Deliverables"
+      ]
+    },
+    {
+      "section": "Best_Efforts",
+      "field_name": "financing_best_efforts_standard",
+      "answer": "reasonable best efforts",
+      "categories_used": [
+        "Covenants  >  Financing Cooperation",
+        "Financing Provisions  >  Debt Financing",
+        "Miscellaneous  >  Specific Performance"
+      ]
+    },
+    {
+      "section": "Best_Efforts",
+      "field_name": "regulatory_best_efforts_standard",
+      "answer": "reasonable best efforts",
+      "categories_used": [
+        "Covenants  >  Efforts",
+        "Conditions to Closing  >  General and Mutual Conditions",
+        "Covenants  >  Conduct of Business"
+      ]
+    },
+    {
+      "section": "Best_Efforts",
+      "field_name": "failure_to_perform_remedy",
+      "answer": "Not found",
+      "categories_used": [
+        "Covenants  >  Efforts",
+        "Miscellaneous  >  Legal Enforcement",
+        "Miscellaneous  >  Specific Performance"
+      ]
+    },
+    {
+      "section": "Best_Efforts",
+      "field_name": "party_best_efforts_obligations",
+      "answer": "Prior to the Effective Time, the Company shall cooperate with Parent and use its reasonable best efforts, in accordance with applicable rules and policies of the NYSE, to facilitate the commencement of the delisting of the Company and of the shares of Company Common Stock from the NYSE as promptly as practicable after the Effective Time. Prior to the Effective Time, the Company shall not voluntarily delist the Company Common Stock from the NYSE.",
+      "categories_used": [
+        "Covenants  >  Efforts",
+        "Conditions to Closing  >  General and Mutual Conditions",
+        "Covenants  >  Financing Cooperation"
+      ]
+    },
+    {
+      "section": "Best_Efforts",
+      "field_name": "best_efforts_scope",
+      "answer": "the obtaining of all actions or non-actions, consents, approvals, registrations, waivers, permits, authorizations, orders, expirations or terminations of waiting periods and other confirmations from any Governmental Authority or other Person that are or may become necessary, proper or advisable in connection with the consummation of the transactions contemplated by this Agreement, including the Merger; the preparation and making of all registrations, filings, forms, notices, petitions, statements, submissions of information, applications and other documents (including filings with Governmental Authorities) that are or may become necessary, proper or advisable in connection with the consummation of the transactions contemplated by this Agreement, including the Merger; the taking of all reasonable steps as may be necessary, proper or advisable to obtain an approval from, or to avoid a Proceeding by, any Governmental Authority or other Person in connection with the consummation of the transactions contemplated by this Agreement, including the Merger; the defending of any lawsuits or other Proceedings, whether judicial or administrative, challenging this Agreement or that would otherwise prevent or delay the consummation of the transactions contemplated by this Agreement, including the Merger, performed or consummated by each party in accordance with the terms of this Agreement, including seeking to have any stay, temporary restraining order or injunction entered by any court or other Governmental Authority vacated or reversed; and the execution and delivery of any additional instruments that are or may become reasonably necessary, proper or advisable to consummate the transactions contemplated by this Agreement, including the Merger, and to carry out fully the purposes of this Agreement.",
+      "categories_used": [
+        "Covenants  >  Efforts",
+        "Conditions to Closing  >  General and Mutual Conditions",
+        "Covenants  >  Conduct of Business"
+      ]
+    },
+    {
+      "section": "Best_Efforts",
+      "field_name": "best_efforts_deadline",
+      "answer": "Not found",
+      "categories_used": [
+        "Covenants  >  Efforts",
+        "Conditions to Closing  >  General and Mutual Conditions",
+        "Termination  >  End Date Termination Right"
+      ]
+    },
+    {
+      "section": "Best_Efforts",
+      "field_name": "best_efforts_limitations",
+      "answer": "Parent and its Subsidiaries shall not be required to agree to, commit to, proffer, propose or take any Remedy Actions with respect to any businesses and products (I) of the Company and its Subsidiaries that individually or in the aggregate, generated net sales in excess of $140,000,000 during the Company's 2024 fiscal year or (II) of Parent and its Subsidiaries (other than, following the Closing, and subject to the preceding clause (I), the Company and its Subsidiaries); the Company shall not, without Parent's prior written consent, agree to, commit to, proffer, propose or take Remedy Actions; and no party shall be required to agree to, commit to, proffer, propose or take Remedy Actions unless they are conditioned upon the consummation of the transactions contemplated by this Agreement.",
+      "categories_used": [
+        "Covenants  >  Efforts",
+        "Conditions to Closing  >  General and Mutual Conditions",
+        "Representations & Warranties  >  Material Adverse Effect"
+      ]
+    },
+    {
+      "section": "Best_Efforts",
+      "field_name": "buyer_failure_remedy",
+      "answer": "The parties agree that irreparable damage for which monetary damages, even if available, would not be an adequate remedy, would occur in the event that any party hereto does not perform the provisions of this Agreement (including failing to take such actions as are required of it hereunder to consummate this Agreement) in accordance with its specified terms or otherwise breach such provisions. Accordingly, the parties acknowledge and agree that, prior to any termination of this Agreement in accordance with Section 7.1, the parties shall be entitled to an injunction, specific performance and other equitable relief to prevent breaches of this Agreement and to enforce specifically the terms and provisions hereof, in addition to any other remedy to which they are entitled at law or in equity. Each of the parties agrees that it will not oppose the granting of an injunction, specific performance and other equitable relief on the basis that any other party has an adequate remedy at law or that any award of specific performance is not an appropriate remedy for any reason at law or in equity. Any party seeking an injunction or injunctions to prevent breaches of this Agreement and to enforce specifically the terms and provisions of this Agreement shall not be required to provide any bond or other security in connection with any such order or injunction.",
+      "categories_used": [
+        "Covenants  >  Efforts",
+        "Miscellaneous  >  Specific Performance",
+        "Termination  >  Other Termination Rights"
+      ]
+    },
+    {
+      "section": "Best_Efforts",
+      "field_name": "seller_failure_remedy",
+      "answer": "Not found",
+      "categories_used": [
+        "Covenants  >  Efforts",
+        "Miscellaneous  >  Specific Performance",
+        "Termination  >  Other Termination Rights"
+      ]
+    },
+    {
+      "section": "Best_Efforts",
+      "field_name": "best_efforts_interaction_with_other_covenants",
+      "answer": "Not found",
+      "categories_used": [
+        "Covenants  >  Efforts",
+        "Miscellaneous  >  Contract Construction Terms",
+        "Miscellaneous  >  Legal Enforcement"
+      ]
+    },
+    {
+      "section": "Best_Efforts",
+      "field_name": "custom_best_efforts_provisions",
+      "answer": "Not found",
+      "categories_used": [
+        "Covenants  >  Efforts",
+        "Conditions to Closing  >  General and Mutual Conditions",
+        "Covenants  >  Conduct of Business"
+      ]
+    }
+  ]
+}

@@ -188,9 +188,8 @@ class DocumentProcessingService:
 
             category_results = schema_search.search_all_schema_categories(
                 deal_id=str(job_id))
-            logger.info(f"Category results: {category_results}")
             # Update job status to completed
-            job.save_json_to_db(category_results)
+            # job.save_json_to_db(category_results)
             job.update_embedding_status('COMPLETED')
             logger.info(f"Updated job status to COMPLETED")
 
@@ -1216,134 +1215,250 @@ class SummaryGenerationService:
 
     def generate_summary(self, deal_id, temperature=0.7):
         """
-        Generate a document summary with static tags and questions
+        Generate document summaries based on schema results for the given deal_id
 
         Args:
             deal_id (str): The deal ID to summarize
             temperature (float, optional): Temperature for OpenAI generation. Defaults to 0.7.
 
         Returns:
-            dict: Summary response with summary text and context
+            list: Array of summaries generated from schema results
         """
         try:
-            # Static tags and questions to query the document
-            static_queries = [
-                "What is the purpose of this agreement?",
-                "Who are the main parties involved in this agreement?",
-                "What are the key obligations of each party?",
-                "What are the important dates and deadlines in this agreement?",
-                "What are the termination conditions?",
-                "What are the key financial terms?"
-            ]
-
             logger.info(f"Generating summary for deal ID: {deal_id}")
 
-            # Initialize context for all queries
-            all_context_chunks = []
+            # Find the job by deal_id
+            try:
+                object_id = ObjectId(deal_id)
+                job = ProcessingJob.objects.get(_id=object_id)
+                logger.info(f"Found job in database: {job}")
+            except ProcessingJob.DoesNotExist:
+                logger.error(f"No processing job found for deal_id {deal_id}")
+                return []
+            except Exception as e:
+                logger.error(f"Error finding job: {str(e)}")
+                return []
 
-            # Search for relevant chunks for each query
-            for query in static_queries:
-                # Create embedding for the query and search
-                search_results = self.embedding_service.search(
-                    query_text=query,
-                    deal_id=deal_id,
-                    top_k=3  # Get top 3 chunks per query
-                )
+            # Check if schema_results exist
+            schema_results = job.schema_results
+            if not schema_results:
+                logger.warning(
+                    f"No schema results found for deal_id {deal_id}")
+                return []
 
-                # Extract the relevant chunks for context
-                if search_results and search_results.get("results"):
-                    for result in search_results["results"]:
-                        # Check if this chunk is already in the context to avoid duplicates
-                        is_duplicate = False
-                        for existing_chunk in all_context_chunks:
-                            if existing_chunk.get("content") == result.get("combined_text", ""):
-                                is_duplicate = True
-                                break
+            logger.info(f"Retrieved schema results for deal_id {deal_id}")
 
-                        if not is_duplicate:
-                            all_context_chunks.append({
-                                "content": result.get("combined_text", ""),
-                                "label": result.get("label", ""),
-                                "category": result.get("category_name", ""),
-                                "score": result.get("score", 0),
-                                "query": query
-                            })
+            # Array to store generated summaries
+            summaries = []
+            sections = ["Acquirer", "Guarantor", "Closing", "Company Material Adverse Change", "Absolute Carve-outs", "Ordinary Course", "No Solicitation", "Dividends", "Board Approval", "Proxy Statement", "Shareholder approval",
+                        "Voting Agreement", "Confidentiality Agreement", "Clean Room Agreement", "Financing", "Regulatory Approvals", "Regulatory Obligations", "Out Date", "Other", "Termination Fees", "Specific Performance", "Law/Jurisdiction"]
 
-            # Prepare the system message with context
-            system_message = self._prepare_summary_prompt(all_context_chunks)
+            # Process each section in the sections array
+        # for section_name in sections:
+        #     logger.info(f"Processing section: {section_name}")
 
-            # Prepare the chat messages
-            messages = [
-                {"role": "system", "content": system_message},
-                {"role": "user", "content": "Generate a comprehensive summary of this document."}
-            ]
+        #     # Convert section_name to match schema_results keys if needed
+        #     section_key = section_name.replace(" ", "_")
 
-            # Call OpenAI API
-            logger.info(f"Calling OpenAI API for summary generation")
-            response = self.openai_client.chat.completions.create(
-                model="gpt-4o",
-                messages=messages,
-                temperature=temperature,
-                max_tokens=1500
-            )
+        #     if section_name == "Acquirer":
+        #         section_data = schema_results[section_key]
+        #         section_answer = section_data.filter(
+        #             lambda x: x["field_name"] == "James Hardie Industries plc")
+        #         if section_answer.length > 0:
+        #             summaries.append({section_name: section_answer})
+            # Process each section in schema_results
+            for section_name, section_data in schema_results.items():
+                logger.info(f"Processing section: {section_name}")
 
-            # Extract the assistant's response
-            summary = response.choices[0].message.content
-            logger.info(f"Generated summary of length: {len(summary)}")
+                # Generate summary for the entire section data
+                section_summary = self._generate_section_summary(
+                    section_name, section_data, temperature)
+                if section_summary:
+                    summaries.append(section_summary)
 
-            # Return response with context
-            return {
-                "summary": summary,
-                "context": all_context_chunks,
-                "deal_id": deal_id,
-                "usage": {
-                    "prompt_tokens": response.usage.prompt_tokens,
-                    "completion_tokens": response.usage.completion_tokens,
-                    "total_tokens": response.usage.total_tokens
-                }
-            }
+            logger.info(
+                f"Generated summaries for {len(summaries)} sections from schema results")
+
+            # Save summaries to local JSON file
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            filename = f"summary_results_{deal_id}_{timestamp}.json"
+
+            try:
+                with open(filename, 'w', encoding='utf-8') as f:
+                    json.dump(summaries, f, indent=2, ensure_ascii=False)
+                logger.info(f"Summaries saved to file: {filename}")
+            except Exception as save_error:
+                logger.error(
+                    f"Error saving summaries to file: {str(save_error)}")
+
+            return summaries
 
         except Exception as e:
             logger.error(f"Error in summary generation service: {str(e)}")
             logger.error(traceback.format_exc())
-            raise Exception(f"Failed to generate summary: {str(e)}")
+            return []
 
-    def _prepare_summary_prompt(self, context_chunks):
+    def _generate_section_summary(self, section_name, section_data, temperature=0.7):
         """
-        Prepare the system message with context for the AI to generate a summary
+        Generate a summary for an entire section
 
         Args:
-            context_chunks (list): List of context chunks from vector search
+            section_name (str): The name of the section
+            section_data (list): The list of fields and values for the section
+            temperature (float, optional): Temperature for OpenAI generation
 
         Returns:
-            str: Formatted system message
+            dict: The generated summary
         """
-        system_template = """You are an AI assistant that helps users understand legal documents and contracts by providing comprehensive summaries.
-        
-The following are relevant sections from the document that you should use to create your summary:
+        try:
+            # Skip if no section data
+            if not section_data:
+                logger.info(f"Skipping section {section_name} with no data")
+                return None
 
-{context}
+            logger.info(
+                f"Generating summary for section: {section_name} with {len(section_data)} fields")
 
-Based on the above information, please generate a comprehensive summary of the document that includes:
-1. Purpose of the agreement
-2. Main parties involved
-3. Key obligations of each party
-4. Important dates and deadlines
-5. Termination conditions
-6. Key financial terms
+            # Format section data for prompt
+            formatted_data = self._format_section_data(section_data)
 
-Your summary should be well-structured with clear headings for each section. If the provided context doesn't contain enough information for any section, acknowledge this limitation.
-Always cite specific sections when referring to the document content.
+            # Get the appropriate prompt based on section name
+            prompt = self._get_prompt_for_section(section_name, formatted_data)
+
+            # Call OpenAI API
+            response = self.openai_client.chat.completions.create(
+                model="gpt-4o",
+                messages=[
+                    {"role": "system", "content": "You are a precise legal document analyzer that creates concise summaries."},
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=temperature,
+                max_tokens=300
+            )
+
+            # Extract the summary
+            summary_text = response.choices[0].message.content.strip()
+            logger.info(
+                f"Generated summary for section {section_name}: {summary_text[:100]}...")
+
+            # Return the summary object
+            return {
+
+                f"{section_name}": summary_text
+            }
+
+        except Exception as e:
+            logger.error(f"Error generating section summary: {str(e)}")
+            return None
+
+    def _format_section_data(self, section_data):
+        """
+        Format section data for inclusion in prompt
+
+        Args:
+            section_data (list): The list of fields and values for the section
+
+        Returns:
+            str: Formatted section data as string
+        """
+        formatted_data = ""
+        json_string = json.dumps(section_data, indent=2)
+
+        # for field in section_data:
+        #     field_name = field.get("field_name", "")
+        #     field_value = field.get("answer", "")
+        #     field_category = field.get("categories_used",  [])
+        #     section_name = field.get("section", "")
+        #     formatted_data += f"Section: {section_name}\nField: {field_name}\nValue: {field_value}\nCategories: {field_category}\n\n"
+        return json_string
+
+    # Summary prompts section
+    def _get_prompt_for_section(self, section_name, formatted_data):
+        """
+        Get the appropriate prompt based on section name
+
+        Args:
+            section_name (str): The name of the section
+            formatted_data (str): The formatted section data
+
+        Returns:
+            str: The appropriate prompt for the section
+        """
+        # Map section names to prompt generator functions
+        prompt_generators = {
+            "Absolute_Carve-Outs": self._get_absolute_carveouts_prompt,
+            # Add more section-specific prompts here as needed
+            # "Section_Name": self._get_section_name_prompt,
+        }
+
+        # Get the appropriate prompt generator or use default
+        prompt_generator = prompt_generators.get(
+            section_name, self._get_default_prompt)
+
+        # Generate and return the prompt
+        return prompt_generator(section_name, formatted_data)
+
+    def _get_absolute_carveouts_prompt(self, section_name, formatted_data):
+        """
+        Get prompt for Absolute_Carve-Outs section
+
+        Args:
+            section_name (str): The name of the section
+            formatted_data (str): The formatted section data
+
+        Returns:
+            str: The prompt for Absolute_Carve-Outs section
+        """
+        return f"""You are a legal AI assistant specializing in analyzing M&A agreements, with a focus on Material Adverse Effect (MAE) clauses.
+
+Based on the section below, provide a concise, bullet-point summary of the **Absolute Carve-Outs** identified in the MAE provision.
+
+Section Name: {section_name}
+
+Section Data (JSON format):
+{formatted_data}
+
+Your response should:
+- Clearly explain what "Absolute Carve-Outs" are in the context of MAE clauses.
+- Identify specific events or conditions that are excluded from triggering a MAE.
+- Highlight how these exclusions shift risk allocation between buyer and seller.
+- Use clear, professional language that is accessible to business stakeholders.
+- Provide 1 to 5 bullet points that capture the legal and commercial significance.
+- If no relevant information is present (e.g., “No relevant document sections found”), state that no Absolute Carve-Outs were identified.
+
+⚠️ Return only bullet points — do not include an introduction, conclusion, or meta commentary.
 """
 
-        # Format the context sections
-        context_text = ""
-        for i, chunk in enumerate(context_chunks):
-            category_info = f" [Category: {chunk.get('category', '')}]" if chunk.get(
-                'category') else ""
-            context_text += f"[{i+1}] {chunk.get('label', 'Section')}{category_info} (Related to: {chunk.get('query', 'General')}): {chunk.get('content', '')}\n\n"
+    def _get_default_prompt(self, section_name, formatted_data):
+        """
+        Get default prompt for all other sections
 
-        return system_template.format(context=context_text)
+        Args:
+            section_name (str): The name of the section
+            formatted_data (str): The formatted section data
+
+        Returns:
+            str: The default prompt
+        """
+        return f"""You are a legal AI assistant specializing in analyzing M&A documents.
+
+Based on the section below, provide a concise, bullet-point summary of thefollowing section identified in the MAE provision.
+
+Section: {section_name}
+
+Section Data:
+{formatted_data}
+
+Your response should:
+- Provide a clear, professional summary in bullet points.
+- Use plain language that is accessible to non-legal business professionals.
+- Focus strictly on the provided content — do not speculate or assume beyond the data.
+- Provide 1 to 5 bullet points capturing the legal and commercial implications.
+- If the data says "No relevant document sections found" or is missing, state that no summary could be generated due to insufficient information.
+
+⚠️ Return only bullet points — do not include an introduction, conclusion, or any extra commentary.
+
+"""
 
 
 class SchemaCategorySearch:
@@ -1385,6 +1500,7 @@ class SchemaCategorySearch:
             logger.error(f"Error fetching schema: {str(e)}")
             return {}
 
+    #  This is a function to extract field answer using GPT.
     def extract_field_value_with_gpt(self, field, chunks, section_name):
         """
         Extract field value using GPT based on chunks
@@ -1410,7 +1526,7 @@ class SchemaCategorySearch:
             prompt = f"""
 You are a legal AI assistant with expertise in analyzing M&A documents.
 
-Your task is to generate a professional-grade summary by extracting the most accurate and relevant value for a specific field, based solely on the provided document content.
+Your task is to extract the most accurate and relevant value for a specific **field**, based only on the content provided.
 
 ---
 
@@ -1418,32 +1534,41 @@ Your task is to generate a professional-grade summary by extracting the most acc
 🏷️ FIELD: {field_name}  
 🧾 EXTRACTION INSTRUCTIONS: {instructions}
 
-Below are document excerpts or summaries related to this section. Carefully review them to identify and extract the value that fulfills the field requirement:
+Below are the relevant excerpts from the document. Carefully analyze them to determine if the field can be extracted:
+
 
 {chunks}
 
 ---
 
-🎯 Based only on the provided content, extract the best possible value for the field **'{field_name}'**, following the instructions exactly.
+🎯 Based **only** on the content provided in `chunks`, respond with one of the following:
 
 Your response must be in one of the following formats:
-1. If the value is found: return the extracted value as a string.
-2. If the field is clearly **not applicable** in the context: return `"NA"`.
-3. If the field **should exist** but is **not mentioned** in the provided content: return `"Not found"`.
+1. A **precise string** that answers the field as instructed.
+2. If the field is **clearly not applicable** in this context, respond exactly with: `"NA"`
+3. If the field **should exist but is not found** in the content, respond exactly with: `"Not found"`
 
-Return your answer in **exactly** this JSON format:
+Do **not** return summaries, paraphrased explanations, or fallback phrases like "No relevant document sections found". Only use one of the formats above.
+
+Return your final result strictly in this JSON format (nothing else):
+
 {{
-  "answer": "THE EXTRACTED VALUE GOES HERE"
+  "answer": "..."
 }}
+
+- Do **not** use quotes for numbers or booleans or dates.
+
 """
 
             # Call GPT
             logger.info(
                 f"Calling GPT to extract value for field: {field_name}")
+            logger.info(
+                f"Find answer Promt {prompt}")
             response = self.openai_client.chat.completions.create(
                 model="gpt-4o",
                 messages=[
-                    {"role": "system", "content": "You are a precise legal mna document analyzer that extracts specific field values according to given instructions,section name and field name."},
+
                     {"role": "user", "content": prompt}
                 ],
                 temperature=0.1,
@@ -1480,12 +1605,12 @@ Return your answer in **exactly** this JSON format:
                     return answer_match.group(1)
 
                 # Default to empty string if all else fails
-                return ""
-
         except Exception as e:
             logger.error(f"Error extracting field value with GPT: {str(e)}")
             logger.error(traceback.format_exc())
             return f"Error: {str(e)}"
+
+    #
 
     def process_schema_field(self, section_name, field, deal_id):
         """
@@ -1528,6 +1653,8 @@ Return your answer in **exactly** this JSON format:
                 filter_dict = {"deal_id": str(deal_id),
                                "categories": {"$in": categories}
                                }
+                print(f"Filter dictionary: {filter_dict}")
+                logger.info(f"Filter dictionary: {filter_dict}")
 
             # Access the Pinecone index directly
             index = self.embedding_service.index
@@ -1538,15 +1665,18 @@ Return your answer in **exactly** this JSON format:
             # Search in Pinecone using metadata filtering
             search_response = index.query(
                 vector=dummy_vector,
-                top_k=15,  # Get enough results for all categories
+                top_k=40,  # Get enough results for all categories
                 include_metadata=True,
                 filter=filter_dict
             )
+            logger.info(f"Search response: {search_response}")
 
             print(f"Search response length: {len(search_response.matches)}")
 
             # Extract metadata from matches
             all_chunks = [match.metadata for match in search_response.matches]
+
+            logger.info(f"All chunks: {all_chunks}")
 
             # Remove duplicates if any
             unique_chunks = []
@@ -1558,18 +1688,20 @@ Return your answer in **exactly** this JSON format:
                     unique_chunks.append(chunk)
 
             logger.info(
-                f"Found {len(unique_chunks)} unique chunks matching categories")
+                f"Found All {len(all_chunks)} All chunks matching categories")
+            logger.info(
+                f"Found Unique {len(unique_chunks)} unique chunks matching categories")
 
             # Combine all text into a single string
             combined_text = ""
-            for chunk in unique_chunks:
+            for idx, chunk in enumerate(unique_chunks):
                 chunk_text = chunk.get("combined_text", "")
                 if chunk_text:
-                    # Add a separator between chunks for readability
                     if combined_text:
-                        combined_text += "\n\n" + "-" * 40 + "\n\n"
-                    # Add the actual text content
-                    combined_text += chunk_text
+                        combined_text += "\n\n"
+                    combined_text += f"[Excerpt {idx + 1}]\n{chunk_text.strip()}"
+
+            logger.info(f"Combined text: {combined_text}")
 
             # Extract value with GPT
             value = self.extract_field_value_with_gpt(
@@ -1614,16 +1746,17 @@ Return your answer in **exactly** this JSON format:
             # Process each section and field
             # Process only the first section and limited fields
             for i, (section_name, fields) in enumerate(schema.items()):
-                if i >= 1:  # Process only the first section
-                    break
+                if section_name != "Best_Efforts":  # Process only the first section
+                    continue
 
                 logger.info(f"Processing section: {section_name}")
                 results[section_name] = []
 
                 # Limit to first 3 fields in the section
-                for field in fields[:1]:
+                for field in fields:
                     field_result = self.process_schema_field(
                         section_name, field, deal_id)
+                    logger.info(f"Completed Field result: {field_result}")
                     results[section_name].append(field_result)
 
             # Create a timestamp for the filename
