@@ -1,0 +1,314 @@
+{
+  "Absolute_Carve-Outs": [
+    {
+      "section": "Absolute_Carve-Outs",
+      "field_name": "carved_out_events_or_conditions",
+      "answer": "changes in general economic, financial market, regulatory, business, financial, political, geopolitical, credit or capital market conditions, including interest or exchange rates, tariffs and trade wars; general changes or developments in any of the industries or markets in which such Person or any of its Subsidiaries operate; adoption, implementation, repeal, modification or amendment of any applicable Laws or changes in GAAP; acts of war, hostilities, military actions or acts of terrorism, cyberterrorism, weather related events, fires, natural disasters, epidemics, pandemics, plagues or other outbreaks of illness or disease or public health events or any other acts of God",
+      "confidence": 1.0,
+      "reason": "",
+      "categories_used": [
+        "Definitions  >  Material Adverse Effects",
+        "Representations & Warranties  >  Material Adverse Effect",
+        "Termination  >  Other Termination Rights"
+      ]
+    },
+    {
+      "section": "Absolute_Carve-Outs",
+      "field_name": "carve_out_context_description",
+      "answer": "Material Adverse Effect definition",
+      "confidence": 0.9,
+      "reason": "The carve-outs are explicitly listed within the definition of 'Material Adverse Effect' and specify events that should not be considered when determining if a Material Adverse Effect has occurred.",
+      "categories_used": [
+        "Definitions  >  Material Adverse Effects",
+        "Conditions to Closing  >  General and Mutual Conditions",
+        "Termination  >  Other Termination Rights"
+      ]
+    }
+  ],
+  "Acquirer": [
+    {
+      "section": "Acquirer",
+      "field_name": "acquirer_name",
+      "answer": "Parent",
+      "confidence": 1.0,
+      "reason": "",
+      "categories_used": [
+        "Representations & Warranties  >  By the Buyer",
+        "The Merger  >  Deal Structure",
+        "Preamble  >  Preamble"
+      ]
+    },
+    {
+      "section": "Acquirer",
+      "field_name": "is_acquirer_public_company",
+      "answer": "true",
+      "confidence": 1.0,
+      "reason": "",
+      "categories_used": [
+        "Covenants  >  Proxy Statement Filings",
+        "Covenants  >  Listing/Delisting",
+        "Representations & Warranties  >  By the Buyer"
+      ]
+    }
+  ],
+  "Antitrust_Commitment": [
+    {
+      "section": "Antitrust_Commitment",
+      "field_name": "required_regulatory_filings",
+      "answer": "Regulatory filings are required.",
+      "confidence": 0.9,
+      "reason": "Section 5.4(a) discusses the need for obtaining consents, approvals, registrations, and filings with Governmental Authorities, including under the HSR Act and other Antitrust Laws, which implies the requirement for regulatory filings.",
+      "categories_used": [
+        "Covenants  >  Efforts",
+        "Conditions to Closing  >  General and Mutual Conditions",
+        "Termination  >  Reverse Termination Fee"
+      ]
+    },
+    {
+      "section": "Antitrust_Commitment",
+      "field_name": "hsr_filing_required",
+      "answer": "Yes",
+      "confidence": 0.9,
+      "reason": "The agreement specifies that the parties must make their respective filings under the HSR Act within 25 business days following the date of the agreement, indicating that an HSR filing is required.",
+      "categories_used": [
+        "Covenants  >  Efforts",
+        "Conditions to Closing  >  General and Mutual Conditions",
+        "Termination  >  Reverse Termination Fee"
+      ]
+    }
+  ],
+  "Best_Efforts": [
+    {
+      "section": "Best_Efforts",
+      "field_name": "best_efforts_standard",
+      "answer": "reasonable best efforts",
+      "confidence": 1.0,
+      "reason": "",
+      "categories_used": [
+        "Covenants  >  Efforts",
+        "Conditions to Closing  >  General and Mutual Conditions",
+        "Conditions to Closing  >  Party-Specific Conditions"
+      ]
+    },
+    {
+      "section": "Best_Efforts",
+      "field_name": "buyer_best_efforts_obligations",
+      "answer": "Not found",
+      "confidence": 1.0,
+      "reason": "",
+      "categories_used": [
+        "Covenants  >  Efforts",
+        "Conditions to Closing  >  General and Mutual Conditions",
+        "Covenants  >  Conduct of Business"
+      ]
+    }
+  ],
+  "Board_Approval": [
+    {
+      "section": "Board_Approval",
+      "field_name": "target_board_approval_given",
+      "answer": "true",
+      "confidence": 1.0,
+      "reason": "",
+      "categories_used": [
+        "Representations & Warranties  >  Recommendation of the Target Board",
+        "The Merger  >  Directors & Officers",
+        "Covenants  >  Shareholder Vote/Meeting"
+      ]
+    },
+    {
+      "section": "Board_Approval",
+      "field_name": "acquirer_board_approval_given",
+      "answer": true,
+      "confidence": 1.0,
+      "reason": "",
+      "categories_used": [
+        "Representations & Warranties  >  By the Buyer",
+        "The Merger  >  Deal Structure",
+        "Conditions to Closing  >  General and Mutual Conditions"
+      ]
+    }
+  ],
+  "Breach_Monitoring_and_Ongoing_Operations": [
+    {
+      "section": "Breach_Monitoring_and_Ongoing_Operations",
+      "field_name": "breach_notification_obligation",
+      "answer": "true",
+      "confidence": 1.0,
+      "reason": "",
+      "categories_used": [
+        "Covenants  >  Notification / Publicity",
+        "Miscellaneous  >  Notices",
+        "Termination  >  Notice of Termination"
+      ]
+    },
+    {
+      "section": "Breach_Monitoring_and_Ongoing_Operations",
+      "field_name": "ongoing_accuracy_requirement",
+      "answer": "The representations and warranties must remain accurate at the time of closing. For certain specified sections, they must be true and correct in all respects, except for de minimis inaccuracies. For other fundamental representations, they must be true and correct in all material respects, without giving effect to materiality or 'Material Adverse Effect' qualifications. For all other representations, they must be true and correct except where inaccuracies do not have a Material Adverse Effect.",
+      "confidence": 0.9,
+      "reason": "The conditions to the obligations of both the Company and Parent to effect the merger include requirements for the representations and warranties to be true and correct at the closing, with specific materiality qualifiers.",
+      "categories_used": [
+        "Representations & Warranties  >  By the Buyer",
+        "Covenants  >  Conduct of Business",
+        "Conditions to Closing  >  General and Mutual Conditions"
+      ]
+    }
+  ],
+  "Clean_Room_Agreement": [
+    {
+      "section": "Clean_Room_Agreement",
+      "field_name": "clean_room_agreement_required",
+      "answer": "Not found",
+      "confidence": 1.0,
+      "reason": "",
+      "categories_used": [
+        "Covenants  >  AI, Privacy & Cybersecurity",
+        "Covenants  >  Access",
+        "Covenants  >  Conduct of Business"
+      ]
+    },
+    {
+      "section": "Clean_Room_Agreement",
+      "field_name": "clean_room_data_scope",
+      "answer": "General confidential business information",
+      "confidence": 0.8,
+      "reason": "The excerpts discuss data protection and confidentiality measures, implying that the clean room data scope includes general confidential business information.",
+      "categories_used": [
+        "Covenants  >  AI, Privacy & Cybersecurity",
+        "Covenants  >  Access",
+        "Covenants  >  Conduct of Business"
+      ]
+    }
+  ],
+  "Closing": [
+    {
+      "section": "Closing",
+      "field_name": "closing_date_mechanics",
+      "answer": "as soon as reasonably practicable, and in no event later than the third business day, following the day on which the last to be satisfied or waived of each of the conditions set forth in Article VI shall have been satisfied or waived",
+      "confidence": 1.0,
+      "reason": "",
+      "categories_used": [
+        "The Merger  >  Effective Time & Closing Process",
+        "Conditions to Closing  >  General and Mutual Conditions",
+        "The Merger  >  Mechanics and Statutory Effects"
+      ]
+    },
+    {
+      "section": "Closing",
+      "field_name": "closing_location_or_method",
+      "answer": "in person",
+      "confidence": 1.0,
+      "reason": "",
+      "categories_used": [
+        "The Merger  >  Effective Time & Closing Process",
+        "The Merger  >  Closing Deliverables",
+        "Miscellaneous  >  Administrative Terms"
+      ]
+    }
+  ],
+  "Company_Material_Adverse_Change": [
+    {
+      "section": "Company_Material_Adverse_Change",
+      "field_name": "cmac_definition_text",
+      "answer": "Material Adverse Effect shall mean, with respect to Parent or the Company, any event, circumstance, occurrence, effect, fact, development or change that, individually or in the aggregate, has a material adverse effect on the business, financial condition or results of operations of such Person and its Subsidiaries, taken as a whole; provided that none of the following (or the results thereof) shall constitute or be taken into account in determining whether a Material Adverse Effect shall have occurred: (i) changes in general economic, financial market, regulatory, business, financial, political, geopolitical, credit or capital market conditions, including interest or exchange rates, tariffs and trade wars; (ii) general changes or developments in any of the industries or markets in which such Person or any of its Subsidiaries operate; (iii) (A) adoption, implementation, repeal, modification or amendment of any applicable Laws or (B) changes in GAAP, or in the case of each of clause (A) and (B), any proposal therefor or change in interpretations or enforcement thereof; (iv) any change in the price or trading volume of such Person's securities or other financial instruments or change in such Person's credit rating, in and of itself (provided that the facts or occurrences giving rise to or contributing to such change that are not otherwise excluded from the definition of \"Material Adverse Effect\" may constitute or be taken into account in determining whether a Material Adverse Effect has occurred); (v) any failure by such Person to meet its internal or published projections, budgets, plans or forecasts of its revenues, earnings or other financial performance or results of operation or any published analyst or other third-party estimates or expectations of such Person's revenue, earnings or other financial performance or results of operations for any period, in and of itself (provided that the facts or occurrences giving rise to or contributing to such failure that are not otherwise excluded from the definition of \"Material Adverse Effect\" may constitute or be taken into account in determining whether a Material Adverse Effect has occurred); (vi) acts of war (whether or not declared), hostilities, military actions or acts of terrorism, cyberterrorism (to the extent not specifically targeting such Person), or any escalation or worsening of the foregoing, weather related events, fires, natural disasters, epidemics, pandemics, plagues or other outbreaks of illness or disease or public health events (including COVID-19) or any other acts of God; (vii) any action taken or (to the extent the relevant action is expressly permitted by the terms of this Agreement) not taken at the express written request of the Company (in the case of Parent) or Parent (in the case of the Company) after the date of this Agreement; (viii) the identity of Company (in the case of Parent) or Parent (in the case of the Company) and, other than with respect to a representation or warranty contained in this Agreement to the extent that the purpose of such representation or warranty is to address the consequences resulting from the execution and delivery of this Agreement or the consummation of the Merger or the performance of obligations under this Agreement, the execution of this Agreement, the public announcement, pendency or consummation of the Merger or the other transactions contemplated by this Agreement (including, to the extent resulting from the foregoing, any effect on any of such Person’s or any of its Subsidiaries’ relationships with their respective customers, suppliers or employees); or (ix) any matter disclosed against a representation or warranty set forth in Article III in the Company Disclosure Letter (as it relates to the Company) or Article IV in the Parent Disclosure Letter in (as it relates to Parent); provided, further, that, the exceptions in clauses (i) through (iii) and (vi) shall not apply to the extent the events, circumstances, occurrences, effects, facts, developments or changes set forth in such clauses have a disproportionate impact on such Person and its Subsidiaries, taken as a whole, relative to the other participants in the industries in which such Person and its Subsidiaries operate.",
+      "confidence": 1.0,
+      "reason": "",
+      "categories_used": [
+        "Definitions  >  Material Adverse Effects",
+        "Representations & Warranties  >  Material Adverse Effect",
+        "Termination  >  Other Termination Rights"
+      ]
+    },
+    {
+      "section": "Company_Material_Adverse_Change",
+      "field_name": "cmac_used_as_closing_condition",
+      "answer": true,
+      "confidence": 1.0,
+      "reason": "",
+      "categories_used": [
+        "Conditions to Closing  >  General and Mutual Conditions",
+        "Definitions  >  Material Adverse Effects",
+        "Termination  >  Other Termination Rights"
+      ]
+    }
+  ],
+  "Complete_Effects_on_Capital_Stock": [
+    {
+      "section": "Complete_Effects_on_Capital_Stock",
+      "field_name": "stock_effect_summary",
+      "answer": "Not found",
+      "confidence": 1.0,
+      "reason": "",
+      "categories_used": [
+        "The Merger  >  Mechanics and Statutory Effects",
+        "The Merger  >  Merger Consideration",
+        "The Merger  >  Effectiveness"
+      ]
+    },
+    {
+      "section": "Complete_Effects_on_Capital_Stock",
+      "field_name": "treatment_of_common_stock",
+      "answer": "Each share of Company Common Stock issued and outstanding immediately prior to the Effective Time (other than Canceled Shares and Dissenting Shares) shall be automatically canceled and converted into the right to receive the Merger Consideration, which includes $26.45 per share in cash and a number of Parent Shares equal to the Exchange Ratio.",
+      "confidence": 1.0,
+      "reason": "",
+      "categories_used": [
+        "The Merger  >  Merger Consideration",
+        "The Merger  >  Exchange Procedures",
+        "The Merger  >  Mechanics and Statutory Effects"
+      ]
+    }
+  ],
+  "Conditions_to_Closing": [
+    {
+      "section": "Conditions_to_Closing",
+      "field_name": "shareholder_approval_condition",
+      "answer": "true",
+      "confidence": 1.0,
+      "reason": "",
+      "categories_used": [
+        "Conditions to Closing  >  General and Mutual Conditions",
+        "Conditions to Closing  >  Party-Specific Conditions",
+        "Covenants  >  Shareholder Vote/Meeting"
+      ]
+    },
+    {
+      "section": "Conditions_to_Closing",
+      "field_name": "regulatory_approval_condition",
+      "answer": "HSR Act, FCC consents, and Governmental Consents set forth on Section 6.01(d) of the Company Disclosure Letter",
+      "confidence": 1.0,
+      "reason": "",
+      "categories_used": [
+        "Conditions to Closing  >  General and Mutual Conditions",
+        "The Merger  >  Statutory Merger Filings",
+        "Covenants  >  Efforts"
+      ]
+    }
+  ],
+  "Confidentiality_Agreement": [
+    {
+      "section": "Confidentiality_Agreement",
+      "field_name": "pre_existing_confidentiality_agreement_referenced",
+      "answer": true,
+      "confidence": 1.0,
+      "reason": "",
+      "categories_used": [
+        "Covenants  >  Access",
+        "Miscellaneous  >  Contract Construction Terms",
+        "Covenants  >  Notification / Publicity"
+      ]
+    },
+    {
+      "section": "Confidentiality_Agreement",
+      "field_name": "confidentiality_terms_superseded_by_merger_agreement",
+      "answer": "true",
+      "confidence": 1.0,
+      "reason": "",
+      "categories_used": [
+        "Covenants  >  Access",
+        "Miscellaneous  >  Contract Construction Terms",
+        "Miscellaneous  >  Legal Enforcement"
+      ]
+    }
+  ]
+}

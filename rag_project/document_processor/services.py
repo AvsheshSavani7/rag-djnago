@@ -178,12 +178,12 @@ class DocumentProcessingService:
             logger.info(f"Downloaded {len(chunks)} chunks")
 
             # Process embeddings
-            logger.info("Initializing embedding service")
-            embedding_service = EmbeddingService()
-            logger.info(
-                f"Starting embedding creation for {len(chunks)} chunks")
-            result = embedding_service.process_chunks(chunks, str(job_id))
-            logger.info(f"Embedding completed with result: {result}")
+            # logger.info("Initializing embedding service")
+            # embedding_service = EmbeddingService()
+            # logger.info(
+            #     f"Starting embedding creation for {len(chunks)} chunks")
+            # result = embedding_service.process_chunks(chunks, str(job_id))
+            # logger.info(f"Embedding completed with result: {result}")
 
             # Create an instance of the class
             schema_search = SchemaCategorySearch()
@@ -1238,7 +1238,7 @@ class SummaryGenerationService:
                 logger.info(f"Processing section: {section_name}")
                 # Convert section_name to match schema_results keys if needed
                 section_key = section_name.replace(" ", "_")
-# Specific_Performance
+                # Specific_Performance
                 if section_name == "Acquirer":
                     acquirer_fields = schema_results.get("Acquirer", [])
 
@@ -2952,61 +2952,93 @@ class SchemaCategorySearch:
 
         try:
             results = {}
+            # Set up a ThreadPoolExecutor with a reasonable number of workers
+            with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
+                # Dictionary to track all future objects by section and field
+                futures = {}
 
-            # Process each section and field
-            # Process only the first section and limited fields
-            for i, (section_name, fields) in enumerate(schema.items()):
-                if section_name == "Absolute_Carve-Outs" or section_name == "Acquirer" or section_name == "Antitrust_Commitment" or section_name == "Best_Efforts" or section_name == "Board_Approval" or section_name == "Breach_Monitoring_and_Ongoing_Operations" or section_name == "Clean_Room_Agreement" or section_name == "Closing" or section_name == "Company_Material_Adverse_Change" or section_name == "Complete_Effects_on_Capital_Stock" or section_name == "Conditions_to_Closing" or section_name == "Confidentiality_Agreement" or section_name == "Covenants" or section_name == "Dividends" or section_name == "Financing" or section_name == "Guarantee" or section_name == "Guarantor" or section_name == "Law_and_Jurisdiction" or section_name == "Merger_Agreement_Details" or section_name == "No_Solicitation" or section_name == "Ordinary_Course" or section_name == "Out_Date" or section_name == "Proxy_Statement" or section_name == "R_W_Parent" or section_name == "R_W_Target" or section_name == "Regulatory_Approvals" or section_name == "Regulatory_Obligations_Best_Efforts" or section_name == "Regulatory_Obligations_Timing" or section_name == "Shareholder_Approval" or section_name == "Specific_Performance" or section_name == "Termination" or section_name == "Termination_Fees__Other_" or section_name == "Termination_Fees__Parent_to_Target_" or section_name == "Termination_Fees__Target_to_Parent_" or section_name == "Timeline" or section_name == "Voting_Agreement":
-
-                    # if section_name == "Termination_Fees__Parent_to_Target_" or section_name == "Termination_Fees__Target_to_Parent_":
-                    logger.info(f"Consider section: {section_name}")
-
-                    # Initialize the section's results array
-                    results[section_name] = []
-                    # Limit to first 3 fields in the section
-                    for field in fields:
-                        field_name = field.get("field_name", "")
-                        logger.info(f"Field name: {field_name}")
-                        # if field_name == "confidentiality_agreement_date":
-
-                        field_result = self.process_schema_field(
-                            section_name, field, deal_id)
+                # First pass: Submit all tasks to the executor
+                for section_name, fields in schema.items():
+                    # Check if this section should be processed
+                    if section_name in [
+                        "Absolute_Carve-Outs", "Acquirer", "Antitrust_Commitment",
+                        "Best_Efforts", "Board_Approval", "Breach_Monitoring_and_Ongoing_Operations",
+                        "Clean_Room_Agreement", "Closing", "Company_Material_Adverse_Change",
+                        "Complete_Effects_on_Capital_Stock", "Conditions_to_Closing",
+                        "Confidentiality_Agreement", "Covenants", "Dividends", "Financing",
+                        "Guarantee", "Guarantor", "Law_and_Jurisdiction", "Merger_Agreement_Details",
+                        "No_Solicitation", "Ordinary_Course", "Out_Date", "Proxy_Statement",
+                        "R_W_Parent", "R_W_Target", "Regulatory_Approvals",
+                        "Regulatory_Obligations_Best_Efforts", "Regulatory_Obligations_Timing",
+                        "Shareholder_Approval", "Specific_Performance", "Termination",
+                        "Termination_Fees__Other_", "Termination_Fees__Parent_to_Target_",
+                        "Termination_Fees__Target_to_Parent_", "Timeline", "Voting_Agreement"
+                    ]:
                         logger.info(
-                            f"Completed Field result: {field_result}")
+                            f"Submitting tasks for section: {section_name}")
+                        # Initialize the section's results array
+                        results[section_name] = []
+                        futures[section_name] = []
 
-                        results[section_name].append(field_result)
+                        # Submit each field processing as a separate task (limit to 2 fields per section)
+                        for i, field in enumerate(fields):
 
-                        # else:
-                        #     continue
-                else:
-                    logger.info(f"Skipping section: {section_name}")
-                    continue
+                            field_name = field.get("field_name", "")
+                            logger.info(
+                                f"Submitting task for field: {field_name} ({i+1}/2)")
 
-                    # Create a timestamp for the filename
+                            # Submit the task to the executor and store the future
+                            future = executor.submit(
+                                self.process_schema_field,
+                                section_name, field, deal_id
+                            )
+                            futures[section_name].append((field_name, future))
+                    else:
+                        logger.info(f"Skipping section: {section_name}")
 
-               # Get current time in UTC
+                # Second pass: Collect results as they complete
+                for section_name, section_futures in futures.items():
+                    for field_name, future in section_futures:
+                        try:
+                            # Get the result from the future
+                            field_result = future.result()
+                            logger.info(
+                                f"Completed field result: {field_result}")
+                            results[section_name].append(field_result)
+                        except Exception as e:
+                            logger.error(
+                                f"Error processing field {field_name}: {str(e)}")
+                            # Add error result
+                            results[section_name].append({
+                                "section": section_name,
+                                "field_name": field_name,
+                                "answer": f"Error: {str(e)}",
+                                "confidence": 0.0,
+                                "reason": "Processing error",
+                                "categories_used": []
+                            })
+
+                # Get current time in UTC and convert to IST
                 utc_now = datetime.now(pytz.UTC)
-
-                # Convert to IST
                 ist = pytz.timezone('Asia/Kolkata')
                 ist_now = utc_now.astimezone(ist)
 
                 # Create timestamp in IST
                 timestamp = ist_now.strftime("%d-%m-%y_%I-%M_%p")
 
-                # Create a filename with deal_id and timestamp
+                # Create a filename with timestamp
                 filename = f"schema_results_{timestamp}.json"
 
-            # Save results to JSON file
-            try:
-                with open(filename, 'w', encoding='utf-8') as f:
-                    json.dump(results, f, indent=2, ensure_ascii=False)
-                logger.info(f"Results saved to file: {filename}")
-            except Exception as save_error:
-                logger.error(
-                    f"Error saving results to file: {str(save_error)}")
+                # Save results to JSON file
+                try:
+                    with open(filename, 'w', encoding='utf-8') as f:
+                        json.dump(results, f, indent=2, ensure_ascii=False)
+                    logger.info(f"Results saved to file: {filename}")
+                except Exception as save_error:
+                    logger.error(
+                        f"Error saving results to file: {str(save_error)}")
 
-            return results
+                return results
 
         except Exception as e:
             logger.error(f"Error processing schema: {str(e)}")
