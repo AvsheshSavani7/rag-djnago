@@ -143,7 +143,7 @@ The system then consolidates these sections to generate a comprehensive document
 
 7. Set up Pinecone
    - Create an account at https://www.pinecone.io/
-   - Create a new index with dimensions=1536 (for OpenAI embeddings)
+   - Create a new index with dimensions=3072 (for OpenAI embeddings)
    - Set the metric to "cosine"
 
 8. Run database migrations

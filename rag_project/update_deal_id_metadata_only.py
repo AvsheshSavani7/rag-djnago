@@ -35,7 +35,7 @@ def update_deal_id_metadata_only(old_deal_id, new_deal_id, batch_size=120):
         logger.info(f"Connected to Pinecone index: {index_name}")
 
         # Use a dummy vector for metadata-only search
-        dummy_vector = [0.0] * 1536  # Dimension for text-embedding-3-small
+        dummy_vector = [0.0] * 3072  # Dimension for text-embedding-3-small
 
         # Prepare filter to get vectors with the old deal_id
         filter_dict = {"deal_id": str(old_deal_id)}
