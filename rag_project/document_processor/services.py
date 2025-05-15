@@ -1891,7 +1891,7 @@ Be precise:
             "Timeline": self._get_timeline_prompt,
             "Breach_Monitoring_and_Ongoing_Operations": self._get_breach_monitoring_and_ongoing_operations_prompt,
             "Antitrust_Commitment": self._get_antitrust_commitment_prompt,
-
+            "Go-Shop Terms": self._get_go_shop_prompt,
         }
 
         # Get summary configuration for this section
@@ -2660,6 +2660,38 @@ Ensure the output reads as a final deliverable, requiring no further editing.
 {self._get_level_of_details_config(level_of_details, format_type)}
 
 ⚠️ Return only {format_type} — do not include an introduction, conclusion, or any extra commentary.
+
+"""
+
+    def _get_go_shop_prompt(self, section_name, formatted_data, schema_results=None, format_type=None, level_of_details=None):
+
+        section_name = section_name.replace("_", " ")
+
+        return f"""You are a legal AI assistant specializing in analyzing M&A documents.
+
+Based on the section below, provide a concise, {format_type} summary of thefollowing section identified in the MAE provision.
+
+Section: {section_name}
+
+Section Data:
+{formatted_data}
+
+Your response should:
+
+- If the data clearly indicates that the agreement does not provide a Go-Shop period or allows only consideration of unsolicited proposals, return this exact single-line response:
+    No Go-Shop Terms found.
+- Otherwise, provide a clear, professional summary in {format_type}.
+- Use plain language that is accessible to non-legal business professionals.
+- Use precise legal language from the data where available. If key elements (like caps, triggers, survival) are explicitly missing, state that clearly but professionally.
+- Provide {format_type} capturing the legal and commercial implications.
+- If the data says "No relevant document sections found" or is missing, state that no summary could be generated due to insufficient information.
+
+{self._get_level_of_details_config(level_of_details, format_type)}
+
+⚠️ Important:
+
+    - Return only the single-line statement if no Go-Shop terms exist.
+    - Do not include introductions, conclusions, or commentary.
 
 """
 
