@@ -209,6 +209,7 @@ class ListAllDealsView(APIView):
     """
     API endpoint to get a list of all deals
     """
+    permission_classes = []  # Allow any access to this view
 
     def get(self, request, format=None):
         try:
