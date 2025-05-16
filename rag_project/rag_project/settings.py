@@ -105,20 +105,20 @@ if os.environ.get('MONGODB_CONNECTION_STRING'):
     MONGODB_URI = os.environ.get('MONGODB_CONNECTION_STRING')
     MONGODB_NAME = os.environ.get('MONGODB_NAME', 'Deal_DB')
 
-    # For Django ORM compatibility (minimal config needed)
+    # For Django ORM compatibility - use persistent file instead of in-memory
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': ':memory:',
+            'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
         }
     }
 else:
     print("No MongoDB connection string provided")
-    # Fallback to in-memory database
+    # Fallback to file-based database
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': ':memory:',
+            'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
         }
     }
 
@@ -145,6 +145,8 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/4.2/howto/static-files/
 
 STATIC_URL = "static/"
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+STATICFILES_DIRS = []
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field

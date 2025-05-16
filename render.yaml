@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: rag-django
+    env: python
+    buildCommand: "./build.sh"
+    startCommand: "cd rag_project && gunicorn rag_project.wsgi:application"
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.11
+      - key: WEB_CONCURRENCY
+        value: 4
+    staticPublishPath: ./rag_project/staticfiles 
