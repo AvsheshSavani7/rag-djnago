@@ -1,18 +1,14 @@
 from rest_framework import serializers
-from django.contrib.auth import get_user_model, authenticate
-from rest_framework_simplejwt.tokens import RefreshToken
 from django.utils import timezone
-User = get_user_model()
+from .models import User
+from rest_framework_simplejwt.tokens import RefreshToken
 
 
-class UserRegistrationSerializer(serializers.ModelSerializer):
+class UserRegistrationSerializer(serializers.Serializer):
+    email = serializers.EmailField(required=True)
     password = serializers.CharField(write_only=True, required=True, style={
                                      'input_type': 'password'})
-
-    class Meta:
-        model = User
-        fields = ['email', 'password', 'role']
-        extra_kwargs = {'password': {'write_only': True}}
+    role = serializers.CharField(required=False, default='admin')
 
     def create(self, validated_data):
         user = User.objects.create_user(
@@ -21,6 +17,12 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
             role=validated_data.get('role', 'admin')
         )
         return user
+
+    def to_representation(self, instance):
+        return {
+            'email': instance.email,
+            'role': instance.role
+        }
 
 
 class UserLoginSerializer(serializers.Serializer):
@@ -33,19 +35,23 @@ class UserLoginSerializer(serializers.Serializer):
         password = data.get('password')
 
         if email and password:
-            user = authenticate(request=self.context.get(
-                'request'), username=email, password=password)
-            if not user:
+            # Find the user by email
+            user = User.find_by_email(email)
+
+            # Check if user exists and password is correct
+            if not user or not user.check_password(password):
                 raise serializers.ValidationError(
                     'Unable to login with provided credentials.')
         else:
             raise serializers.ValidationError(
                 'Must include "email" and "password".')
 
-        # Update last_login time
-        user.last_login = timezone.now()
-        user.save(update_fields=['last_login'])
-        # Generate JWT token
+        # Update last login time (if needed)
+        user.updatedAt = timezone.now()
+        user.save()
+
+        # Generate JWT token - this part stays the same as JWT doesn't depend on ORM
+        # Create a dictionary that JWT token generation expects
         refresh = RefreshToken.for_user(user)
 
         data['user'] = user

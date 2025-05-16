@@ -198,6 +198,11 @@ SIMPLE_JWT = {
 # Custom authentication settings
 AUTH_USER_MODEL = 'user_auth.User'
 
+# Custom authentication backend to work with our non-ORM User model
+AUTHENTICATION_BACKENDS = [
+    'user_auth.backends.CustomAuthBackend',
+]
+
 # Add logging configuration
 LOGGING = {
     'version': 1,
