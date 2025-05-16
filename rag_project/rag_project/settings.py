@@ -101,19 +101,24 @@ WSGI_APPLICATION = "rag_project.wsgi.application"
 if os.environ.get('MONGODB_CONNECTION_STRING'):
     print("MONGODB_NAME:",
           os.environ.get('MONGODB_NAME'))
-    # Connection string method (for MongoDB Atlas or other MongoDB hosts)
+    # Store MongoDB connection info for direct pymongo access
+    MONGODB_URI = os.environ.get('MONGODB_CONNECTION_STRING')
+    MONGODB_NAME = os.environ.get('MONGODB_NAME', 'Deal_DB')
+
+    # For Django ORM compatibility (minimal config needed)
     DATABASES = {
         'default': {
-            'ENGINE': 'djongo',
-            'NAME': os.environ.get('MONGODB_NAME', 'Deal_DB'),
-            'ENFORCE_SCHEMA': False,
-            'CLIENT': {
-                'host': os.environ.get('MONGODB_CONNECTION_STRING')
-            }
+            'ENGINE': 'django.db.backends.dummy',
         }
     }
 else:
     print("No MongoDB connection string provided")
+    # Fallback to in-memory database
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.dummy',
+        }
+    }
 
 
 # Password validation - removed as auth is not used

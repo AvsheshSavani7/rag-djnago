@@ -1,12 +1,18 @@
 from django.db import models
 import uuid
-from djongo.models import ObjectIdField
 from datetime import datetime
 from pymongo import MongoClient
+from bson import ObjectId
+from django.conf import settings
+
+# Connect to MongoDB directly using pymongo
+mongo_client = MongoClient(settings.MONGODB_URI)
+mongo_db = mongo_client[settings.MONGODB_NAME]
+deals_collection = mongo_db['deals']
 
 
-class ProcessingJob(models.Model):
-    """Model to track document processing jobs"""
+class ProcessingJob:
+    """Model to track document processing jobs without Django ORM"""
     EMBEDDING_STATUS_CHOICES = (
         ('PENDING', 'Pending'),
         ('PROCESSING', 'Processing'),
@@ -14,41 +20,78 @@ class ProcessingJob(models.Model):
         ('FAILED', 'Failed'),
     )
 
-    _id = ObjectIdField(primary_key=True)
+    def __init__(self, **kwargs):
+        # MongoDB document ID
+        self._id = kwargs.get('_id')
 
-    # Deal information
-    cik = models.CharField(max_length=20, blank=True, null=True)
-    acquire_name = models.CharField(max_length=255, blank=True, null=True)
-    target_name = models.CharField(max_length=255, blank=True, null=True)
-    announce_date = models.DateTimeField(blank=True, null=True)
-    embedding_status = models.CharField(
-        max_length=20, choices=EMBEDDING_STATUS_CHOICES, default='PENDING')
+        # Deal information
+        self.cik = kwargs.get('cik')
+        self.acquire_name = kwargs.get('acquire_name')
+        self.target_name = kwargs.get('target_name')
+        self.announce_date = kwargs.get('announce_date')
+        self.embedding_status = kwargs.get('embedding_status', 'PENDING')
 
-    # Processing fields
-    file_url = models.URLField(
-        max_length=1000, help_text="URL to the JSON file to process")
-    parsed_json_url = models.URLField(
-        max_length=1000, blank=True, null=True, help_text="URL to the parsed JSON file")
-    flattened_json_url = models.URLField(
-        max_length=1000, blank=True, null=True, help_text="URL to the flattened JSON file")
+        # Processing fields
+        self.file_url = kwargs.get('file_url', '')
+        self.parsed_json_url = kwargs.get('parsed_json_url')
+        self.flattened_json_url = kwargs.get('flattened_json_url')
 
-    # Add these fields to the ProcessingJob model
-    schema_results = models.JSONField(null=True, blank=True)
-    schema_processing_completed = models.BooleanField(default=False)
-    schema_processing_timestamp = models.DateTimeField(null=True, blank=True)
+        # Schema fields
+        self.schema_results = kwargs.get('schema_results')
+        self.schema_processing_completed = kwargs.get(
+            'schema_processing_completed', False)
+        self.schema_processing_timestamp = kwargs.get(
+            'schema_processing_timestamp')
 
-    # Error information
-    error_message = models.TextField(null=True, blank=True)
+        # Error information
+        self.error_message = kwargs.get('error_message')
 
-    # Timestamps
-    createdAt = models.DateTimeField(auto_now_add=True, db_column="createdAt")
-    updatedAt = models.DateTimeField(auto_now=True, db_column="updatedAt")
+        # Timestamps
+        self.createdAt = kwargs.get('createdAt', datetime.now())
+        self.updatedAt = kwargs.get('updatedAt', datetime.now())
 
-    # MongoDB-specific fields
-    v_version = models.IntegerField(default=0, db_column="__v")
+        # Version
+        self.v_version = kwargs.get('__v', 0)
 
     def __str__(self):
         return f"Deal: {self.acquire_name}/{self.target_name} (ID: {self._id})"
+
+    def save(self):
+        """Save document to MongoDB"""
+        mongo_data = {
+            'cik': self.cik,
+            'acquire_name': self.acquire_name,
+            'target_name': self.target_name,
+            'announce_date': self.announce_date,
+            'embedding_status': self.embedding_status,
+            'file_url': self.file_url,
+            'parsed_json_url': self.parsed_json_url,
+            'flattened_json_url': self.flattened_json_url,
+            'schema_results': self.schema_results,
+            'schema_processing_completed': self.schema_processing_completed,
+            'schema_processing_timestamp': self.schema_processing_timestamp,
+            'error_message': self.error_message,
+            'createdAt': self.createdAt,
+            'updatedAt': self.updatedAt,
+            '__v': self.v_version,
+        }
+
+        # Update updatedAt timestamp
+        self.updatedAt = datetime.now()
+        mongo_data['updatedAt'] = self.updatedAt
+
+        # If we already have an ObjectId, update the record
+        if self._id:
+            deals_collection.update_one(
+                {'_id': ObjectId(self._id)},
+                {'$set': mongo_data}
+            )
+        else:
+            # Insert new record and store the ObjectId
+            result = deals_collection.insert_one(mongo_data)
+            self._id = result.inserted_id
+
+        return self
 
     def update_embedding_status(self, status, error_message=None):
         """Update the embedding status of the job"""
@@ -59,7 +102,7 @@ class ProcessingJob(models.Model):
         return self
 
     def save_json_to_db(self, results, error_message=None):
-        """Update the embedding status of the job"""
+        """Update schema results"""
         self.schema_results = results
         self.schema_processing_completed = True
         self.schema_processing_timestamp = datetime.now()
@@ -88,6 +131,43 @@ class ProcessingJob(models.Model):
         self.save()
         return self
 
-    class Meta:
-        db_table = "deals"
-        ordering = ['-createdAt']
+    @classmethod
+    def find_by_id(cls, object_id):
+        """Find a document by ID"""
+        document = deals_collection.find_one({'_id': ObjectId(object_id)})
+        if not document:
+            return None
+
+        # Convert MongoDB _id to string for easier handling
+        document['_id'] = str(document['_id'])
+        return cls(**document)
+
+    @classmethod
+    def find_all(cls):
+        """Find all documents"""
+        documents = deals_collection.find()
+        result = []
+        for doc in documents:
+            # Convert MongoDB _id to string for easier handling
+            doc['_id'] = str(doc['_id'])
+            result.append(cls(**doc))
+        return result
+
+    @classmethod
+    def find_by_query(cls, query=None, sort=None, limit=None):
+        """Find documents by query"""
+        query = query or {}
+        cursor = deals_collection.find(query)
+
+        if sort:
+            cursor = cursor.sort(sort)
+
+        if limit:
+            cursor = cursor.limit(limit)
+
+        result = []
+        for doc in cursor:
+            # Convert MongoDB _id to string for easier handling
+            doc['_id'] = str(doc['_id'])
+            result.append(cls(**doc))
+        return result

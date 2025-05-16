@@ -2,7 +2,6 @@ from django.shortcuts import render
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from django.shortcuts import get_object_or_404
 import logging
 import traceback
 from bson import ObjectId
@@ -29,8 +28,7 @@ def process_embeddings(job_id, flattened_json_url):
         f"Starting embedding process for job {job_id} with URL: {flattened_json_url}")
     try:
         # Get the job
-        object_id = ObjectId(job_id)
-        job = ProcessingJob.objects.get(_id=object_id)
+        job = ProcessingJob.find_by_id(job_id)
         print(f"Found job in database: {job}")
 
         # Update job status to processing
@@ -47,7 +45,7 @@ def process_embeddings(job_id, flattened_json_url):
         print("Initializing embedding service")
         embedding_service = EmbeddingService()
         print(f"Starting embedding creation for {len(chunks)} chunks")
-        result = embedding_service.process_chunks(chunks, str(job_id))
+        result = embedding_service.process_chunks(chunks, job_id)
         print(f"Embedding completed with result: {result}")
 
         # Update job status to completed
@@ -62,8 +60,7 @@ def process_embeddings(job_id, flattened_json_url):
 
         # Update job status to failed
         try:
-            object_id = ObjectId(job_id)
-            job = ProcessingJob.objects.get(_id=object_id)
+            job = ProcessingJob.find_by_id(job_id)
             job.update_embedding_status('FAILED', str(e))
             print(f"Updated job status to FAILED: {str(e)}")
         except Exception as inner_e:
@@ -86,14 +83,13 @@ class ProcessFileView(APIView):
         if not deal_id:
             return Response({"error": "deal_id is required"}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Find the existing job by _id (convert string to ObjectId)
+        # Find the existing job by _id
         try:
-            object_id = ObjectId(deal_id)
-            job = ProcessingJob.objects.get(_id=object_id)
+            job = ProcessingJob.find_by_id(deal_id)
             print("job", job)
-        except ProcessingJob.DoesNotExist:
-            return Response({"error": f"No processing job found for deal_id {deal_id}"},
-                            status=status.HTTP_404_NOT_FOUND)
+            if not job:
+                return Response({"error": f"No processing job found for deal_id {deal_id}"},
+                                status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
             return Response({"error": f"Invalid deal_id format: {str(e)}"},
                             status=status.HTTP_400_BAD_REQUEST)
@@ -156,8 +152,10 @@ class ProcessingJobDetailView(APIView):
 
     def get(self, request, id, format=None):
         try:
-            object_id = ObjectId(id)
-            job = get_object_or_404(ProcessingJob, _id=object_id)
+            job = ProcessingJob.find_by_id(id)
+            if not job:
+                return Response({"error": f"No job found for id {id}"},
+                                status=status.HTTP_404_NOT_FOUND)
             serializer = ProcessingJobSerializer(job)
             return Response(serializer.data, status=status.HTTP_200_OK)
         except Exception as e:
@@ -178,11 +176,10 @@ class ProcessEmbeddingsView(APIView):
 
         # Find the existing job
         try:
-            object_id = ObjectId(deal_id)
-            job = ProcessingJob.objects.get(_id=object_id)
-        except ProcessingJob.DoesNotExist:
-            return Response({"error": f"No processing job found for deal_id {deal_id}"},
-                            status=status.HTTP_404_NOT_FOUND)
+            job = ProcessingJob.find_by_id(deal_id)
+            if not job:
+                return Response({"error": f"No processing job found for deal_id {deal_id}"},
+                                status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
             return Response({"error": f"Invalid deal_id format: {str(e)}"},
                             status=status.HTTP_400_BAD_REQUEST)
@@ -215,8 +212,8 @@ class ListAllDealsView(APIView):
 
     def get(self, request, format=None):
         try:
-            # Get all deals from the database
-            jobs = ProcessingJob.objects.all().order_by('-createdAt')
+            # Get all deals from the database sorted by createdAt
+            jobs = ProcessingJob.find_by_query(sort=[("createdAt", -1)])
 
             # Serialize the deals
             serializer = ProcessingJobSerializer(jobs, many=True)
@@ -252,11 +249,10 @@ class PineconeVectorListView(APIView):
 
             # Verify that the deal exists
             try:
-                object_id = ObjectId(deal_id)
-                job = ProcessingJob.objects.get(_id=object_id)
-            except ProcessingJob.DoesNotExist:
-                return Response({"error": f"No processing job found for deal_id {deal_id}"},
-                                status=status.HTTP_404_NOT_FOUND)
+                job = ProcessingJob.find_by_id(deal_id)
+                if not job:
+                    return Response({"error": f"No processing job found for deal_id {deal_id}"},
+                                    status=status.HTTP_404_NOT_FOUND)
             except Exception as e:
                 return Response({"error": f"Invalid deal_id format: {str(e)}"},
                                 status=status.HTTP_400_BAD_REQUEST)
