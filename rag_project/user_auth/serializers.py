@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.utils import timezone
-from .models import User
+from .models import MongoUser
 from rest_framework_simplejwt.tokens import RefreshToken
 
 
@@ -11,7 +11,7 @@ class UserRegistrationSerializer(serializers.Serializer):
     role = serializers.CharField(required=False, default='admin')
 
     def create(self, validated_data):
-        user = User.objects.create_user(
+        user = MongoUser.objects.create_user(
             email=validated_data['email'],
             password=validated_data['password'],
             role=validated_data.get('role', 'admin')
@@ -36,7 +36,7 @@ class UserLoginSerializer(serializers.Serializer):
 
         if email and password:
             # Find the user by email
-            user = User.find_by_email(email)
+            user = MongoUser.find_by_email(email)
 
             # Check if user exists and password is correct
             if not user or not user.check_password(password):

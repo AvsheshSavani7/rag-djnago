@@ -18,6 +18,32 @@ def generate_object_id():
     return str(ObjectId())
 
 
+# Django ORM User model - this is needed for Django to recognize the model
+# but we'll use the pymongo implementation for all actual functionality
+class User(AbstractBaseUser, PermissionsMixin):
+    _id = models.CharField(primary_key=True, max_length=24,
+                           default=generate_object_id)
+    email = models.EmailField(unique=True)
+    password = models.CharField(max_length=128)
+    role = models.CharField(max_length=50, default='admin')
+    createdAt = models.DateTimeField(auto_now_add=True)
+    updatedAt = models.DateTimeField(auto_now=True)
+
+    USERNAME_FIELD = 'email'
+    REQUIRED_FIELDS = []
+
+    # Important! This is mock implementation, the real one is in MongoUser
+    objects = BaseUserManager()
+
+    def __str__(self):
+        return self.email
+
+    class Meta:
+        # Use this to specify that this is what Django should use when referencing user_auth.User
+        app_label = 'user_auth'
+
+
+# Now define the actual MongoDB implementation we'll use
 class UserManager:
     """User manager for pymongo-based User model"""
 
@@ -53,11 +79,11 @@ class UserManager:
         # Insert into MongoDB
         users_collection.insert_one(user_data)
 
-        # Return User instance
-        return User(**user_data)
+        # Return MongoUser instance
+        return MongoUser(**user_data)
 
 
-class User:
+class MongoUser:
     """User model using pymongo directly instead of Django ORM"""
 
     # Required for Django authentication
