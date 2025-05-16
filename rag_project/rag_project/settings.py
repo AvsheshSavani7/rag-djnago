@@ -108,7 +108,8 @@ if os.environ.get('MONGODB_CONNECTION_STRING'):
     # For Django ORM compatibility (minimal config needed)
     DATABASES = {
         'default': {
-            'ENGINE': 'django.db.backends.dummy',
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': ':memory:',
         }
     }
 else:
@@ -116,7 +117,8 @@ else:
     # Fallback to in-memory database
     DATABASES = {
         'default': {
-            'ENGINE': 'django.db.backends.dummy',
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': ':memory:',
         }
     }
 

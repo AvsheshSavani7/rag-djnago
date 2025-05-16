@@ -38,12 +38,15 @@ class ThreadCreateView(APIView):
         if serializer.is_valid():
             try:
                 # Create thread in OpenAI
-                thread = client.beta.threads.create()
+                openai_thread = client.beta.threads.create()
 
                 # Save to MongoDB
                 thread_data = serializer.validated_data
-                thread_data['openai_thread_id'] = thread.id
-                thread_instance = Thread.objects.create(**thread_data)
+                thread_data['openai_thread_id'] = openai_thread.id
+
+                # Create the Thread instance and save it
+                thread_instance = Thread(**thread_data)
+                thread_instance.save()
 
                 response_data = ThreadSerializer(thread_instance).data
                 return Response(response_data, status=status.HTTP_201_CREATED)
@@ -60,8 +63,9 @@ class ThreadListView(APIView):
 
     def get(self, request, user_id):
         try:
-            threads = Thread.objects.filter(
-                user_id=user_id).order_by('-created_at')
+            threads = Thread.find_by_user_id(user_id)
+            # Sort threads by created_at (descending)
+            threads.sort(key=lambda x: x.created_at, reverse=True)
             serializer = ThreadSerializer(threads, many=True)
             return Response({
                 'user_id': user_id,
@@ -79,8 +83,13 @@ class ThreadDeleteView(APIView):
 
     def delete(self, request, thread_id):
         try:
-            # Get the thread from MongoDB
-            thread = Thread.objects.get(openai_thread_id=thread_id)
+            # Find all threads with this OpenAI thread ID
+            threads = Thread.find_by_query({'openai_thread_id': thread_id})
+
+            if not threads:
+                return Response({"error": "Thread not found"}, status=status.HTTP_404_NOT_FOUND)
+
+            thread = threads[0]  # Get the first matching thread
 
             # Delete thread from OpenAI
             try:
@@ -89,16 +98,14 @@ class ThreadDeleteView(APIView):
                 logger.warning(f"Error deleting OpenAI thread: {str(e)}")
                 # Continue with MongoDB deletion even if OpenAI deletion fails
 
-            # Delete thread from MongoDB using _id
-            Thread.objects.filter(_id=thread._id).delete()
+            # Delete thread from MongoDB
+            Thread.delete_by_id(thread._id)
 
             return Response({
                 'message': 'Thread deleted successfully',
                 'thread_id': thread_id
             }, status=status.HTTP_200_OK)
 
-        except Thread.DoesNotExist:
-            return Response({"error": "Thread not found"}, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
             logger.error(f"Error deleting thread: {str(e)}")
             return Response({"error": "Failed to delete thread"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
@@ -111,7 +118,13 @@ class MessageListView(APIView):
 
     def get(self, request, thread_id):
         try:
-            thread = Thread.objects.get(openai_thread_id=thread_id)
+            # Find threads with this OpenAI thread ID
+            threads = Thread.find_by_query({'openai_thread_id': thread_id})
+
+            if not threads:
+                return Response({"error": "Thread not found"}, status=status.HTTP_404_NOT_FOUND)
+
+            thread = threads[0]  # Get the first matching thread
 
             # Get query parameters
             limit = request.query_params.get('limit')
@@ -142,8 +155,6 @@ class MessageListView(APIView):
                 'thread_id': thread_id,
                 'messages': formatted_messages
             })
-        except Thread.DoesNotExist:
-            return Response({"error": "Thread not found"}, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
             logger.error(f"Error fetching messages: {str(e)}")
             return Response({"error": "Failed to fetch messages"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
@@ -161,7 +172,13 @@ class MessageSendView(APIView):
             message = serializer.validated_data['message']
 
             try:
-                thread = Thread.objects.get(openai_thread_id=thread_id)
+                # Find threads with this OpenAI thread ID
+                threads = Thread.find_by_query({'openai_thread_id': thread_id})
+
+                if not threads:
+                    return Response({"error": "Thread not found"}, status=status.HTTP_404_NOT_FOUND)
+
+                thread = threads[0]  # Get the first matching thread
 
                 # Add message to thread
                 client.beta.threads.messages.create(
@@ -199,8 +216,6 @@ class MessageSendView(APIView):
                     'messages': formatted_messages
                 })
 
-            except Thread.DoesNotExist:
-                return Response({"error": "Thread not found"}, status=status.HTTP_404_NOT_FOUND)
             except Exception as e:
                 logger.error(f"Error sending message: {str(e)}")
                 return Response({"error": "Failed to send message"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
