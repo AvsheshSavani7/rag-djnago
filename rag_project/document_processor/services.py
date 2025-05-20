@@ -192,7 +192,7 @@ class DocumentProcessingService:
                 deal_id=str(job_id))
             # Update job status to completed
             # job.save_json_to_db(category_results)
-            job.upsert_json_to_db(category_results)
+            # job.upsert_json_to_db(category_results)
             job.update_embedding_status('COMPLETED')
             logger.info(f"Updated job status to COMPLETED")
 
@@ -1230,477 +1230,52 @@ class SummaryGenerationService:
             # Array to store generated summaries
             summaries = []
             sections = ["Complex Consideration", "Go-Shop Terms", "Unusual Closing Conditions", "Confidentiality Agreement Sign Date", "Outside Date + Extensions + Reasons", "Regulatory Best Efforts", "Termination and Reverse Termination Fees + Triggers", "Standard or Unusual", "Merger_Agreement_Details", "Complete_Effects_on_Capital_Stock", "R_W_Parent", "Antitrust_Commitment", "Breach_Monitoring_and_Ongoing_Operations", "Timeline",  "Acquirer", "Guarantor", "Guarantee", "Best_Efforts", "Closing", "Company_Material_Adverse_Change", "Ordinary_Course", "No_Solicitation", "Dividends", "Board_Approval", "Proxy_Statement", "Shareholder_Approval",
-                        "Voting_Agreement", "Confidentiality_Agreement", "Clean_Room_Agreement", "Financing", "Regulatory_Approvals", "Regulatory_Obligations_Timing", "Out_Date", "Other", "Termination", "Specific_Performance", "Law_and_Jurisdiction"]
+                        "Voting_Agreement", "Confidentiality_Agreement", "Clean_Room_Agreement", "Financing", "Regulatory_Approvals", "Regulatory_Obligations_Timing", "Out_Date", "Other", "Termination_Rights_and_Causes", "Specific_Performance", "Law_and_Jurisdiction"]
 
-            # Process each section in the sections array
-            for section_name in sections:
+            # Create a ThreadPoolExecutor for parallel processing
+            with concurrent.futures.ThreadPoolExecutor(max_workers=18) as executor:
+                # Dictionary to store futures and their corresponding section names
+                future_to_section = {}
 
-                logger.info(f"Processing section: {section_name}")
-                # Convert section_name to match schema_results keys if needed
-                section_key = section_name.replace(" ", "_")
-                # Specific_Performance
-                if section_name == "Acquirer":
-                    acquirer_fields = schema_results.get("Acquirer", [])
-
-                    # Find the acquirer_name field - use list comprehension instead of filter
-
-                    result = next(
-                        (
-                            item["answer"]
-                            for item in acquirer_fields
-                            if item.get("field_name") == "acquirer_name"
-                        ),
-                        "Not found"
-                    )
-
-                    if result != "Not found":
-
-                        summaries.append({section_name: result})
-
-                elif section_name == "Guarantor":
-
-                    guarantor_fields = schema_results.get("Guarantor", [])
-
-                    result = next(
-                        (
-                            item["answer"]
-                            for item in guarantor_fields
-                            if item.get("field_name") == "guarantor_name"
-                        ),
-                        "Not found"
-                    )
-
-                    if result != "Not found":
-                        summaries.append({section_name: result})
-
-                elif section_name == "Specific_Performance":
-
-                    specific_performance_fields = schema_results.get(
-                        "Specific_Performance", [])
-
-                    result = next(
-                        (
-                            item["answer"]
-                            for item in specific_performance_fields
-                            if item.get("field_name") == "specific_performance_available"
-                        ),
-                        "Not found"
-                    )
-
-                    if result != "Not found":
-                        section_name = section_name.replace("_", " ")
-                        summaries.append(
-                            {section_name: "Available" if result == "true" or result is True else "Not Available"})
-
-                elif section_name == "Law_and_Jurisdiction":
-
-                    law_and_jurisdiction_fields = schema_results.get(
-                        "Law_and_Jurisdiction", [])
-
-                    result = next(
-                        (
-                            item["answer"]
-                            for item in law_and_jurisdiction_fields
-                            if item.get("field_name") == "governing_law"
-                        ),
-                        "Not found"
-                    )
-
-                    if result != "Not found":
-                        section_name = section_name.replace("_", " ")
-                        summaries.append({section_name: result})
-
-                elif section_name == "Confidentiality_Agreement":
-                    confidentiality_agreement_fields = schema_results.get(
-                        "Confidentiality_Agreement", [])
-
-                    result = next(
-                        (
-                            item["answer"]
-                            for item in confidentiality_agreement_fields
-                            if item.get("field_name") == "confidentiality_agreement_date"
-                        ),
-                        "Not found"
-                    )
-
-                    if result != "Not found":
-                        section_name = section_name.replace("_", " ")
-                        summaries.append({section_name: result})
-
-                elif section_name == "Clean_Room_Agreement":
-                    section_data = schema_results.get(section_key)
-
-                    if section_data:
-                        # Filter to only include the two specific fields we want
-                        filtered_section_data = [
-                            item for item in schema_results.get(section_key, [])
-                            if str(item.get("answer")).lower() != "not found"
-                            and item.get("field_name") in ["clean_room_agreement_startdate", "clean_room_agreement_enddate"]
-                        ]
-
-                        section_summary = self._generate_section_summary(
-                            section_name, filtered_section_data, temperature, schema_results)
-                        if section_summary:
-                            summaries.append(section_summary)
-                    else:
-                        logger.warning(
-                            f"Section key '{section_key}' not found in schema_results.")
-
-                elif section_name == "Complex Consideration":
-                    # Define the sections and fields we want to combine
-                    sections_to_combine = {
-                        "Complete_Effects_on_Capital_Stock": ["forms_of_consideration_used", "conversion_ratios", "proration_calculation_method", "consideration_election_mechanics", "cvr_terms_summary", "contingent_payment_conditions", "fractional_share_handling"],
-                        "Merger_Agreement_Details": ["consideration_structure_type", "maximum_cash_cap", "maximum_stock_cap", "proration_formula_summary", "earnout_cap_or_ceiling", "cvr_trigger_events", "election_deadline", "adjustment_for_acquirer_dividends"]
-                    }
-
+                # Submit each section to the executor
+                for section_name in sections:
+                    if section_name != "Complex Consideration":
+                        continue
                     logger.info(
-                        f"Combining data from sections: {sections_to_combine}")
-                    # Initialize combined data array
-                    combined_data = []
+                        f"Submitting section for processing: {section_name}")
+                    future = executor.submit(
+                        self._process_section,
+                        section_name,
+                        schema_results,
+                        temperature
+                    )
+                    future_to_section[future] = section_name
 
-                    # Extract data from each section
-                    for section_key, field_names in sections_to_combine.items():
-                        section_data = schema_results.get(section_key, [])
-                        if section_data:
-                            # Filter out "not found" answers and specific fields
-                            filtered_data = [
-                                item for item in section_data
-                                if str(item.get("answer")).lower() != "not found"
-                                and item.get("field_name") in field_names
-                            ]
-                            combined_data.extend(filtered_data)
+                # Create an ordered results dictionary to maintain section order
+                ordered_results = []
 
-                    logger.info(f"Combined data: {combined_data}")
-
-                    # Check for at least one valid answer in the specified fields
-                    special_fields = ["proration_calculation_method",
-                                      "consideration_election_mechanics", "cvr_terms_summary", "contingent_payment_conditions"]
-                    has_valid_special_field = False
-                    for item in combined_data:
-                        if item.get("field_name") in special_fields and str(item.get("answer")).lower() != "not found":
-                            has_valid_special_field = True
+                # Collect results in the original section order
+                for section_name in sections:
+                    # Find the future corresponding to this section
+                    for future, name in future_to_section.items():
+                        if name == section_name:
+                            try:
+                                result = future.result()
+                                if result:
+                                    ordered_results.append(result)
+                                    logger.info(
+                                        f"Added result for section: {section_name}")
+                                else:
+                                    logger.info(
+                                        f"No result generated for section: {section_name}")
+                            except Exception as e:
+                                logger.error(
+                                    f"Error processing section {section_name}: {str(e)}")
+                                logger.error(traceback.format_exc())
                             break
 
-                    if combined_data:
-                        if has_valid_special_field:
-                            # Generate normal summary if special fields have valid answers
-                            section_summary = self._generate_section_summary(
-                                section_name, combined_data, temperature, schema_results)
-                            if section_summary:
-                                summaries.append(section_summary)
-                        else:
-                            # Add static message if no valid answers in special fields
-                            summaries.append({
-                                section_name: "No Complex Consideration found."
-                            })
-                    else:
-                        logger.warning(
-                            f"No relevant data found for Complex Consideration section.")
-
-                elif section_name == "Go-Shop Terms":
-                    # Define the sections and fields we want to combine
-                    sections_to_combine = {
-                        "No_Solicitation": ["go_shop_period_included", "go_shop_duration_and_conditions", "termination_right_for_superior_proposal"],
-                        "Timeline": ["marketing_period_end_date"],
-                        "Best_Efforts": ["match_right_period"],
-                        "Covenants": ["go_shop_fee_discount"],
-                    }
-
-                    logger.info(
-                        f"Combining data from sections: {sections_to_combine}")
-                    # Initialize combined data array
-                    combined_data = []
-
-                    # Extract data from each section
-                    for section_key, field_names in sections_to_combine.items():
-                        section_data = schema_results.get(section_key, [])
-                        if section_data:
-                            # Filter out "not found" answers and specific fields
-                            filtered_data = [
-                                item for item in section_data
-                                if str(item.get("answer")).lower() != "not found"
-                                and item.get("field_name") in field_names
-                            ]
-                            combined_data.extend(filtered_data)
-
-                    logger.info(f"Combined data: {combined_data}")
-
-                   # Check for at least one valid answer in the specified fields
-                    special_fields = ["go_shop_period_included",
-                                      "go_shop_duration_and_conditions", "go_shop_fee_discount"]
-                    has_valid_special_field = False
-                    for item in combined_data:
-                        if item.get("field_name") in special_fields and str(item.get("answer")).lower() != "not found":
-                            has_valid_special_field = True
-                            break
-
-                    if combined_data:
-                        if has_valid_special_field:
-                            # Generate normal summary if special fields have valid answers
-                            section_summary = self._generate_section_summary(
-                                section_name, combined_data, temperature, schema_results)
-                            if section_summary:
-                                summaries.append(section_summary)
-                        else:
-                            # Add static message if no valid answers in special fields
-                            summaries.append({
-                                section_name: "No Go-Shop Terms found."
-                            })
-                    else:
-                        logger.warning(
-                            f"No relevant data found for Complex Consideration section.")
-
-                elif section_name == "Unusual Closing Conditions":
-                    # Define the sections and fields we want to combine
-                    sections_to_combine = {
-                        "Conditions_to_Closing": ["buyer_no_target_mae_condition", "buyer_officer_certificate_condition", "buyer_target_compliance_with_covenants_condition", "target_officer_certificate_condition", "target_parent_representations_and_warranties_true_condition", "target_no_parent_mae_condition", "other_mutual_conditions_condition", "absence_of_material_adverse_effect_condition", "financing_condition", "unusual_or_deal_specific_closing_conditions", "material_customer_or_supplier_condition", "employee_retention_condition", "no_governmental_inquiry_condition", "conditions_with_subjective_language"],
-                        "Closing": ["pre_closing_obligations_or_conditions", "conditions_tied_to_stock_price_or_rating"],
-                        "Financing": ["financing_required_for_closing"]
-                    }
-
-                    logger.info(
-                        f"Combining data from sections: {sections_to_combine}")
-                    # Initialize combined data array
-                    combined_data = []
-
-                    # Extract data from each section
-                    for section_key, field_names in sections_to_combine.items():
-                        section_data = schema_results.get(section_key, [])
-                        if section_data:
-                            # Filter out "not found" answers and specific fields
-                            filtered_data = [
-                                item for item in section_data
-                                if str(item.get("answer")).lower() != "not found"
-                                and item.get("field_name") in field_names
-                            ]
-                            combined_data.extend(filtered_data)
-
-                    logger.info(f"Combined data: {combined_data}")
-
-                    # Check for at least one valid answer in the specified fields
-                    special_fields = [
-                        "unusual_or_deal_specific_closing_conditions"]
-                    has_valid_special_field = False
-                    for item in combined_data:
-                        if item.get("field_name") in special_fields and str(item.get("answer")).lower() != "not found":
-                            has_valid_special_field = True
-                            break
-
-                    if combined_data:
-                        if has_valid_special_field:
-                            # Generate normal summary if special fields have valid answers
-                            section_summary = self._generate_section_summary(
-                                section_name, combined_data, temperature, schema_results)
-                            if section_summary:
-                                summaries.append(section_summary)
-                        else:
-                            # Add static message if no valid answers in special fields
-                            summaries.append({
-                                section_name: "No Unusual Closing Conditions found."
-                            })
-                    else:
-                        logger.warning(
-                            f"No relevant data found for Complex Consideration section.")
-
-                elif section_name == "Confidentiality Agreement Sign Date":
-                    # Define the sections and fields we want to combine
-                    sections_to_combine = {
-                        "Confidentiality_Agreement": ["confidentiality_agreement_date"]
-                    }
-
-                    logger.info(
-                        f"Combining data from sections: {sections_to_combine}")
-                    # Initialize combined data array
-                    combined_data = []
-
-                    # Extract data from each section
-                    for section_key, field_names in sections_to_combine.items():
-                        section_data = schema_results.get(section_key, [])
-                        if section_data:
-                            # Filter out "not found" answers and specific fields
-                            filtered_data = [
-                                item for item in section_data
-                                if str(item.get("answer")).lower() != "not found"
-                                and item.get("field_name") in field_names
-                            ]
-                            combined_data.extend(filtered_data)
-
-                    logger.info(f"Combined data: {combined_data}")
-
-                    if combined_data:
-                        section_summary = self._generate_section_summary(
-                            section_name, combined_data, temperature, schema_results)
-                        if section_summary:
-                            summaries.append(section_summary)
-                    else:
-                        logger.warning(
-                            f"No relevant data found for Complex Consideration section.")
-
-                elif section_name == "Outside Date + Extensions + Reasons":
-                    # Define the sections and fields we want to combine
-                    sections_to_combine = {
-                        "Timeline": ["outside_date"],
-                        "Termination": ["outside_date_termination_right", "outside_date_extension_terms", "outside_date_extension_duration_days"],
-                        "Out_Date": ["maximum_extended_outside_date", "conditions_to_extend_outside_date", "extension_conditions_specified"]
-                    }
-
-                    logger.info(
-                        f"Combining data from sections: {sections_to_combine}")
-                    # Initialize combined data array
-                    combined_data = []
-
-                    # Extract data from each section
-                    for section_key, field_names in sections_to_combine.items():
-                        section_data = schema_results.get(section_key, [])
-                        if section_data:
-                            # Filter out "not found" answers and specific fields
-                            filtered_data = [
-                                item for item in section_data
-                                if str(item.get("answer")).lower() != "not found"
-                                and item.get("field_name") in field_names
-                            ]
-                            combined_data.extend(filtered_data)
-
-                    logger.info(f"Combined data: {combined_data}")
-
-                    if combined_data:
-                        section_summary = self._generate_section_summary(
-                            section_name, combined_data, temperature, schema_results)
-                        if section_summary:
-                            summaries.append(section_summary)
-                    else:
-                        logger.warning(
-                            f"No relevant data found for Complex Consideration section.")
-
-                elif section_name == "Regulatory Best Efforts":
-                    # Define the sections and fields we want to combine
-                    sections_to_combine = {
-                        "Best_Efforts": ["regulatory_best_efforts_standard"],
-                        "Regulatory_Obligations_Best_Efforts": ["hell_or_high_water_standard_explicitly_applies"],
-                        "Covenants": ["regulatory_remedy_commitments", "regulatory_divestiture_caps", "excluded_business_lines_from_remedies"],
-                        "Regulatory_Approvals": ["scope_of_divestiture_or_remedy_obligation"]
-                    }
-
-                    logger.info(
-                        f"Combining data from sections: {sections_to_combine}")
-                    # Initialize combined data array
-                    combined_data = []
-
-                    # Extract data from each section
-                    for section_key, field_names in sections_to_combine.items():
-                        section_data = schema_results.get(section_key, [])
-                        if section_data:
-                            # Filter out "not found" answers and specific fields
-                            filtered_data = [
-                                item for item in section_data
-                                if str(item.get("answer")).lower() != "not found"
-                                and item.get("field_name") in field_names
-                            ]
-                            combined_data.extend(filtered_data)
-
-                    logger.info(f"Combined data: {combined_data}")
-
-                    if combined_data:
-                        section_summary = self._generate_section_summary(
-                            section_name, combined_data, temperature, schema_results)
-                        if section_summary:
-                            summaries.append(section_summary)
-                    else:
-                        logger.warning(
-                            f"No relevant data found for Complex Consideration section.")
-
-                elif section_name == "Termination and Reverse Termination Fees + Triggers":
-                    # Define the sections and fields we want to combine
-                    sections_to_combine = {
-                        "Termination": ["reverse_termination_fee", "reverse_termination_fee_triggers"],
-                        "Termination_Fees__Parent_to_Target_": ["termination_fee_amount_parent_to_target"],
-                        "Termination_Fees__Target_to_Parent": ["termination_fee_amount_target_to_parent"],
-                        "Termination_Fees__Other_": ["termination_fee_reason_category", "reverse_fee_reason_category", "fee_payor_entity", "termination_fee_payment_due_days"]
-                    }
-
-                    logger.info(
-                        f"Combining data from sections: {sections_to_combine}")
-                    # Initialize combined data array
-                    combined_data = []
-
-                    # Extract data from each section
-                    for section_key, field_names in sections_to_combine.items():
-                        section_data = schema_results.get(section_key, [])
-                        if section_data:
-                            # Filter out "not found" answers and specific fields
-                            filtered_data = [
-                                item for item in section_data
-                                if str(item.get("answer")).lower() != "not found"
-                                and item.get("field_name") in field_names
-                            ]
-                            combined_data.extend(filtered_data)
-
-                    logger.info(f"Combined data: {combined_data}")
-
-                    if combined_data:
-                        section_summary = self._generate_section_summary(
-                            section_name, combined_data, temperature, schema_results)
-                        if section_summary:
-                            summaries.append(section_summary)
-                    else:
-                        logger.warning(
-                            f"No relevant data found for Complex Consideration section.")
-
-                elif section_name == "Standard or Unusual":
-                    # Define the sections and fields we want to combine
-                    sections_to_combine = {
-                        "Company_Material_Adverse_Change": ["cmac_definition_text", "biotech_mae_disproportionate_effects", "is_mae_biotech_style", "mae_summary_classification", "mae_subjective_terms_flagged"],
-                        "Absolute_Carve-Outs": ["carved_out_events_or_conditions", "carve_outs_explicitly_unqualified"],
-                    }
-
-                    logger.info(
-                        f"Combining data from sections: {sections_to_combine}")
-                    # Initialize combined data array
-                    combined_data = []
-
-                    # Extract data from each section
-                    for section_key, field_names in sections_to_combine.items():
-                        section_data = schema_results.get(section_key, [])
-                        if section_data:
-                            # Filter out "not found" answers and specific fields
-                            filtered_data = [
-                                item for item in section_data
-                                if str(item.get("answer")).lower() != "not found"
-                                and item.get("field_name") in field_names
-                            ]
-                            combined_data.extend(filtered_data)
-
-                    logger.info(f"Combined data: {combined_data}")
-
-                    if combined_data:
-                        section_summary = self._generate_section_summary(
-                            section_name, combined_data, temperature, schema_results)
-                        if section_summary:
-                            summaries.append(section_summary)
-                    else:
-                        logger.warning(
-                            f"No relevant data found for Complex Consideration section.")
-
-                else:
-                    section_data = schema_results.get(section_key)
-
-                    if section_data:
-                        section_data = [item for item in schema_results.get(
-                            section_key, []) if str(item.get("answer")).lower() != "not found"]
-                        section_summary = self._generate_section_summary(
-                            section_name, section_data, temperature, schema_results)
-                        if section_summary:
-                            summaries.append(section_summary)
-                    else:
-                        logger.warning(
-                            f"Section key '{section_key}' not found in schema_results.")
-
-            else:
-                logger.warning(
-                    f"Section {section_key} not found in schema_results")
-
-            logger.info(
-                f"Generated summaries for {len(summaries)} sections from schema results")
+                # Use the ordered results instead of summaries collected out of order
+                summaries = ordered_results
 
             # Get current time in UTC
             utc_now = datetime.now(pytz.UTC)
@@ -1728,6 +1303,430 @@ class SummaryGenerationService:
             logger.error(f"Error in summary generation service: {str(e)}")
             logger.error(traceback.format_exc())
             return []
+
+    def _process_section(self, section_name, schema_results, temperature):
+        """
+        Process a single section for summary generation
+
+        Args:
+            section_name (str): The name of the section to process
+            schema_results (dict): The schema results
+            temperature (float): Temperature for OpenAI generation
+
+        Returns:
+            dict: Section summary or None if not applicable
+        """
+        try:
+            logger.info(f"Processing section: {section_name}")
+            section_key = section_name.replace(" ", "_")
+
+            # Special case handling for different section types
+            if section_name == "Acquirer":
+                acquirer_fields = schema_results.get("Acquirer", [])
+                result = next(
+                    (
+                        item["answer"]
+                        for item in acquirer_fields
+                        if item.get("field_name") == "acquirer_name"
+                    ),
+                    "Not found"
+                )
+                if result != "Not found":
+                    return {section_name: result}
+
+            elif section_name == "Guarantor":
+                guarantor_fields = schema_results.get("Guarantor", [])
+                result = next(
+                    (
+                        item["answer"]
+                        for item in guarantor_fields
+                        if item.get("field_name") == "guarantor_name"
+                    ),
+                    "Not found"
+                )
+                if result != "Not found":
+                    return {section_name: result}
+
+            elif section_name == "Specific_Performance":
+                specific_performance_fields = schema_results.get(
+                    "Specific_Performance", [])
+                result = next(
+                    (
+                        item["answer"]
+                        for item in specific_performance_fields
+                        if item.get("field_name") == "specific_performance_available"
+                    ),
+                    "Not found"
+                )
+                if result != "Not found":
+                    section_name = section_name.replace("_", " ")
+                    return {section_name: "Available" if result == "true" or result is True else "Not Available"}
+
+            elif section_name == "Law_and_Jurisdiction":
+                law_and_jurisdiction_fields = schema_results.get(
+                    "Law_and_Jurisdiction", [])
+                result = next(
+                    (
+                        item["answer"]
+                        for item in law_and_jurisdiction_fields
+                        if item.get("field_name") == "governing_law"
+                    ),
+                    "Not found"
+                )
+                if result != "Not found":
+                    section_name = section_name.replace("_", " ")
+                    return {section_name: result}
+
+            elif section_name == "Confidentiality_Agreement":
+                confidentiality_agreement_fields = schema_results.get(
+                    "Confidentiality_Agreement", [])
+                result = next(
+                    (
+                        item["answer"]
+                        for item in confidentiality_agreement_fields
+                        if item.get("field_name") == "confidentiality_agreement_date"
+                    ),
+                    "Not found"
+                )
+                if result != "Not found":
+                    section_name = section_name.replace("_", " ")
+                    return {section_name: result}
+
+            elif section_name == "Clean_Room_Agreement":
+                section_data = schema_results.get(section_key)
+                if section_data:
+                    filtered_section_data = [
+                        item for item in schema_results.get(section_key, [])
+                        if str(item.get("answer")).lower() != "not found"
+                        and item.get("field_name") in ["clean_room_agreement_startdate", "clean_room_agreement_enddate"]
+                    ]
+                    return self._generate_section_summary(
+                        section_name, filtered_section_data, temperature, schema_results)
+                else:
+                    logger.warning(
+                        f"Section key '{section_key}' not found in schema_results.")
+
+            elif section_name == "Complex Consideration":
+                logger.info(f"Schema results: {schema_results}")
+
+                cvr_present = False
+                if schema_results.get("Complete_Effects_on_Capital_Stock"):
+                    for item in schema_results.get("Complete_Effects_on_Capital_Stock", []):
+                        if item.get("field_name") == "is_cvr_present" and str(item.get("answer")).lower() == "true":
+                            cvr_present = True
+                            break
+                proration_present = False
+                if schema_results.get("Complete_Effects_on_Capital_Stock"):
+                    for item in schema_results.get("Complete_Effects_on_Capital_Stock", []):
+                        if item.get("field_name") == "is_proration_present" and str(item.get("answer")).lower() == "true":
+                            proration_present = True
+                            break
+
+                contingent_payment_present = False
+                if schema_results.get("Complete_Effects_on_Capital_Stock"):
+                    for item in schema_results.get("Complete_Effects_on_Capital_Stock", []):
+                        if item.get("field_name") == "is_contingent_payment_present" and str(item.get("answer")).lower() == "true":
+                            contingent_payment_present = True
+                            break
+
+                ticking_fee_present = False
+                if schema_results.get("Covenants"):
+                    for item in schema_results.get("Covenants", []):
+                        if item.get("field_name") == "is_ticking_fee_present" and str(item.get("answer")).lower() == "true":
+                            ticking_fee_present = True
+                            break
+
+                election_present = False
+                if schema_results.get("Merger_Agreement_Details"):
+                    for item in schema_results.get("Merger_Agreement_Details", []):
+                        if item.get("field_name") == "is_election_present" and str(item.get("answer")).lower() == "true":
+                            election_present = True
+                            break
+
+                sections_to_combine = {
+                    "Complete_Effects_on_Capital_Stock": ["forms_of_consideration_used", "conversion_ratios", "proration_calculation_method" if proration_present else None, "consideration_election_mechanics" if election_present else None, "cvr_terms_summary" if cvr_present else None, "contingent_payment_conditions" if contingent_payment_present else None, "fractional_share_handling", "contingent_payment_amount_or_range",
+                                                          "contingent_payment_type" if contingent_payment_present else None],
+                    "Merger_Agreement_Details": ["consideration_structure_type", "maximum_cash_cap", "maximum_stock_cap", "proration_formula_summary" if proration_present else None, "earnout_cap_or_ceiling", "cvr_trigger_events" if cvr_present else None, "election_deadline" if election_present else None, "adjustment_for_acquirer_dividends"],
+                    "Covenants": [
+                        "ticking_fee_terms",
+                        "ticking_fee_start_date",
+                        "ticking_fee_rate_or_amount",
+                        "ticking_fee_cap_or_maximum",
+                        "ticking_fee_trigger_conditions"
+                    ] if ticking_fee_present else []
+                }
+                logger.info(f"Sections to combine: {sections_to_combine}")
+
+                combined_data = []
+                for section_key, field_names in sections_to_combine.items():
+                    new_field_names = []
+                    for field in field_names:
+                        if field is not None:
+                            new_field_names.append(field)
+                        else:
+                            print(f"Found None value, type: {type(field)}")
+                    field_names = new_field_names
+                    logger.info(f"Field names {section_key}: {field_names}")
+
+                    section_data = schema_results.get(section_key, [])
+                    if section_data:
+                        filtered_data = [
+                            item for item in section_data
+                            if str(item.get("answer")).lower() != "not found"
+                            and item.get("field_name") in field_names
+                        ]
+                        combined_data.extend(filtered_data)
+
+                special_fields = ["proration_calculation_method",
+                                  "consideration_election_mechanics", "cvr_terms_summary", "contingent_payment_conditions"]
+                has_valid_special_field = False
+                for item in combined_data:
+                    if item.get("field_name") in special_fields and str(item.get("answer")).lower() != "not found":
+                        has_valid_special_field = True
+                        break
+
+                if combined_data:
+
+                    if has_valid_special_field:
+                        return self._generate_section_summary(
+                            section_name, combined_data, temperature, schema_results)
+                    else:
+                        return {section_name: "No Complex Consideration found."}
+                else:
+                    logger.warning(
+                        f"No relevant data found for Complex Consideration section.")
+
+            elif section_name == "Go-Shop Terms":
+                sections_to_combine = {
+                    "No_Solicitation": ["go_shop_period_included", "go_shop_duration_and_conditions", "termination_right_for_superior_proposal"],
+                    "Timeline": ["marketing_period_end_date"],
+                    "Best_Efforts": ["match_right_period"],
+                    "Covenants": ["go_shop_fee_discount"],
+                }
+
+                combined_data = []
+                for section_key, field_names in sections_to_combine.items():
+                    section_data = schema_results.get(section_key, [])
+                    if section_data:
+                        filtered_data = [
+                            item for item in section_data
+                            if str(item.get("answer")).lower() != "not found"
+                            and item.get("field_name") in field_names
+                        ]
+                        combined_data.extend(filtered_data)
+
+                special_fields = ["go_shop_period_included",
+                                  "go_shop_duration_and_conditions", "go_shop_fee_discount"]
+                has_valid_special_field = False
+                for item in combined_data:
+                    if item.get("field_name") in special_fields and str(item.get("answer")).lower() != "not found":
+                        has_valid_special_field = True
+                        break
+
+                go_shop_period_included = False
+                for item in combined_data:
+                    if item.get("field_name") == "go_shop_period_included":
+                        answer = str(item.get("answer"))
+                        go_shop_period_included = True if answer.lower() == "true" else False
+                        break
+
+                if combined_data and go_shop_period_included:
+                    if has_valid_special_field:
+                        return self._generate_section_summary(
+                            section_name, combined_data, temperature, schema_results)
+                    else:
+                        return {section_name: "No Go-Shop Terms found."}
+                else:
+                    logger.warning(
+                        f"No relevant data found for Go-Shop Terms section.")
+
+            elif section_name == "Unusual Closing Conditions":
+                sections_to_combine = {
+                    "Conditions_to_Closing": ["unusual_closing_conditions_present",
+                                              "unusual_condition_summary", "buyer_no_target_mae_condition", "buyer_officer_certificate_condition", "buyer_target_compliance_with_covenants_condition", "target_officer_certificate_condition", "target_parent_representations_and_warranties_true_condition", "target_no_parent_mae_condition", "other_mutual_conditions_condition", "absence_of_material_adverse_effect_condition", "financing_condition", "unusual_or_deal_specific_closing_conditions", "material_customer_or_supplier_condition", "employee_retention_condition", "no_governmental_inquiry_condition", "conditions_with_subjective_language"],
+                    "Closing": ["pre_closing_obligations_or_conditions", "conditions_tied_to_stock_price_or_rating"],
+                    "Financing": ["financing_required_for_closing"]
+                }
+
+                combined_data = []
+                for section_key, field_names in sections_to_combine.items():
+                    section_data = schema_results.get(section_key, [])
+                    if section_data:
+                        filtered_data = [
+                            item for item in section_data
+                            if str(item.get("answer")).lower() != "not found"
+                            and item.get("field_name") in field_names
+                        ]
+                        combined_data.extend(filtered_data)
+
+                special_fields = [
+                    "unusual_or_deal_specific_closing_conditions"]
+                has_valid_special_field = False
+                for item in combined_data:
+                    if item.get("field_name") in special_fields and str(item.get("answer")).lower() != "not found":
+                        has_valid_special_field = True
+                        break
+
+                unusual_closing_conditions_present = False
+                for item in combined_data:
+                    if item.get("field_name") == "unusual_closing_conditions_present":
+                        answer = str(item.get("answer"))
+                        unusual_closing_conditions_present = True if answer.lower() == "true" else False
+                        break
+
+                if combined_data and unusual_closing_conditions_present:
+                    if has_valid_special_field:
+                        return self._generate_section_summary(
+                            section_name, combined_data, temperature, schema_results)
+                    else:
+                        return {section_name: "No Unusual Closing Conditions found."}
+                else:
+                    logger.warning(
+                        f"No relevant data found for Unusual Closing Conditions section.")
+
+            elif section_name == "Confidentiality Agreement Sign Date":
+                sections_to_combine = {
+                    "Confidentiality_Agreement": ["confidentiality_agreement_date"]
+                }
+
+                combined_data = []
+                for section_key, field_names in sections_to_combine.items():
+                    section_data = schema_results.get(section_key, [])
+                    if section_data:
+                        filtered_data = [
+                            item for item in section_data
+                            if str(item.get("answer")).lower() != "not found"
+                            and item.get("field_name") in field_names
+                        ]
+                        combined_data.extend(filtered_data)
+
+                if combined_data:
+                    return self._generate_section_summary(
+                        section_name, combined_data, temperature, schema_results)
+                else:
+                    logger.warning(
+                        f"No relevant data found for Confidentiality Agreement Sign Date section.")
+
+            elif section_name == "Outside Date + Extensions + Reasons":
+                sections_to_combine = {
+                    "Timeline": ["outside_date"],
+                    "Termination_Rights_and_Causes": ["outside_date_termination_right", "outside_date_extension_terms", "outside_date_extension_duration_days"],
+                    "Out_Date": ["maximum_extended_outside_date", "conditions_to_extend_outside_date", "extension_conditions_specified"],
+                    "Antitrust_Commitment": ["extension_conditions"]
+                }
+
+                combined_data = []
+                for section_key, field_names in sections_to_combine.items():
+                    section_data = schema_results.get(section_key, [])
+                    if section_data:
+                        filtered_data = [
+                            item for item in section_data
+                            if str(item.get("answer")).lower() != "not found"
+                            and item.get("field_name") in field_names
+                        ]
+                        combined_data.extend(filtered_data)
+
+                if combined_data:
+                    return self._generate_section_summary(
+                        section_name, combined_data, temperature, schema_results)
+                else:
+                    logger.warning(
+                        f"No relevant data found for Outside Date section.")
+
+            elif section_name == "Regulatory Best Efforts":
+                sections_to_combine = {
+                    "Best_Efforts": ["regulatory_best_efforts_standard"],
+                    "Regulatory_Obligations_Best_Efforts": ["hell_or_high_water_standard_explicitly_applies"],
+                    "Covenants": ["regulatory_remedy_commitments", "regulatory_divestiture_caps", "excluded_business_lines_from_remedies"],
+                    "Regulatory_Approvals": ["scope_of_divestiture_or_remedy_obligation"]
+                }
+
+                combined_data = []
+                for section_key, field_names in sections_to_combine.items():
+                    section_data = schema_results.get(section_key, [])
+                    if section_data:
+                        filtered_data = [
+                            item for item in section_data
+                            if str(item.get("answer")).lower() != "not found"
+                            and item.get("field_name") in field_names
+                        ]
+                        combined_data.extend(filtered_data)
+
+                if combined_data:
+                    return self._generate_section_summary(
+                        section_name, combined_data, temperature, schema_results)
+                else:
+                    logger.warning(
+                        f"No relevant data found for Regulatory Best Efforts section.")
+
+            elif section_name == "Termination and Reverse Termination Fees + Triggers":
+                sections_to_combine = {
+                    "Termination_Rights_and_Causes": ["reverse_termination_fee", "reverse_termination_fee_triggers"],
+                    "Termination_Fees__Parent_to_Target_": ["reverse_termination_fee_amount"],
+                    "Termination_Fees__Target_to_Parent": ["termination_fee_amount_target_to_parent"],
+                    "Termination_Fees__Other_": ["termination_fee_reason_category", "reverse_fee_reason_category", "fee_payor_entity", "termination_fee_payment_due_days"]
+                }
+
+                combined_data = []
+                for section_key, field_names in sections_to_combine.items():
+                    section_data = schema_results.get(section_key, [])
+                    if section_data:
+                        filtered_data = [
+                            item for item in section_data
+                            if str(item.get("answer")).lower() != "not found"
+                            and item.get("field_name") in field_names
+                        ]
+                        combined_data.extend(filtered_data)
+
+                if combined_data:
+                    return self._generate_section_summary(
+                        section_name, combined_data, temperature, schema_results)
+                else:
+                    logger.warning(
+                        f"No relevant data found for Termination Fees section.")
+
+            elif section_name == "Standard or Unusual":
+                sections_to_combine = {
+                    "Company_Material_Adverse_Change": ["cmac_definition_text", "biotech_mae_disproportionate_effects", "is_mae_biotech_style", "mae_summary_classification", "mae_subjective_terms_flagged"],
+                    "Absolute_Carve-Outs": ["carved_out_events_or_conditions", "carve_outs_explicitly_unqualified"],
+                }
+
+                combined_data = []
+                for section_key, field_names in sections_to_combine.items():
+                    section_data = schema_results.get(section_key, [])
+                    if section_data:
+                        filtered_data = [
+                            item for item in section_data
+                            if str(item.get("answer")).lower() != "not found"
+                            and item.get("field_name") in field_names
+                        ]
+                        combined_data.extend(filtered_data)
+
+                if combined_data:
+                    return self._generate_section_summary(
+                        section_name, combined_data, temperature, schema_results)
+                else:
+                    logger.warning(
+                        f"No relevant data found for Standard or Unusual section.")
+
+            else:
+                # Default case for other sections
+                section_data = schema_results.get(section_key)
+                if section_data:
+                    section_data = [item for item in schema_results.get(
+                        section_key, []) if str(item.get("answer")).lower() != "not found"]
+                    return self._generate_section_summary(
+                        section_name, section_data, temperature, schema_results)
+                else:
+                    logger.warning(
+                        f"Section key '{section_key}' not found in schema_results.")
+
+            return None
+
+        except Exception as e:
+            logger.error(f"Error processing section {section_name}: {str(e)}")
+            logger.error(traceback.format_exc())
+            return None
 
     def _generate_section_summary(self, section_name, section_data, temperature=0.1, schema_results=None):
         """
@@ -1839,13 +1838,22 @@ class SummaryGenerationService:
             "Regulatory_Approvals": {"format_type": "bullet points", "level_of_details": "3"},
             "Regulatory_Obligations_Timing": {"format_type": "bullet points", "level_of_details": "3"},
             "Out_Date": {"format_type": "bullet points", "level_of_details": "3"},
-            "Termination": {"format_type": "paragraph", "level_of_details": "3"},
+            "Termination_Rights_and_Causes": {"format_type": "paragraph", "level_of_details": "3"},
             "Merger_Agreement_Details": {"format_type": "paragraph", "level_of_details": "3"},
             "Complete_Effects_on_Capital_Stock": {"format_type": "paragraph", "level_of_details": "3"},
             "R_W_Parent": {"format_type": "paragraph", "level_of_details": "3"},
             "Timeline": {"format_type": "bullet points", "level_of_details": "3"},
             "Breach_Monitoring_and_Ongoing_Operations": {"format_type": "bullet points", "level_of_details": "3"},
             "Antitrust_Commitment": {"format_type": "bullet points", "level_of_details": "3"},
+            "Go-Shop_Terms": {"format_type": "bullet points", "level_of_details": "3"},
+            "Complex_Consideration": {"format_type": "bullet points", "level_of_details": "3"},
+            "Unusual_Closing_Conditions": {"format_type": "bullet points", "level_of_details": "3"},
+            "Confidentiality_Agreement_Sign_Date": {"format_type": "bullet points", "level_of_details": "3"},
+            "Outside_Date_Extensions_Reasons": {"format_type": "bullet points", "level_of_details": "3"},
+            "Regulatory_Best_Efforts": {"format_type": "bullet points", "level_of_details": "3"},
+            "Termination_and_Reverse_Termination_Fees_Triggers": {"format_type": "bullet points", "level_of_details": "3"},
+            "Standard_or_Unusual": {"format_type": "bullet points", "level_of_details": "3"},
+
         }
 
         return config, default_config
@@ -1884,7 +1892,7 @@ Be precise:
             "Confidentiality_Agreement": self._get_confidentiality_agreement_prompt,
             "Clean_Room_Agreement": self._get_clean_room_agreement_prompt,
             "Law_and_Jurisdiction": self._get_law_and_jurisdiction_prompt,
-            "Termination": self._get_termination_fees_prompt,
+            "Termination_Rights_and_Causes": self._get_termination_fees_prompt,
             "Merger_Agreement_Details": self._get_merger_agreement_details_prompt,
             "Complete_Effects_on_Capital_Stock": self._get_complete_effects_on_capital_stock_prompt,
             "R_W_Parent": self._get_R_W_prompt,
@@ -1892,6 +1900,14 @@ Be precise:
             "Breach_Monitoring_and_Ongoing_Operations": self._get_breach_monitoring_and_ongoing_operations_prompt,
             "Antitrust_Commitment": self._get_antitrust_commitment_prompt,
             "Go-Shop Terms": self._get_go_shop_prompt,
+            "Complex Consideration": self._get_complex_consideration_prompt,
+            "Unusual Closing Conditions": self._get_unusual_closing_conditions_prompt,
+            "Confidentiality Agreement Sign Date": self._get_confidentiality_agreement_sign_date_prompt,
+            "Outside Date + Extensions + Reasons": self._get_outside_date_extensions_reasons_prompt,
+            "Regulatory Best Efforts": self._get_regulatory_best_efforts_prompt,
+            "Termination and Reverse Termination Fees + Triggers": self._get_termination_and_reverse_termination_fees_prompt,
+            "Standard or Unusual": self._get_standard_or_unusual_prompt,
+
         }
 
         # Get summary configuration for this section
@@ -2636,13 +2652,13 @@ Your response **must**:
 
         section_name = section_name.replace("_", " ")
 
-        return f"""You are a legal AI assistant specializing in M&A transactions. 
+        return f"""You are a legal AI assistant specializing in M&A transactions.
 
 Based on the section provided below, generate a highly professional, {format_type} summary of the following section identified in the MAE provision.
 
 Section: {section_name}
 
-Section Data:  
+Section Data:
 {formatted_data}
 
 Your response must:
@@ -2692,6 +2708,188 @@ Your response should:
 
     - Return only the single-line statement if no Go-Shop terms exist.
     - Do not include introductions, conclusions, or commentary.
+
+"""
+
+    def _get_complex_consideration_prompt(self, section_name, formatted_data, schema_results=None, format_type=None, level_of_details=None):
+
+        section_name = section_name.replace("_", " ")
+
+        return f"""You are a legal AI assistant specializing in analyzing M&A documents.
+
+Based on the section below, provide a concise, {format_type} summary of thefollowing section identified in the MAE provision.
+
+Section: {section_name}
+
+Section Data:
+{formatted_data}
+
+Your response should:
+- Provide a clear, professional summary in {format_type}.
+- Use plain language that is accessible to non-legal business professionals.
+- Use precise legal language from the data where available. If key elements (like caps, triggers, survival) are explicitly missing, state that clearly but professionally.
+- Provide {format_type} capturing the legal and commercial implications.
+- If the data says "No relevant document sections found" or is missing, state that no summary could be generated due to insufficient information.
+
+{self._get_level_of_details_config(level_of_details, format_type)}
+
+⚠️ Return only {format_type} — do not include an introduction, conclusion, or any extra commentary.
+
+"""
+
+    def _get_unusual_closing_conditions_prompt(self, section_name, formatted_data, schema_results=None, format_type=None, level_of_details=None):
+
+        section_name = section_name.replace("_", " ")
+
+        return f"""You are a legal AI assistant specializing in analyzing M&A documents.
+
+Based on the section below, provide a concise, {format_type} summary of thefollowing section identified in the MAE provision.
+
+Section: {section_name}
+
+Section Data:
+{formatted_data}
+
+Your response should:
+- Provide a clear, professional summary in {format_type}.
+- Use plain language that is accessible to non-legal business professionals.
+- Use precise legal language from the data where available. If key elements (like caps, triggers, survival) are explicitly missing, state that clearly but professionally.
+- Provide {format_type} capturing the legal and commercial implications.
+- If the data says "No relevant document sections found" or is missing, state that no summary could be generated due to insufficient information.
+
+{self._get_level_of_details_config(level_of_details, format_type)}
+
+⚠️ Return only {format_type} — do not include an introduction, conclusion, or any extra commentary.
+
+"""
+
+    def _get_confidentiality_agreement_sign_date_prompt(self, section_name, formatted_data, schema_results=None, format_type=None, level_of_details=None):
+
+        section_name = section_name.replace("_", " ")
+
+        return f"""You are a legal AI assistant specializing in analyzing M&A documents.
+
+Based on the section below, provide a concise, {format_type} summary of thefollowing section identified in the MAE provision.
+
+Section: {section_name}
+
+Section Data:
+{formatted_data}
+
+Your response should:
+- Provide a clear, professional summary in {format_type}.
+- Use plain language that is accessible to non-legal business professionals.
+- Use precise legal language from the data where available. If key elements (like caps, triggers, survival) are explicitly missing, state that clearly but professionally.
+- Provide {format_type} capturing the legal and commercial implications.
+- If the data says "No relevant document sections found" or is missing, state that no summary could be generated due to insufficient information.
+
+{self._get_level_of_details_config(level_of_details, format_type)}
+
+⚠️ Return only {format_type} — do not include an introduction, conclusion, or any extra commentary.
+
+"""
+
+    def _get_outside_date_extensions_reasons_prompt(self, section_name, formatted_data, schema_results=None, format_type=None, level_of_details=None):
+
+        section_name = section_name.replace("_", " ")
+
+        return f"""You are a legal AI assistant specializing in analyzing M&A documents.
+
+Based on the section below, provide a concise, {format_type} summary of thefollowing section identified in the MAE provision.
+
+Section: {section_name}
+
+Section Data:
+{formatted_data}
+
+Your response should:
+- Provide a clear, professional summary in {format_type}.
+- Use plain language that is accessible to non-legal business professionals.
+- Use precise legal language from the data where available. If key elements (like caps, triggers, survival) are explicitly missing, state that clearly but professionally.
+- Provide {format_type} capturing the legal and commercial implications.
+- If the data says "No relevant document sections found" or is missing, state that no summary could be generated due to insufficient information.
+
+{self._get_level_of_details_config(level_of_details, format_type)}
+
+⚠️ Return only {format_type} — do not include an introduction, conclusion, or any extra commentary.
+
+"""
+
+    def _get_regulatory_best_efforts_prompt(self, section_name, formatted_data, schema_results=None, format_type=None, level_of_details=None):
+
+        section_name = section_name.replace("_", " ")
+
+        return f"""You are a legal AI assistant specializing in analyzing M&A documents.
+
+Based on the section below, provide a concise, {format_type} summary of thefollowing section identified in the MAE provision.
+
+Section: {section_name}
+
+Section Data:
+{formatted_data}
+
+Your response should:
+- Provide a clear, professional summary in {format_type}.
+- Use plain language that is accessible to non-legal business professionals.
+- Use precise legal language from the data where available. If key elements (like caps, triggers, survival) are explicitly missing, state that clearly but professionally.
+- Provide {format_type} capturing the legal and commercial implications.
+- If the data says "No relevant document sections found" or is missing, state that no summary could be generated due to insufficient information.
+
+{self._get_level_of_details_config(level_of_details, format_type)}
+
+⚠️ Return only {format_type} — do not include an introduction, conclusion, or any extra commentary.
+
+"""
+
+    def _get_termination_and_reverse_termination_fees_prompt(self, section_name, formatted_data, schema_results=None, format_type=None, level_of_details=None):
+
+        section_name = section_name.replace("_", " ")
+
+        return f"""You are a legal AI assistant specializing in analyzing M&A documents.
+
+Based on the section below, provide a concise, {format_type} summary of thefollowing section identified in the MAE provision.
+
+Section: {section_name}
+
+Section Data:
+{formatted_data}
+
+Your response should:
+- Provide a clear, professional summary in {format_type}.
+- Use plain language that is accessible to non-legal business professionals.
+- Use precise legal language from the data where available. If key elements (like caps, triggers, survival) are explicitly missing, state that clearly but professionally.
+- Provide {format_type} capturing the legal and commercial implications.
+- If the data says "No relevant document sections found" or is missing, state that no summary could be generated due to insufficient information.
+
+{self._get_level_of_details_config(level_of_details, format_type)}
+
+⚠️ Return only {format_type} — do not include an introduction, conclusion, or any extra commentary.
+
+"""
+
+    def _get_standard_or_unusual_prompt(self, section_name, formatted_data, schema_results=None, format_type=None, level_of_details=None):
+
+        section_name = section_name.replace("_", " ")
+
+        return f"""You are a legal AI assistant specializing in analyzing M&A documents.
+
+Based on the section below, provide a concise, {format_type} summary of thefollowing section identified in the MAE provision.
+
+Section: {section_name}
+
+Section Data:
+{formatted_data}
+
+Your response should:
+- Provide a clear, professional summary in {format_type}.
+- Use plain language that is accessible to non-legal business professionals.
+- Use precise legal language from the data where available. If key elements (like caps, triggers, survival) are explicitly missing, state that clearly but professionally.
+- Provide {format_type} capturing the legal and commercial implications.
+- If the data says "No relevant document sections found" or is missing, state that no summary could be generated due to insufficient information.
+
+{self._get_level_of_details_config(level_of_details, format_type)}
+
+⚠️ Return only {format_type} — do not include an introduction, conclusion, or any extra commentary.
 
 """
 
@@ -2892,9 +3090,7 @@ class SchemaCategorySearch:
             filter_dict = {}
             if deal_id:
 
-                filter_dict = {"deal_id": str(deal_id),
-                               "categories": {"$in": categories}
-                               }
+                filter_dict = {"deal_id": str(deal_id)}
                 print(f"Filter dictionary: {filter_dict}")
                 logger.info(f"Filter dictionary: {filter_dict}")
 
@@ -2913,7 +3109,7 @@ class SchemaCategorySearch:
                 vector=query_embedding,
                 top_k=10,  # Get enough results for all categories
                 include_metadata=True,
-                # filter=filter_dict
+                filter=filter_dict
             )
             logger.info(f"Search response: {len(search_response.matches)}")
 
@@ -2985,7 +3181,7 @@ class SchemaCategorySearch:
         try:
             results = {}
             # Set up a ThreadPoolExecutor with a reasonable number of workers
-            with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
+            with concurrent.futures.ThreadPoolExecutor(max_workers=20) as executor:
                 # Dictionary to track all future objects by section and field
                 futures = {}
 
@@ -3002,29 +3198,37 @@ class SchemaCategorySearch:
                         "No_Solicitation", "Ordinary_Course", "Out_Date", "Proxy_Statement",
                         "R_W_Parent", "R_W_Target", "Regulatory_Approvals",
                         "Regulatory_Obligations_Best_Efforts", "Regulatory_Obligations_Timing",
-                        "Shareholder_Approval", "Specific_Performance", "Termination",
+                        "Shareholder_Approval", "Specific_Performance", "Termination_Rights_and_Causes",
                         "Termination_Fees__Other_", "Termination_Fees__Parent_to_Target_",
                         "Termination_Fees__Target_to_Parent_", "Timeline", "Voting_Agreement"
                     ]:
+                        if section_name != "Merger_Agreement_Details":
+                            continue
                         logger.info(
                             f"Submitting tasks for section: {section_name}")
+
                         # Initialize the section's results array
                         results[section_name] = []
                         futures[section_name] = []
 
-                        # Submit each field processing as a separate task (limit to 2 fields per section)
                         for i, field in enumerate(fields):
 
                             field_name = field.get("field_name", "")
-                            logger.info(
-                                f"Submitting task for field: {field_name} ({i+1}/2)")
 
-                            # Submit the task to the executor and store the future
-                            future = executor.submit(
-                                self.process_schema_field,
-                                section_name, field, deal_id
-                            )
-                            futures[section_name].append((field_name, future))
+                            if field_name == "is_election_present":
+
+                                logger.info(
+                                    f"Submitting task for field: {field_name} ({i+1}/2)")
+
+                                # Submit the task to the executor and store the future
+                                future = executor.submit(
+                                    self.process_schema_field,
+                                    section_name, field, deal_id
+                                )
+                                futures[section_name].append(
+                                    (field_name, future))
+                            else:
+                                logger.info(f"Skipping field: {field_name}")
                     else:
                         logger.info(f"Skipping section: {section_name}")
 
