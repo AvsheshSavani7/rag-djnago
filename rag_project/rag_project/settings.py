@@ -146,7 +146,7 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # Node.js API settings
 NODE_API_BASE_URL = os.environ.get(
-    'NODE_API_BASE_URL', 'http://192.168.1.4:3001/api')
+    'NODE_API_BASE_URL', 'http://192.168.1.6:3001/api')
 
 print("📡 NODE_API_BASE_URL1 =", NODE_API_BASE_URL)
 
@@ -174,7 +174,7 @@ REST_FRAMEWORK = {
 # JWT Settings
 
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(days=1),
+    'ACCESS_TOKEN_LIFETIME': timedelta(days=7),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=14),
     'ROTATE_REFRESH_TOKENS': True,
     'BLACKLIST_AFTER_ROTATION': False,

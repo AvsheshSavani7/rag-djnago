@@ -2960,7 +2960,7 @@ class SchemaCategorySearch:
             return {}
 
     #  This is a function to extract field answer using GPT.
-    def extract_field_value_with_gpt(self, field, chunks, section_name):
+    def extract_field_value_with_gpt(self, field, chunks, section_name, subsection_name=None):
         """
         Extract field value using GPT based on chunks
 
@@ -2986,14 +2986,14 @@ class SchemaCategorySearch:
 
             if field_type == "Inference-optimized":
                 prompt = get_impherior_prompt(
-                    section_name, field_name, instructions, chunks)
+                    section_name, field_name, instructions, chunks, subsection_name)
             elif field_type == "Precision-optimized":
                 prompt = get_experior_prompt(
-                    section_name, field_name, instructions, chunks)
+                    section_name, field_name, instructions, chunks, subsection_name)
             else:
                 # Default to experior prompt if type is not specified
                 prompt = get_experior_prompt(
-                    section_name, field_name, instructions, chunks)
+                    section_name, field_name, instructions, chunks, subsection_name)
 
             # Call GPT
             logger.info(
@@ -3032,7 +3032,9 @@ class SchemaCategorySearch:
                 return {
                     "answer": parsed_response.get("answer", ""),
                     "confidence": parsed_response.get("confidence", 1.0),
-                    "reason": parsed_response.get("reason", "")
+                    "reason": parsed_response.get("reason", ""),
+                    "clause_text": parsed_response.get("clause_text", ""),
+                    "reference_section": parsed_response.get("reference_section", "")
                 }
 
             except json.JSONDecodeError as e:
@@ -3052,7 +3054,7 @@ class SchemaCategorySearch:
 
     #
 
-    def process_schema_field(self, section_name, field, deal_id):
+    def process_schema_field(self, section_name, field, deal_id, subsection_name=None):
         """
         Process a single schema field - search chunks and extract value
 
@@ -3141,7 +3143,7 @@ class SchemaCategorySearch:
 
             # Extract value with GPT
             value = self.extract_field_value_with_gpt(
-                field, combined_text, section_name)
+                field, combined_text, section_name, subsection_name)
 
             # Return result object
             return {
@@ -3162,6 +3164,143 @@ class SchemaCategorySearch:
                 "value": f"Error: {str(e)}",
                 "categories_used": []
             }
+
+    def process_schema_field1(self, section_name, field, deal_id, subsection_name=None):
+
+        try:
+            field_name = field.get("field_name", "")
+            question_query = field.get("question_query", "")
+            logger.info(
+                f"Processing field: {field_name} in section: {section_name}")
+
+            # Get categories for this field (same as before)
+            categories = []
+            # if "category_mapping" in field and isinstance(field["category_mapping"], list):
+            #     categories = [mapping["category"]
+            #                   for mapping in field["category_mapping"] if "category" in mapping]
+
+            #     if not categories:
+            #         logger.warning(
+            #             f"No categories found for field: {field_name}")
+            #         return {
+            #             "section": section_name,
+            #             "field_name": field_name,
+            #             "value": "No categories defined for this field",
+            #             "categories_used": []
+            #         }
+
+            # Prepare filter dictionary for deal_id
+            filter_dict = {}
+            if deal_id:
+                filter_dict = {"deal_id": str(deal_id)}
+                print(f"Filter dictionary: {filter_dict}")
+                logger.info(f"Filter dictionary: {filter_dict}")
+
+            # Access the Pinecone index directly
+            index = self.embedding_service.index
+            embedding = EmbeddingService()
+
+            # FIRST QUERY: using field instructions (original query)
+            query_embedding_1 = embedding.create_embedding(
+                field["instructions"])
+
+            # Search in Pinecone using metadata filtering with original query
+            search_response_1 = index.query(
+                vector=query_embedding_1,
+                top_k=5,  # Reduced from 10 to 5 as requested
+                include_metadata=True,
+                filter=filter_dict
+            )
+            logger.info(
+                f"Search response 1 (original query): {len(search_response_1.matches)}")
+
+            # Extract metadata from first query matches
+            chunks_1 = [match.metadata for match in search_response_1.matches]
+
+            # SECOND QUERY: using section name as query
+            new_section_name = question_query.replace("_", " ")
+            query_embedding_2 = embedding.create_embedding(new_section_name)
+            logger.info(f"Query embedding 2: {new_section_name}")
+
+            # Search in Pinecone using metadata filtering with section name
+            search_response_2 = index.query(
+                vector=query_embedding_2,
+                top_k=5,  # Use top_k=5 for section name query too
+                include_metadata=True,
+                filter=filter_dict
+            )
+            logger.info(
+                f"Search response 2 (section name): {len(search_response_2.matches)}")
+
+            # Extract metadata from second query matches
+            chunks_2 = [match.metadata for match in search_response_2.matches]
+
+            # Combine results from both queries
+            all_chunks = chunks_1 + chunks_2
+            logger.info(
+                f"Combined chunks before deduplication: {len(all_chunks)}")
+
+            # Remove duplicates
+            unique_chunks = []
+            seen_texts = set()
+            for chunk in all_chunks:
+                text = chunk.get("combined_text", "")
+                if text and text not in seen_texts:
+                    seen_texts.add(text)
+                    unique_chunks.append(chunk)
+
+            logger.info(
+                f"Found All {len(all_chunks)} chunks matching categories")
+            logger.info(
+                f"Found Unique {len(unique_chunks)} unique chunks after deduplication")
+
+            # Combine all text into a single string (same as before)
+            combined_text = ""
+            for idx, chunk in enumerate(unique_chunks):
+                chunk_text = chunk.get("combined_text", "")
+                if chunk_text:
+                    if combined_text:
+                        combined_text += "\n\n"
+                    combined_text += f"[Label : {chunk.get('label', '')}]\n\n{chunk_text.strip()}"
+
+            # Extract value with GPT (same as before)
+            value = self.extract_field_value_with_gpt(
+                field, combined_text, section_name, subsection_name)
+
+            # Return result object (same as before)
+            return {
+                "section": section_name,
+                "field_name": field_name,
+                "answer": value["answer"],
+                "confidence": value["confidence"],
+                "reason": value["reason"],
+                "clause_text": value["clause_text"],
+                "reference_section": value["reference_section"],
+                # "categories_used": categories
+            }
+
+        except Exception as e:
+            logger.error(f"Error processing schema field: {str(e)}")
+            logger.error(traceback.format_exc())
+            return {
+                "section": section_name,
+                "field_name": field.get("field_name", "unknown"),
+                "value": f"Error: {str(e)}",
+                "categories_used": []
+            }
+
+    def remove_duplicate_chunks(chunks):
+
+        seen_ids = set()
+        unique_chunks = []
+
+        for chunk in chunks:
+            chunk_id = chunk.get("id")
+            if chunk_id not in seen_ids:
+                seen_ids.add(chunk_id)
+                unique_chunks.append(chunk)
+
+        return unique_chunks
 
     def search_all_schema_categories(self, deal_id):
         """
@@ -3186,95 +3325,271 @@ class SchemaCategorySearch:
                 futures = {}
 
                 # First pass: Submit all tasks to the executor
-                for section_name, fields in schema.items():
+                for section_name, section_value in schema.items():
                     # Check if this section should be processed
                     if section_name in [
                         "Absolute_Carve-Outs", "Acquirer", "Antitrust_Commitment",
                         "Best_Efforts", "Board_Approval", "Breach_Monitoring_and_Ongoing_Operations",
-                        "Clean_Room_Agreement", "Closing", "Company_Material_Adverse_Change",
-                        "Complete_Effects_on_Capital_Stock", "Conditions_to_Closing",
+                        "Clean_Room_Agreement", "Closing", "material_adverse_effect",
+                        "Complete_Effects_on_Capital_Stock", "Conditions to Closing",
                         "Confidentiality_Agreement", "Covenants", "Dividends", "Financing",
                         "Guarantee", "Guarantor", "Law_and_Jurisdiction", "Merger_Agreement_Details",
-                        "No_Solicitation", "Ordinary_Course", "Out_Date", "Proxy_Statement",
+                        "non_solicitation", "Ordinary_Course", "Out_Date", "Proxy_Statement",
                         "R_W_Parent", "R_W_Target", "Regulatory_Approvals",
                         "Regulatory_Obligations_Best_Efforts", "Regulatory_Obligations_Timing",
                         "Shareholder_Approval", "Specific_Performance", "Termination_Rights_and_Causes",
                         "Termination_Fees__Other_", "Termination_Fees__Parent_to_Target_",
-                        "Termination_Fees__Target_to_Parent_", "Timeline", "Voting_Agreement"
+                        "Termination_Fees__Target_to_Parent_", "Timeline", "Voting_Agreement", "termination_clauses", "termination", "covenant", "recitals_and_or_preamble", "party_details", "conditions_to_closing", "closing_mechanics", "specific_performance", "confidentiality_and_clean_room", "complex_consideration_and_dividends", "law_and_jurisdiction", "financing", "proxy_statement"
                     ]:
-                        if section_name != "Merger_Agreement_Details":
-                            continue
-                        logger.info(
-                            f"Submitting tasks for section: {section_name}")
+                        # Change this to your desired section
+                        if section_name == "termination":
 
-                        # Initialize the section's results array
-                        results[section_name] = []
-                        futures[section_name] = []
+                            logger.info(
+                                f"Submitting tasks for section: {section_name}")
 
-                        for i, field in enumerate(fields):
+                            # Initialize the section's results
+                            results[section_name] = {}
+                            futures[section_name] = {}
 
-                            field_name = field.get("field_name", "")
+                            # Check if section_value is an array or object
+                            if section_name == "termination_clauses":
+                                # Initialize as dictionary
+                                results[section_name] = {}
+                                futures[section_name] = []
 
-                            if field_name == "is_election_present":
+                                # First process each clause to determine if it exists in the document
+                                for i, field in enumerate(section_value):
 
-                                logger.info(
-                                    f"Submitting task for field: {field_name} ({i+1}/2)")
+                                    # if i > 0:
+                                    #     break
+                                    field_name = field.get("field_name", "")
 
-                                # Submit the task to the executor and store the future
-                                future = executor.submit(
-                                    self.process_schema_field,
-                                    section_name, field, deal_id
-                                )
-                                futures[section_name].append(
-                                    (field_name, future))
-                            else:
-                                logger.info(f"Skipping field: {field_name}")
+                                    if field_name == "Failure to Receive Required Approvals":
+
+                                        logger.info(
+                                            f"Submitting task for clause identification: {field_name} ({i+1}/{len(section_value)})")
+
+                                        # Submit the task to check if this clause exists
+                                        future = executor.submit(
+                                            self.process_schema_field1,
+                                            section_name, field, deal_id
+                                        )
+                                        futures[section_name].append(
+                                            # Store clause, future, and the full field object
+                                            (field_name, future, field))
+                                    else:
+                                        logger.info(
+                                            f"Skipping clause identification: {field_name} ({i+1}/{len(section_value)})")
+
+                            elif isinstance(section_value, list):
+                                # Handle as a simple array of fields (old format)
+                                # Use array for old format
+                                results[section_name] = []
+                                futures[section_name] = []
+
+                                for i, field in enumerate(section_value):
+                                    field_name = field.get("field_name", "")
+                                    if field_name == "hsr_clearance_required":
+                                        logger.info(
+                                            f"Submitting task for field: {field_name} ({i+1}/{len(section_value)})")
+
+                                        # Submit the task to the executor and store the future
+                                        future = executor.submit(
+                                            self.process_schema_field1,
+                                            section_name, field, deal_id
+                                        )
+                                        futures[section_name].append(
+                                            (field_name, future))
+                                    else:
+                                        logger.info(
+                                            f"Skipping field: {field_name}")
+
+                            elif isinstance(section_value, dict):
+                                # Handle as a nested object with subsections (new format)
+                                for subsection_name, fields in section_value.items():
+                                    logger.info(
+                                        f"Processing subsection: {subsection_name}")
+                                    # if subsection_name == "reverse_termination_fee":
+                                    # continue
+
+                                    # Initialize subsection results and futures
+                                    results[section_name][subsection_name] = []
+                                    futures[section_name][subsection_name] = []
+
+                                    for i, field in enumerate(fields):
+                                        field_name = field.get(
+                                            "field_name", "")
+                                        # if field_name == "reverse_termination_fee":
+                                        # continue
+                                        logger.info(
+                                            f"Submitting task for field: {field_name} ({i+1}/{len(fields)})")
+
+                                        # Submit the task to the executor and store the future
+                                        future = executor.submit(
+                                            self.process_schema_field1,
+                                            section_name, field, deal_id, subsection_name
+                                        )
+                                        futures[section_name][subsection_name].append(
+                                            (field_name, future))
+                                        # else:
+                                        #     logger.info(
+                                        #         f"Skipping field: {field_name}")
+                                    # else:
+                                    #     logger.info(
+                                    #         f"Skipping section: {section_name}")
+                        else:
+                            logger.info(
+                                f"Skipping section: {section_name}")
                     else:
                         logger.info(f"Skipping section: {section_name}")
 
                 # Second pass: Collect results as they complete
                 for section_name, section_futures in futures.items():
-                    for field_name, future in section_futures:
-                        try:
-                            # Get the result from the future
-                            field_result = future.result()
-                            logger.info(
-                                f"Completed field result: {field_result}")
-                            results[section_name].append(field_result)
-                        except Exception as e:
-                            logger.error(
-                                f"Error processing field {field_name}: {str(e)}")
-                            # Add error result
-                            results[section_name].append({
-                                "section": section_name,
-                                "field_name": field_name,
-                                "answer": f"Error: {str(e)}",
-                                "confidence": 0.0,
-                                "reason": "Processing error",
-                                "categories_used": []
-                            })
 
-                # Get current time in UTC and convert to IST
-                utc_now = datetime.now(pytz.UTC)
-                ist = pytz.timezone('Asia/Kolkata')
-                ist_now = utc_now.astimezone(ist)
+                    if section_name == "termination_clauses":
+                        for field_name, future, field_obj in section_futures:
+                            try:
+                                # Get the result for the clause check
+                                clause_result = future.result()
+                                logger.info(
+                                    f"Completed clause check for {field_name}: {clause_result}")
 
-                # Create timestamp in IST
-                timestamp = ist_now.strftime("%d-%m-%y_%I-%M_%p")
+                                # Check if the answer indicates this clause exists
+                                if (clause_result and
+                                    "answer" in clause_result and
+                                    clause_result["answer"] and
+                                        str(clause_result["answer"]).lower() not in ["not found", "false", "no"]):
 
-                # Create a filename with timestamp
-                filename = f"schema_results_{timestamp}.json"
+                                    # Initialize results for this clause
+                                    results[section_name][field_name] = []
 
-                # Save results to JSON file
-                try:
-                    with open(filename, 'w', encoding='utf-8') as f:
-                        json.dump(results, f, indent=2, ensure_ascii=False)
-                    logger.info(f"Results saved to file: {filename}")
-                except Exception as save_error:
-                    logger.error(
-                        f"Error saving results to file: {str(save_error)}")
+                                    # Create a list to track field processing futures
+                                    field_futures = []
 
-                return results
+                                    # Now process each field within the clause
+                                    if "fields" in field_obj:
+                                        logger.info(
+                                            f"Processing {len(field_obj['fields'])} fields for clause: {field_name}")
+
+                                        for field_item in field_obj["fields"]:
+                                            # if field_item.get("field_name", "") == "clause_summary_bullets" or field_item.get("field_name", "") == "clause_summary_text":
+
+                                            # Submit this field for processing
+                                            field_future = executor.submit(
+                                                self.process_schema_field1,
+                                                section_name, field_item, deal_id, field_name
+                                            )
+
+                                            field_futures.append(
+                                                (field_item, field_future))
+                                            # else:
+                                            #     logger.info(
+                                            #         f"Skipping field: {field_item.get('field_name')}")
+
+                                        # Process the results for each field
+                                        for field_item, field_future in field_futures:
+                                            try:
+                                                field_result = field_future.result()
+                                                logger.info(
+                                                    f"Field result for {field_item.get('field_name')}: {field_result}")
+
+                                                # Add the field result to the clause results
+                                                results[section_name][field_name].append(
+                                                    field_result)
+
+                                            except Exception as field_e:
+                                                logger.error(
+                                                    f"Error processing field {field_item.get('field_name')}: {str(field_e)}")
+                                                # Include a placeholder entry for the failed field
+
+                                                results[section_name][field_name].append({
+                                                    "section": section_name,
+                                                    "subsection": field_name,
+                                                    "field_name": field_item.get("field_name", ""),
+                                                    "answer": f"Error: {str(field_e)}",
+                                                    "confidence": 0.0,
+                                                    "reason": "Processing error",
+                                                    "categories_used": [],
+                                                    "clause_text": "",
+                                                    "reference_section": ""
+                                                })
+
+                            except Exception as e:
+                                logger.error(
+                                    f"Error processing clause {field_name}: {str(e)}")
+                                # Skip this clause entirely if there was an error determining its existence
+
+                    elif isinstance(section_futures, list):
+                        # Old format handling (array of fields)
+                        for field_name, future in section_futures:
+                            try:
+                                # Get the result from the future
+                                field_result = future.result()
+                                logger.info(
+                                    f"Completed field result: {field_result}")
+                                results[section_name].append(field_result)
+                            except Exception as e:
+                                logger.error(
+                                    f"Error processing field {field_name}: {str(e)}")
+                                # Add error result
+                                results[section_name].append({
+                                    "section": section_name,
+                                    "field_name": field_name,
+                                    "answer": f"Error: {str(e)}",
+                                    "confidence": 0.0,
+                                    "reason": "Processing error",
+                                    "categories_used": [],
+                                    "clause_text": "",
+                                    "reference_section": ""
+                                })
+                    elif isinstance(section_futures, dict):
+                        # New format handling (nested structure)
+                        for subsection_name, subsection_futures in section_futures.items():
+                            for field_name, future in subsection_futures:
+                                try:
+                                    # Get the result from the future
+                                    field_result = future.result()
+                                    logger.info(
+                                        f"Completed field result: {field_result}")
+                                    results[section_name][subsection_name].append(
+                                        field_result)
+                                except Exception as e:
+                                    logger.error(
+                                        f"Error processing field {field_name}: {str(e)}")
+                                    # Add error result
+                                    results[section_name][subsection_name].append({
+                                        "section": section_name,
+                                        "subsection": subsection_name,
+                                        "field_name": field_name,
+                                        "answer": f"Error: {str(e)}",
+                                        "confidence": 0.0,
+                                        "reason": "Processing error",
+                                        "categories_used": [],
+                                        "clause_text": "",
+                                        "reference_section": ""
+                                    })
+
+            # Get current time in UTC and convert to IST
+            utc_now = datetime.now(pytz.UTC)
+            ist = pytz.timezone('Asia/Kolkata')
+            ist_now = utc_now.astimezone(ist)
+
+            # Create timestamp in IST
+            timestamp = ist_now.strftime("%d-%m-%y_%I-%M_%p")
+
+            # Create a filename with timestamp
+            filename = f"schema_results_{timestamp}.json"
+
+            # Save results to JSON file
+            try:
+                with open(filename, 'w', encoding='utf-8') as f:
+                    json.dump(results, f, indent=2, ensure_ascii=False)
+                logger.info(f"Results saved to file: {filename}")
+            except Exception as save_error:
+                logger.error(
+                    f"Error saving results to file: {str(save_error)}")
+
+            return results
 
         except Exception as e:
             logger.error(f"Error processing schema: {str(e)}")
