@@ -170,8 +170,6 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 NODE_API_BASE_URL = os.environ.get(
     'NODE_API_BASE_URL', 'http://192.168.1.4:3001/api')
 
-print("📡 NODE_API_BASE_URL1 =", NODE_API_BASE_URL)
-
 
 # AWS S3 settings
 AWS_ACCESS_KEY_ID = os.environ.get('AWS_ACCESS_KEY_ID')
