@@ -13,7 +13,7 @@ services:
         value: 3.12.4
       
       - key: PYTHONPATH
-        value: /opt/render/project/src
+        value: /opt/render/project/src/rag_project
 
       - key: WEB_CONCURRENCY
         value: "3"
