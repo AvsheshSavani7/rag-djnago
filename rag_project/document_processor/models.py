@@ -1,71 +1,76 @@
-from django.db import models
+from mongoengine import (
+    Document,
+    StringField,
+    URLField,
+    DateTimeField,
+    BooleanField,
+    IntField,
+    DictField,
+)
 import uuid
-from djongo.models import ObjectIdField
 from datetime import datetime
-from pymongo import MongoClient
 
 
-class ProcessingJob(models.Model):
+class ProcessingJob(Document):
     """Model to track document processing jobs"""
-    EMBEDDING_STATUS_CHOICES = (
-        ('PENDING', 'Pending'),
-        ('PROCESSING', 'Processing'),
-        ('COMPLETED', 'Completed'),
-        ('FAILED', 'Failed'),
-    )
 
-    _id = ObjectIdField(primary_key=True)
+    EMBEDDING_STATUS_CHOICES = ('PENDING', 'PROCESSING', 'COMPLETED', 'FAILED')
 
     # Deal information
-    cik = models.CharField(max_length=20, blank=True, null=True)
-    acquire_name = models.CharField(max_length=255, blank=True, null=True)
-    target_name = models.CharField(max_length=255, blank=True, null=True)
-    announce_date = models.DateTimeField(blank=True, null=True)
-    embedding_status = models.CharField(
-        max_length=20, choices=EMBEDDING_STATUS_CHOICES, default='PENDING')
+    cik = StringField(max_length=20, required=False, null=True)
+    acquire_name = StringField(max_length=255, required=False, null=True)
+    target_name = StringField(max_length=255, required=False, null=True)
+    announce_date = DateTimeField(required=False, null=True)
+    embedding_status = StringField(
+        max_length=20,
+        choices=EMBEDDING_STATUS_CHOICES,
+        default='PENDING'
+    )
 
     # Processing fields
-    file_url = models.URLField(
-        max_length=1000, help_text="URL to the JSON file to process")
-    parsed_json_url = models.URLField(
-        max_length=1000, blank=True, null=True, help_text="URL to the parsed JSON file")
-    flattened_json_url = models.URLField(
-        max_length=1000, blank=True, null=True, help_text="URL to the flattened JSON file")
+    file_url = URLField(max_length=1000, required=True)
+    parsed_json_url = URLField(max_length=1000, required=False, null=True)
+    flattened_json_url = URLField(max_length=1000, required=False, null=True)
 
-    # Add these fields to the ProcessingJob model
-    schema_results = models.JSONField(null=True, blank=True)
-    schema_processing_completed = models.BooleanField(default=False)
-    schema_processing_timestamp = models.DateTimeField(null=True, blank=True)
+    # Schema parsing results
+    schema_results = DictField(null=True)
+    schema_processing_completed = BooleanField(default=False)
+    schema_processing_timestamp = DateTimeField(required=False, null=True)
 
     # Error information
-    error_message = models.TextField(null=True, blank=True)
+    error_message = StringField(required=False, null=True)
 
     # Timestamps
-    createdAt = models.DateTimeField(auto_now_add=True, db_column="createdAt")
-    updatedAt = models.DateTimeField(auto_now=True, db_column="updatedAt")
+    createdAt = DateTimeField(default=datetime.utcnow)
+    updatedAt = DateTimeField(default=datetime.utcnow)
 
-    # MongoDB-specific fields
-    v_version = models.IntegerField(default=0, db_column="__v")
+    # MongoDB-specific field
+    v_version = IntField(default=0, db_field="__v")
+
+    meta = {
+        'collection': 'deals',
+        'ordering': ['-createdAt']
+    }
 
     def __str__(self):
-        return f"Deal: {self.acquire_name}/{self.target_name} (ID: {self._id})"
+        return f"Deal: {self.acquire_name}/{self.target_name} (ID: {str(self.id)})"
 
     def update_embedding_status(self, status, error_message=None):
         """Update the embedding status of the job"""
         self.embedding_status = status
         if error_message:
             self.error_message = error_message
+        self.updatedAt = datetime.utcnow()
         self.save()
         return self
 
     def save_json_to_db(self, results, error_message=None):
-        """Update the embedding status of the job"""
+        """Save schema results and mark processing complete"""
         self.schema_results = results
         self.schema_processing_completed = True
-        self.schema_processing_timestamp = datetime.now()
+        self.schema_processing_timestamp = datetime.utcnow()
+        if error_message:
+            self.error_message = error_message
+        self.updatedAt = datetime.utcnow()
         self.save()
         return self
-
-    class Meta:
-        db_table = "deals"
-        ordering = ['-createdAt']

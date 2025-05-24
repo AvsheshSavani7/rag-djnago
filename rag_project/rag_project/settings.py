@@ -14,6 +14,8 @@ from datetime import timedelta
 from pathlib import Path
 import os
 from dotenv import load_dotenv
+from mongoengine import connect
+
 
 # Load environment variables from .env file
 load_dotenv()
@@ -98,22 +100,37 @@ WSGI_APPLICATION = "rag_project.wsgi.application"
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
 # Check if connection string is provided
-if os.environ.get('MONGODB_CONNECTION_STRING'):
-    print("MONGODB_NAME:",
-          os.environ.get('MONGODB_NAME'))
-    # Connection string method (for MongoDB Atlas or other MongoDB hosts)
-    DATABASES = {
-        'default': {
-            'ENGINE': 'djongo',
-            'NAME': os.environ.get('MONGODB_NAME', 'Deal_DB'),
-            'ENFORCE_SCHEMA': False,
-            'CLIENT': {
-                'host': os.environ.get('MONGODB_CONNECTION_STRING')
-            }
-        }
-    }
+# if os.environ.get('MONGODB_CONNECTION_STRING'):
+#     print("MONGODB_NAME:",
+#           os.environ.get('MONGODB_NAME'))
+#     # Connection string method (for MongoDB Atlas or other MongoDB hosts)
+#     DATABASES = {
+#         'default': {
+#             'ENGINE': 'djongo',
+#             'NAME': os.environ.get('MONGODB_NAME', 'Deal_DB'),
+#             'ENFORCE_SCHEMA': False,
+#             'CLIENT': {
+#                 'host': os.environ.get('MONGODB_CONNECTION_STRING')
+#             }
+#         }
+#     }
+# else:
+#     print("No MongoDB connection string provided")
+
+# MongoDB Connection using MongoEngine
+MONGODB_URI = os.getenv("MONGODB_CONNECTION_STRING")
+MONGODB_NAME = os.getenv("MONGODB_NAME", "Deal_DB")
+
+if MONGODB_URI:
+    print("✅ MongoDB config detected.")
+    connect(
+        db=MONGODB_NAME,
+        host=MONGODB_URI,
+        alias="default"
+    )
 else:
-    print("No MongoDB connection string provided")
+    print("❌ No MongoDB connection string found in environment.")
+
 
 
 # Password validation - removed as auth is not used
