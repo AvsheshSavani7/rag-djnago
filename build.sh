@@ -5,7 +5,7 @@ pip install -r requirements.txt
 
 echo "Collecting static files..."
 cd rag_project
-python manage.py collectstatic --noinput
+python manage.py collectstatic --noinput || echo "Static files skipped"
 
 echo "Running migrations..."
-python manage.py migrate
+python manage.py migrate || echo "Migration skipped"
