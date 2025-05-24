@@ -4,7 +4,8 @@ services:
     env: python
     plan: free
     buildCommand: "./build.sh"
-    startCommand: "gunicorn rag_project.wsgi:application --bind 0.0.0.0:$PORT"
+    startCommand: "cd src && gunicorn rag_project.wsgi:application --bind 0.0.0.0:$PORT"
+    # startCommand: "gunicorn rag_project.wsgi:application --bind 0.0.0.0:$PORT"
     envVars:
       - key: DJANGO_SETTINGS_MODULE
         value: rag_project.settings
@@ -13,7 +14,7 @@ services:
         value: 3.12.4
       
       - key: PYTHONPATH
-        value: .
+        value: ./src
 
       - key: WEB_CONCURRENCY
         value: "3"
