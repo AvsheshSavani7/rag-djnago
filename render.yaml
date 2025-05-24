@@ -11,6 +11,9 @@ services:
 
       - key: PYTHON_VERSION
         value: 3.12.4
+      
+      - key: PYTHONPATH
+        value: .
 
       - key: WEB_CONCURRENCY
         value: "3"
