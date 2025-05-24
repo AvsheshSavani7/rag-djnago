@@ -19,7 +19,6 @@ from mongoengine import connect
 
 # Load environment variables from .env file
 load_dotenv()
-print("MongoDB URI from .env:", os.environ.get("MONGODB_CONNECTION_STRING"))
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
