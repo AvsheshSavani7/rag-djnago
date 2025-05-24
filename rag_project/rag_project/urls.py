@@ -16,11 +16,13 @@ Including another URLconf
 """
 
 from django.urls import path, include
+from .example import ExampleAPIView
 # Django admin removed
 # from rest_framework.documentation import include_docs_urls
 
 urlpatterns = [
     # Admin path removed
+    path("api/example/", ExampleAPIView.as_view()),  
     path("api/", include("node_proxy.urls")),
     path("api/files/", include("document_processor.urls")),
     path("api/auth/", include("user_auth.urls")),

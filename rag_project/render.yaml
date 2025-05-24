@@ -1,0 +1,61 @@
+services:
+  - type: web
+    name: rag-django
+    env: python
+    plan: free
+    buildCommand: "../build.sh"
+    startCommand: "gunicorn rag_project.wsgi:application --bind 0.0.0.0:$PORT"
+    envVars:
+      - key: DJANGO_SETTINGS_MODULE
+        value: rag_project.settings
+
+      - key: PYTHON_VERSION
+        value: 3.12.4
+
+      - key: WEB_CONCURRENCY
+        value: "3"
+
+      # External API / Service Keys (marked sync: false)
+      - key: NODE_API_BASE_URL
+        sync: false
+
+      - key: AWS_ACCESS_KEY_ID
+        sync: false
+      - key: AWS_SECRET_ACCESS_KEY
+        sync: false
+      - key: AWS_S3_BUCKET
+        sync: false
+      - key: AWS_REGION
+        sync: false
+
+      - key: MONGODB_CONNECTION_STRING
+        sync: false
+      - key: MONGODB_NAME
+        sync: false
+      - key: MONGODB_USER
+        sync: false
+      - key: MONGODB_PASSWORD
+        sync: false
+
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: OPENAI_ORG_ID
+        sync: false
+      - key: OPENAI_API_URL
+        sync: false
+      - key: OPENAI_ASSISTANT_ID
+        sync: false
+
+      - key: PINECONE_API_KEY
+        sync: false
+      - key: PINECONE_ENVIRONMENT
+        sync: false
+      - key: PINECONE_INDEX_NAME
+        sync: false
+
+      - key: PINECONE_API_KEY1
+        sync: false
+      - key: PINECONE_ENVIRONMENT1
+        sync: false
+      - key: PINECONE_INDEX_NAME1
+        sync: false
