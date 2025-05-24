@@ -3,7 +3,7 @@ services:
     name: rag-django
     env: python
     plan: free
-    buildCommand: "./build.sh"
+    buildCommand: "../build.sh"
     startCommand: "gunicorn rag_project.wsgi:application --bind 0.0.0.0:$PORT"
     envVars:
       - key: DJANGO_SETTINGS_MODULE
