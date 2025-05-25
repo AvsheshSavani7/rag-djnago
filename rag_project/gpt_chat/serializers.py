@@ -2,12 +2,14 @@ from rest_framework import serializers
 from .models import Thread
 
 
-class ThreadSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Thread
-        fields = ['user_id', 'openai_thread_id', 'name', 'created_at']
-        read_only_fields = ['openai_thread_id', 'created_at']
+class ThreadSerializer(serializers.Serializer):
+    user_id = serializers.CharField()
+    openai_thread_id = serializers.CharField(read_only=True)
+    name = serializers.CharField()
+    created_at = serializers.DateTimeField(read_only=True)
 
+    def create(self, validated_data):
+        return Thread.objects.create(**validated_data)
 
 class MessageSerializer(serializers.Serializer):
     thread_id = serializers.CharField()

@@ -11,8 +11,6 @@ import tempfile
 import requests
 from document_processor.services import DocumentProcessingService
 from django.conf import settings
-from document_processor.models import ProcessingJob
-from bson import ObjectId
 import math
 
 

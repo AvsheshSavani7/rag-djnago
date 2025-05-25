@@ -7,7 +7,6 @@ from mongoengine import (
     IntField,
     DictField,
 )
-import uuid
 from datetime import datetime
 
 
@@ -29,6 +28,7 @@ class ProcessingJob(Document):
 
     # Processing fields
     file_url = URLField(max_length=1000, required=True)
+    pdf_url = URLField(max_length=1000, required=True)
     parsed_json_url = URLField(max_length=1000, required=False, null=True)
     flattened_json_url = URLField(max_length=1000, required=False, null=True)
 

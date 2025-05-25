@@ -2,28 +2,22 @@ from rest_framework import serializers
 from .models import ProcessingJob
 
 
-class ProcessingJobSerializer(serializers.ModelSerializer):
-    """Serializer for processing jobs"""
-    announce_date = serializers.DateTimeField(
-        format="%Y-%m-%d", required=False)
-    createdAt = serializers.DateTimeField(
-        format="%Y-%m-%d %H:%M:%S", read_only=True)
-    updatedAt = serializers.DateTimeField(
-        format="%Y-%m-%d %H:%M:%S", read_only=True)
-    id = serializers.CharField(source='_id', read_only=True)
-
-    class Meta:
-        model = ProcessingJob
-        fields = [
-            'id', 'cik', 'acquire_name', 'target_name', 'announce_date',
-            'embedding_status', 'file_url', 'parsed_json_url',
-            'flattened_json_url', 'error_message', 'createdAt', 'updatedAt',
-            'schema_results', 'schema_processing_completed',
-            'schema_processing_timestamp'
-        ]
-        read_only_fields = [
-            'id', 'error_message', 'createdAt', 'updatedAt'
-        ]
+class ProcessingJobSerializer(serializers.Serializer):
+    id = serializers.CharField(read_only=True)
+    cik = serializers.CharField(required=False, allow_null=True)
+    acquire_name = serializers.CharField(required=False, allow_null=True)
+    target_name = serializers.CharField(required=False, allow_null=True)
+    announce_date = serializers.DateTimeField(format="%Y-%m-%d", required=False, allow_null=True)
+    embedding_status = serializers.CharField()
+    file_url = serializers.URLField()
+    parsed_json_url = serializers.URLField(required=False, allow_null=True)
+    flattened_json_url = serializers.URLField(required=False, allow_null=True)
+    error_message = serializers.CharField(required=False, allow_null=True)
+    createdAt = serializers.DateTimeField(format="%Y-%m-%d %H:%M:%S")
+    updatedAt = serializers.DateTimeField(format="%Y-%m-%d %H:%M:%S")
+    schema_results = serializers.DictField(required=False, allow_null=True)
+    schema_processing_completed = serializers.BooleanField()
+    schema_processing_timestamp = serializers.DateTimeField(required=False, allow_null=True)
 
 
 class FileProcessRequestSerializer(serializers.Serializer):

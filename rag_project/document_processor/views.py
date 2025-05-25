@@ -2,7 +2,6 @@ from django.shortcuts import render
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from django.shortcuts import get_object_or_404
 import logging
 import traceback
 from bson import ObjectId
@@ -16,6 +15,7 @@ from .serializers import (
     FileProcessRequestSerializer
 )
 from .services import FlattenProcessor, EmbeddingService, S3Service, ChatWithAIService, SummaryGenerationService
+from mongoengine.errors import DoesNotExist, ValidationError
 
 logger = logging.getLogger(__name__)
 
@@ -30,7 +30,7 @@ def process_embeddings(job_id, flattened_json_url):
     try:
         # Get the job
         object_id = ObjectId(job_id)
-        job = ProcessingJob.objects.get(_id=object_id)
+        job = ProcessingJob.objects.get(id=object_id)
         print(f"Found job in database: {job}")
 
         # Update job status to processing
@@ -63,7 +63,7 @@ def process_embeddings(job_id, flattened_json_url):
         # Update job status to failed
         try:
             object_id = ObjectId(job_id)
-            job = ProcessingJob.objects.get(_id=object_id)
+            job = ProcessingJob.objects.get(id=object_id)
             job.update_embedding_status('FAILED', str(e))
             print(f"Updated job status to FAILED: {str(e)}")
         except Exception as inner_e:
@@ -89,9 +89,9 @@ class ProcessFileView(APIView):
         # Find the existing job by _id (convert string to ObjectId)
         try:
             object_id = ObjectId(deal_id)
-            job = ProcessingJob.objects.get(_id=object_id)
+            job = ProcessingJob.objects.get(id=object_id)
             print("job", job)
-        except ProcessingJob.DoesNotExist:
+        except DoesNotExist:
             return Response({"error": f"No processing job found for deal_id {deal_id}"},
                             status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
@@ -109,19 +109,23 @@ class ProcessFileView(APIView):
             # Update the job with results
             job.flattened_json_url = result.get(
                 'flattened_json_url')  # Update the flattened URL
-            job.save()
+            
+            if job.schema_results is not None and not isinstance(job.schema_results, dict):
+                logger.warning(f"⚠️ Invalid schema_results type: {type(job.schema_results)}. Resetting to empty dict.")
+            else:
+                job.save()
 
             # Start embedding process in background if requested
             if embed_data:
                 # Start embedding task in the executor
                 executor.submit(process_embeddings, str(
-                    job._id), job.flattened_json_url)
+                    job.id), job.flattened_json_url)
                 print(
-                    f"Submitted embedding task for job {job._id} to executor")
+                    f"Submitted embedding task for job {job.id} to executor")
 
                 # Return response with embedding status
                 return Response({
-                    'deal_id': str(job._id),
+                    'deal_id': str(job.id),
                     'flattened_json_url': job.flattened_json_url,
                     'embedding_status': 'PROCESSING',
                     'message': 'File processed successfully. Embeddings are being generated in the background.'
@@ -129,7 +133,7 @@ class ProcessFileView(APIView):
 
             # Return response without embedding
             return Response({
-                'deal_id': str(job._id),
+                'deal_id': str(job.id),
                 'flattened_json_url': job.flattened_json_url
             }, status=status.HTTP_200_OK)
 
@@ -145,7 +149,7 @@ class ProcessFileView(APIView):
             # Return error response
             return Response({
                 'error': str(e),
-                'deal_id': str(job._id)
+                'deal_id': str(job.id)
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
@@ -157,13 +161,15 @@ class ProcessingJobDetailView(APIView):
     def get(self, request, id, format=None):
         try:
             object_id = ObjectId(id)
-            job = get_object_or_404(ProcessingJob, _id=object_id)
+            job = ProcessingJob.objects.get(id=object_id)
             serializer = ProcessingJobSerializer(job)
             return Response(serializer.data, status=status.HTTP_200_OK)
-        except Exception as e:
-            return Response({"error": f"Invalid ID format: {str(e)}"},
-                            status=status.HTTP_400_BAD_REQUEST)
 
+        except (DoesNotExist, ValidationError):
+            return Response({"error": "Job not found or invalid ID."}, status=status.HTTP_404_NOT_FOUND)
+
+        except Exception as e:
+            return Response({"error": f"Unexpected error: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 class ProcessEmbeddingsView(APIView):
     """
@@ -179,8 +185,8 @@ class ProcessEmbeddingsView(APIView):
         # Find the existing job
         try:
             object_id = ObjectId(deal_id)
-            job = ProcessingJob.objects.get(_id=object_id)
-        except ProcessingJob.DoesNotExist:
+            job = ProcessingJob.objects.get(id=object_id)
+        except DoesNotExist:
             return Response({"error": f"No processing job found for deal_id {deal_id}"},
                             status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
@@ -194,15 +200,15 @@ class ProcessEmbeddingsView(APIView):
 
         # Start embedding task in the executor
         executor.submit(process_embeddings, str(
-            job._id), job.flattened_json_url)
-        print(f"Submitted embedding task for job {job._id} to executor")
+            job.id), job.flattened_json_url)
+        print(f"Submitted embedding task for job {job.id} to executor")
 
         # Update status
         job.update_embedding_status('PROCESSING')
 
         # Return response
         return Response({
-            'deal_id': str(job._id),
+            'deal_id': str(job.id),
             'embedding_status': 'PROCESSING',
             'message': 'Embeddings are being generated in the background.'
         }, status=status.HTTP_200_OK)
@@ -253,8 +259,8 @@ class PineconeVectorListView(APIView):
             # Verify that the deal exists
             try:
                 object_id = ObjectId(deal_id)
-                job = ProcessingJob.objects.get(_id=object_id)
-            except ProcessingJob.DoesNotExist:
+                job = ProcessingJob.objects.get(id=object_id)
+            except DoesNotExist:
                 return Response({"error": f"No processing job found for deal_id {deal_id}"},
                                 status=status.HTTP_404_NOT_FOUND)
             except Exception as e:

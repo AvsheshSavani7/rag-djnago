@@ -9,6 +9,8 @@ from .serializers import ThreadSerializer, MessageSerializer
 import os
 from datetime import datetime
 import logging
+from mongoengine.errors import DoesNotExist
+
 
 logger = logging.getLogger(__name__)
 
@@ -97,11 +99,12 @@ class ThreadDeleteView(APIView):
                 'thread_id': thread_id
             }, status=status.HTTP_200_OK)
 
-        except Thread.DoesNotExist:
+        except DoesNotExist:
             return Response({"error": "Thread not found"}, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
             logger.error(f"Error deleting thread: {str(e)}")
             return Response({"error": "Failed to delete thread"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 
 
 class MessageListView(APIView):
@@ -142,7 +145,7 @@ class MessageListView(APIView):
                 'thread_id': thread_id,
                 'messages': formatted_messages
             })
-        except Thread.DoesNotExist:
+        except DoesNotExist:
             return Response({"error": "Thread not found"}, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
             logger.error(f"Error fetching messages: {str(e)}")
@@ -199,7 +202,7 @@ class MessageSendView(APIView):
                     'messages': formatted_messages
                 })
 
-            except Thread.DoesNotExist:
+            except DoesNotExist:
                 return Response({"error": "Thread not found"}, status=status.HTTP_404_NOT_FOUND)
             except Exception as e:
                 logger.error(f"Error sending message: {str(e)}")

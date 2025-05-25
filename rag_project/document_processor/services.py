@@ -16,9 +16,8 @@ import concurrent.futures
 import traceback
 import json
 import re
-
-
 from .models import ProcessingJob
+from mongoengine.errors import DoesNotExist
 
 load_dotenv()
 
@@ -65,12 +64,12 @@ class DocumentProcessingService:
             logger.info(
                 f"Processing document with file_url={file_url}, deal_id={deal_id}, embed_data={embed_data}")
 
-            # Find the existing job by _id (convert string to ObjectId)
+            # Find the existing job by id (convert string to ObjectId)
             try:
                 object_id = ObjectId(deal_id)
-                job = ProcessingJob.objects.get(_id=object_id)
+                job = ProcessingJob.objects.get(id=object_id)
                 logger.info(f"Found job in database: {job}")
-            except ProcessingJob.DoesNotExist:
+            except DoesNotExist:
                 error_msg = f"No processing job found for deal_id {deal_id}"
                 logger.error(error_msg)
                 return {
@@ -100,25 +99,31 @@ class DocumentProcessingService:
                     "error": error_msg,
                     "status": "failed"
                 }
-
+                
+                
             # Update the job with results
             job.flattened_json_url = result.get('flattened_json_url')
-            job.save()
+                
+            if job.schema_results is not None and not isinstance(job.schema_results, dict):
+                logger.warning(f"⚠️ Invalid schema_results type: {type(job.schema_results)}. Resetting to empty dict.")
+            else: 
+                job.save()
 
+            
             # Start embedding process in background if requested
             if embed_data:
                 # Start embedding task in the executor
                 self.executor.submit(
                     self._process_embeddings,
-                    str(job._id),
+                    str(job.id),
                     job.flattened_json_url
                 )
                 logger.info(
-                    f"Submitted embedding task for job {job._id} to executor")
+                    f"Submitted embedding task for job {job.id} to executor")
 
                 # Return response with embedding status
                 return {
-                    'deal_id': str(job._id),
+                    'deal_id': str(job.id),
                     'flattened_json_url': job.flattened_json_url,
                     'embedding_status': 'PROCESSING',
                     'message': 'File processed successfully. Embeddings are being generated in the background.',
@@ -127,7 +132,7 @@ class DocumentProcessingService:
 
             # Return response without embedding
             return {
-                'deal_id': str(job._id),
+                'deal_id': str(job.id),
                 'flattened_json_url': job.flattened_json_url,
                 'status': 'success'
             }
@@ -144,7 +149,7 @@ class DocumentProcessingService:
             # Return error response
             return {
                 'error': str(e),
-                'deal_id': deal_id if 'job' not in locals() else str(job._id),
+                'deal_id': deal_id if 'job' not in locals() else str(job.id),
                 'status': 'failed'
             }
 
@@ -161,7 +166,7 @@ class DocumentProcessingService:
         try:
             # Get the job
             object_id = ObjectId(job_id)
-            job = ProcessingJob.objects.get(_id=object_id)
+            job = ProcessingJob.objects.get(id=object_id)
             logger.info(f"Found job in database: {job}")
 
             # Update job status to processing
@@ -200,7 +205,7 @@ class DocumentProcessingService:
             # Update job status to failed
             try:
                 object_id = ObjectId(job_id)
-                job = ProcessingJob.objects.get(_id=object_id)
+                job = ProcessingJob.objects.get(id=object_id)
                 job.update_embedding_status('FAILED', str(e))
                 logger.error(f"Updated job status to FAILED: {str(e)}")
             except Exception as inner_e:

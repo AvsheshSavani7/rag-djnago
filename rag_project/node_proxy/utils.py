@@ -25,7 +25,7 @@ def call_node_api(endpoint, method='GET', data=None, params=None):
         'Content-Type': 'application/json',
     }
 
-    log_entry = None
+    log_entry_created = False
     try:
         if method.upper() == 'GET':
             response = requests.get(url, params=params, headers=headers)
@@ -38,37 +38,38 @@ def call_node_api(endpoint, method='GET', data=None, params=None):
         else:
             raise ValueError(f"Unsupported HTTP method: {method}")
 
-        # Log the API request
+        response_data = response.json()
+
+        # ✅ Log the request using MongoEngine
         try:
-            response_data = response.json()
-            log_entry = ApiRequestLog.objects.create(
+            ApiRequestLog(
                 endpoint=endpoint,
                 method=method.upper(),
                 status_code=response.status_code,
                 request_data=data if data else params,
                 response_data=response_data
-            )
+            ).save()
+            log_entry_created = True
         except Exception as log_error:
             logger.error(f"Error logging API request: {log_error}")
 
-        response.raise_for_status()  # Raise exception for 4XX/5XX responses
+        response.raise_for_status()
         return response_data
 
     except requests.exceptions.RequestException as e:
         logger.error(f"Error calling Node.js API: {e}")
 
-        # Log the failed request
-        if log_entry is None:
+        # Log error only if no previous log was created
+        if not log_entry_created:
             try:
-                ApiRequestLog.objects.create(
+                ApiRequestLog(
                     endpoint=endpoint,
                     method=method.upper(),
                     status_code=getattr(e.response, 'status_code', 500),
                     request_data=data if data else params,
                     response_data={'error': str(e)}
-                )
+                ).save()
             except Exception as log_error:
                 logger.error(f"Error logging failed API request: {log_error}")
 
-        # Re-raise as a more generic exception
         raise Exception(f"Error communicating with Node.js API: {str(e)}")

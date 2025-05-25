@@ -1,23 +1,23 @@
-from django.db import models
+from mongoengine import Document, StringField, IntField, DictField, DateTimeField
+from datetime import datetime
 
-# Create your models here.
-
-
-class ApiRequestLog(models.Model):
+class ApiRequestLog(Document):
     """
-    Model to log API requests to the Node.js API
+    Document to log API requests to the Node.js API
     """
-    endpoint = models.CharField(max_length=255)
-    method = models.CharField(max_length=10)
-    status_code = models.IntegerField()
-    request_data = models.JSONField(null=True, blank=True)
-    response_data = models.JSONField(null=True, blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
+    endpoint = StringField(max_length=255, required=True)
+    method = StringField(max_length=10, required=True)
+    status_code = IntField(required=True)
+    request_data = DictField(null=True)   # Equivalent to JSONField
+    response_data = DictField(null=True)
+    created_at = DateTimeField(default=datetime.utcnow)
 
-    class Meta:
-        ordering = ['-created_at']
-        verbose_name = 'API Request Log'
-        verbose_name_plural = 'API Request Logs'
+    meta = {
+        'collection': 'api_request_logs',  # Custom MongoDB collection name
+        'ordering': ['-created_at'],
+        'verbose_name': 'API Request Log',
+        'verbose_name_plural': 'API Request Logs'
+    }
 
     def __str__(self):
         return f"{self.method} {self.endpoint} - {self.status_code}"
