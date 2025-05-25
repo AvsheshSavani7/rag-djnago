@@ -210,7 +210,7 @@ REST_FRAMEWORK = {
 
 
 # JWT SECRET
-JWT_SECRET_KEY = os.environ.get("JWT_SECRET_KEY")
+JWT_SECRET_KEY = os.environ.get("JWT_SECRET_KEY", 'KEEP_THIS_SECRET')
 
 # Custom authentication settings
 # AUTH_USER_MODEL = 'user_auth.User'

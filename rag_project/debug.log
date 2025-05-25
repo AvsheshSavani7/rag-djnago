@@ -28,3 +28,25 @@ INFO 2025-05-24 17:30:48,541 services Submitted embedding task for job 68184d524
 INFO 2025-05-24 17:30:48,687 services Found job in database: Deal: James Hardie Industries PLC/AZEK Co Inc/The (ID: 68184d52478abf06ec1a28ec)
 ERROR 2025-05-24 17:30:48,687 services Error processing embeddings: ValidationError (ProcessingJob:68184d52478abf06ec1a28ec) (Only dictionaries may be used in a DictField: ['schema_results'])
 ERROR 2025-05-24 17:30:48,789 services Error updating job status: ValidationError (ProcessingJob:68184d52478abf06ec1a28ec) (Only dictionaries may be used in a DictField: ['schema_results'])
+ERROR 2025-05-25 10:08:25,899 views Error fetching deals: 'str' object has no attribute 'items'
+ERROR 2025-05-25 10:08:25,904 views Traceback (most recent call last):
+  File "/Users/ashishkachhadiya/Documents/rag-djnago/rag_project/document_processor/views.py", line 232, in get
+    'deals': serializer.data,
+             ^^^^^^^^^^^^^^^
+  File "/Users/ashishkachhadiya/Documents/rag-djnago/.venv/lib/python3.12/site-packages/rest_framework/serializers.py", line 768, in data
+    ret = super().data
+          ^^^^^^^^^^^^
+  File "/Users/ashishkachhadiya/Documents/rag-djnago/.venv/lib/python3.12/site-packages/rest_framework/serializers.py", line 253, in data
+    self._data = self.to_representation(self.instance)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/ashishkachhadiya/Documents/rag-djnago/.venv/lib/python3.12/site-packages/rest_framework/serializers.py", line 687, in to_representation
+    self.child.to_representation(item) for item in iterable
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/ashishkachhadiya/Documents/rag-djnago/.venv/lib/python3.12/site-packages/rest_framework/serializers.py", line 522, in to_representation
+    ret[field.field_name] = field.to_representation(attribute)
+                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/ashishkachhadiya/Documents/rag-djnago/.venv/lib/python3.12/site-packages/rest_framework/fields.py", line 1687, in to_representation
+    for key, val in value.items()
+                    ^^^^^^^^^^^
+AttributeError: 'str' object has no attribute 'items'
+

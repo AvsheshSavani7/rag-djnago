@@ -223,6 +223,14 @@ class ListAllDealsView(APIView):
         try:
             # Get all deals from the database
             jobs = ProcessingJob.objects.all().order_by('-createdAt')
+            
+            # Convert schema_results from a JSON string to a dictionary if applicable, ensuring valid DictField representation
+            for job in jobs:
+                if isinstance(job.schema_results, str):
+                    try:
+                        job.schema_results = json.loads(job.schema_results)
+                    except json.JSONDecodeError:
+                        job.schema_results = {}
 
             # Serialize the deals
             serializer = ProcessingJobSerializer(jobs, many=True)
