@@ -1,0 +1,244 @@
+{
+  "complex_consideration_and_dividends": {
+    "deal_consideration": [
+      {
+        "section": "complex_consideration_and_dividends",
+        "field_name": "deal_consideration_overview",
+        "answer": "$26.45 per share in cash and a number of Parent Shares equal to the Exchange Ratio",
+        "confidence": 0.95,
+        "reason": "The document explicitly states that each share of Company Common Stock will be converted into the right to receive $26.45 per share in cash and a number of Parent Shares equal to the Exchange Ratio.",
+        "clause_text": "Each share of Company Common Stock issued and outstanding immediately prior to the Effective Time (other than Canceled Shares and Dissenting Shares) shall be automatically canceled and converted into the right to receive, in accordance with the terms of this Agreement (A) $26.45 per share in cash, without interest, from Parent (such amount of cash, the 'Cash Consideration'), and (B) a number of validly issued, fully paid and nonassessable shares, par value EUR 0.59 per share, of Parent (the 'Parent Shares') equal to the Exchange Ratio.",
+        "reference_section": "ARTICLE Article II EFFECT OF THE MERGER ON CAPITAL STOCK; EXCHANGE OF CERTIFICATES > Section 2.1 Effect on Securities > (a) > (ii)"
+      },
+      {
+        "section": "complex_consideration_and_dividends",
+        "field_name": "deal_consideration_details",
+        "answer": "$26.45 per share in cash, without interest, from Parent and a number of validly issued, fully paid and nonassessable shares of Parent equal to the Exchange Ratio, and cash in lieu of fractional Parent Shares",
+        "confidence": 1.0,
+        "reason": "The document explicitly states the components of the merger consideration, including the per-share cash amount and stock exchange ratio.",
+        "clause_text": "Each share of Company Common Stock issued and outstanding immediately prior to the Effective Time (other than Canceled Shares and Dissenting Shares) shall be automatically canceled and converted into the right to receive, in accordance with the terms of this Agreement (A) $26.45 per share in cash, without interest, from Parent (such amount of cash, the 'Cash Consideration'), and (B) a number of validly issued, fully paid and nonassessable shares, par value EUR 0.59 per share, of Parent (the 'Parent Shares') equal to the Exchange Ratio (and, if applicable, cash in lieu of fractional Parent Shares payable in accordance with Section 2.1(c))",
+        "reference_section": "ARTICLE Article II EFFECT OF THE MERGER ON CAPITAL STOCK; EXCHANGE OF CERTIFICATES > Section 2.1 Effect on Securities > (a) > (ii)"
+      }
+    ],
+    "proration": [
+      {
+        "section": "complex_consideration_and_dividends",
+        "field_name": "proration_exists",
+        "answer": "true",
+        "confidence": 0.9,
+        "reason": "The agreement provides for the conversion of Company Common Stock into both cash and Parent Shares, indicating proration between different types of consideration.",
+        "clause_text": "Each share of Company Common Stock issued and outstanding immediately prior to the Effective Time (other than Canceled Shares and Dissenting Shares) shall be automatically canceled and converted into the right to receive, in accordance with the terms of this Agreement (A) $26.45 per share in cash, without interest, from Parent (such amount of cash, the 'Cash Consideration'), and (B) a number of validly issued, fully paid and nonassessable shares, par value EUR 0.59 per share, of Parent (the 'Parent Shares') equal to the Exchange Ratio.",
+        "reference_section": "ARTICLE Article II EFFECT OF THE MERGER ON CAPITAL STOCK; EXCHANGE OF CERTIFICATES > Section 2.1 Effect on Securities > (a) > (ii)"
+      },
+      {
+        "section": "complex_consideration_and_dividends",
+        "field_name": "proration_details",
+        "answer": "Not found",
+        "confidence": 1.0,
+        "reason": "",
+        "clause_text": "",
+        "reference_section": ""
+      }
+    ],
+    "election": [
+      {
+        "section": "complex_consideration_and_dividends",
+        "field_name": "election_exists",
+        "answer": "true",
+        "confidence": 0.8,
+        "reason": "The document allows shareholders to receive a combination of cash and Parent Shares as Merger Consideration, indicating an election among different types of consideration.",
+        "clause_text": "Each share of Company Common Stock issued and outstanding immediately prior to the Effective Time (other than Canceled Shares and Dissenting Shares) shall be automatically canceled and converted into the right to receive, in accordance with the terms of this Agreement (A) $26.45 per share in cash, without interest, from Parent (such amount of cash, the 'Cash Consideration'), and (B) a number of validly issued, fully paid and nonassessable shares, par value EUR 0.59 per share, of Parent (the 'Parent Shares') equal to the Exchange Ratio.",
+        "reference_section": "ARTICLE Article II EFFECT OF THE MERGER ON CAPITAL STOCK; EXCHANGE OF CERTIFICATES > Section 2.1 Effect on Securities > (a) > (ii)"
+      },
+      {
+        "section": "complex_consideration_and_dividends",
+        "field_name": "election_details",
+        "answer": "No election is permitted and consideration is fixed.",
+        "confidence": 0.9,
+        "reason": "The document specifies that each share of Company Common Stock is automatically canceled and converted into a fixed right to receive a combination of cash and Parent Shares, without mention of any election option for shareholders.",
+        "clause_text": "Each share of Company Common Stock issued and outstanding immediately prior to the Effective Time (other than Canceled Shares and Dissenting Shares) shall be automatically canceled and converted into the right to receive, in accordance with the terms of this Agreement (A) $26.45 per share in cash, without interest, from Parent (such amount of cash, the \"Cash Consideration\"), and (B) a number of validly issued, fully paid and nonassessable shares, par value EUR 0.59 per share, of Parent (the \"Parent Shares\") equal to the Exchange Ratio...",
+        "reference_section": "ARTICLE Article II EFFECT OF THE MERGER ON CAPITAL STOCK; EXCHANGE OF CERTIFICATES > Section 2.1 Effect on Securities > (a) > (ii)"
+      }
+    ],
+    "cvr": [
+      {
+        "section": "complex_consideration_and_dividends",
+        "field_name": "cvr_exists",
+        "answer": false,
+        "confidence": 1.0,
+        "reason": "",
+        "clause_text": "Each share of Company Common Stock issued and outstanding immediately prior to the Effective Time (other than Canceled Shares and Dissenting Shares) shall be automatically canceled and converted into the right to receive, in accordance with the terms of this Agreement (A) $26.45 per share in cash, without interest, from Parent (such amount of cash, the \"Cash Consideration\"), and (B) a number of validly issued, fully paid and nonassessable shares, par value EUR 0.59 per share, of Parent (the \"Parent Shares\") equal to the Exchange Ratio (and, if applicable, cash in lieu of fractional Parent Shares payable in accordance with Section 2.1(c)) (such Parent Shares and any such cash in lieu of fractional shares, together with the Cash Consideration, the \"Merger Consideration\"), subject to any required Tax withholding as provided in Section 2.8.",
+        "reference_section": "ARTICLE Article II EFFECT OF THE MERGER ON CAPITAL STOCK; EXCHANGE OF CERTIFICATES > Section 2.1 Effect on Securities > (a) > (ii)"
+      },
+      {
+        "section": "complex_consideration_and_dividends",
+        "field_name": "cvr_details",
+        "answer": "NA",
+        "confidence": 1.0,
+        "reason": "",
+        "clause_text": "",
+        "reference_section": ""
+      }
+    ],
+    "ticking_fees": [
+      {
+        "section": "complex_consideration_and_dividends",
+        "field_name": "ticking_fees_exists",
+        "answer": "Not found",
+        "confidence": 1.0,
+        "reason": "",
+        "clause_text": "",
+        "reference_section": ""
+      },
+      {
+        "section": "complex_consideration_and_dividends",
+        "field_name": "ticking_fees_details",
+        "answer": "Not found",
+        "confidence": 1.0,
+        "reason": "",
+        "clause_text": "",
+        "reference_section": ""
+      }
+    ],
+    "contingent_payments": [
+      {
+        "section": "complex_consideration_and_dividends",
+        "field_name": "contingent_payments_exists",
+        "answer": "false",
+        "confidence": 1.0,
+        "reason": "",
+        "clause_text": "",
+        "reference_section": ""
+      },
+      {
+        "section": "complex_consideration_and_dividends",
+        "field_name": "contingent_payments_details",
+        "answer": "Not found",
+        "confidence": 1.0,
+        "reason": "",
+        "clause_text": "",
+        "reference_section": ""
+      }
+    ],
+    "company_dividends": [
+      {
+        "section": "complex_consideration_and_dividends",
+        "field_name": "company_dividends_can_pay",
+        "answer": "false",
+        "confidence": 0.9,
+        "reason": "The document explicitly prohibits the Company from declaring or paying any dividends or other distributions with respect to its capital stock, except for cash dividends and distributions paid by wholly owned subsidiaries to the Company or its subsidiaries.",
+        "clause_text": "(d) declare, set aside, authorize, make or pay any dividend or other distribution, payable in cash, stock, property or otherwise, with respect to the Company's or any of its Subsidiaries' capital stock or other equity interests, other than cash dividends and distributions paid by any direct or indirect wholly owned Subsidiary of the Company to the Company or any direct or indirect wholly owned Subsidiary of the Company;",
+        "reference_section": "ARTICLE V – Covenants and Agreements > Section 5.1 – Conduct of Business by the Company Pending the Merger > (d)"
+      },
+      {
+        "section": "complex_consideration_and_dividends",
+        "field_name": "company_dividends_details",
+        "answer": "Not found",
+        "confidence": 1.0,
+        "reason": "",
+        "clause_text": "",
+        "reference_section": ""
+      }
+    ],
+    "parent_dividends": [
+      {
+        "section": "complex_consideration_and_dividends",
+        "field_name": "parent_dividends_can_pay",
+        "answer": "false",
+        "confidence": 0.9,
+        "reason": "The document explicitly states that Parent shall not declare, authorize, make or pay any dividend or other distribution with respect to its capital stock or other equity interests.",
+        "clause_text": "Parent shall not, directly or indirectly: (e) declare, authorize, make or pay any dividend or other distribution, payable in cash, stock, property or otherwise, with respect to its capital stock or other equity interests;",
+        "reference_section": "ARTICLE V – Covenants and Agreements > Section 5.2 – Conduct of Business by Parent Pending the Merger > (B) > (e)"
+      },
+      {
+        "section": "complex_consideration_and_dividends",
+        "field_name": "parent_dividends_details",
+        "answer": "Parent is restricted from declaring, authorizing, making, or paying any dividend or other distribution with respect to its capital stock or other equity interests.",
+        "confidence": 0.9,
+        "reason": "The clause explicitly prohibits Parent from making any dividend or distribution with respect to its capital stock.",
+        "clause_text": "Parent shall not, directly or indirectly: (e) declare, authorize, make or pay any dividend or other distribution, payable in cash, stock, property or otherwise, with respect to its capital stock or other equity interests;",
+        "reference_section": "ARTICLE V – Covenants and Agreements > Section 5.2 – Conduct of Business by Parent Pending the Merger > (B) > (e)"
+      }
+    ],
+    "collar": [
+      {
+        "section": "complex_consideration_and_dividends",
+        "field_name": "collar_exists",
+        "answer": false,
+        "confidence": 1.0,
+        "reason": "",
+        "clause_text": "",
+        "reference_section": ""
+      },
+      {
+        "section": "complex_consideration_and_dividends",
+        "field_name": "collar_details",
+        "answer": "Not found",
+        "confidence": 1.0,
+        "reason": "",
+        "clause_text": "",
+        "reference_section": ""
+      }
+    ],
+    "exchange_ratio_adjustment": [
+      {
+        "section": "complex_consideration_and_dividends",
+        "field_name": "exchange_ratio_adjustment_exists",
+        "answer": "true",
+        "confidence": 0.9,
+        "reason": "The agreement provides for adjustments to the Exchange Ratio based on changes such as stock splits or stock dividends.",
+        "clause_text": "Without limiting the other provisions of this Agreement, if at any time during the period between the date of this Agreement and the Effective Time, any change in the number or type of outstanding Parent Shares or Company Common Stock shall occur as a result of a reclassification, recapitalization, exchange, stock split (including a reverse stock split), combination or readjustment of shares or any stock dividend or stock distribution with a record date during such period, the Merger Consideration, the Exchange Ratio and any other similarly dependent items, as the case may be, shall be appropriately adjusted to provide the same economic effect as contemplated by this Agreement prior to such event.",
+        "reference_section": "ARTICLE Article II EFFECT OF THE MERGER ON CAPITAL STOCK; EXCHANGE OF CERTIFICATES > Section 2.1 Effect on Securities > (b)"
+      },
+      {
+        "section": "complex_consideration_and_dividends",
+        "field_name": "exchange_ratio_adjustment",
+        "answer": "The exchange ratio adjustment mechanism includes adjustments for changes in the number or type of outstanding Parent Shares or Company Common Stock due to events such as reclassification, recapitalization, exchange, stock split, combination, or stock dividend. These adjustments ensure the same economic effect as originally contemplated.",
+        "confidence": 0.9,
+        "reason": "The clause specifies that the Merger Consideration and Exchange Ratio will be adjusted for certain events to maintain the intended economic effect.",
+        "clause_text": "if at any time during the period between the date of this Agreement and the Effective Time, any change in the number or type of outstanding Parent Shares or Company Common Stock shall occur as a result of a reclassification, recapitalization, exchange, stock split (including a reverse stock split), combination or readjustment of shares or any stock dividend or stock distribution with a record date during such period, the Merger Consideration, the Exchange Ratio and any other similarly dependent items, as the case may be, shall be appropriately adjusted to provide the same economic effect as contemplated by this Agreement prior to such event.",
+        "reference_section": "ARTICLE Article II EFFECT OF THE MERGER ON CAPITAL STOCK; EXCHANGE OF CERTIFICATES > Section 2.1 Effect on Securities > (b)"
+      }
+    ],
+    "fractional_shares_handling": [
+      {
+        "section": "complex_consideration_and_dividends",
+        "field_name": "fractional_shares_handling_exists",
+        "answer": true,
+        "confidence": 1.0,
+        "reason": "The agreement explicitly includes provisions for handling fractional shares by providing cash in lieu of fractional shares.",
+        "clause_text": "No certificate or scrip representing fractional Parent Shares shall be issued upon the cancelation and conversion of Company Common Stock pursuant to Section 2.1(a)(ii), and such fractional share interests shall not entitle the owner thereof to any Parent Shares or to vote or to any other rights of a holder of Parent Shares. All fractional shares that a single record holder of Company Common Stock would be otherwise entitled to receive shall be aggregated and calculations shall be rounded to four (4) decimal places. In lieu of any such fractional shares, each record holder of Company Common Stock who would otherwise be entitled to such fractional shares shall be entitled to an amount in cash, without interest, rounded down to the nearest cent, equal to the product of (i) the amount of the fractional share interest in a share of Parent Shares to which such holder would, but for this Section 2.1(c), be entitled under Section 2.1(a)(ii) and (ii) the Parent Share Price.",
+        "reference_section": "ARTICLE Article II EFFECT OF THE MERGER ON CAPITAL STOCK; EXCHANGE OF CERTIFICATES > Section 2.1 Effect on Securities > (c)"
+      },
+      {
+        "section": "complex_consideration_and_dividends",
+        "field_name": "fractional_shares_handling",
+        "answer": "Cash in lieu of fractional shares is provided.",
+        "confidence": 0.9,
+        "reason": "The document specifies that cash will be paid in lieu of fractional shares.",
+        "clause_text": "No certificate or scrip representing fractional Parent Shares shall be issued upon the cancelation and conversion of Company Common Stock pursuant to Section 2.1(a)(ii), and such fractional share interests shall not entitle the owner thereof to any Parent Shares or to vote or to any other rights of a holder of Parent Shares. All fractional shares that a single record holder of Company Common Stock would be otherwise entitled to receive shall be aggregated and calculations shall be rounded to four (4) decimal places. In lieu of any such fractional shares, each record holder of Company Common Stock who would otherwise be entitled to such fractional shares shall be entitled to an amount in cash, without interest, rounded down to the nearest cent, equal to the product of (i) the amount of the fractional share interest in a share of Parent Shares to which such holder would, but for this Section 2.1(c), be entitled under Section 2.1(a)(ii) and (ii) the Parent Share Price.",
+        "reference_section": "ARTICLE Article II EFFECT OF THE MERGER ON CAPITAL STOCK; EXCHANGE OF CERTIFICATES > Section 2.1 Effect on Securities > (c)"
+      }
+    ],
+    "dividend_adjustment_mechanism": [
+      {
+        "section": "complex_consideration_and_dividends",
+        "field_name": "dividend_adjustment_mechanism_exists",
+        "answer": true,
+        "confidence": 0.9,
+        "reason": "The merger consideration is adjusted to reflect stock dividends or stock distributions prior to closing.",
+        "clause_text": "if at any time during the period between the date of this Agreement and the Effective Time, any change in the number or type of outstanding Parent Shares or Company Common Stock shall occur as a result of a reclassification, recapitalization, exchange, stock split (including a reverse stock split), combination or readjustment of shares or any stock dividend or stock distribution with a record date during such period, the Merger Consideration, the Exchange Ratio and any other similarly dependent items, as the case may be, shall be appropriately adjusted to provide the same economic effect as contemplated by this Agreement prior to such event.",
+        "reference_section": "ARTICLE Article II EFFECT OF THE MERGER ON CAPITAL STOCK; EXCHANGE OF CERTIFICATES > Section 2.1 Effect on Securities > (b)"
+      },
+      {
+        "section": "complex_consideration_and_dividends",
+        "field_name": "dividend_adjustment_mechanism",
+        "answer": "The merger consideration adjusts if dividends are paid before closing by either party through appropriate adjustments to the Merger Consideration, the Exchange Ratio, and any other similarly dependent items to provide the same economic effect as contemplated by the Agreement prior to such event.",
+        "confidence": 0.9,
+        "reason": "The clause specifies that any stock dividend or stock distribution with a record date during the period between the date of the Agreement and the Effective Time will result in appropriate adjustments to the Merger Consideration and Exchange Ratio.",
+        "clause_text": "if at any time during the period between the date of this Agreement and the Effective Time, any change in the number or type of outstanding Parent Shares or Company Common Stock shall occur as a result of a reclassification, recapitalization, exchange, stock split (including a reverse stock split), combination or readjustment of shares or any stock dividend or stock distribution with a record date during such period, the Merger Consideration, the Exchange Ratio and any other similarly dependent items, as the case may be, shall be appropriately adjusted to provide the same economic effect as contemplated by this Agreement prior to such event.",
+        "reference_section": "ARTICLE Article II EFFECT OF THE MERGER ON CAPITAL STOCK; EXCHANGE OF CERTIFICATES > Section 2.1 Effect on Securities > (b)"
+      }
+    ]
+  }
+}

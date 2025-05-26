@@ -278,7 +278,7 @@ class PineconeVectorListView(APIView):
             # Use the index.query method with a filter for deal_id and a high top_k value
             # Use a dummy query (zero vector) with high top_k to get all vectors
             # Initialize a zero vector of the right dimension
-            zero_vector = [0.0] * 1536  # Dimension for text-embedding-3-small
+            zero_vector = [0.0] * 3072  # Dimension for text-embedding-3-small
 
             # Query Pinecone with a filter for the deal_id
             filter_dict = {"deal_id": str(deal_id)}

@@ -1,0 +1,609 @@
+{
+  "Best_Efforts": {
+    "regulatory_efforts": [
+      {
+        "section": "Best_Efforts",
+        "field_name": "effort_standard",
+        "answer": "Reasonable Best Efforts",
+        "confidence": 0.9,
+        "reason": "The clause explicitly states that the parties will use 'reasonable best efforts' to obtain regulatory approvals and satisfy conditions for the merger, which is a recognized standard in M&A agreements.",
+        "categories_used": [
+          "Covenants  >  Efforts",
+          "Covenants  >  Conduct of Business",
+          "Covenants  >  Financing Cooperation"
+        ]
+      },
+      {
+        "section": "Best_Efforts",
+        "field_name": "effort_scope",
+        "answer": "RBE for HSR and other applicable Antitrust Laws",
+        "confidence": 1.0,
+        "reason": "",
+        "categories_used": [
+          "Covenants  >  Efforts",
+          "Covenants  >  Conduct of Business",
+          "Covenants  >  Financing Cooperation"
+        ]
+      }
+    ],
+    "regulatory_fillings_hsr": [
+      {
+        "section": "Best_Efforts",
+        "field_name": "hsr_required",
+        "answer": true,
+        "confidence": 1.0,
+        "reason": "",
+        "categories_used": [
+          "Covenants  >  Efforts",
+          "Covenants  >  Conduct of Business",
+          "Covenants  >  Financing Cooperation"
+        ]
+      },
+      {
+        "section": "Best_Efforts",
+        "field_name": "hsr_filing_deadline_days",
+        "answer": 25,
+        "confidence": 1.0,
+        "reason": "",
+        "categories_used": [
+          "Covenants  >  Efforts",
+          "Covenants  >  Conduct of Business",
+          "Covenants  >  Financing Cooperation"
+        ]
+      },
+      {
+        "section": "Best_Efforts",
+        "field_name": "hsr_notes",
+        "answer": "Must file within 25 Business Days following the date of this Agreement; filing required under HSR Act as a condition to closing.",
+        "confidence": 1.0,
+        "reason": "",
+        "categories_used": [
+          "Covenants  >  Efforts",
+          "Covenants  >  Conduct of Business",
+          "Covenants  >  Financing Cooperation"
+        ]
+      }
+    ],
+    "regulatory_fillings_cfiius": [
+      {
+        "section": "Best_Efforts",
+        "field_name": "cfiius_required",
+        "answer": false,
+        "confidence": 1.0,
+        "reason": "",
+        "categories_used": [
+          "Covenants  >  Efforts",
+          "Covenants  >  Conduct of Business",
+          "Covenants  >  Financing Cooperation"
+        ]
+      },
+      {
+        "section": "Best_Efforts",
+        "field_name": "cfiius_filing_deadline_days",
+        "answer": "Not found",
+        "confidence": 1.0,
+        "reason": "",
+        "categories_used": [
+          "Covenants  >  Efforts",
+          "Covenants  >  Conduct of Business",
+          "Covenants  >  Financing Cooperation"
+        ]
+      },
+      {
+        "section": "Best_Efforts",
+        "field_name": "cfiius_notes",
+        "answer": "Not found",
+        "confidence": 1.0,
+        "reason": "",
+        "categories_used": [
+          "Covenants  >  Efforts",
+          "Covenants  >  Conduct of Business",
+          "Covenants  >  Financing Cooperation"
+        ]
+      }
+    ],
+    "regulatory_fillings_foreign": [
+      {
+        "section": "Best_Efforts",
+        "field_name": "foreign_notes",
+        "answer": "Foreign filings may be required under applicable non-U.S. laws",
+        "confidence": 0.9,
+        "reason": "The agreement mentions the need for filings under 'other applicable Antitrust Laws,' which implies that foreign antitrust or merger control filings may be necessary.",
+        "categories_used": [
+          "Covenants  >  Efforts",
+          "Covenants  >  Conduct of Business",
+          "Covenants  >  Financing Cooperation"
+        ]
+      },
+      {
+        "section": "Best_Efforts",
+        "field_name": "foreign_required",
+        "answer": "true",
+        "confidence": 0.9,
+        "reason": "The agreement requires filings under 'other applicable Antitrust Laws,' which implies that foreign filings are required.",
+        "categories_used": [
+          "Covenants  >  Efforts",
+          "Covenants  >  Conduct of Business",
+          "Covenants  >  Financing Cooperation"
+        ]
+      },
+      {
+        "section": "Best_Efforts",
+        "field_name": "foreign_filing_deadline_days",
+        "answer": "Not found",
+        "confidence": 1.0,
+        "reason": "",
+        "categories_used": [
+          "Covenants  >  Efforts",
+          "Covenants  >  Conduct of Business",
+          "Covenants  >  Financing Cooperation"
+        ]
+      }
+    ],
+    "divestiture_commitments": [
+      {
+        "section": "Best_Efforts",
+        "field_name": "divestiture_required",
+        "answer": true,
+        "confidence": 0.9,
+        "reason": "Section 5.4(d) explicitly mentions that Parent, Merger Sub, and Parent's Subsidiaries shall take all actions necessary to eliminate impediments under Antitrust Law, including Remedy Actions such as divestiture, hold-separate arrangements, or other commitments to secure regulatory approval.",
+        "categories_used": [
+          "Covenants  >  Efforts",
+          "Covenants  >  Conduct of Business",
+          "Covenants  >  Financing Cooperation"
+        ]
+      },
+      {
+        "section": "Best_Efforts",
+        "field_name": "divestiture_cap_target_value",
+        "answer": 140,
+        "confidence": 0.9,
+        "reason": "The agreement specifies that Parent and its Subsidiaries shall not be required to take Remedy Actions with respect to businesses and products of the Company and its Subsidiaries that generated net sales in excess of $140,000,000 during the Company's 2024 fiscal year.",
+        "categories_used": [
+          "Covenants  >  Efforts",
+          "Covenants  >  Conduct of Business",
+          "Covenants  >  Financing Cooperation"
+        ]
+      },
+      {
+        "section": "Best_Efforts",
+        "field_name": "divestiture_cap_target_unit",
+        "answer": "Not found",
+        "confidence": 1.0,
+        "reason": "",
+        "categories_used": [
+          "Covenants  >  Efforts",
+          "Covenants  >  Conduct of Business",
+          "Covenants  >  Financing Cooperation"
+        ]
+      },
+      {
+        "section": "Best_Efforts",
+        "field_name": "divestiture_cap_target_basis",
+        "answer": "Not found",
+        "confidence": 1.0,
+        "reason": "",
+        "categories_used": [
+          "Covenants  >  Efforts",
+          "Covenants  >  Conduct of Business",
+          "Covenants  >  Financing Cooperation"
+        ]
+      },
+      {
+        "section": "Best_Efforts",
+        "field_name": "divestiture_cap_target_basis_scope",
+        "answer": "Not found",
+        "confidence": 1.0,
+        "reason": "",
+        "categories_used": [
+          "Covenants  >  Efforts",
+          "Covenants  >  Conduct of Business",
+          "Covenants  >  Financing Cooperation"
+        ]
+      },
+      {
+        "section": "Best_Efforts",
+        "field_name": "divestiture_cap_target_notes",
+        "answer": "Not found",
+        "confidence": 1.0,
+        "reason": "",
+        "categories_used": [
+          "Covenants  >  Efforts",
+          "Covenants  >  Conduct of Business",
+          "Covenants  >  Financing Cooperation"
+        ]
+      },
+      {
+        "section": "Best_Efforts",
+        "field_name": "divestiture_cap_target_clause_reference",
+        "answer": "Not found",
+        "confidence": 1.0,
+        "reason": "",
+        "categories_used": [
+          "Covenants  >  Efforts",
+          "Covenants  >  Conduct of Business",
+          "Covenants  >  Financing Cooperation"
+        ]
+      },
+      {
+        "section": "Best_Efforts",
+        "field_name": "divestiture_cap_buyer_value",
+        "answer": "Not found",
+        "confidence": 1.0,
+        "reason": "",
+        "categories_used": [
+          "Covenants  >  Efforts",
+          "Covenants  >  Conduct of Business",
+          "Covenants  >  Financing Cooperation"
+        ]
+      },
+      {
+        "section": "Best_Efforts",
+        "field_name": "divestiture_cap_buyer_unit",
+        "answer": "Not found",
+        "confidence": 1.0,
+        "reason": "",
+        "categories_used": [
+          "Covenants  >  Efforts",
+          "Covenants  >  Conduct of Business",
+          "Covenants  >  Financing Cooperation"
+        ]
+      },
+      {
+        "section": "Best_Efforts",
+        "field_name": "divestiture_cap_buyer_basis",
+        "answer": "Not found",
+        "confidence": 1.0,
+        "reason": "",
+        "categories_used": [
+          "Covenants  >  Efforts",
+          "Covenants  >  Conduct of Business",
+          "Covenants  >  Financing Cooperation"
+        ]
+      },
+      {
+        "section": "Best_Efforts",
+        "field_name": "divestiture_cap_buyer_basis_scope",
+        "answer": "Parent",
+        "confidence": 0.9,
+        "reason": "The excerpts consistently refer to operations and assets of Parent and its Subsidiaries, implying that the divestiture cap would apply to Parent's operations or assets.",
+        "categories_used": [
+          "Covenants  >  Efforts",
+          "Covenants  >  Conduct of Business",
+          "Covenants  >  Financing Cooperation"
+        ]
+      },
+      {
+        "section": "Best_Efforts",
+        "field_name": "divestiture_cap_buyer_notes",
+        "answer": "Not found",
+        "confidence": 1.0,
+        "reason": "",
+        "categories_used": [
+          "Covenants  >  Efforts",
+          "Covenants  >  Conduct of Business",
+          "Covenants  >  Financing Cooperation"
+        ]
+      },
+      {
+        "section": "Best_Efforts",
+        "field_name": "divestiture_cap_buyer_clause_reference",
+        "answer": "Not found",
+        "confidence": 1.0,
+        "reason": "",
+        "categories_used": [
+          "Covenants  >  Efforts",
+          "Covenants  >  Conduct of Business",
+          "Covenants  >  Financing Cooperation"
+        ]
+      },
+      {
+        "section": "Best_Efforts",
+        "field_name": "divestiture_scope_exclusions",
+        "answer": "Not found",
+        "confidence": 1.0,
+        "reason": "",
+        "categories_used": [
+          "Covenants  >  Efforts",
+          "Covenants  >  Conduct of Business",
+          "Covenants  >  Financing Cooperation"
+        ]
+      },
+      {
+        "section": "Best_Efforts",
+        "field_name": "divestiture_clause_summary",
+        "answer": "Not found",
+        "confidence": 1.0,
+        "reason": "",
+        "categories_used": [
+          "Covenants  >  Efforts",
+          "Covenants  >  Conduct of Business",
+          "Covenants  >  Financing Cooperation"
+        ]
+      },
+      {
+        "section": "Best_Efforts",
+        "field_name": "divestiture_clause_summary_clause_reference",
+        "answer": "Not found",
+        "confidence": 1.0,
+        "reason": "",
+        "categories_used": [
+          "Covenants  >  Efforts",
+          "Covenants  >  Conduct of Business",
+          "Covenants  >  Financing Cooperation"
+        ]
+      }
+    ],
+    "litigation_commitments": [
+      {
+        "section": "Best_Efforts",
+        "field_name": "litigation_requirement_status",
+        "answer": "Explicit Requirement to Litigate",
+        "confidence": 1.0,
+        "reason": "",
+        "categories_used": [
+          "Covenants  >  Efforts",
+          "Covenants  >  Conduct of Business",
+          "Covenants  >  Financing Cooperation"
+        ]
+      },
+      {
+        "section": "Best_Efforts",
+        "field_name": "litigation_clause_scope",
+        "answer": "Litigate through appeals to eliminate impediments under Antitrust Law and obtain necessary consents, unless Remedy Actions involve businesses generating over $140,000,000 in net sales.",
+        "confidence": 1.0,
+        "reason": "",
+        "categories_used": [
+          "Covenants  >  Efforts",
+          "Covenants  >  Conduct of Business",
+          "Covenants  >  Financing Cooperation"
+        ]
+      },
+      {
+        "section": "Best_Efforts",
+        "field_name": "required_to_litigate_notes",
+        "answer": "Parent must litigate regulatory challenges through appeals unless conditions to closing are impossible.",
+        "confidence": 1.0,
+        "reason": "",
+        "categories_used": [
+          "Covenants  >  Efforts",
+          "Covenants  >  Conduct of Business",
+          "Covenants  >  Financing Cooperation"
+        ]
+      }
+    ],
+    "withdrawal_and_timing_controls_withdrawal": [
+      {
+        "section": "Best_Efforts",
+        "field_name": "withdrawal_control_type",
+        "answer": "mutual_consent_required",
+        "confidence": 1.0,
+        "reason": "",
+        "categories_used": [
+          "Covenants  >  Efforts",
+          "Covenants  >  Conduct of Business",
+          "Covenants  >  Financing Cooperation"
+        ]
+      },
+      {
+        "section": "Best_Efforts",
+        "field_name": "withdrawal_control_type_notes",
+        "answer": "Not found",
+        "confidence": 1.0,
+        "reason": "",
+        "categories_used": [
+          "Covenants  >  Efforts",
+          "Covenants  >  Conduct of Business",
+          "Covenants  >  Financing Cooperation"
+        ]
+      }
+    ],
+    "withdrawal_and_timing_controls_timing": [
+      {
+        "section": "Best_Efforts",
+        "field_name": "timing_agreement_restriction",
+        "answer": true,
+        "confidence": 1.0,
+        "reason": "",
+        "categories_used": [
+          "Covenants  >  Efforts",
+          "Covenants  >  Conduct of Business",
+          "Covenants  >  Financing Cooperation"
+        ]
+      },
+      {
+        "section": "Best_Efforts",
+        "field_name": "timing_agreement_restriction_notes",
+        "answer": "Neither the Company nor Parent will withdraw any such filings or applications without the prior written consent of the other party, such consent not to be unreasonably withheld, conditioned or delayed. None of Parent, Merger Sub or the Company (including their respective Subsidiaries) shall, without the other party's prior written consent, enter into any timing or similar agreement, or otherwise agree or commit to any arrangement, that would have the effect of extending, suspending, lengthening or otherwise tolling the expiration or termination of any waiting period applicable to consummate the transactions contemplated by this Agreement under the HSR Act, such consent not to be unreasonably withheld, conditioned or delayed.",
+        "confidence": 0.9,
+        "reason": "The clause specifies that neither party can withdraw filings or enter into timing agreements affecting waiting periods under the HSR Act without the other's consent, which cannot be unreasonably withheld, indicating a timing agreement restriction.",
+        "categories_used": [
+          "Covenants  >  Efforts",
+          "Covenants  >  Conduct of Business",
+          "Covenants  >  Financing Cooperation"
+        ]
+      }
+    ],
+    "remedy_actions_other": [
+      {
+        "section": "Best_Efforts",
+        "field_name": "remedy_definitions_provided",
+        "answer": "false",
+        "confidence": 1.0,
+        "reason": "",
+        "categories_used": [
+          "Covenants  >  Efforts",
+          "Covenants  >  Conduct of Business",
+          "Covenants  >  Financing Cooperation"
+        ]
+      },
+      {
+        "section": "Best_Efforts",
+        "field_name": "remedy_definition_text",
+        "answer": "Divest, license, or take steps to satisfy regulator",
+        "confidence": 1.0,
+        "reason": "",
+        "categories_used": [
+          "Covenants  >  Efforts",
+          "Covenants  >  Conduct of Business",
+          "Covenants  >  Financing Cooperation"
+        ]
+      },
+      {
+        "section": "Best_Efforts",
+        "field_name": "remedy_definition_text_clause_reference",
+        "answer": "Section 5.4(d)",
+        "confidence": 1.0,
+        "reason": "",
+        "categories_used": [
+          "Covenants  >  Efforts",
+          "Covenants  >  Conduct of Business",
+          "Covenants  >  Financing Cooperation"
+        ]
+      }
+    ],
+    "transaction_interference": [
+      {
+        "section": "Best_Efforts",
+        "field_name": "restriction_on_other_transactions",
+        "answer": true,
+        "confidence": 0.9,
+        "reason": "The agreement restricts the Company from soliciting or pursuing alternative transactions that could interfere with obtaining required regulatory approvals, as indicated by the language in Section 5.6(a) prohibiting the Company from engaging in actions that would lead to an Acquisition Proposal.",
+        "categories_used": [
+          "Covenants  >  Efforts",
+          "Covenants  >  Conduct of Business",
+          "Covenants  >  Financing Cooperation"
+        ]
+      },
+      {
+        "section": "Best_Efforts",
+        "field_name": "interference_clause_text",
+        "answer": "agreeing to, committing to, proffering, proposing or taking any action required to sell, divest, hold separate, lease, license, transfer, dispose of or otherwise encumber or impair or take any other action with respect to the Company's or any of their respective Affiliate's assets, properties, businesses or product lines (including, for the avoidance of doubt, any equity or other interests in the Company), or its or their ability to own or operate any of the foregoing, or any other restriction, limitation or condition on or with respect to the foregoing or with respect to the Company's or any of their respective Affiliate's freedom to operate (any of the foregoing in this clause (ii), a \"Remedy Action\")",
+        "confidence": 0.9,
+        "reason": "The term 'Remedy Action' is explicitly defined in Section 5.4(d) as actions related to selling, divesting, or otherwise altering the company's assets or operations to satisfy regulatory requirements.",
+        "categories_used": [
+          "Covenants  >  Efforts",
+          "Covenants  >  Conduct of Business",
+          "Covenants  >  Financing Cooperation"
+        ]
+      },
+      {
+        "section": "Best_Efforts",
+        "field_name": "interference_clause_text_clause_reference",
+        "answer": "Section 5.4",
+        "confidence": 1.0,
+        "reason": "",
+        "categories_used": [
+          "Covenants  >  Efforts",
+          "Covenants  >  Conduct of Business",
+          "Covenants  >  Financing Cooperation"
+        ]
+      }
+    ],
+    "second_request_certification": [
+      {
+        "section": "Best_Efforts",
+        "field_name": "deadline_specified",
+        "answer": false,
+        "confidence": 1.0,
+        "reason": "",
+        "categories_used": [
+          "Covenants  >  Efforts",
+          "Covenants  >  Conduct of Business",
+          "Covenants  >  Financing Cooperation"
+        ]
+      },
+      {
+        "section": "Best_Efforts",
+        "field_name": "certification_timeline_notes",
+        "answer": "Each of the parties hereto shall, in consultation and cooperation with the other parties and as promptly as reasonably practicable, but in any event no later than twenty-five (25) Business Days following the date of this Agreement, make its respective filings under the HSR Act.",
+        "confidence": 0.9,
+        "reason": "The timeline for making HSR-related filings is explicitly stated as no later than twenty-five (25) Business Days following the date of the Agreement.",
+        "categories_used": [
+          "Covenants  >  Efforts",
+          "Covenants  >  Conduct of Business",
+          "Covenants  >  Financing Cooperation"
+        ]
+      },
+      {
+        "section": "Best_Efforts",
+        "field_name": "certification_responsibility_party",
+        "answer": "Both",
+        "confidence": 0.9,
+        "reason": "The agreement requires both parties to cooperate and use their reasonable best efforts to make filings under the HSR Act, implying joint responsibility for certifying compliance.",
+        "categories_used": [
+          "Covenants  >  Efforts",
+          "Covenants  >  Conduct of Business",
+          "Covenants  >  Financing Cooperation"
+        ]
+      }
+    ],
+    "ftc_warning_letter_handling": [
+      {
+        "section": "Best_Efforts",
+        "field_name": "addressed",
+        "answer": false,
+        "confidence": 1.0,
+        "reason": "",
+        "categories_used": [
+          "Covenants  >  Efforts",
+          "Covenants  >  Conduct of Business",
+          "Covenants  >  Financing Cooperation"
+        ]
+      },
+      {
+        "section": "Best_Efforts",
+        "field_name": "handling_notes",
+        "answer": "Not addressed",
+        "confidence": 1.0,
+        "reason": "",
+        "categories_used": [
+          "Covenants  >  Efforts",
+          "Covenants  >  Conduct of Business",
+          "Covenants  >  Financing Cooperation"
+        ]
+      },
+      {
+        "section": "Best_Efforts",
+        "field_name": "effect_on_closing_condition",
+        "answer": "Silent",
+        "confidence": 1.0,
+        "reason": "",
+        "categories_used": [
+          "Covenants  >  Efforts",
+          "Covenants  >  Conduct of Business",
+          "Covenants  >  Financing Cooperation"
+        ]
+      },
+      {
+        "section": "Best_Efforts",
+        "field_name": "addressed_notes",
+        "answer": "Not found",
+        "confidence": 1.0,
+        "reason": "",
+        "categories_used": [
+          "Covenants  >  Efforts",
+          "Covenants  >  Conduct of Business",
+          "Covenants  >  Financing Cooperation"
+        ]
+      }
+    ],
+    "other_timing_controls": [
+      {
+        "section": "Best_Efforts",
+        "field_name": "other_timing_controls.other_deadlines_specified",
+        "answer": [
+          "Company Stockholders' Meeting to occur within 50 days of F-4 effectiveness",
+          "Adjournments or postponements of the Company Stockholders' Meeting without Parent's consent shall be for a period of no more than 25 Business Days in the aggregate"
+        ],
+        "confidence": 1.0,
+        "reason": "",
+        "categories_used": [
+          "Covenants  >  Efforts",
+          "Covenants  >  Conduct of Business",
+          "Covenants  >  Financing Cooperation"
+        ]
+      }
+    ]
+  }
+}

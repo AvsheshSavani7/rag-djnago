@@ -48,8 +48,11 @@ class ProcessView(APIView):
             # Read Excel using pandas
             sheet_name = request.data.get("sheetName", 0)
             # Use dtype parameter to ensure CIK Number is read as string
+            print(f"sheet_name: {sheet_name}")
             df = pd.read_excel(tmp_path, sheet_name=sheet_name,
                                dtype={"CIK Number": str})
+
+            print(f"df: {df}")
             os.unlink(tmp_path)
 
             # Initialize document processing service
@@ -87,7 +90,7 @@ class ProcessView(APIView):
                     # Convert pandas Series to dict before sending to API
                     # row_dict = row.to_dict()
                     row_dict = ProcessView.sanitize_row_dict(row)
-
+                    print(f"row_dict: {row_dict}")
                     # Call Node API to get deal data
                     response = call_node_api(
                         endpoint="deal/process-single-deals-rag",  # Remove leading slash
