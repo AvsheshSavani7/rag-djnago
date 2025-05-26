@@ -192,7 +192,7 @@ class DocumentProcessingService:
                 deal_id=str(job_id))
             # Update job status to completed
             # job.save_json_to_db(category_results)
-            # job.upsert_json_to_db(category_results)
+            job.upsert_json_to_db(category_results)
             job.update_embedding_status('COMPLETED')
             logger.info(f"Updated job status to COMPLETED")
 
@@ -3007,7 +3007,7 @@ class SchemaCategorySearch:
                     {"role": "user", "content": prompt}
                 ],
                 temperature=0.1,
-                max_tokens=1000
+                max_tokens=2000
             )
 
             # Extract and return the value
@@ -3328,118 +3328,107 @@ class SchemaCategorySearch:
                 for section_name, section_value in schema.items():
                     # Check if this section should be processed
                     if section_name in [
-                        "Absolute_Carve-Outs", "Acquirer", "Antitrust_Commitment",
-                        "Best_Efforts", "Board_Approval", "Breach_Monitoring_and_Ongoing_Operations",
-                        "Clean_Room_Agreement", "Closing", "material_adverse_effect",
-                        "Complete_Effects_on_Capital_Stock", "Conditions to Closing",
-                        "Confidentiality_Agreement", "Covenants", "Dividends", "Financing",
-                        "Guarantee", "Guarantor", "Law_and_Jurisdiction", "Merger_Agreement_Details",
-                        "non_solicitation", "Ordinary_Course", "Out_Date", "Proxy_Statement",
-                        "R_W_Parent", "R_W_Target", "Regulatory_Approvals",
-                        "Regulatory_Obligations_Best_Efforts", "Regulatory_Obligations_Timing",
-                        "Shareholder_Approval", "Specific_Performance", "Termination_Rights_and_Causes",
-                        "Termination_Fees__Other_", "Termination_Fees__Parent_to_Target_",
-                        "Termination_Fees__Target_to_Parent_", "Timeline", "Voting_Agreement", "termination_clauses", "termination", "covenant", "recitals_and_or_preamble", "party_details", "conditions_to_closing", "closing_mechanics", "specific_performance", "confidentiality_and_clean_room", "complex_consideration_and_dividends", "law_and_jurisdiction", "financing", "proxy_statement"
+                        "termination", "ordinary_course", "board_approval", "party_details", "conditions_to_closing", "closing_mechanics", "specific_performance", "confidentiality_and_clean_room", "complex_consideration_and_dividends", "law_and_jurisdiction", "financing", "proxy_statement", "timeline", "material_adverse_effect", "non_solicitation", "best_efforts",
                     ]:
                         # Change this to your desired section
-                        if section_name == "termination":
+                        # if section_name == "best_efforts":
 
-                            logger.info(
-                                f"Submitting tasks for section: {section_name}")
+                        logger.info(
+                            f"Submitting tasks for section: {section_name}")
 
-                            # Initialize the section's results
+                        # Initialize the section's results
+                        results[section_name] = {}
+                        futures[section_name] = {}
+
+                    # Check if section_value is an array or object
+                        if section_name == "termination_clauses":
+                            # Initialize as dictionary
                             results[section_name] = {}
-                            futures[section_name] = {}
+                            futures[section_name] = []
 
-                            # Check if section_value is an array or object
-                            if section_name == "termination_clauses":
-                                # Initialize as dictionary
-                                results[section_name] = {}
-                                futures[section_name] = []
+                            # First process each clause to determine if it exists in the document
+                            for i, field in enumerate(section_value):
 
-                                # First process each clause to determine if it exists in the document
-                                for i, field in enumerate(section_value):
+                                # if i > 0:
+                                #     break
+                                field_name = field.get("field_name", "")
 
-                                    # if i > 0:
-                                    #     break
-                                    field_name = field.get("field_name", "")
+                                if field_name == "Failure to Receive Required Approvals":
 
-                                    if field_name == "Failure to Receive Required Approvals":
-
-                                        logger.info(
-                                            f"Submitting task for clause identification: {field_name} ({i+1}/{len(section_value)})")
-
-                                        # Submit the task to check if this clause exists
-                                        future = executor.submit(
-                                            self.process_schema_field1,
-                                            section_name, field, deal_id
-                                        )
-                                        futures[section_name].append(
-                                            # Store clause, future, and the full field object
-                                            (field_name, future, field))
-                                    else:
-                                        logger.info(
-                                            f"Skipping clause identification: {field_name} ({i+1}/{len(section_value)})")
-
-                            elif isinstance(section_value, list):
-                                # Handle as a simple array of fields (old format)
-                                # Use array for old format
-                                results[section_name] = []
-                                futures[section_name] = []
-
-                                for i, field in enumerate(section_value):
-                                    field_name = field.get("field_name", "")
-                                    if field_name == "hsr_clearance_required":
-                                        logger.info(
-                                            f"Submitting task for field: {field_name} ({i+1}/{len(section_value)})")
-
-                                        # Submit the task to the executor and store the future
-                                        future = executor.submit(
-                                            self.process_schema_field1,
-                                            section_name, field, deal_id
-                                        )
-                                        futures[section_name].append(
-                                            (field_name, future))
-                                    else:
-                                        logger.info(
-                                            f"Skipping field: {field_name}")
-
-                            elif isinstance(section_value, dict):
-                                # Handle as a nested object with subsections (new format)
-                                for subsection_name, fields in section_value.items():
                                     logger.info(
-                                        f"Processing subsection: {subsection_name}")
-                                    # if subsection_name == "reverse_termination_fee":
+                                        f"Submitting task for clause identification: {field_name} ({i+1}/{len(section_value)})")
+
+                                    # Submit the task to check if this clause exists
+                                    future = executor.submit(
+                                        self.process_schema_field1,
+                                        section_name, field, deal_id
+                                    )
+                                    futures[section_name].append(
+                                        # Store clause, future, and the full field object
+                                        (field_name, future, field))
+                                else:
+                                    logger.info(
+                                        f"Skipping clause identification: {field_name} ({i+1}/{len(section_value)})")
+
+                        elif isinstance(section_value, list):
+                            # Handle as a simple array of fields (old format)
+                            # Use array for old format
+                            results[section_name] = []
+                            futures[section_name] = []
+
+                            for i, field in enumerate(section_value):
+                                field_name = field.get("field_name", "")
+                                # if field_name == "hsr_clearance_required":
+                                logger.info(
+                                    f"Submitting task for field: {field_name} ({i+1}/{len(section_value)})")
+
+                                # Submit the task to the executor and store the future
+                                future = executor.submit(
+                                    self.process_schema_field1,
+                                    section_name, field, deal_id
+                                )
+                                futures[section_name].append(
+                                    (field_name, future))
+                                # else:
+                                #     logger.info(
+                                # f"Skipping field: {field_name}")
+
+                        elif isinstance(section_value, dict):
+                            # Handle as a nested object with subsections (new format)
+                            for subsection_name, fields in section_value.items():
+                                logger.info(
+                                    f"Processing subsection: {subsection_name}")
+                                # if subsection_name == "reverse_termination_fee":
+                                # continue
+
+                                # Initialize subsection results and futures
+                                results[section_name][subsection_name] = []
+                                futures[section_name][subsection_name] = []
+
+                                for i, field in enumerate(fields):
+                                    field_name = field.get(
+                                        "field_name", "")
+                                    # if field_name == "divestiture_clause_summary":
                                     # continue
+                                    logger.info(
+                                        f"Submitting task for field: {field_name} ({i+1}/{len(fields)})")
 
-                                    # Initialize subsection results and futures
-                                    results[section_name][subsection_name] = []
-                                    futures[section_name][subsection_name] = []
-
-                                    for i, field in enumerate(fields):
-                                        field_name = field.get(
-                                            "field_name", "")
-                                        # if field_name == "reverse_termination_fee":
-                                        # continue
-                                        logger.info(
-                                            f"Submitting task for field: {field_name} ({i+1}/{len(fields)})")
-
-                                        # Submit the task to the executor and store the future
-                                        future = executor.submit(
-                                            self.process_schema_field1,
-                                            section_name, field, deal_id, subsection_name
-                                        )
-                                        futures[section_name][subsection_name].append(
-                                            (field_name, future))
-                                        # else:
-                                        #     logger.info(
-                                        #         f"Skipping field: {field_name}")
+                                    # Submit the task to the executor and store the future
+                                    future = executor.submit(
+                                        self.process_schema_field1,
+                                        section_name, field, deal_id, subsection_name
+                                    )
+                                    futures[section_name][subsection_name].append(
+                                        (field_name, future))
                                     # else:
                                     #     logger.info(
-                                    #         f"Skipping section: {section_name}")
-                        else:
-                            logger.info(
-                                f"Skipping section: {section_name}")
+                                    #         f"Skipping field: {field_name}")
+                                # else:
+                                #     logger.info(
+                                #         f"Skipping section: {section_name}")
+                        # else:
+                        #     logger.info(
+                        #         f"Skipping section: {section_name}")
                     else:
                         logger.info(f"Skipping section: {section_name}")
 
