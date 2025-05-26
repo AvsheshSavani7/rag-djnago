@@ -18,10 +18,9 @@ import json
 import re
 from .utils import get_impherior_prompt, get_experior_prompt
 import pytz
-
-
 from .models import ProcessingJob
 from mongoengine.errors import DoesNotExist
+from .summary_utils.clause_config_util import ClauseConfigUtil
 
 load_dotenv()
 
@@ -66,7 +65,8 @@ class DocumentProcessingService:
             embed_data = bool(embed_data)
 
             logger.info(
-                f"Processing document with file_url={file_url}, deal_id={deal_id}, embed_data={embed_data}")
+                f"Processing document with file_url={file_url}, deal_id={deal_id}, embed_data={embed_data}"
+            )
 
             # Find the existing job by id (convert string to ObjectId)
             try:
@@ -76,17 +76,11 @@ class DocumentProcessingService:
             except DoesNotExist:
                 error_msg = f"No processing job found for deal_id {deal_id}"
                 logger.error(error_msg)
-                return {
-                    "error": error_msg,
-                    "status": "failed"
-                }
+                return {"error": error_msg, "status": "failed"}
             except Exception as e:
                 error_msg = f"Invalid deal_id format: {str(e)}"
                 logger.error(error_msg)
-                return {
-                    "error": error_msg,
-                    "status": "failed"
-                }
+                return {"error": error_msg, "status": "failed"}
 
             logger.info(f"Processing file_url: {file_url}")
             # Initialize the processor
@@ -99,46 +93,42 @@ class DocumentProcessingService:
             except Exception as proc_e:
                 error_msg = f"Error processing file: {str(proc_e)}"
                 logger.error(error_msg)
-                return {
-                    "error": error_msg,
-                    "status": "failed"
-                }
-                
-                
+                return {"error": error_msg, "status": "failed"}
+
             # Update the job with results
-            job.flattened_json_url = result.get('flattened_json_url')
-                
-            if job.schema_results is not None and not isinstance(job.schema_results, dict):
-                logger.warning(f"⚠️ Invalid schema_results type: {type(job.schema_results)}. Resetting to empty dict.")
-            else: 
+            job.flattened_json_url = result.get("flattened_json_url")
+
+            if job.schema_results is not None and not isinstance(
+                job.schema_results, dict
+            ):
+                logger.warning(
+                    f"⚠️ Invalid schema_results type: {type(job.schema_results)}. Resetting to empty dict."
+                )
+            else:
                 job.save()
 
-            
             # Start embedding process in background if requested
             if embed_data:
                 # Start embedding task in the executor
                 self.executor.submit(
-                    self._process_embeddings,
-                    str(job.id),
-                    job.flattened_json_url
+                    self._process_embeddings, str(job.id), job.flattened_json_url
                 )
-                logger.info(
-                    f"Submitted embedding task for job {job.id} to executor")
+                logger.info(f"Submitted embedding task for job {job.id} to executor")
 
                 # Return response with embedding status
                 return {
-                    'deal_id': str(job.id),
-                    'flattened_json_url': job.flattened_json_url,
-                    'embedding_status': 'PROCESSING',
-                    'message': 'File processed successfully. Embeddings are being generated in the background.',
-                    'status': 'success'
+                    "deal_id": str(job.id),
+                    "flattened_json_url": job.flattened_json_url,
+                    "embedding_status": "PROCESSING",
+                    "message": "File processed successfully. Embeddings are being generated in the background.",
+                    "status": "success",
                 }
 
             # Return response without embedding
             return {
-                'deal_id': str(job.id),
-                'flattened_json_url': job.flattened_json_url,
-                'status': 'success'
+                "deal_id": str(job.id),
+                "flattened_json_url": job.flattened_json_url,
+                "status": "success",
             }
 
         except Exception as e:
@@ -146,15 +136,15 @@ class DocumentProcessingService:
             logger.error(f"Error processing file: {str(e)}")
 
             # Update the job with error if it exists
-            if 'job' in locals():
+            if "job" in locals():
                 job.error_message = str(e)
                 job.save()
 
             # Return error response
             return {
-                'error': str(e),
-                'deal_id': deal_id if 'job' not in locals() else str(job.id),
-                'status': 'failed'
+                "error": str(e),
+                "deal_id": deal_id if "job" not in locals() else str(job.id),
+                "status": "failed",
             }
 
     def _process_embeddings(self, job_id, flattened_json_url):
@@ -166,7 +156,8 @@ class DocumentProcessingService:
             flattened_json_url (str): URL to the flattened JSON file
         """
         logger.info(
-            f"Starting embedding process for job {job_id} with URL: {flattened_json_url}")
+            f"Starting embedding process for job {job_id} with URL: {flattened_json_url}"
+        )
         try:
             # Get the job
             object_id = ObjectId(job_id)
@@ -174,13 +165,12 @@ class DocumentProcessingService:
             logger.info(f"Found job in database: {job}")
 
             # Update job status to processing
-            job.update_embedding_status('PROCESSING')
+            job.update_embedding_status("PROCESSING")
             logger.info("Updated job status to PROCESSING")
 
             # Download flattened JSON
             s3_service = S3Service()
-            logger.info(
-                f"Downloading flattened JSON from URL: {flattened_json_url}")
+            logger.info(f"Downloading flattened JSON from URL: {flattened_json_url}")
             chunks = s3_service.download_from_url(flattened_json_url)
             logger.info(f"Downloaded {len(chunks)} chunks")
 
@@ -196,11 +186,12 @@ class DocumentProcessingService:
             schema_search = SchemaCategorySearch()
 
             category_results = schema_search.search_all_schema_categories(
-                deal_id=str(job_id))
+                deal_id=str(job_id)
+            )
             # Update job status to completed
             # job.save_json_to_db(category_results)
             job.upsert_json_to_db(category_results)
-            job.update_embedding_status('COMPLETED')
+            job.update_embedding_status("COMPLETED")
             logger.info(f"Updated job status to COMPLETED")
 
         except Exception as e:
@@ -210,7 +201,7 @@ class DocumentProcessingService:
             try:
                 object_id = ObjectId(job_id)
                 job = ProcessingJob.objects.get(id=object_id)
-                job.update_embedding_status('FAILED', str(e))
+                job.update_embedding_status("FAILED", str(e))
                 logger.error(f"Updated job status to FAILED: {str(e)}")
             except Exception as inner_e:
                 logger.error(f"Error updating job status: {str(inner_e)}")
@@ -224,7 +215,7 @@ class S3Service:
             "s3",
             aws_access_key_id=os.environ.get("AWS_ACCESS_KEY_ID"),
             aws_secret_access_key=os.environ.get("AWS_SECRET_ACCESS_KEY"),
-            region_name=os.environ.get("AWS_REGION", "us-east-1")
+            region_name=os.environ.get("AWS_REGION", "us-east-1"),
         )
         self.bucket = os.environ.get("AWS_S3_BUCKET")
         print("env", os.environ.get("AWS_ACCESS_KEY_ID"))
@@ -233,10 +224,7 @@ class S3Service:
         """Upload JSON data to S3 and return the full URL"""
         json_bytes = json.dumps(data, indent=2).encode("utf-8")
         self.s3.put_object(
-            Bucket=self.bucket,
-            Key=key,
-            Body=json_bytes,
-            ContentType='application/json'
+            Bucket=self.bucket, Key=key, Body=json_bytes, ContentType="application/json"
         )
         # Generate and return the full S3 URL
         s3_url = f"https://{self.bucket}.s3.amazonaws.com/{key}"
@@ -249,7 +237,8 @@ class S3Service:
             response = requests.get(url)
             logger.info(f"Response status code: {response.status_code}")
             logger.info(
-                f"Response content type: {response.headers.get('Content-Type', 'unknown')}")
+                f"Response content type: {response.headers.get('Content-Type', 'unknown')}"
+            )
 
             # Try to log the first part of the response content to see what we're getting
             content_preview = response.text[:200] if response.text else "empty response"
@@ -260,12 +249,10 @@ class S3Service:
             # Try parsing as JSON and handle errors explicitly
             try:
                 json_data = response.json()
-                logger.info(
-                    f"Successfully parsed JSON data, type: {type(json_data)}")
+                logger.info(f"Successfully parsed JSON data, type: {type(json_data)}")
                 return json_data
             except ValueError as json_err:
-                logger.error(
-                    f"Failed to parse JSON from response: {str(json_err)}")
+                logger.error(f"Failed to parse JSON from response: {str(json_err)}")
                 raise Exception(f"Invalid JSON in response: {str(json_err)}")
         except requests.exceptions.RequestException as req_err:
             logger.error(f"HTTP request failed: {str(req_err)}")
@@ -279,7 +266,11 @@ class S3Service:
     def list_files(self, prefix):
         """List files in S3 with the given prefix"""
         response = self.s3.list_objects_v2(Bucket=self.bucket, Prefix=prefix)
-        return [obj["Key"] for obj in response.get("Contents", []) if obj["Key"].endswith(".json")]
+        return [
+            obj["Key"]
+            for obj in response.get("Contents", [])
+            if obj["Key"].endswith(".json")
+        ]
 
 
 class EmbeddingService:
@@ -288,21 +279,20 @@ class EmbeddingService:
     def __init__(self):
         print("Initializing EmbeddingService")
         # Initialize OpenAI client
-        self.openai_client = openai.OpenAI(
-            api_key=os.environ.get("OPENAI_API_KEY")
-        )
+        self.openai_client = openai.OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
         self.MAX_METADATA_SIZE = 40960
         print(
-            f"OpenAI API key set: {'Yes' if os.environ.get('OPENAI_API_KEY') else 'No'}")
+            f"OpenAI API key set: {'Yes' if os.environ.get('OPENAI_API_KEY') else 'No'}"
+        )
 
         # Initialize Pinecone
         pc = pinecone.Pinecone(api_key=os.environ.get("PINECONE_API_KEY"))
         print(
-            f"Pinecone API key set: {'Yes' if os.environ.get('PINECONE_API_KEY') else 'No'}")
+            f"Pinecone API key set: {'Yes' if os.environ.get('PINECONE_API_KEY') else 'No'}"
+        )
 
         # Get or create index
-        self.index_name = os.environ.get(
-            "PINECONE_INDEX_NAME", "contract-chunks")
+        self.index_name = os.environ.get("PINECONE_INDEX_NAME", "contract-chunks")
         print(f"Using Pinecone index: {self.index_name}")
 
         # Check if index exists
@@ -336,8 +326,7 @@ class EmbeddingService:
         try:
             print(f"Creating embedding for text (length: {len(text)})")
             response = self.openai_client.embeddings.create(
-                input=text,
-                model="text-embedding-3-large"
+                input=text, model="text-embedding-3-large"
             )
             print("Embedding created successfully")
             return response.data[0].embedding
@@ -347,13 +336,21 @@ class EmbeddingService:
 
     def trim_metadata(self, metadata):
         # Try serializing first
-        meta_bytes = json.dumps(metadata).encode('utf-8')
+        meta_bytes = json.dumps(metadata).encode("utf-8")
         if len(meta_bytes) <= self.MAX_METADATA_SIZE:
             return metadata  # ✅ Already valid
 
         # Sort keys by importance (edit this order as needed)
-        priority_keys = ['categories', 'chunk_index', 'clause_summary',
-                         'combined_text', 'deal_id', 'deal_name', 'label', 'original_text']
+        priority_keys = [
+            "categories",
+            "chunk_index",
+            "clause_summary",
+            "combined_text",
+            "deal_id",
+            "deal_name",
+            "label",
+            "original_text",
+        ]
 
         trimmed = {}
         for key in priority_keys:
@@ -363,7 +360,7 @@ class EmbeddingService:
 
             # Temporarily add full value
             trimmed[key] = value
-            size = len(json.dumps(trimmed).encode('utf-8'))
+            size = len(json.dumps(trimmed).encode("utf-8"))
 
             # Trim the value if adding it exceeds the limit
             if size > self.MAX_METADATA_SIZE:
@@ -373,7 +370,7 @@ class EmbeddingService:
                     while left < right:
                         mid = (left + right) // 2
                         trimmed[key] = value[:mid]
-                        size = len(json.dumps(trimmed).encode('utf-8'))
+                        size = len(json.dumps(trimmed).encode("utf-8"))
                         if size <= self.MAX_METADATA_SIZE:
                             left = mid + 1
                         else:
@@ -410,15 +407,15 @@ class EmbeddingService:
                 #     print(f"Enhancing metadata for chunk {i+1}")
                 #     enhanced_chunk = self.metadata_service.enhance_chunk_metadata(
                 #         chunk)
-                    # category_name = enhanced_chunk.get("categories", "")
-                    # print(
-                    #     f"Category determined for chunk {i+1}: {category_name}")
+                # category_name = enhanced_chunk.get("categories", "")
+                # print(
+                #     f"Category determined for chunk {i+1}: {category_name}")
                 # except Exception as e:
                 #     print(
                 #         f"Error enhancing metadata for chunk {i+1}: {str(e)}")
-                    # Continue with original chunk if enhancement fails
-                    # enhanced_chunk = chunk
-                    # enhanced_chunk["categories"] = []
+                # Continue with original chunk if enhancement fails
+                # enhanced_chunk = chunk
+                # enhanced_chunk["categories"] = []
 
                 # Below is the chunk without metadata enhancement (categories, clause_summary)
                 enhanced_chunk = chunk
@@ -427,19 +424,24 @@ class EmbeddingService:
                 try:
                     embedding = self.create_embedding(text)
                     print(
-                        f"Created embedding for chunk {i+1} - vector size: {len(embedding)}")
+                        f"Created embedding for chunk {i+1} - vector size: {len(embedding)}"
+                    )
                 except Exception as e:
-                    print(
-                        f"Error creating embedding for chunk {i+1}: {str(e)}")
+                    print(f"Error creating embedding for chunk {i+1}: {str(e)}")
                     raise Exception(
-                        f"Failed to create embedding for chunk {i+1}: {str(e)}")
+                        f"Failed to create embedding for chunk {i+1}: {str(e)}"
+                    )
 
                 # Start with required metadata fields
                 metadata = {
                     "deal_id": str(deal_id),
                     "deal_name": enhanced_chunk.get("deal_name", "") or "",
                     "label": enhanced_chunk.get("label", "") or "",
-                    "definition_terms": "" if enhanced_chunk.get("definition_terms") is None else str(enhanced_chunk.get("definition_terms", "")),
+                    "definition_terms": (
+                        ""
+                        if enhanced_chunk.get("definition_terms") is None
+                        else str(enhanced_chunk.get("definition_terms", ""))
+                    ),
                     "original_text": enhanced_chunk.get("original_text", "") or "",
                     "combined_text": enhanced_chunk.get("combined_text", "") or "",
                     # "categories": enhanced_chunk.get("categories", "") or "",
@@ -451,19 +453,17 @@ class EmbeddingService:
                 metadata = self.trim_metadata(metadata)
                 try:
                     self.index.upsert(
-                        vectors=[{
-                            "id": chunk_id,
-                            "values": embedding,
-                            "metadata": metadata
-                        }]
+                        vectors=[
+                            {"id": chunk_id, "values": embedding, "metadata": metadata}
+                        ]
                     )
-                    print(
-                        f"Uploaded chunk {i+1} to Pinecone with ID: {chunk_id}")
+                    print(f"Uploaded chunk {i+1} to Pinecone with ID: {chunk_id}")
                 except Exception as e:
                     print(f"Error uploading chunk {i+1} to Pinecone: {str(e)}")
                     print(f"Problematic metadata: {metadata}")
                     raise Exception(
-                        f"Failed to upload chunk {i+1} to Pinecone: {str(e)}")
+                        f"Failed to upload chunk {i+1} to Pinecone: {str(e)}"
+                    )
 
                 processed_chunks += 1
 
@@ -471,11 +471,12 @@ class EmbeddingService:
                 time.sleep(0.2)
 
             print(
-                f"Successfully processed {processed_chunks} out of {total_chunks} chunks")
+                f"Successfully processed {processed_chunks} out of {total_chunks} chunks"
+            )
             return {
                 "status": "success",
                 "chunks_processed": processed_chunks,
-                "index_name": self.index_name
+                "index_name": self.index_name,
             }
 
         except Exception as e:
@@ -495,16 +496,16 @@ class EmbeddingService:
             dict: Search results with matching chunks
         """
         try:
-            print(
-                f"Creating embedding for search query: {query_text[:100]}...")
+            print(f"Creating embedding for search query: {query_text[:100]}...")
             query_embedding = self.create_embedding(query_text)
 
             # Prepare filter if deal_id is provided
             filter_dict = {}
             if deal_id:
-                filter_dict = {"deal_id": str(deal_id),
-                               #  "test_tag": {"$in": ["a"]}
-                               }
+                filter_dict = {
+                    "deal_id": str(deal_id),
+                    #  "test_tag": {"$in": ["a"]}
+                }
 
                 print(f"Filtering search to deal ID: {deal_id}")
 
@@ -514,30 +515,28 @@ class EmbeddingService:
                 vector=query_embedding,
                 top_k=top_k,
                 include_metadata=True,
-                filter=filter_dict
+                filter=filter_dict,
             )
             print(f"Search response: {search_response}")
-            with open('search_response_matches.json', 'w') as f:
+            with open("search_response_matches.json", "w") as f:
                 json.dump(search_response.matches, f, default=str, indent=4)
 
             # Format results
             results = []
             for match in search_response.matches:
-                results.append({
-                    "id": match.id,
-                    "score": match.score,
-                    "deal_id": match.metadata.get("deal_id"),
-                    "label": match.metadata.get("label"),
-                    "combined_text": match.metadata.get("combined_text"),
-                    "definition_terms": match.metadata.get("definition_terms")
-                })
+                results.append(
+                    {
+                        "id": match.id,
+                        "score": match.score,
+                        "deal_id": match.metadata.get("deal_id"),
+                        "label": match.metadata.get("label"),
+                        "combined_text": match.metadata.get("combined_text"),
+                        "definition_terms": match.metadata.get("definition_terms"),
+                    }
+                )
 
             print(f"Found {len(results)} matching results")
-            return {
-                "query": query_text,
-                "results": results,
-                "total": len(results)
-            }
+            return {"query": query_text, "results": results, "total": len(results)}
 
         except Exception as e:
             print(f"Error searching for text: {str(e)}")
@@ -549,9 +548,7 @@ class MetadataEnhancementService:
 
     def __init__(self):
         # Initialize OpenAI client
-        self.openai_client = openai.OpenAI(
-            api_key=os.environ.get("OPENAI_API_KEY")
-        )
+        self.openai_client = openai.OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
         # Schema URL
         self.schema_url = "https://mna-docs.s3.eu-north-1.amazonaws.com/clauses_category_template/Clauses_Category_Template.json"
         # Cache the categories
@@ -630,7 +627,8 @@ class MetadataEnhancementService:
 
             # Prepare the prompt for GPT
             category_list = "\n".join(
-                [f"{i+1}. {category}" for i, category in enumerate(categories)])
+                [f"{i+1}. {category}" for i, category in enumerate(categories)]
+            )
 
             prompt = f"""You are a legal AI assistant helping classify a merger-related clause in a transaction agreement.
 
@@ -660,11 +658,14 @@ Return a JSON object in this exact format:
             response = self.openai_client.chat.completions.create(
                 model="gpt-4o",
                 messages=[
-                    {"role": "system", "content": "You are a legal contract classifier assistant. Your task is to assign text to the most appropriate category."},
-                    {"role": "user", "content": prompt}
+                    {
+                        "role": "system",
+                        "content": "You are a legal contract classifier assistant. Your task is to assign text to the most appropriate category.",
+                    },
+                    {"role": "user", "content": prompt},
                 ],
                 temperature=0.1,
-                max_tokens=750
+                max_tokens=750,
             )
 
             # Extract the determined category
@@ -672,15 +673,16 @@ Return a JSON object in this exact format:
             logger.info(f"GPT determined category: {category}")
 
             # Clean markdown code block like ```json ... ```  # Clean markdown code block like ```json ... ```
-            markdown_match = re.search(
-                r"```(?:json)?\s*([\s\S]+?)\s*```", category)
+            markdown_match = re.search(r"```(?:json)?\s*([\s\S]+?)\s*```", category)
             if markdown_match:
                 category = markdown_match.group(1).strip()
             # Validate if the returned category is in our list
             try:
                 parsed = json.loads(category)
                 if isinstance(parsed, dict):
-                    return parsed.get("categories", []), parsed.get("clause_summary", "")
+                    return parsed.get("categories", []), parsed.get(
+                        "clause_summary", ""
+                    )
             except json.JSONDecodeError:
                 logger.warning(f"GPT response could not be parsed: {category}")
             return [], ""
@@ -709,8 +711,7 @@ Return a JSON object in this exact format:
 
             # Check if category exists in schema
             if not category_name or category_name not in schema:
-                logger.warning(
-                    f"Category '{category_name}' not found in schema")
+                logger.warning(f"Category '{category_name}' not found in schema")
                 return {}
 
             # Get the fields for this category
@@ -720,7 +721,8 @@ Return a JSON object in this exact format:
             field_descriptions = []
             for field in category_fields:
                 field_descriptions.append(
-                    f"Field: {field.get('name')}\nDescription: {field.get('description')}\nType: {field.get('data_type')}\nExample: {field.get('example_value')}")
+                    f"Field: {field.get('name')}\nDescription: {field.get('description')}\nType: {field.get('data_type')}\nExample: {field.get('example_value')}"
+                )
 
             fields_text = "\n\n".join(field_descriptions)
 
@@ -744,16 +746,20 @@ Return your answer as a valid JSON object with each field name as the key and th
 """
 
             logger.info(
-                f"Calling GPT to extract structured metadata for category: {category_name}")
+                f"Calling GPT to extract structured metadata for category: {category_name}"
+            )
             # Call GPT
             response = self.openai_client.chat.completions.create(
                 model="gpt-4o",
                 messages=[
-                    {"role": "system", "content": "You are a legal metadata extraction assistant. Your task is to extract structured information from contract text."},
-                    {"role": "user", "content": prompt}
+                    {
+                        "role": "system",
+                        "content": "You are a legal metadata extraction assistant. Your task is to extract structured information from contract text.",
+                    },
+                    {"role": "user", "content": prompt},
                 ],
                 temperature=0.3,
-                max_tokens=2000
+                max_tokens=2000,
             )
 
             # Extract the structured metadata
@@ -763,21 +769,22 @@ Return your answer as a valid JSON object with each field name as the key and th
             # Try to parse as JSON
             try:
                 # Find json content if it's not directly formatted as json
-                if not metadata_text.startswith('{'):
+                if not metadata_text.startswith("{"):
                     import re
-                    json_match = re.search(
-                        r'```json\s*([\s\S]*?)\s*```', metadata_text)
+
+                    json_match = re.search(r"```json\s*([\s\S]*?)\s*```", metadata_text)
                     if json_match:
                         metadata_text = json_match.group(1)
                     else:
                         # Try to find any JSON-like structure
-                        json_match = re.search(r'({[\s\S]*})', metadata_text)
+                        json_match = re.search(r"({[\s\S]*})", metadata_text)
                         if json_match:
                             metadata_text = json_match.group(1)
 
                 structured_metadata = json.loads(metadata_text)
                 logger.info(
-                    f"Successfully parsed structured metadata with {structured_metadata} fields")
+                    f"Successfully parsed structured metadata with {structured_metadata} fields"
+                )
                 return structured_metadata
             except json.JSONDecodeError as e:
                 logger.error(f"Failed to parse metadata as JSON: {str(e)}")
@@ -787,7 +794,7 @@ Return your answer as a valid JSON object with each field name as the key and th
                 return {
                     "clause_summary": "Failed to extract structured metadata",
                     "clause_tags_llm": [],
-                    "error": "Failed to parse JSON from GPT response"
+                    "error": "Failed to parse JSON from GPT response",
                 }
 
         except Exception as e:
@@ -809,8 +816,7 @@ Return your answer as a valid JSON object with each field name as the key and th
             # Get the text to classify
             text = chunk.get("combined_text", "")
             if not text:
-                logger.warning(
-                    "Empty text in chunk, skipping category determination")
+                logger.warning("Empty text in chunk, skipping category determination")
                 chunk["category_name"] = ""
                 return chunk
 
@@ -847,9 +853,14 @@ class FlattenProcessor:
     def clean_unicode_quotes(self, text):
         if not text:
             return ""
-        return text.replace('\u201c', '"').replace('\u201d', '"') \
-                   .replace('\u2018', "'").replace('\u2019', "'") \
-                   .replace('\u2013', "-").replace('\u2014', "-")
+        return (
+            text.replace("\u201c", '"')
+            .replace("\u201d", '"')
+            .replace("\u2018", "'")
+            .replace("\u2019", "'")
+            .replace("\u2013", "-")
+            .replace("\u2014", "-")
+        )
 
     def is_definition_section(self, text):
         return bool(text and ":" in text and "means" in text)
@@ -867,18 +878,19 @@ class FlattenProcessor:
         """
         try:
             # Extract the filename from the URL
-            filename = url.split('/')[-1]
+            filename = url.split("/")[-1]
 
             # Remove the file extension (.json)
-            if filename.endswith('.json'):
+            if filename.endswith(".json"):
                 filename = filename[:-5]  # Remove .json
 
             # Remove date part if present (format: YYYY-MM-DD)
-            deal_name = re.sub(r'_\d{4}-\d{2}-\d{2}$', '', filename)
+            deal_name = re.sub(r"_\d{4}-\d{2}-\d{2}$", "", filename)
 
             # Format the deal name: replace underscores with spaces and capitalize words
-            formatted_name = ' '.join(word.capitalize()
-                                      for word in deal_name.split('_'))
+            formatted_name = " ".join(
+                word.capitalize() for word in deal_name.split("_")
+            )
 
             return formatted_name
         except Exception as e:
@@ -890,71 +902,91 @@ class FlattenProcessor:
             path = []
 
         outputs = []
-        if article.get('article') == "Definitions":
+        if article.get("article") == "Definitions":
 
             outputs = []
 
-            for item in article.get('definitions'):
+            for item in article.get("definitions"):
                 # if "Material Adverse Effect" in item.get('term', ""):
-                outputs.append({
-                    "label": f"Definition > {item['term']}",
-                    "original_text": f"{item['term']} {item['definition']}",
-                    "combined_text": f"{item['term']} {item['definition']}",
-                    "deal_name": self.deal_name
-                })
+                outputs.append(
+                    {
+                        "label": f"Definition > {item['term']}",
+                        "original_text": f"{item['term']} {item['definition']}",
+                        "combined_text": f"{item['term']} {item['definition']}",
+                        "deal_name": self.deal_name,
+                    }
+                )
             return outputs
 
         else:
             print(f"Article: else start")
-            article_label = f"ARTICLE {article.get('article', '')} {article.get('title', '')}".strip(
-            )
+            article_label = f"ARTICLE {article.get('article', '')} {article.get('title', '')}".strip()
             path = path + [article_label]
 
-            article_text = self.clean_unicode_quotes(
-                article.get("text", "")).strip()
+            article_text = self.clean_unicode_quotes(article.get("text", "")).strip()
 
             if not article.get("sections"):
                 if article_text:
-                    outputs.append({
-                        "label": " > ".join(path),
-                        "original_text": article_text,
-                        "combined_text": article_text,
-                        "deal_name": self.deal_name
-                    })
+                    outputs.append(
+                        {
+                            "label": " > ".join(path),
+                            "original_text": article_text,
+                            "combined_text": article_text,
+                            "deal_name": self.deal_name,
+                        }
+                    )
                 return outputs
 
             for section in article["sections"]:
 
-                if "definition" in section.get('title', "").lower() and 'definitions' in section and section.get('definitions') is not None:
-                    section_label = f"Section {section.get('section', '')} {section.get('title', '')}".strip(
-                    )
+                if (
+                    "definition" in section.get("title", "").lower()
+                    and "definitions" in section
+                    and section.get("definitions") is not None
+                ):
+                    section_label = f"Section {section.get('section', '')} {section.get('title', '')}".strip()
                     path_section = path + [section_label]
 
-                    for item in section.get('definitions'):
+                    for item in section.get("definitions"):
                         # if "Material Adverse Effect" in item.get('term', ""):
-                        outputs.append({
-                            "label": f"{' > '.join(path_section)} > {item['term']}",
-                            "original_text": f"{item['term']} {item['definition']}",
-                            "combined_text": f"{item['term']} {item['definition']}",
-                            "deal_name": self.deal_name
-                        })
+                        outputs.append(
+                            {
+                                "label": f"{' > '.join(path_section)} > {item['term']}",
+                                "original_text": f"{item['term']} {item['definition']}",
+                                "combined_text": f"{item['term']} {item['definition']}",
+                                "deal_name": self.deal_name,
+                            }
+                        )
 
                 else:
-                    section_label = f"Section {section.get('section', '')} {section.get('title', '')}".strip(
-                    )
+                    section_label = f"Section {section.get('section', '')} {section.get('title', '')}".strip()
                     # section_text = self.clean_unicode_quotes(section.get("text", "")).strip()
-                    section_text = " | ".join([f'"{item["term"]}" : {item["definition"]}' for item in section.get("definitions", [
-                    ])]) if "definition" in section.get('title', "").lower() else self.clean_unicode_quotes(section.get("text", ""))
+                    section_text = (
+                        " | ".join(
+                            [
+                                f'"{item["term"]}" : {item["definition"]}'
+                                for item in section.get("definitions", [])
+                            ]
+                        )
+                        if "definition" in section.get("title", "").lower()
+                        else self.clean_unicode_quotes(section.get("text", ""))
+                    )
                     path_section = path + [section_label]
 
                     # Combine article-level text and section-level text
-                    combined_text = f"{article_text}\n\n{section_text}" if article_text else section_text
-                    outputs.append({
-                        "label": " > ".join(path_section),
-                        "original_text": section_text,
-                        "combined_text": combined_text,
-                        "deal_name": self.deal_name
-                    })
+                    combined_text = (
+                        f"{article_text}\n\n{section_text}"
+                        if article_text
+                        else section_text
+                    )
+                    outputs.append(
+                        {
+                            "label": " > ".join(path_section),
+                            "original_text": section_text,
+                            "combined_text": combined_text,
+                            "deal_name": self.deal_name,
+                        }
+                    )
 
         return outputs
 
@@ -970,7 +1002,7 @@ class FlattenProcessor:
             logger.info(f"File data content sample: {str(file_data)[:200]}")
 
             # Extract filename from URL for the output key
-            filename = self.file_url.split('/')[-1]
+            filename = self.file_url.split("/")[-1]
             output_key = f"flatten_json/{filename}"
 
             # Process the data
@@ -986,20 +1018,24 @@ class FlattenProcessor:
                 # If it's a dictionary, we'll try a few common structures
 
                 # Option 1: The dictionary itself is the article
-                if any(key in file_data for key in ['article', 'title', 'text', 'sections']):
+                if any(
+                    key in file_data for key in ["article", "title", "text", "sections"]
+                ):
                     logger.info("Dictionary appears to be a single article")
                     flattened_results.extend(self.walk_structure(file_data))
 
                 # Option 2: Dictionary has a list of articles under a key
-                elif 'data' in file_data and isinstance(file_data['data'], list):
+                elif "data" in file_data and isinstance(file_data["data"], list):
                     logger.info("Found articles under 'data' key")
-                    for article in file_data['data']:
+                    for article in file_data["data"]:
                         flattened_results.extend(self.walk_structure(article))
 
                 # Option 3: Dictionary has a list of articles under 'articles' key
-                elif 'articles' in file_data and isinstance(file_data['articles'], list):
+                elif "articles" in file_data and isinstance(
+                    file_data["articles"], list
+                ):
                     logger.info("Found articles under 'articles' key")
-                    for article in file_data['articles']:
+                    for article in file_data["articles"]:
                         flattened_results.extend(self.walk_structure(article))
 
                 # Option 4: The dictionary has other keys we can try to process
@@ -1008,40 +1044,40 @@ class FlattenProcessor:
                     for key, value in file_data.items():
                         if isinstance(value, dict):
                             # Try to process this as an article
-                            flattened_results.extend(
-                                self.walk_structure(value))
+                            flattened_results.extend(self.walk_structure(value))
                         elif isinstance(value, list):
                             # If the value is a list, process each item
                             for item in value:
                                 if isinstance(item, dict):
-                                    flattened_results.extend(
-                                        self.walk_structure(item))
+                                    flattened_results.extend(self.walk_structure(item))
             else:
                 logger.error(
-                    f"Unexpected file_data format. Expected list or dict, got {type(file_data)}")
+                    f"Unexpected file_data format. Expected list or dict, got {type(file_data)}"
+                )
                 raise Exception(
-                    f"Unexpected data format from {self.file_url}. Expected JSON array or object.")
+                    f"Unexpected data format from {self.file_url}. Expected JSON array or object."
+                )
 
             # Log the results
             if not flattened_results:
                 logger.warning(
-                    f"No structured content was extracted from {self.file_url}")
+                    f"No structured content was extracted from {self.file_url}"
+                )
             else:
                 logger.info(
-                    f"Successfully extracted {len(flattened_results)} content elements")
+                    f"Successfully extracted {len(flattened_results)} content elements"
+                )
 
             # Calculate statistics
             self.total_clauses = len(flattened_results)
             self.total_definitions = sum(
-                1 for item in flattened_results if item.get("definition_terms"))
+                1 for item in flattened_results if item.get("definition_terms")
+            )
 
             # Save to S3 with the same filename
             s3_url = self.s3_service.upload_json(flattened_results, output_key)
 
-            return {
-                "output_key": output_key,
-                "flattened_json_url": s3_url
-            }
+            return {"output_key": output_key, "flattened_json_url": s3_url}
 
         except Exception as e:
             logger.error(f"Error in FlattenProcessor.process: {str(e)}")
@@ -1053,9 +1089,7 @@ class ChatWithAIService:
 
     def __init__(self):
         # Initialize OpenAI client
-        self.openai_client = openai.OpenAI(
-            api_key=os.environ.get("OPENAI_API_KEY")
-        )
+        self.openai_client = openai.OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
         # Initialize embedding service for vector retrieval
         self.embedding_service = EmbeddingService()
         logger.info("ChatWithAIService initialized")
@@ -1088,20 +1122,20 @@ class ChatWithAIService:
             if query:
                 # Retrieve relevant vectors from Pinecone
                 search_results = self.embedding_service.search(
-                    query_text=query,
-                    deal_id=deal_id,
-                    top_k=top_k
+                    query_text=query, deal_id=deal_id, top_k=top_k
                 )
 
                 # Extract the relevant chunks for context
                 if search_results and search_results.get("results"):
                     for result in search_results["results"]:
-                        context_chunks.append({
-                            "content": result.get("combined_text", ""),
-                            "label": result.get("label", ""),
-                            "category": result.get("category_name", ""),
-                            "score": result.get("score", 0)
-                        })
+                        context_chunks.append(
+                            {
+                                "content": result.get("combined_text", ""),
+                                "label": result.get("label", ""),
+                                "category": result.get("category_name", ""),
+                                "score": result.get("score", 0),
+                            }
+                        )
                         # context_chunks.append(result)
                         print(f"Context chunk: {result}")
 
@@ -1110,16 +1144,13 @@ class ChatWithAIService:
             system_message = self._prepare_system_message(context_chunks)
 
             # Prepare the chat messages
-            messages = [
-                {"role": "system", "content": system_message}
-            ]
+            messages = [{"role": "system", "content": system_message}]
 
             # Add message history
             for msg in message_history:
-                messages.append({
-                    "role": msg.get("role", "user"),
-                    "content": msg.get("content", "")
-                })
+                messages.append(
+                    {"role": msg.get("role", "user"), "content": msg.get("content", "")}
+                )
 
             # Add the current user query
             messages.append({"role": "user", "content": query})
@@ -1130,7 +1161,7 @@ class ChatWithAIService:
                 model="gpt-4o",
                 messages=messages,
                 temperature=temperature,
-                max_tokens=1000
+                max_tokens=1000,
             )
 
             # Extract the assistant's response
@@ -1146,8 +1177,8 @@ class ChatWithAIService:
                 "usage": {
                     "prompt_tokens": response.usage.prompt_tokens,
                     "completion_tokens": response.usage.completion_tokens,
-                    "total_tokens": response.usage.total_tokens
-                }
+                    "total_tokens": response.usage.total_tokens,
+                },
             }
 
         except Exception as e:
@@ -1180,8 +1211,11 @@ Always cite specific sections when referring to the document content.
         # Format the context sections
         context_text = ""
         for i, chunk in enumerate(context_chunks):
-            category_info = f" [Category: {chunk.get('category', '')}]" if chunk.get(
-                'category') else ""
+            category_info = (
+                f" [Category: {chunk.get('category', '')}]"
+                if chunk.get("category")
+                else ""
+            )
             context_text += f"[{i+1}] {chunk.get('label', 'Section')}{category_info}: {chunk.get('content', '')}\n\n"
 
         return system_template.format(context=context_text)
@@ -1192,12 +1226,45 @@ class SummaryGenerationService:
 
     def __init__(self):
         # Initialize OpenAI client
-        self.openai_client = openai.OpenAI(
-            api_key=os.environ.get("OPENAI_API_KEY")
-        )
+        self.openai_client = openai.OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
         # Initialize embedding service for vector retrieval
         self.embedding_service = EmbeddingService()
         logger.info("SummaryGenerationService initialized")
+
+    def generate_summary_v2(self, deal_id, temperature=0.7):
+        """
+        Generate document summaries based on schema results for the given deal_id
+        """
+        try:
+            logger.info(f"Generating summary for deal ID: {deal_id}")
+            # Find the job by deal_id
+            try:
+                object_id = ObjectId(deal_id)
+                job = ProcessingJob.objects.get(id=object_id)
+
+                logger.info(f"Found job in database: {job}")
+
+                schema_results = job.schema_results
+                
+                if not schema_results:
+                    logger.info("No schema results found, returning empty list")
+                    return []
+                
+                # Parse JSON string to dictionary
+                if isinstance(schema_results, str):
+                    schema_results = json.loads(schema_results)
+                
+                clause_util = ClauseConfigUtil()
+                final_summary_sections = clause_util.get_organized_sections_for_summary(schema_results)
+                return final_summary_sections                              
+
+            except DoesNotExist:
+                logger.error(f"No processing job found for deal_id {deal_id}")
+                return []
+        except Exception as e:
+            logger.error(f"Error in summary generation service: {str(e)}")
+            logger.error(traceback.format_exc())
+            return []
 
     def generate_summary(self, deal_id, temperature=0.7):
         """
@@ -1228,16 +1295,52 @@ class SummaryGenerationService:
             # Check if schema_results exist
             schema_results = job.schema_results
             if not schema_results:
-                logger.warning(
-                    f"No schema results found for deal_id {deal_id}")
+                logger.warning(f"No schema results found for deal_id {deal_id}")
                 return []
 
             logger.info(f"Retrieved schema results for deal_id {deal_id}")
 
             # Array to store generated summaries
             summaries = []
-            sections = ["Complex Consideration", "Go-Shop Terms", "Unusual Closing Conditions", "Confidentiality Agreement Sign Date", "Outside Date + Extensions + Reasons", "Regulatory Best Efforts", "Termination and Reverse Termination Fees + Triggers", "Standard or Unusual", "Merger_Agreement_Details", "Complete_Effects_on_Capital_Stock", "R_W_Parent", "Antitrust_Commitment", "Breach_Monitoring_and_Ongoing_Operations", "Timeline",  "Acquirer", "Guarantor", "Guarantee", "Best_Efforts", "Closing", "Company_Material_Adverse_Change", "Ordinary_Course", "No_Solicitation", "Dividends", "Board_Approval", "Proxy_Statement", "Shareholder_Approval",
-                        "Voting_Agreement", "Confidentiality_Agreement", "Clean_Room_Agreement", "Financing", "Regulatory_Approvals", "Regulatory_Obligations_Timing", "Out_Date", "Other", "Termination_Rights_and_Causes", "Specific_Performance", "Law_and_Jurisdiction"]
+            sections = [
+                "Complex Consideration",
+                "Go-Shop Terms",
+                "Unusual Closing Conditions",
+                "Confidentiality Agreement Sign Date",
+                "Outside Date + Extensions + Reasons",
+                "Regulatory Best Efforts",
+                "Termination and Reverse Termination Fees + Triggers",
+                "Standard or Unusual",
+                "Merger_Agreement_Details",
+                "Complete_Effects_on_Capital_Stock",
+                "R_W_Parent",
+                "Antitrust_Commitment",
+                "Breach_Monitoring_and_Ongoing_Operations",
+                "Timeline",
+                "Acquirer",
+                "Guarantor",
+                "Guarantee",
+                "Best_Efforts",
+                "Closing",
+                "Company_Material_Adverse_Change",
+                "Ordinary_Course",
+                "No_Solicitation",
+                "Dividends",
+                "Board_Approval",
+                "Proxy_Statement",
+                "Shareholder_Approval",
+                "Voting_Agreement",
+                "Confidentiality_Agreement",
+                "Clean_Room_Agreement",
+                "Financing",
+                "Regulatory_Approvals",
+                "Regulatory_Obligations_Timing",
+                "Out_Date",
+                "Other",
+                "Termination_Rights_and_Causes",
+                "Specific_Performance",
+                "Law_and_Jurisdiction",
+            ]
 
             # Create a ThreadPoolExecutor for parallel processing
             with concurrent.futures.ThreadPoolExecutor(max_workers=18) as executor:
@@ -1248,13 +1351,9 @@ class SummaryGenerationService:
                 for section_name in sections:
                     if section_name != "Complex Consideration":
                         continue
-                    logger.info(
-                        f"Submitting section for processing: {section_name}")
+                    logger.info(f"Submitting section for processing: {section_name}")
                     future = executor.submit(
-                        self._process_section,
-                        section_name,
-                        schema_results,
-                        temperature
+                        self._process_section, section_name, schema_results, temperature
                     )
                     future_to_section[future] = section_name
 
@@ -1271,13 +1370,16 @@ class SummaryGenerationService:
                                 if result:
                                     ordered_results.append(result)
                                     logger.info(
-                                        f"Added result for section: {section_name}")
+                                        f"Added result for section: {section_name}"
+                                    )
                                 else:
                                     logger.info(
-                                        f"No result generated for section: {section_name}")
+                                        f"No result generated for section: {section_name}"
+                                    )
                             except Exception as e:
                                 logger.error(
-                                    f"Error processing section {section_name}: {str(e)}")
+                                    f"Error processing section {section_name}: {str(e)}"
+                                )
                                 logger.error(traceback.format_exc())
                             break
 
@@ -1288,7 +1390,7 @@ class SummaryGenerationService:
             utc_now = datetime.now(pytz.UTC)
 
             # Convert to IST
-            ist = pytz.timezone('Asia/Kolkata')
+            ist = pytz.timezone("Asia/Kolkata")
 
             ist_now = utc_now.astimezone(ist)
 
@@ -1297,12 +1399,11 @@ class SummaryGenerationService:
             filename = f"summary_results_{timestamp}.json"
 
             try:
-                with open(filename, 'w', encoding='utf-8') as f:
+                with open(filename, "w", encoding="utf-8") as f:
                     json.dump(summaries, f, indent=2, ensure_ascii=False)
                 logger.info(f"Summaries saved to file: {filename}")
             except Exception as save_error:
-                logger.error(
-                    f"Error saving summaries to file: {str(save_error)}")
+                logger.error(f"Error saving summaries to file: {str(save_error)}")
 
             return summaries
 
@@ -1336,7 +1437,7 @@ class SummaryGenerationService:
                         for item in acquirer_fields
                         if item.get("field_name") == "acquirer_name"
                     ),
-                    "Not found"
+                    "Not found",
                 )
                 if result != "Not found":
                     return {section_name: result}
@@ -1349,36 +1450,44 @@ class SummaryGenerationService:
                         for item in guarantor_fields
                         if item.get("field_name") == "guarantor_name"
                     ),
-                    "Not found"
+                    "Not found",
                 )
                 if result != "Not found":
                     return {section_name: result}
 
             elif section_name == "Specific_Performance":
                 specific_performance_fields = schema_results.get(
-                    "Specific_Performance", [])
+                    "Specific_Performance", []
+                )
                 result = next(
                     (
                         item["answer"]
                         for item in specific_performance_fields
                         if item.get("field_name") == "specific_performance_available"
                     ),
-                    "Not found"
+                    "Not found",
                 )
                 if result != "Not found":
                     section_name = section_name.replace("_", " ")
-                    return {section_name: "Available" if result == "true" or result is True else "Not Available"}
+                    return {
+                        section_name: (
+                            "Available"
+                            if result == "true" or result is True
+                            else "Not Available"
+                        )
+                    }
 
             elif section_name == "Law_and_Jurisdiction":
                 law_and_jurisdiction_fields = schema_results.get(
-                    "Law_and_Jurisdiction", [])
+                    "Law_and_Jurisdiction", []
+                )
                 result = next(
                     (
                         item["answer"]
                         for item in law_and_jurisdiction_fields
                         if item.get("field_name") == "governing_law"
                     ),
-                    "Not found"
+                    "Not found",
                 )
                 if result != "Not found":
                     section_name = section_name.replace("_", " ")
@@ -1386,14 +1495,15 @@ class SummaryGenerationService:
 
             elif section_name == "Confidentiality_Agreement":
                 confidentiality_agreement_fields = schema_results.get(
-                    "Confidentiality_Agreement", [])
+                    "Confidentiality_Agreement", []
+                )
                 result = next(
                     (
                         item["answer"]
                         for item in confidentiality_agreement_fields
                         if item.get("field_name") == "confidentiality_agreement_date"
                     ),
-                    "Not found"
+                    "Not found",
                 )
                 if result != "Not found":
                     section_name = section_name.replace("_", " ")
@@ -1403,64 +1513,126 @@ class SummaryGenerationService:
                 section_data = schema_results.get(section_key)
                 if section_data:
                     filtered_section_data = [
-                        item for item in schema_results.get(section_key, [])
+                        item
+                        for item in schema_results.get(section_key, [])
                         if str(item.get("answer")).lower() != "not found"
-                        and item.get("field_name") in ["clean_room_agreement_startdate", "clean_room_agreement_enddate"]
+                        and item.get("field_name")
+                        in [
+                            "clean_room_agreement_startdate",
+                            "clean_room_agreement_enddate",
+                        ]
                     ]
                     return self._generate_section_summary(
-                        section_name, filtered_section_data, temperature, schema_results)
+                        section_name, filtered_section_data, temperature, schema_results
+                    )
                 else:
                     logger.warning(
-                        f"Section key '{section_key}' not found in schema_results.")
+                        f"Section key '{section_key}' not found in schema_results."
+                    )
 
             elif section_name == "Complex Consideration":
                 logger.info(f"Schema results: {schema_results}")
 
                 cvr_present = False
                 if schema_results.get("Complete_Effects_on_Capital_Stock"):
-                    for item in schema_results.get("Complete_Effects_on_Capital_Stock", []):
-                        if item.get("field_name") == "is_cvr_present" and str(item.get("answer")).lower() == "true":
+                    for item in schema_results.get(
+                        "Complete_Effects_on_Capital_Stock", []
+                    ):
+                        if (
+                            item.get("field_name") == "is_cvr_present"
+                            and str(item.get("answer")).lower() == "true"
+                        ):
                             cvr_present = True
                             break
                 proration_present = False
                 if schema_results.get("Complete_Effects_on_Capital_Stock"):
-                    for item in schema_results.get("Complete_Effects_on_Capital_Stock", []):
-                        if item.get("field_name") == "is_proration_present" and str(item.get("answer")).lower() == "true":
+                    for item in schema_results.get(
+                        "Complete_Effects_on_Capital_Stock", []
+                    ):
+                        if (
+                            item.get("field_name") == "is_proration_present"
+                            and str(item.get("answer")).lower() == "true"
+                        ):
                             proration_present = True
                             break
 
                 contingent_payment_present = False
                 if schema_results.get("Complete_Effects_on_Capital_Stock"):
-                    for item in schema_results.get("Complete_Effects_on_Capital_Stock", []):
-                        if item.get("field_name") == "is_contingent_payment_present" and str(item.get("answer")).lower() == "true":
+                    for item in schema_results.get(
+                        "Complete_Effects_on_Capital_Stock", []
+                    ):
+                        if (
+                            item.get("field_name") == "is_contingent_payment_present"
+                            and str(item.get("answer")).lower() == "true"
+                        ):
                             contingent_payment_present = True
                             break
 
                 ticking_fee_present = False
                 if schema_results.get("Covenants"):
                     for item in schema_results.get("Covenants", []):
-                        if item.get("field_name") == "is_ticking_fee_present" and str(item.get("answer")).lower() == "true":
+                        if (
+                            item.get("field_name") == "is_ticking_fee_present"
+                            and str(item.get("answer")).lower() == "true"
+                        ):
                             ticking_fee_present = True
                             break
 
                 election_present = False
                 if schema_results.get("Merger_Agreement_Details"):
                     for item in schema_results.get("Merger_Agreement_Details", []):
-                        if item.get("field_name") == "is_election_present" and str(item.get("answer")).lower() == "true":
+                        if (
+                            item.get("field_name") == "is_election_present"
+                            and str(item.get("answer")).lower() == "true"
+                        ):
                             election_present = True
                             break
 
                 sections_to_combine = {
-                    "Complete_Effects_on_Capital_Stock": ["forms_of_consideration_used", "conversion_ratios", "proration_calculation_method" if proration_present else None, "consideration_election_mechanics" if election_present else None, "cvr_terms_summary" if cvr_present else None, "contingent_payment_conditions" if contingent_payment_present else None, "fractional_share_handling", "contingent_payment_amount_or_range",
-                                                          "contingent_payment_type" if contingent_payment_present else None],
-                    "Merger_Agreement_Details": ["consideration_structure_type", "maximum_cash_cap", "maximum_stock_cap", "proration_formula_summary" if proration_present else None, "earnout_cap_or_ceiling", "cvr_trigger_events" if cvr_present else None, "election_deadline" if election_present else None, "adjustment_for_acquirer_dividends"],
-                    "Covenants": [
-                        "ticking_fee_terms",
-                        "ticking_fee_start_date",
-                        "ticking_fee_rate_or_amount",
-                        "ticking_fee_cap_or_maximum",
-                        "ticking_fee_trigger_conditions"
-                    ] if ticking_fee_present else []
+                    "Complete_Effects_on_Capital_Stock": [
+                        "forms_of_consideration_used",
+                        "conversion_ratios",
+                        "proration_calculation_method" if proration_present else None,
+                        (
+                            "consideration_election_mechanics"
+                            if election_present
+                            else None
+                        ),
+                        "cvr_terms_summary" if cvr_present else None,
+                        (
+                            "contingent_payment_conditions"
+                            if contingent_payment_present
+                            else None
+                        ),
+                        "fractional_share_handling",
+                        "contingent_payment_amount_or_range",
+                        (
+                            "contingent_payment_type"
+                            if contingent_payment_present
+                            else None
+                        ),
+                    ],
+                    "Merger_Agreement_Details": [
+                        "consideration_structure_type",
+                        "maximum_cash_cap",
+                        "maximum_stock_cap",
+                        "proration_formula_summary" if proration_present else None,
+                        "earnout_cap_or_ceiling",
+                        "cvr_trigger_events" if cvr_present else None,
+                        "election_deadline" if election_present else None,
+                        "adjustment_for_acquirer_dividends",
+                    ],
+                    "Covenants": (
+                        [
+                            "ticking_fee_terms",
+                            "ticking_fee_start_date",
+                            "ticking_fee_rate_or_amount",
+                            "ticking_fee_cap_or_maximum",
+                            "ticking_fee_trigger_conditions",
+                        ]
+                        if ticking_fee_present
+                        else []
+                    ),
                 }
                 logger.info(f"Sections to combine: {sections_to_combine}")
 
@@ -1478,17 +1650,25 @@ class SummaryGenerationService:
                     section_data = schema_results.get(section_key, [])
                     if section_data:
                         filtered_data = [
-                            item for item in section_data
+                            item
+                            for item in section_data
                             if str(item.get("answer")).lower() != "not found"
                             and item.get("field_name") in field_names
                         ]
                         combined_data.extend(filtered_data)
 
-                special_fields = ["proration_calculation_method",
-                                  "consideration_election_mechanics", "cvr_terms_summary", "contingent_payment_conditions"]
+                special_fields = [
+                    "proration_calculation_method",
+                    "consideration_election_mechanics",
+                    "cvr_terms_summary",
+                    "contingent_payment_conditions",
+                ]
                 has_valid_special_field = False
                 for item in combined_data:
-                    if item.get("field_name") in special_fields and str(item.get("answer")).lower() != "not found":
+                    if (
+                        item.get("field_name") in special_fields
+                        and str(item.get("answer")).lower() != "not found"
+                    ):
                         has_valid_special_field = True
                         break
 
@@ -1496,16 +1676,22 @@ class SummaryGenerationService:
 
                     if has_valid_special_field:
                         return self._generate_section_summary(
-                            section_name, combined_data, temperature, schema_results)
+                            section_name, combined_data, temperature, schema_results
+                        )
                     else:
                         return {section_name: "No Complex Consideration found."}
                 else:
                     logger.warning(
-                        f"No relevant data found for Complex Consideration section.")
+                        f"No relevant data found for Complex Consideration section."
+                    )
 
             elif section_name == "Go-Shop Terms":
                 sections_to_combine = {
-                    "No_Solicitation": ["go_shop_period_included", "go_shop_duration_and_conditions", "termination_right_for_superior_proposal"],
+                    "No_Solicitation": [
+                        "go_shop_period_included",
+                        "go_shop_duration_and_conditions",
+                        "termination_right_for_superior_proposal",
+                    ],
                     "Timeline": ["marketing_period_end_date"],
                     "Best_Efforts": ["match_right_period"],
                     "Covenants": ["go_shop_fee_discount"],
@@ -1516,17 +1702,24 @@ class SummaryGenerationService:
                     section_data = schema_results.get(section_key, [])
                     if section_data:
                         filtered_data = [
-                            item for item in section_data
+                            item
+                            for item in section_data
                             if str(item.get("answer")).lower() != "not found"
                             and item.get("field_name") in field_names
                         ]
                         combined_data.extend(filtered_data)
 
-                special_fields = ["go_shop_period_included",
-                                  "go_shop_duration_and_conditions", "go_shop_fee_discount"]
+                special_fields = [
+                    "go_shop_period_included",
+                    "go_shop_duration_and_conditions",
+                    "go_shop_fee_discount",
+                ]
                 has_valid_special_field = False
                 for item in combined_data:
-                    if item.get("field_name") in special_fields and str(item.get("answer")).lower() != "not found":
+                    if (
+                        item.get("field_name") in special_fields
+                        and str(item.get("answer")).lower() != "not found"
+                    ):
                         has_valid_special_field = True
                         break
 
@@ -1534,25 +1727,46 @@ class SummaryGenerationService:
                 for item in combined_data:
                     if item.get("field_name") == "go_shop_period_included":
                         answer = str(item.get("answer"))
-                        go_shop_period_included = True if answer.lower() == "true" else False
+                        go_shop_period_included = (
+                            True if answer.lower() == "true" else False
+                        )
                         break
 
                 if combined_data and go_shop_period_included:
                     if has_valid_special_field:
                         return self._generate_section_summary(
-                            section_name, combined_data, temperature, schema_results)
+                            section_name, combined_data, temperature, schema_results
+                        )
                     else:
                         return {section_name: "No Go-Shop Terms found."}
                 else:
-                    logger.warning(
-                        f"No relevant data found for Go-Shop Terms section.")
+                    logger.warning(f"No relevant data found for Go-Shop Terms section.")
 
             elif section_name == "Unusual Closing Conditions":
                 sections_to_combine = {
-                    "Conditions_to_Closing": ["unusual_closing_conditions_present",
-                                              "unusual_condition_summary", "buyer_no_target_mae_condition", "buyer_officer_certificate_condition", "buyer_target_compliance_with_covenants_condition", "target_officer_certificate_condition", "target_parent_representations_and_warranties_true_condition", "target_no_parent_mae_condition", "other_mutual_conditions_condition", "absence_of_material_adverse_effect_condition", "financing_condition", "unusual_or_deal_specific_closing_conditions", "material_customer_or_supplier_condition", "employee_retention_condition", "no_governmental_inquiry_condition", "conditions_with_subjective_language"],
-                    "Closing": ["pre_closing_obligations_or_conditions", "conditions_tied_to_stock_price_or_rating"],
-                    "Financing": ["financing_required_for_closing"]
+                    "Conditions_to_Closing": [
+                        "unusual_closing_conditions_present",
+                        "unusual_condition_summary",
+                        "buyer_no_target_mae_condition",
+                        "buyer_officer_certificate_condition",
+                        "buyer_target_compliance_with_covenants_condition",
+                        "target_officer_certificate_condition",
+                        "target_parent_representations_and_warranties_true_condition",
+                        "target_no_parent_mae_condition",
+                        "other_mutual_conditions_condition",
+                        "absence_of_material_adverse_effect_condition",
+                        "financing_condition",
+                        "unusual_or_deal_specific_closing_conditions",
+                        "material_customer_or_supplier_condition",
+                        "employee_retention_condition",
+                        "no_governmental_inquiry_condition",
+                        "conditions_with_subjective_language",
+                    ],
+                    "Closing": [
+                        "pre_closing_obligations_or_conditions",
+                        "conditions_tied_to_stock_price_or_rating",
+                    ],
+                    "Financing": ["financing_required_for_closing"],
                 }
 
                 combined_data = []
@@ -1560,17 +1774,20 @@ class SummaryGenerationService:
                     section_data = schema_results.get(section_key, [])
                     if section_data:
                         filtered_data = [
-                            item for item in section_data
+                            item
+                            for item in section_data
                             if str(item.get("answer")).lower() != "not found"
                             and item.get("field_name") in field_names
                         ]
                         combined_data.extend(filtered_data)
 
-                special_fields = [
-                    "unusual_or_deal_specific_closing_conditions"]
+                special_fields = ["unusual_or_deal_specific_closing_conditions"]
                 has_valid_special_field = False
                 for item in combined_data:
-                    if item.get("field_name") in special_fields and str(item.get("answer")).lower() != "not found":
+                    if (
+                        item.get("field_name") in special_fields
+                        and str(item.get("answer")).lower() != "not found"
+                    ):
                         has_valid_special_field = True
                         break
 
@@ -1578,18 +1795,22 @@ class SummaryGenerationService:
                 for item in combined_data:
                     if item.get("field_name") == "unusual_closing_conditions_present":
                         answer = str(item.get("answer"))
-                        unusual_closing_conditions_present = True if answer.lower() == "true" else False
+                        unusual_closing_conditions_present = (
+                            True if answer.lower() == "true" else False
+                        )
                         break
 
                 if combined_data and unusual_closing_conditions_present:
                     if has_valid_special_field:
                         return self._generate_section_summary(
-                            section_name, combined_data, temperature, schema_results)
+                            section_name, combined_data, temperature, schema_results
+                        )
                     else:
                         return {section_name: "No Unusual Closing Conditions found."}
                 else:
                     logger.warning(
-                        f"No relevant data found for Unusual Closing Conditions section.")
+                        f"No relevant data found for Unusual Closing Conditions section."
+                    )
 
             elif section_name == "Confidentiality Agreement Sign Date":
                 sections_to_combine = {
@@ -1601,7 +1822,8 @@ class SummaryGenerationService:
                     section_data = schema_results.get(section_key, [])
                     if section_data:
                         filtered_data = [
-                            item for item in section_data
+                            item
+                            for item in section_data
                             if str(item.get("answer")).lower() != "not found"
                             and item.get("field_name") in field_names
                         ]
@@ -1609,17 +1831,27 @@ class SummaryGenerationService:
 
                 if combined_data:
                     return self._generate_section_summary(
-                        section_name, combined_data, temperature, schema_results)
+                        section_name, combined_data, temperature, schema_results
+                    )
                 else:
                     logger.warning(
-                        f"No relevant data found for Confidentiality Agreement Sign Date section.")
+                        f"No relevant data found for Confidentiality Agreement Sign Date section."
+                    )
 
             elif section_name == "Outside Date + Extensions + Reasons":
                 sections_to_combine = {
                     "Timeline": ["outside_date"],
-                    "Termination_Rights_and_Causes": ["outside_date_termination_right", "outside_date_extension_terms", "outside_date_extension_duration_days"],
-                    "Out_Date": ["maximum_extended_outside_date", "conditions_to_extend_outside_date", "extension_conditions_specified"],
-                    "Antitrust_Commitment": ["extension_conditions"]
+                    "Termination_Rights_and_Causes": [
+                        "outside_date_termination_right",
+                        "outside_date_extension_terms",
+                        "outside_date_extension_duration_days",
+                    ],
+                    "Out_Date": [
+                        "maximum_extended_outside_date",
+                        "conditions_to_extend_outside_date",
+                        "extension_conditions_specified",
+                    ],
+                    "Antitrust_Commitment": ["extension_conditions"],
                 }
 
                 combined_data = []
@@ -1627,7 +1859,8 @@ class SummaryGenerationService:
                     section_data = schema_results.get(section_key, [])
                     if section_data:
                         filtered_data = [
-                            item for item in section_data
+                            item
+                            for item in section_data
                             if str(item.get("answer")).lower() != "not found"
                             and item.get("field_name") in field_names
                         ]
@@ -1635,17 +1868,25 @@ class SummaryGenerationService:
 
                 if combined_data:
                     return self._generate_section_summary(
-                        section_name, combined_data, temperature, schema_results)
+                        section_name, combined_data, temperature, schema_results
+                    )
                 else:
-                    logger.warning(
-                        f"No relevant data found for Outside Date section.")
+                    logger.warning(f"No relevant data found for Outside Date section.")
 
             elif section_name == "Regulatory Best Efforts":
                 sections_to_combine = {
                     "Best_Efforts": ["regulatory_best_efforts_standard"],
-                    "Regulatory_Obligations_Best_Efforts": ["hell_or_high_water_standard_explicitly_applies"],
-                    "Covenants": ["regulatory_remedy_commitments", "regulatory_divestiture_caps", "excluded_business_lines_from_remedies"],
-                    "Regulatory_Approvals": ["scope_of_divestiture_or_remedy_obligation"]
+                    "Regulatory_Obligations_Best_Efforts": [
+                        "hell_or_high_water_standard_explicitly_applies"
+                    ],
+                    "Covenants": [
+                        "regulatory_remedy_commitments",
+                        "regulatory_divestiture_caps",
+                        "excluded_business_lines_from_remedies",
+                    ],
+                    "Regulatory_Approvals": [
+                        "scope_of_divestiture_or_remedy_obligation"
+                    ],
                 }
 
                 combined_data = []
@@ -1653,7 +1894,8 @@ class SummaryGenerationService:
                     section_data = schema_results.get(section_key, [])
                     if section_data:
                         filtered_data = [
-                            item for item in section_data
+                            item
+                            for item in section_data
                             if str(item.get("answer")).lower() != "not found"
                             and item.get("field_name") in field_names
                         ]
@@ -1661,17 +1903,31 @@ class SummaryGenerationService:
 
                 if combined_data:
                     return self._generate_section_summary(
-                        section_name, combined_data, temperature, schema_results)
+                        section_name, combined_data, temperature, schema_results
+                    )
                 else:
                     logger.warning(
-                        f"No relevant data found for Regulatory Best Efforts section.")
+                        f"No relevant data found for Regulatory Best Efforts section."
+                    )
 
             elif section_name == "Termination and Reverse Termination Fees + Triggers":
                 sections_to_combine = {
-                    "Termination_Rights_and_Causes": ["reverse_termination_fee", "reverse_termination_fee_triggers"],
-                    "Termination_Fees__Parent_to_Target_": ["reverse_termination_fee_amount"],
-                    "Termination_Fees__Target_to_Parent": ["termination_fee_amount_target_to_parent"],
-                    "Termination_Fees__Other_": ["termination_fee_reason_category", "reverse_fee_reason_category", "fee_payor_entity", "termination_fee_payment_due_days"]
+                    "Termination_Rights_and_Causes": [
+                        "reverse_termination_fee",
+                        "reverse_termination_fee_triggers",
+                    ],
+                    "Termination_Fees__Parent_to_Target_": [
+                        "reverse_termination_fee_amount"
+                    ],
+                    "Termination_Fees__Target_to_Parent": [
+                        "termination_fee_amount_target_to_parent"
+                    ],
+                    "Termination_Fees__Other_": [
+                        "termination_fee_reason_category",
+                        "reverse_fee_reason_category",
+                        "fee_payor_entity",
+                        "termination_fee_payment_due_days",
+                    ],
                 }
 
                 combined_data = []
@@ -1679,7 +1935,8 @@ class SummaryGenerationService:
                     section_data = schema_results.get(section_key, [])
                     if section_data:
                         filtered_data = [
-                            item for item in section_data
+                            item
+                            for item in section_data
                             if str(item.get("answer")).lower() != "not found"
                             and item.get("field_name") in field_names
                         ]
@@ -1687,15 +1944,26 @@ class SummaryGenerationService:
 
                 if combined_data:
                     return self._generate_section_summary(
-                        section_name, combined_data, temperature, schema_results)
+                        section_name, combined_data, temperature, schema_results
+                    )
                 else:
                     logger.warning(
-                        f"No relevant data found for Termination Fees section.")
+                        f"No relevant data found for Termination Fees section."
+                    )
 
             elif section_name == "Standard or Unusual":
                 sections_to_combine = {
-                    "Company_Material_Adverse_Change": ["cmac_definition_text", "biotech_mae_disproportionate_effects", "is_mae_biotech_style", "mae_summary_classification", "mae_subjective_terms_flagged"],
-                    "Absolute_Carve-Outs": ["carved_out_events_or_conditions", "carve_outs_explicitly_unqualified"],
+                    "Company_Material_Adverse_Change": [
+                        "cmac_definition_text",
+                        "biotech_mae_disproportionate_effects",
+                        "is_mae_biotech_style",
+                        "mae_summary_classification",
+                        "mae_subjective_terms_flagged",
+                    ],
+                    "Absolute_Carve-Outs": [
+                        "carved_out_events_or_conditions",
+                        "carve_outs_explicitly_unqualified",
+                    ],
                 }
 
                 combined_data = []
@@ -1703,7 +1971,8 @@ class SummaryGenerationService:
                     section_data = schema_results.get(section_key, [])
                     if section_data:
                         filtered_data = [
-                            item for item in section_data
+                            item
+                            for item in section_data
                             if str(item.get("answer")).lower() != "not found"
                             and item.get("field_name") in field_names
                         ]
@@ -1711,22 +1980,29 @@ class SummaryGenerationService:
 
                 if combined_data:
                     return self._generate_section_summary(
-                        section_name, combined_data, temperature, schema_results)
+                        section_name, combined_data, temperature, schema_results
+                    )
                 else:
                     logger.warning(
-                        f"No relevant data found for Standard or Unusual section.")
+                        f"No relevant data found for Standard or Unusual section."
+                    )
 
             else:
                 # Default case for other sections
                 section_data = schema_results.get(section_key)
                 if section_data:
-                    section_data = [item for item in schema_results.get(
-                        section_key, []) if str(item.get("answer")).lower() != "not found"]
+                    section_data = [
+                        item
+                        for item in schema_results.get(section_key, [])
+                        if str(item.get("answer")).lower() != "not found"
+                    ]
                     return self._generate_section_summary(
-                        section_name, section_data, temperature, schema_results)
+                        section_name, section_data, temperature, schema_results
+                    )
                 else:
                     logger.warning(
-                        f"Section key '{section_key}' not found in schema_results.")
+                        f"Section key '{section_key}' not found in schema_results."
+                    )
 
             return None
 
@@ -1735,7 +2011,9 @@ class SummaryGenerationService:
             logger.error(traceback.format_exc())
             return None
 
-    def _generate_section_summary(self, section_name, section_data, temperature=0.1, schema_results=None):
+    def _generate_section_summary(
+        self, section_name, section_data, temperature=0.1, schema_results=None
+    ):
         """
         Generate a summary for an entire section
 
@@ -1754,39 +2032,45 @@ class SummaryGenerationService:
                 return None
 
             logger.info(
-                f"Generating summary for section: {section_name} with {len(section_data)} fields")
+                f"Generating summary for section: {section_name} with {len(section_data)} fields"
+            )
 
             # Format section data for prompt
             formatted_data = self._format_section_data(section_data)
 
             # Get the appropriate prompt based on section name
             prompt = self._get_prompt_for_section(
-                section_name, formatted_data, schema_results)
+                section_name, formatted_data, schema_results
+            )
             logger.info(f"Prompt: {prompt}")
 
             # Call OpenAI API
             response = self.openai_client.chat.completions.create(
                 model="gpt-4o",
                 messages=[
-                    {"role": "system", "content": "You are a precise legal document analyzer that creates concise summaries."},
-                    {"role": "user", "content": prompt}
+                    {
+                        "role": "system",
+                        "content": "You are a precise legal document analyzer that creates concise summaries.",
+                    },
+                    {"role": "user", "content": prompt},
                 ],
                 temperature=temperature,
-                max_tokens=700
+                max_tokens=700,
             )
 
             # Extract the summary
             summary_text = response.choices[0].message.content.strip()
             logger.info(
-                f"Generated summary for section {section_name}: {summary_text[:100]}...")
+                f"Generated summary for section {section_name}: {summary_text[:100]}..."
+            )
 
-            section_name = section_name.replace(
-                "_", " ") if section_name != "Regulatory_Obligations_Timing" else "Regulatory Obligations"
+            section_name = (
+                section_name.replace("_", " ")
+                if section_name != "Regulatory_Obligations_Timing"
+                else "Regulatory Obligations"
+            )
             # Return the summary object
-            return {
-
-                f"{section_name}": summary_text
-            }
+            return {f"{section_name}": summary_text}
 
         except Exception as e:
             logger.error(f"Error generating section summary: {str(e)}")
@@ -1814,58 +2098,145 @@ class SummaryGenerationService:
         # Default settings
         default_config = {
             "format_type": "bullet points",  # or "paragraph"
-            "level_of_details": "5"  # or "concise", "detailed"
+            "level_of_details": "5",  # or "concise", "detailed"
         }
 
         # Section-specific settings - override default settings as needed
         config = {
-            "Complex Consideration": {"format_type": "bullet points", "level_of_details": "3"},
+            "Complex Consideration": {
+                "format_type": "bullet points",
+                "level_of_details": "3",
+            },
             "Go-Shop Terms": {"format_type": "bullet points", "level_of_details": "3"},
-            "Unusual Closing Conditions": {"format_type": "bullet points", "level_of_details": "3"},
-            "Confidentiality Agreement Sign Date": {"format_type": "bullet points", "level_of_details": "3"},
-            "Outside Date + Extensions + Reasons": {"format_type": "bullet points", "level_of_details": "3"},
-            "Regulatory Best Efforts": {"format_type": "bullet points", "level_of_details": "3"},
-            "Termination and Reverse Termination Fees + Triggers": {"format_type": "bullet points", "level_of_details": "3"},
-            "Standard or Unusual": {"format_type": "bullet points", "level_of_details": "3"},
-
+            "Unusual Closing Conditions": {
+                "format_type": "bullet points",
+                "level_of_details": "3",
+            },
+            "Confidentiality Agreement Sign Date": {
+                "format_type": "bullet points",
+                "level_of_details": "3",
+            },
+            "Outside Date + Extensions + Reasons": {
+                "format_type": "bullet points",
+                "level_of_details": "3",
+            },
+            "Regulatory Best Efforts": {
+                "format_type": "bullet points",
+                "level_of_details": "3",
+            },
+            "Termination and Reverse Termination Fees + Triggers": {
+                "format_type": "bullet points",
+                "level_of_details": "3",
+            },
+            "Standard or Unusual": {
+                "format_type": "bullet points",
+                "level_of_details": "3",
+            },
             "Guarantee": {"format_type": "bullet points", "level_of_details": "3"},
             "Best_Efforts": {"format_type": "bullet points", "level_of_details": "3"},
             "Closing": {"format_type": "bullet points", "level_of_details": "3"},
-            "Company_Material_Adverse_Change": {"format_type": "bullet points", "level_of_details": "3"},
-            "Ordinary_Course": {"format_type": "bullet points", "level_of_details": "3"},
-            "No_Solicitation": {"format_type": "bullet points", "level_of_details": "3"},
+            "Company_Material_Adverse_Change": {
+                "format_type": "bullet points",
+                "level_of_details": "3",
+            },
+            "Ordinary_Course": {
+                "format_type": "bullet points",
+                "level_of_details": "3",
+            },
+            "No_Solicitation": {
+                "format_type": "bullet points",
+                "level_of_details": "3",
+            },
             "Dividends": {"format_type": "bullet points", "level_of_details": "3"},
             "Board_Approval": {"format_type": "bullet points", "level_of_details": "3"},
-            "Proxy_Statement": {"format_type": "bullet points", "level_of_details": "3"},
-            "Shareholder_Approval": {"format_type": "bullet points", "level_of_details": "3"},
-            "Voting_Agreement": {"format_type": "bullet points", "level_of_details": "3"},
-            "Confidentiality_Agreement": {"format_type": "bullet points", "level_of_details": "3"},
-            "Clean_Room_Agreement": {"format_type": "paragraph", "level_of_details": "3"},
+            "Proxy_Statement": {
+                "format_type": "bullet points",
+                "level_of_details": "3",
+            },
+            "Shareholder_Approval": {
+                "format_type": "bullet points",
+                "level_of_details": "3",
+            },
+            "Voting_Agreement": {
+                "format_type": "bullet points",
+                "level_of_details": "3",
+            },
+            "Confidentiality_Agreement": {
+                "format_type": "bullet points",
+                "level_of_details": "3",
+            },
+            "Clean_Room_Agreement": {
+                "format_type": "paragraph",
+                "level_of_details": "3",
+            },
             "Financing": {"format_type": "bullet points", "level_of_details": "3"},
-            "Regulatory_Approvals": {"format_type": "bullet points", "level_of_details": "3"},
-            "Regulatory_Obligations_Timing": {"format_type": "bullet points", "level_of_details": "3"},
+            "Regulatory_Approvals": {
+                "format_type": "bullet points",
+                "level_of_details": "3",
+            },
+            "Regulatory_Obligations_Timing": {
+                "format_type": "bullet points",
+                "level_of_details": "3",
+            },
             "Out_Date": {"format_type": "bullet points", "level_of_details": "3"},
-            "Termination_Rights_and_Causes": {"format_type": "paragraph", "level_of_details": "3"},
-            "Merger_Agreement_Details": {"format_type": "paragraph", "level_of_details": "3"},
-            "Complete_Effects_on_Capital_Stock": {"format_type": "paragraph", "level_of_details": "3"},
+            "Termination_Rights_and_Causes": {
+                "format_type": "paragraph",
+                "level_of_details": "3",
+            },
+            "Merger_Agreement_Details": {
+                "format_type": "paragraph",
+                "level_of_details": "3",
+            },
+            "Complete_Effects_on_Capital_Stock": {
+                "format_type": "paragraph",
+                "level_of_details": "3",
+            },
             "R_W_Parent": {"format_type": "paragraph", "level_of_details": "3"},
             "Timeline": {"format_type": "bullet points", "level_of_details": "3"},
-            "Breach_Monitoring_and_Ongoing_Operations": {"format_type": "bullet points", "level_of_details": "3"},
-            "Antitrust_Commitment": {"format_type": "bullet points", "level_of_details": "3"},
+            "Breach_Monitoring_and_Ongoing_Operations": {
+                "format_type": "bullet points",
+                "level_of_details": "3",
+            },
+            "Antitrust_Commitment": {
+                "format_type": "bullet points",
+                "level_of_details": "3",
+            },
             "Go-Shop_Terms": {"format_type": "bullet points", "level_of_details": "3"},
-            "Complex_Consideration": {"format_type": "bullet points", "level_of_details": "3"},
-            "Unusual_Closing_Conditions": {"format_type": "bullet points", "level_of_details": "3"},
-            "Confidentiality_Agreement_Sign_Date": {"format_type": "bullet points", "level_of_details": "3"},
-            "Outside_Date_Extensions_Reasons": {"format_type": "bullet points", "level_of_details": "3"},
-            "Regulatory_Best_Efforts": {"format_type": "bullet points", "level_of_details": "3"},
-            "Termination_and_Reverse_Termination_Fees_Triggers": {"format_type": "bullet points", "level_of_details": "3"},
-            "Standard_or_Unusual": {"format_type": "bullet points", "level_of_details": "3"},
-
+            "Complex_Consideration": {
+                "format_type": "bullet points",
+                "level_of_details": "3",
+            },
+            "Unusual_Closing_Conditions": {
+                "format_type": "bullet points",
+                "level_of_details": "3",
+            },
+            "Confidentiality_Agreement_Sign_Date": {
+                "format_type": "bullet points",
+                "level_of_details": "3",
+            },
+            "Outside_Date_Extensions_Reasons": {
+                "format_type": "bullet points",
+                "level_of_details": "3",
+            },
+            "Regulatory_Best_Efforts": {
+                "format_type": "bullet points",
+                "level_of_details": "3",
+            },
+            "Termination_and_Reverse_Termination_Fees_Triggers": {
+                "format_type": "bullet points",
+                "level_of_details": "3",
+            },
+            "Standard_or_Unusual": {
+                "format_type": "bullet points",
+                "level_of_details": "3",
+            },
         }
 
         return config, default_config
 
-    def _get_level_of_details_config(self, level_of_details="5", format_type="bullet points"):
+    def _get_level_of_details_config(
+        self, level_of_details="5", format_type="bullet points"
+    ):
 
         return f"""Please generate the summary based on the following preferences:
 - Level of Detail: {level_of_details} out of 10 (1 = ~50 words, 10 = ~500+ words).
@@ -1879,7 +2250,9 @@ Be precise:
 - Level 8-10 → Highly detailed (300-500+ words)."""
 
     # Summary prompts section
-    def _get_prompt_for_section(self, section_name, formatted_data, schema_results=None):
+    def _get_prompt_for_section(
+        self, section_name, formatted_data, schema_results=None
+    ):
 
         # Map section names to prompt generator functions
         prompt_generators = {
@@ -1914,7 +2287,6 @@ Be precise:
             "Regulatory Best Efforts": self._get_regulatory_best_efforts_prompt,
             "Termination and Reverse Termination Fees + Triggers": self._get_termination_and_reverse_termination_fees_prompt,
             "Standard or Unusual": self._get_standard_or_unusual_prompt,
-
         }
 
         # Get summary configuration for this section
@@ -1929,13 +2301,21 @@ Be precise:
         level_of_details = section_config.get("level_of_details", "5")
 
         # Get the appropriate prompt generator or use default
-        prompt_generator = prompt_generators.get(
-            section_name, self._get_default_prompt)
+        prompt_generator = prompt_generators.get(section_name, self._get_default_prompt)
 
         # Generate and return the prompt
-        return prompt_generator(section_name, formatted_data, schema_results, format_type, level_of_details)
+        return prompt_generator(
+            section_name, formatted_data, schema_results, format_type, level_of_details
+        )
 
-    def _get_absolute_carveouts_prompt(self, section_name, formatted_data, schema_results=None, format_type=None, level_of_details=None):
+    def _get_absolute_carveouts_prompt(
+        self,
+        section_name,
+        formatted_data,
+        schema_results=None,
+        format_type=None,
+        level_of_details=None,
+    ):
 
         return f"""You are a legal AI assistant specializing in analyzing M&A agreements, with a focus on Material Adverse Effect (MAE) clauses.
 
@@ -1959,7 +2339,14 @@ Your response should:
 ⚠️ Return only {format_type} — do not include an introduction, conclusion, or meta commentary.
 """
 
-    def _get_guarantee_prompt(self, section_name, formatted_data, schema_results=None, format_type=None, level_of_details=None):
+    def _get_guarantee_prompt(
+        self,
+        section_name,
+        formatted_data,
+        schema_results=None,
+        format_type=None,
+        level_of_details=None,
+    ):
 
         return f"""You are a legal AI assistant specializing in analyzing M&A agreements.
 
@@ -1983,15 +2370,25 @@ Instructions:
 {self._get_level_of_details_config(level_of_details, format_type)}
 """
 
-    def _get_cmac_prompt(self, section_name, formatted_data, schema_results, format_type=None, level_of_details=None):
+    def _get_cmac_prompt(
+        self,
+        section_name,
+        formatted_data,
+        schema_results,
+        format_type=None,
+        level_of_details=None,
+    ):
 
         section_data = schema_results.get("Absolute_Carve-Outs")
 
         section_name = section_name.replace("_", " ")
 
         if section_data:
-            section_data = [item for item in schema_results.get(
-                "Absolute_Carve-Outs", []) if item.get("answer").lower() != "not found"]
+            section_data = [
+                item
+                for item in schema_results.get("Absolute_Carve-Outs", [])
+                if item.get("answer").lower() != "not found"
+            ]
 
         # Format section data for prompt
         absolute_carveouts = self._format_section_data(section_data)
@@ -2022,7 +2419,14 @@ Your tone should match that of a high-quality M&A summary for internal legal dil
 
 """
 
-    def _get_ordinary_course_prompt(self, section_name, formatted_data, schema_results=None, format_type=None, level_of_details=None):
+    def _get_ordinary_course_prompt(
+        self,
+        section_name,
+        formatted_data,
+        schema_results=None,
+        format_type=None,
+        level_of_details=None,
+    ):
         section_name = section_name.replace("_", " ")
 
         return f"""You are a legal AI assistant specializing in analyzing M&A documents.
@@ -2047,7 +2451,14 @@ Instructions:
 ⚠️ Return **only {format_type}** — no introduction, commentary, or headings.
 """
 
-    def _get_no_solicitation_prompt(self, section_name, formatted_data, schema_results=None, format_type=None, level_of_details=None):
+    def _get_no_solicitation_prompt(
+        self,
+        section_name,
+        formatted_data,
+        schema_results=None,
+        format_type=None,
+        level_of_details=None,
+    ):
 
         section_name = section_name.replace("_", " ")
 
@@ -2072,7 +2483,14 @@ Guidelines:
 Return only {format_type} — no titles, introductions, or commentary.
 """
 
-    def _get_dividends_prompt(self, section_name, formatted_data, schema_results=None, format_type=None, level_of_details=None):
+    def _get_dividends_prompt(
+        self,
+        section_name,
+        formatted_data,
+        schema_results=None,
+        format_type=None,
+        level_of_details=None,
+    ):
 
         section_name = section_name.replace("_", " ")
 
@@ -2096,7 +2514,14 @@ Guidelines:
 ⚠️ Output only the {format_type} — no headings, introductions, or conclusions.
 """
 
-    def _get_board_approval_prompt(self, section_name, formatted_data, schema_results=None, format_type=None, level_of_details=None):
+    def _get_board_approval_prompt(
+        self,
+        section_name,
+        formatted_data,
+        schema_results=None,
+        format_type=None,
+        level_of_details=None,
+    ):
 
         section_name = section_name.replace("_", " ")
 
@@ -2122,7 +2547,14 @@ Your response must:
 ⚠️ If no relevant data is present or content is "Not found", write: "No summary could be generated due to insufficient information."
 """
 
-    def _get_proxy_statement_prompt(self, section_name, formatted_data, schema_results=None, format_type=None, level_of_details=None):
+    def _get_proxy_statement_prompt(
+        self,
+        section_name,
+        formatted_data,
+        schema_results=None,
+        format_type=None,
+        level_of_details=None,
+    ):
 
         section_name = section_name.replace("_", " ")
 
@@ -2147,7 +2579,14 @@ Instructions:
 ⚠️ Return only {format_type}. Do not include any introductions, conclusions, or explanatory commentary.
 """
 
-    def _get_shareholder_approval_prompt(self, section_name, formatted_data, schema_results=None, format_type=None, level_of_details=None):
+    def _get_shareholder_approval_prompt(
+        self,
+        section_name,
+        formatted_data,
+        schema_results=None,
+        format_type=None,
+        level_of_details=None,
+    ):
 
         section_name = section_name.replace("_", " ")
 
@@ -2174,7 +2613,14 @@ Your response **must** follow these rules:
 Respond strictly with {format_type} and **do not** add commentary or interpretation outside the source material.
 """
 
-    def _get_voting_agreement_prompt(self, section_name, formatted_data, schema_results=None, format_type=None, level_of_details=None):
+    def _get_voting_agreement_prompt(
+        self,
+        section_name,
+        formatted_data,
+        schema_results=None,
+        format_type=None,
+        level_of_details=None,
+    ):
 
         section_name = section_name.replace("_", " ")
 
@@ -2199,7 +2645,14 @@ Your output must:
 
 """
 
-    def _get_financing_prompt(self, section_name, formatted_data, schema_results=None, format_type=None, level_of_details=None):
+    def _get_financing_prompt(
+        self,
+        section_name,
+        formatted_data,
+        schema_results=None,
+        format_type=None,
+        level_of_details=None,
+    ):
 
         section_name = section_name.replace("_", " ")
 
@@ -2225,7 +2678,14 @@ Instructions:
 
 """
 
-    def _get_regulatory_approvals_prompt(self, section_name, formatted_data, schema_results=None, format_type=None, level_of_details=None):
+    def _get_regulatory_approvals_prompt(
+        self,
+        section_name,
+        formatted_data,
+        schema_results=None,
+        format_type=None,
+        level_of_details=None,
+    ):
 
         section_name = section_name.replace("_", " ")
 
@@ -2253,19 +2713,31 @@ Your response should:
 ⚠️ Return only {format_type} — do not include an introduction, conclusion, or any extra commentary.
 """
 
-    def _get_regulatory_obligations_prompt(self, section_name, formatted_data, schema_results=None, format_type=None, level_of_details=None):
+    def _get_regulatory_obligations_prompt(
+        self,
+        section_name,
+        formatted_data,
+        schema_results=None,
+        format_type=None,
+        level_of_details=None,
+    ):
         section_data1 = schema_results.get("Regulatory_Obligations_Timing", [])
-        section_data2 = schema_results.get(
-            "Regulatory_Obligations_Best_Efforts", [])
+        section_data2 = schema_results.get("Regulatory_Obligations_Best_Efforts", [])
 
         section_name = "Regulatory Obligations"
 
         # Filter out 'Not found' answers
 
-        section_data1 = [item for item in section_data1 if str(
-            item.get("answer", "")).lower() != "not found"]
-        section_data2 = [item for item in section_data2 if str(
-            item.get("answer", "")).lower() != "not found"]
+        section_data1 = [
+            item
+            for item in section_data1
+            if str(item.get("answer", "")).lower() != "not found"
+        ]
+        section_data2 = [
+            item
+            for item in section_data2
+            if str(item.get("answer", "")).lower() != "not found"
+        ]
 
         # Format section data or apply fallback
         timing = self._format_section_data(section_data1)
@@ -2316,7 +2788,14 @@ Efforts
 {best_efforts}
 """
 
-    def _get_out_date_prompt(self, section_name, formatted_data, schema_results=None, format_type=None, level_of_details=None):
+    def _get_out_date_prompt(
+        self,
+        section_name,
+        formatted_data,
+        schema_results=None,
+        format_type=None,
+        level_of_details=None,
+    ):
 
         section_name = section_name.replace("_", " ")
 
@@ -2344,7 +2823,14 @@ Your response **must**:
 ⚠️ Ensure the output is ready for direct inclusion in a professional M&A deal summary without further editing.
 """
 
-    def _get_confidentiality_agreement_prompt(self, section_name, formatted_data, schema_results=None, format_type=None, level_of_details=None):
+    def _get_confidentiality_agreement_prompt(
+        self,
+        section_name,
+        formatted_data,
+        schema_results=None,
+        format_type=None,
+        level_of_details=None,
+    ):
 
         section_name = section_name.replace("_", " ")
 
@@ -2369,7 +2855,14 @@ Your response must adhere to the following guidelines:
 ⚠️ **Important:** Return only {format_type}. Do not include any introduction, conclusion, or additional commentary.
 """
 
-    def _get_clean_room_agreement_prompt(self, section_name, formatted_data, schema_results=None, format_type=None, level_of_details=None):
+    def _get_clean_room_agreement_prompt(
+        self,
+        section_name,
+        formatted_data,
+        schema_results=None,
+        format_type=None,
+        level_of_details=None,
+    ):
 
         section_name = section_name.replace("_", " ")
 
@@ -2394,7 +2887,14 @@ Your response must:
 ⚠️ Return only {format_type}. Do not include introductions, headings, or any additional commentary.
 """
 
-    def _get_law_and_jurisdiction_prompt(self, section_name, formatted_data, schema_results=None, format_type=None, level_of_details=None):
+    def _get_law_and_jurisdiction_prompt(
+        self,
+        section_name,
+        formatted_data,
+        schema_results=None,
+        format_type=None,
+        level_of_details=None,
+    ):
 
         section_name = section_name.replace("_", " ")
 
@@ -2422,23 +2922,36 @@ If the section states "No relevant document sections found" or contains **insuff
 ⚠️ **Important: Return only {format_type}. Do not include introductions, conclusions, or any additional commentary.**
 """
 
-    def _get_termination_fees_prompt(self, section_name, formatted_data, schema_results=None, format_type=None, level_of_details=None):
-        section_data1 = schema_results.get(
-            "Termination_Fees__Parent_to_Target_", [])
-        section_data2 = schema_results.get(
-            "Termination_Fees__Target_to_Parent_", [])
-        section_data3 = schema_results.get(
-            "Termination_Fees__Other_", [])
+    def _get_termination_fees_prompt(
+        self,
+        section_name,
+        formatted_data,
+        schema_results=None,
+        format_type=None,
+        level_of_details=None,
+    ):
+        section_data1 = schema_results.get("Termination_Fees__Parent_to_Target_", [])
+        section_data2 = schema_results.get("Termination_Fees__Target_to_Parent_", [])
+        section_data3 = schema_results.get("Termination_Fees__Other_", [])
 
         section_name = "Termination Fees"
 
         # Filter out 'Not found' answers
-        section_data1 = [item for item in section_data1 if str(
-            item.get("answer", "")).lower() != "not found"]
-        section_data2 = [item for item in section_data2 if str(
-            item.get("answer", "")).lower() != "not found"]
-        section_data3 = [item for item in section_data3 if str(
-            item.get("answer", "")).lower() != "not found"]
+        section_data1 = [
+            item
+            for item in section_data1
+            if str(item.get("answer", "")).lower() != "not found"
+        ]
+        section_data2 = [
+            item
+            for item in section_data2
+            if str(item.get("answer", "")).lower() != "not found"
+        ]
+        section_data3 = [
+            item
+            for item in section_data3
+            if str(item.get("answer", "")).lower() != "not found"
+        ]
 
         # Format section data or apply fallback
         parent_to_target = self._format_section_data(section_data1)
@@ -2489,7 +3002,14 @@ Other:
 {other}
 """
 
-    def _get_merger_agreement_details_prompt(self, section_name, formatted_data, schema_results=None, format_type=None, level_of_details=None):
+    def _get_merger_agreement_details_prompt(
+        self,
+        section_name,
+        formatted_data,
+        schema_results=None,
+        format_type=None,
+        level_of_details=None,
+    ):
 
         section_name = section_name.replace("_", " ")
 
@@ -2519,7 +3039,14 @@ Section Data:
 
 """
 
-    def _get_complete_effects_on_capital_stock_prompt(self, section_name, formatted_data, schema_results=None, format_type=None, level_of_details=None):
+    def _get_complete_effects_on_capital_stock_prompt(
+        self,
+        section_name,
+        formatted_data,
+        schema_results=None,
+        format_type=None,
+        level_of_details=None,
+    ):
 
         section_name = section_name.replace("_", " ")
 
@@ -2555,20 +3082,41 @@ Based on the section below, generate a **clear, precise, and commercially focuse
 ⚠️ Return only the {format_type}. Do not include any section headings, explanations, or formatting beyond the {format_type}.
 """
 
-    def _get_R_W_prompt(self, section_name, formatted_data, schema_results=None, format_type=None, level_of_details=None):
+    def _get_R_W_prompt(
+        self,
+        section_name,
+        formatted_data,
+        schema_results=None,
+        format_type=None,
+        level_of_details=None,
+    ):
         parent_section = schema_results.get("R_W_Parent", [])
         target_section = schema_results.get("R_W_Target", [])
 
         section_name = "R & W"
-        parent = self._format_section_data([item for item in parent_section if str(
-            item.get("answer", "")).lower() != "not found"])
-        target = self._format_section_data([item for item in target_section if str(
-            item.get("answer", "")).lower() != "not found"])
+        parent = self._format_section_data(
+            [
+                item
+                for item in parent_section
+                if str(item.get("answer", "")).lower() != "not found"
+            ]
+        )
+        target = self._format_section_data(
+            [
+                item
+                for item in target_section
+                if str(item.get("answer", "")).lower() != "not found"
+            ]
+        )
 
         if not parent:
-            parent = "- Parent's representations and warranties details are not specified."
+            parent = (
+                "- Parent's representations and warranties details are not specified."
+            )
         if not target:
-            target = "- Target's representations and warranties details are not specified."
+            target = (
+                "- Target's representations and warranties details are not specified."
+            )
 
         return f"""You are a highly skilled legal AI assistant specializing in drafting executive-level summaries of M&A agreements for professional legal, financial, and corporate leadership audiences.
 
@@ -2602,7 +3150,14 @@ Target:
 {target}
 """
 
-    def _get_timeline_prompt(self, section_name, formatted_data, schema_results=None, format_type=None, level_of_details=None):
+    def _get_timeline_prompt(
+        self,
+        section_name,
+        formatted_data,
+        schema_results=None,
+        format_type=None,
+        level_of_details=None,
+    ):
 
         section_name = section_name.replace("_", " ")
 
@@ -2627,7 +3182,14 @@ Instructions:
 {self._get_level_of_details_config(level_of_details, format_type)}
 """
 
-    def _get_breach_monitoring_and_ongoing_operations_prompt(self, section_name, formatted_data, schema_results=None, format_type=None, level_of_details=None):
+    def _get_breach_monitoring_and_ongoing_operations_prompt(
+        self,
+        section_name,
+        formatted_data,
+        schema_results=None,
+        format_type=None,
+        level_of_details=None,
+    ):
 
         section_name = section_name.replace("_", " ")
 
@@ -2655,7 +3217,14 @@ Your response **must**:
 ⚠️ Ensure the output is strictly {format_type} only—do not include any preamble, explanations, or summaries beyond the {format_type}.
 """
 
-    def _get_antitrust_commitment_prompt(self, section_name, formatted_data, schema_results=None, format_type=None, level_of_details=None):
+    def _get_antitrust_commitment_prompt(
+        self,
+        section_name,
+        formatted_data,
+        schema_results=None,
+        format_type=None,
+        level_of_details=None,
+    ):
 
         section_name = section_name.replace("_", " ")
 
@@ -2686,7 +3255,14 @@ Ensure the output reads as a final deliverable, requiring no further editing.
 
 """
 
-    def _get_go_shop_prompt(self, section_name, formatted_data, schema_results=None, format_type=None, level_of_details=None):
+    def _get_go_shop_prompt(
+        self,
+        section_name,
+        formatted_data,
+        schema_results=None,
+        format_type=None,
+        level_of_details=None,
+    ):
 
         section_name = section_name.replace("_", " ")
 
@@ -2718,7 +3294,14 @@ Your response should:
 
 """
 
-    def _get_complex_consideration_prompt(self, section_name, formatted_data, schema_results=None, format_type=None, level_of_details=None):
+    def _get_complex_consideration_prompt(
+        self,
+        section_name,
+        formatted_data,
+        schema_results=None,
+        format_type=None,
+        level_of_details=None,
+    ):
 
         section_name = section_name.replace("_", " ")
 
@@ -2744,7 +3327,14 @@ Your response should:
 
 """
 
-    def _get_unusual_closing_conditions_prompt(self, section_name, formatted_data, schema_results=None, format_type=None, level_of_details=None):
+    def _get_unusual_closing_conditions_prompt(
+        self,
+        section_name,
+        formatted_data,
+        schema_results=None,
+        format_type=None,
+        level_of_details=None,
+    ):
 
         section_name = section_name.replace("_", " ")
 
@@ -2770,7 +3360,14 @@ Your response should:
 
 """
 
-    def _get_confidentiality_agreement_sign_date_prompt(self, section_name, formatted_data, schema_results=None, format_type=None, level_of_details=None):
+    def _get_confidentiality_agreement_sign_date_prompt(
+        self,
+        section_name,
+        formatted_data,
+        schema_results=None,
+        format_type=None,
+        level_of_details=None,
+    ):
 
         section_name = section_name.replace("_", " ")
 
@@ -2796,7 +3393,14 @@ Your response should:
 
 """
 
-    def _get_outside_date_extensions_reasons_prompt(self, section_name, formatted_data, schema_results=None, format_type=None, level_of_details=None):
+    def _get_outside_date_extensions_reasons_prompt(
+        self,
+        section_name,
+        formatted_data,
+        schema_results=None,
+        format_type=None,
+        level_of_details=None,
+    ):
 
         section_name = section_name.replace("_", " ")
 
@@ -2822,7 +3426,14 @@ Your response should:
 
 """
 
-    def _get_regulatory_best_efforts_prompt(self, section_name, formatted_data, schema_results=None, format_type=None, level_of_details=None):
+    def _get_regulatory_best_efforts_prompt(
+        self,
+        section_name,
+        formatted_data,
+        schema_results=None,
+        format_type=None,
+        level_of_details=None,
+    ):
 
         section_name = section_name.replace("_", " ")
 
@@ -2848,7 +3459,14 @@ Your response should:
 
 """
 
-    def _get_termination_and_reverse_termination_fees_prompt(self, section_name, formatted_data, schema_results=None, format_type=None, level_of_details=None):
+    def _get_termination_and_reverse_termination_fees_prompt(
+        self,
+        section_name,
+        formatted_data,
+        schema_results=None,
+        format_type=None,
+        level_of_details=None,
+    ):
 
         section_name = section_name.replace("_", " ")
 
@@ -2874,7 +3492,14 @@ Your response should:
 
 """
 
-    def _get_standard_or_unusual_prompt(self, section_name, formatted_data, schema_results=None, format_type=None, level_of_details=None):
+    def _get_standard_or_unusual_prompt(
+        self,
+        section_name,
+        formatted_data,
+        schema_results=None,
+        format_type=None,
+        level_of_details=None,
+    ):
 
         section_name = section_name.replace("_", " ")
 
@@ -2900,7 +3525,14 @@ Your response should:
 
 """
 
-    def _get_default_prompt(self, section_name, formatted_data, schema_results=None, format_type=None, level_of_details=None):
+    def _get_default_prompt(
+        self,
+        section_name,
+        formatted_data,
+        schema_results=None,
+        format_type=None,
+        level_of_details=None,
+    ):
 
         section_name = section_name.replace("_", " ")
 
@@ -2936,9 +3568,7 @@ class SchemaCategorySearch:
         # S3 service to download schema JSON
         self.s3_service = S3Service()
         # OpenAI client for GPT queries
-        self.openai_client = openai.OpenAI(
-            api_key=os.environ.get("OPENAI_API_KEY")
-        )
+        self.openai_client = openai.OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
         # Schema URL
         self.schema_url = "https://mna-docs.s3.eu-north-1.amazonaws.com/clauses_category_template/schema_by_summary_sections.json"
         # Cache for schema
@@ -2959,15 +3589,16 @@ class SchemaCategorySearch:
             logger.info(f"Fetching schema from URL: {self.schema_url}")
             schema = self.s3_service.download_from_url(self.schema_url)
             self._schema = schema
-            logger.info(
-                f"Successfully downloaded schema with {len(schema)} sections")
+            logger.info(f"Successfully downloaded schema with {len(schema)} sections")
             return schema
         except Exception as e:
             logger.error(f"Error fetching schema: {str(e)}")
             return {}
 
     #  This is a function to extract field answer using GPT.
-    def extract_field_value_with_gpt(self, field, chunks, section_name, subsection_name=None):
+    def extract_field_value_with_gpt(
+        self, field, chunks, section_name, subsection_name=None
+    ):
         """
         Extract field value using GPT based on chunks
 
@@ -2993,38 +3624,34 @@ class SchemaCategorySearch:
 
             if field_type == "Inference-optimized":
                 prompt = get_impherior_prompt(
-                    section_name, field_name, instructions, chunks, subsection_name)
+                    section_name, field_name, instructions, chunks, subsection_name
+                )
             elif field_type == "Precision-optimized":
                 prompt = get_experior_prompt(
-                    section_name, field_name, instructions, chunks, subsection_name)
+                    section_name, field_name, instructions, chunks, subsection_name
+                )
             else:
                 # Default to experior prompt if type is not specified
                 prompt = get_experior_prompt(
-                    section_name, field_name, instructions, chunks, subsection_name)
+                    section_name, field_name, instructions, chunks, subsection_name
+                )
 
             # Call GPT
-            logger.info(
-                f"Calling GPT to extract value for field: {field_name}")
-            logger.info(
-                f"Find answer Promt {prompt}")
+            logger.info(f"Calling GPT to extract value for field: {field_name}")
+            logger.info(f"Find answer Promt {prompt}")
             response = self.openai_client.chat.completions.create(
                 model="gpt-4o",
-                messages=[
-
-                    {"role": "user", "content": prompt}
-                ],
+                messages=[{"role": "user", "content": prompt}],
                 temperature=0.1,
-                max_tokens=2000
+                max_tokens=2000,
             )
 
             # Extract and return the value
             value = response.choices[0].message.content.strip()
-            logger.info(
-                f"Extracted value for field '{field_name}': {value}...")
+            logger.info(f"Extracted value for field '{field_name}': {value}...")
             try:
                 # First check if the response is wrapped in markdown code block
-                markdown_match = re.search(
-                    r"```(?:json)?\s*([\s\S]+?)\s*```", value)
+                markdown_match = re.search(r"```(?:json)?\s*([\s\S]+?)\s*```", value)
                 if markdown_match:
                     # Extract the JSON content from the markdown code block
                     json_content = markdown_match.group(1).strip()
@@ -3041,7 +3668,7 @@ class SchemaCategorySearch:
                     "confidence": parsed_response.get("confidence", 1.0),
                     "reason": parsed_response.get("reason", ""),
                     "clause_text": parsed_response.get("clause_text", ""),
-                    "reference_section": parsed_response.get("reference_section", "")
+                    "reference_section": parsed_response.get("reference_section", ""),
                 }
 
             except json.JSONDecodeError as e:
@@ -3075,25 +3702,28 @@ class SchemaCategorySearch:
         """
         try:
             field_name = field.get("field_name", "")
-            logger.info(
-                f"Processing field: {field_name} in section: {section_name}")
+            logger.info(f"Processing field: {field_name} in section: {section_name}")
 
             # Get top categories for this field
             # Get all categories for this field without sorting or limiting
             categories = []
-            if "category_mapping" in field and isinstance(field["category_mapping"], list):
+            if "category_mapping" in field and isinstance(
+                field["category_mapping"], list
+            ):
                 # Extract all category names directly
-                categories = [mapping["category"]
-                              for mapping in field["category_mapping"] if "category" in mapping]
+                categories = [
+                    mapping["category"]
+                    for mapping in field["category_mapping"]
+                    if "category" in mapping
+                ]
 
                 if not categories:
-                    logger.warning(
-                        f"No categories found for field: {field_name}")
+                    logger.warning(f"No categories found for field: {field_name}")
                     return {
                         "section": section_name,
                         "field_name": field_name,
                         "value": "No categories defined for this field",
-                        "categories_used": []
+                        "categories_used": [],
                     }
 
             filter_dict = {}
@@ -3118,7 +3748,7 @@ class SchemaCategorySearch:
                 vector=query_embedding,
                 top_k=10,  # Get enough results for all categories
                 include_metadata=True,
-                filter=filter_dict
+                filter=filter_dict,
             )
             logger.info(f"Search response: {len(search_response.matches)}")
 
@@ -3134,10 +3764,10 @@ class SchemaCategorySearch:
                     seen_texts.add(text)
                     unique_chunks.append(chunk)
 
+            logger.info(f"Found All {len(all_chunks)} All chunks matching categories")
             logger.info(
-                f"Found All {len(all_chunks)} All chunks matching categories")
-            logger.info(
-                f"Found Unique {len(unique_chunks)} unique chunks matching categories")
+                f"Found Unique {len(unique_chunks)} unique chunks matching categories"
+            )
 
             # Combine all text into a single string
             combined_text = ""
@@ -3146,11 +3776,14 @@ class SchemaCategorySearch:
                 if chunk_text:
                     if combined_text:
                         combined_text += "\n\n"
-                    combined_text += f"[Label : {chunk.get("label", "")}]\n\n{chunk_text.strip()}"
+                    combined_text += (
+                        f"[Label : {chunk.get("label", "")}]\n\n{chunk_text.strip()}"
+                    )
 
             # Extract value with GPT
             value = self.extract_field_value_with_gpt(
-                field, combined_text, section_name, subsection_name)
+                field, combined_text, section_name, subsection_name
+            )
 
             # Return result object
             return {
@@ -3159,7 +3792,7 @@ class SchemaCategorySearch:
                 "answer": value["answer"],
                 "confidence": value["confidence"],
                 "reason": value["reason"],
-                "categories_used": categories
+                "categories_used": categories,
             }
 
         except Exception as e:
@@ -3169,7 +3802,7 @@ class SchemaCategorySearch:
                 "section": section_name,
                 "field_name": field.get("field_name", "unknown"),
                 "value": f"Error: {str(e)}",
-                "categories_used": []
+                "categories_used": [],
             }
 
     def process_schema_field1(self, section_name, field, deal_id, subsection_name=None):
@@ -3177,8 +3810,7 @@ class SchemaCategorySearch:
         try:
             field_name = field.get("field_name", "")
             question_query = field.get("question_query", "")
-            logger.info(
-                f"Processing field: {field_name} in section: {section_name}")
+            logger.info(f"Processing field: {field_name} in section: {section_name}")
 
             # Get categories for this field (same as before)
             categories = []
@@ -3208,18 +3840,18 @@ class SchemaCategorySearch:
             embedding = EmbeddingService()
 
             # FIRST QUERY: using field instructions (original query)
-            query_embedding_1 = embedding.create_embedding(
-                field["instructions"])
+            query_embedding_1 = embedding.create_embedding(field["instructions"])
 
             # Search in Pinecone using metadata filtering with original query
             search_response_1 = index.query(
                 vector=query_embedding_1,
                 top_k=5,  # Reduced from 10 to 5 as requested
                 include_metadata=True,
-                filter=filter_dict
+                filter=filter_dict,
             )
             logger.info(
-                f"Search response 1 (original query): {len(search_response_1.matches)}")
+                f"Search response 1 (original query): {len(search_response_1.matches)}"
+            )
 
             # Extract metadata from first query matches
             chunks_1 = [match.metadata for match in search_response_1.matches]
@@ -3234,18 +3866,18 @@ class SchemaCategorySearch:
                 vector=query_embedding_2,
                 top_k=5,  # Use top_k=5 for section name query too
                 include_metadata=True,
-                filter=filter_dict
+                filter=filter_dict,
             )
             logger.info(
-                f"Search response 2 (section name): {len(search_response_2.matches)}")
+                f"Search response 2 (section name): {len(search_response_2.matches)}"
+            )
 
             # Extract metadata from second query matches
             chunks_2 = [match.metadata for match in search_response_2.matches]
 
             # Combine results from both queries
             all_chunks = chunks_1 + chunks_2
-            logger.info(
-                f"Combined chunks before deduplication: {len(all_chunks)}")
+            logger.info(f"Combined chunks before deduplication: {len(all_chunks)}")
 
             # Remove duplicates
             unique_chunks = []
@@ -3256,10 +3888,10 @@ class SchemaCategorySearch:
                     seen_texts.add(text)
                     unique_chunks.append(chunk)
 
+            logger.info(f"Found All {len(all_chunks)} chunks matching categories")
             logger.info(
-                f"Found All {len(all_chunks)} chunks matching categories")
-            logger.info(
-                f"Found Unique {len(unique_chunks)} unique chunks after deduplication")
+                f"Found Unique {len(unique_chunks)} unique chunks after deduplication"
+            )
 
             # Combine all text into a single string (same as before)
             combined_text = ""
@@ -3268,11 +3900,14 @@ class SchemaCategorySearch:
                 if chunk_text:
                     if combined_text:
                         combined_text += "\n\n"
-                    combined_text += f"[Label : {chunk.get('label', '')}]\n\n{chunk_text.strip()}"
+                    combined_text += (
+                        f"[Label : {chunk.get('label', '')}]\n\n{chunk_text.strip()}"
+                    )
 
             # Extract value with GPT (same as before)
             value = self.extract_field_value_with_gpt(
-                field, combined_text, section_name, subsection_name)
+                field, combined_text, section_name, subsection_name
+            )
 
             # Return result object (same as before)
             return {
@@ -3293,7 +3928,7 @@ class SchemaCategorySearch:
                 "section": section_name,
                 "field_name": field.get("field_name", "unknown"),
                 "value": f"Error: {str(e)}",
-                "categories_used": []
+                "categories_used": [],
             }
 
     def remove_duplicate_chunks(chunks):
@@ -3335,19 +3970,33 @@ class SchemaCategorySearch:
                 for section_name, section_value in schema.items():
                     # Check if this section should be processed
                     if section_name in [
-                        "termination", "ordinary_course", "board_approval", "party_details", "conditions_to_closing", "closing_mechanics", "specific_performance", "confidentiality_and_clean_room", "complex_consideration_and_dividends", "law_and_jurisdiction", "financing", "proxy_statement", "timeline", "material_adverse_effect", "non_solicitation", "best_efforts",
+                        "termination",
+                        "ordinary_course",
+                        "board_approval",
+                        "party_details",
+                        "conditions_to_closing",
+                        "closing_mechanics",
+                        "specific_performance",
+                        "confidentiality_and_clean_room",
+                        "complex_consideration_and_dividends",
+                        "law_and_jurisdiction",
+                        "financing",
+                        "proxy_statement",
+                        "timeline",
+                        "material_adverse_effect",
+                        "non_solicitation",
+                        "best_efforts",
                     ]:
                         # Change this to your desired section
                         # if section_name == "best_efforts":
 
-                        logger.info(
-                            f"Submitting tasks for section: {section_name}")
+                        logger.info(f"Submitting tasks for section: {section_name}")
 
                         # Initialize the section's results
                         results[section_name] = {}
                         futures[section_name] = {}
 
-                    # Check if section_value is an array or object
+                        # Check if section_value is an array or object
                         if section_name == "termination_clauses":
                             # Initialize as dictionary
                             results[section_name] = {}
@@ -3360,22 +4009,30 @@ class SchemaCategorySearch:
                                 #     break
                                 field_name = field.get("field_name", "")
 
-                                if field_name == "Failure to Receive Required Approvals":
+                                if (
+                                    field_name
+                                    == "Failure to Receive Required Approvals"
+                                ):
 
                                     logger.info(
-                                        f"Submitting task for clause identification: {field_name} ({i+1}/{len(section_value)})")
+                                        f"Submitting task for clause identification: {field_name} ({i+1}/{len(section_value)})"
+                                    )
 
                                     # Submit the task to check if this clause exists
                                     future = executor.submit(
                                         self.process_schema_field1,
-                                        section_name, field, deal_id
+                                        section_name,
+                                        field,
+                                        deal_id,
                                     )
                                     futures[section_name].append(
                                         # Store clause, future, and the full field object
-                                        (field_name, future, field))
+                                        (field_name, future, field)
+                                    )
                                 else:
                                     logger.info(
-                                        f"Skipping clause identification: {field_name} ({i+1}/{len(section_value)})")
+                                        f"Skipping clause identification: {field_name} ({i+1}/{len(section_value)})"
+                                    )
 
                         elif isinstance(section_value, list):
                             # Handle as a simple array of fields (old format)
@@ -3387,15 +4044,17 @@ class SchemaCategorySearch:
                                 field_name = field.get("field_name", "")
                                 # if field_name == "hsr_clearance_required":
                                 logger.info(
-                                    f"Submitting task for field: {field_name} ({i+1}/{len(section_value)})")
+                                    f"Submitting task for field: {field_name} ({i+1}/{len(section_value)})"
+                                )
 
                                 # Submit the task to the executor and store the future
                                 future = executor.submit(
                                     self.process_schema_field1,
-                                    section_name, field, deal_id
+                                    section_name,
+                                    field,
+                                    deal_id,
                                 )
-                                futures[section_name].append(
-                                    (field_name, future))
+                                futures[section_name].append((field_name, future))
                                 # else:
                                 #     logger.info(
                                 # f"Skipping field: {field_name}")
@@ -3403,8 +4062,7 @@ class SchemaCategorySearch:
                         elif isinstance(section_value, dict):
                             # Handle as a nested object with subsections (new format)
                             for subsection_name, fields in section_value.items():
-                                logger.info(
-                                    f"Processing subsection: {subsection_name}")
+                                logger.info(f"Processing subsection: {subsection_name}")
                                 # if subsection_name == "reverse_termination_fee":
                                 # continue
 
@@ -3413,20 +4071,24 @@ class SchemaCategorySearch:
                                 futures[section_name][subsection_name] = []
 
                                 for i, field in enumerate(fields):
-                                    field_name = field.get(
-                                        "field_name", "")
+                                    field_name = field.get("field_name", "")
                                     # if field_name == "divestiture_clause_summary":
                                     # continue
                                     logger.info(
-                                        f"Submitting task for field: {field_name} ({i+1}/{len(fields)})")
+                                        f"Submitting task for field: {field_name} ({i+1}/{len(fields)})"
+                                    )
 
                                     # Submit the task to the executor and store the future
                                     future = executor.submit(
                                         self.process_schema_field1,
-                                        section_name, field, deal_id, subsection_name
+                                        section_name,
+                                        field,
+                                        deal_id,
+                                        subsection_name,
                                     )
                                     futures[section_name][subsection_name].append(
-                                        (field_name, future))
+                                        (field_name, future)
+                                    )
                                     # else:
                                     #     logger.info(
                                     #         f"Skipping field: {field_name}")
@@ -3448,13 +4110,17 @@ class SchemaCategorySearch:
                                 # Get the result for the clause check
                                 clause_result = future.result()
                                 logger.info(
-                                    f"Completed clause check for {field_name}: {clause_result}")
+                                    f"Completed clause check for {field_name}: {clause_result}"
+                                )
 
                                 # Check if the answer indicates this clause exists
-                                if (clause_result and
-                                    "answer" in clause_result and
-                                    clause_result["answer"] and
-                                        str(clause_result["answer"]).lower() not in ["not found", "false", "no"]):
+                                if (
+                                    clause_result
+                                    and "answer" in clause_result
+                                    and clause_result["answer"]
+                                    and str(clause_result["answer"]).lower()
+                                    not in ["not found", "false", "no"]
+                                ):
 
                                     # Initialize results for this clause
                                     results[section_name][field_name] = []
@@ -3465,7 +4131,8 @@ class SchemaCategorySearch:
                                     # Now process each field within the clause
                                     if "fields" in field_obj:
                                         logger.info(
-                                            f"Processing {len(field_obj['fields'])} fields for clause: {field_name}")
+                                            f"Processing {len(field_obj['fields'])} fields for clause: {field_name}"
+                                        )
 
                                         for field_item in field_obj["fields"]:
                                             # if field_item.get("field_name", "") == "clause_summary_bullets" or field_item.get("field_name", "") == "clause_summary_text":
@@ -3473,11 +4140,15 @@ class SchemaCategorySearch:
                                             # Submit this field for processing
                                             field_future = executor.submit(
                                                 self.process_schema_field1,
-                                                section_name, field_item, deal_id, field_name
+                                                section_name,
+                                                field_item,
+                                                deal_id,
+                                                field_name,
                                             )
 
                                             field_futures.append(
-                                                (field_item, field_future))
+                                                (field_item, field_future)
+                                            )
                                             # else:
                                             #     logger.info(
                                             #         f"Skipping field: {field_item.get('field_name')}")
@@ -3487,32 +4158,42 @@ class SchemaCategorySearch:
                                             try:
                                                 field_result = field_future.result()
                                                 logger.info(
-                                                    f"Field result for {field_item.get('field_name')}: {field_result}")
+                                                    f"Field result for {field_item.get('field_name')}: {field_result}"
+                                                )
 
                                                 # Add the field result to the clause results
-                                                results[section_name][field_name].append(
-                                                    field_result)
+                                                results[section_name][
+                                                    field_name
+                                                ].append(field_result)
 
                                             except Exception as field_e:
                                                 logger.error(
-                                                    f"Error processing field {field_item.get('field_name')}: {str(field_e)}")
+                                                    f"Error processing field {field_item.get('field_name')}: {str(field_e)}"
+                                                )
                                                 # Include a placeholder entry for the failed field
 
-                                                results[section_name][field_name].append({
-                                                    "section": section_name,
-                                                    "subsection": field_name,
-                                                    "field_name": field_item.get("field_name", ""),
-                                                    "answer": f"Error: {str(field_e)}",
-                                                    "confidence": 0.0,
-                                                    "reason": "Processing error",
-                                                    "categories_used": [],
-                                                    "clause_text": "",
-                                                    "reference_section": ""
-                                                })
+                                                results[section_name][
+                                                    field_name
+                                                ].append(
+                                                    {
+                                                        "section": section_name,
+                                                        "subsection": field_name,
+                                                        "field_name": field_item.get(
+                                                            "field_name", ""
+                                                        ),
+                                                        "answer": f"Error: {str(field_e)}",
+                                                        "confidence": 0.0,
+                                                        "reason": "Processing error",
+                                                        "categories_used": [],
+                                                        "clause_text": "",
+                                                        "reference_section": "",
+                                                    }
+                                                )
 
                             except Exception as e:
                                 logger.error(
-                                    f"Error processing clause {field_name}: {str(e)}")
+                                    f"Error processing clause {field_name}: {str(e)}"
+                                )
                                 # Skip this clause entirely if there was an error determining its existence
 
                     elif isinstance(section_futures, list):
@@ -3521,53 +4202,63 @@ class SchemaCategorySearch:
                             try:
                                 # Get the result from the future
                                 field_result = future.result()
-                                logger.info(
-                                    f"Completed field result: {field_result}")
+                                logger.info(f"Completed field result: {field_result}")
                                 results[section_name].append(field_result)
                             except Exception as e:
                                 logger.error(
-                                    f"Error processing field {field_name}: {str(e)}")
+                                    f"Error processing field {field_name}: {str(e)}"
+                                )
                                 # Add error result
-                                results[section_name].append({
-                                    "section": section_name,
-                                    "field_name": field_name,
-                                    "answer": f"Error: {str(e)}",
-                                    "confidence": 0.0,
-                                    "reason": "Processing error",
-                                    "categories_used": [],
-                                    "clause_text": "",
-                                    "reference_section": ""
-                                })
-                    elif isinstance(section_futures, dict):
-                        # New format handling (nested structure)
-                        for subsection_name, subsection_futures in section_futures.items():
-                            for field_name, future in subsection_futures:
-                                try:
-                                    # Get the result from the future
-                                    field_result = future.result()
-                                    logger.info(
-                                        f"Completed field result: {field_result}")
-                                    results[section_name][subsection_name].append(
-                                        field_result)
-                                except Exception as e:
-                                    logger.error(
-                                        f"Error processing field {field_name}: {str(e)}")
-                                    # Add error result
-                                    results[section_name][subsection_name].append({
+                                results[section_name].append(
+                                    {
                                         "section": section_name,
-                                        "subsection": subsection_name,
                                         "field_name": field_name,
                                         "answer": f"Error: {str(e)}",
                                         "confidence": 0.0,
                                         "reason": "Processing error",
                                         "categories_used": [],
                                         "clause_text": "",
-                                        "reference_section": ""
-                                    })
+                                        "reference_section": "",
+                                    }
+                                )
+                    elif isinstance(section_futures, dict):
+                        # New format handling (nested structure)
+                        for (
+                            subsection_name,
+                            subsection_futures,
+                        ) in section_futures.items():
+                            for field_name, future in subsection_futures:
+                                try:
+                                    # Get the result from the future
+                                    field_result = future.result()
+                                    logger.info(
+                                        f"Completed field result: {field_result}"
+                                    )
+                                    results[section_name][subsection_name].append(
+                                        field_result
+                                    )
+                                except Exception as e:
+                                    logger.error(
+                                        f"Error processing field {field_name}: {str(e)}"
+                                    )
+                                    # Add error result
+                                    results[section_name][subsection_name].append(
+                                        {
+                                            "section": section_name,
+                                            "subsection": subsection_name,
+                                            "field_name": field_name,
+                                            "answer": f"Error: {str(e)}",
+                                            "confidence": 0.0,
+                                            "reason": "Processing error",
+                                            "categories_used": [],
+                                            "clause_text": "",
+                                            "reference_section": "",
+                                        }
+                                    )
 
             # Get current time in UTC and convert to IST
             utc_now = datetime.now(pytz.UTC)
-            ist = pytz.timezone('Asia/Kolkata')
+            ist = pytz.timezone("Asia/Kolkata")
             ist_now = utc_now.astimezone(ist)
 
             # Create timestamp in IST
@@ -3578,12 +4269,11 @@ class SchemaCategorySearch:
 
             # Save results to JSON file
             try:
-                with open(filename, 'w', encoding='utf-8') as f:
+                with open(filename, "w", encoding="utf-8") as f:
                     json.dump(results, f, indent=2, ensure_ascii=False)
                 logger.info(f"Results saved to file: {filename}")
             except Exception as save_error:
-                logger.error(
-                    f"Error saving results to file: {str(save_error)}")
+                logger.error(f"Error saving results to file: {str(save_error)}")
 
             return results
 

@@ -162,6 +162,14 @@ class ProcessingJobDetailView(APIView):
         try:
             object_id = ObjectId(id)
             job = ProcessingJob.objects.get(id=object_id)
+
+            # Convert schema_results from a JSON string to a dictionary if applicable, ensuring valid DictField representation
+            if isinstance(job.schema_results, str):
+                    try:
+                        job.schema_results = json.loads(job.schema_results)
+                    except json.JSONDecodeError:
+                        job.schema_results = {}
+
             serializer = ProcessingJobSerializer(job)
             return Response(serializer.data, status=status.HTTP_200_OK)
 
@@ -448,7 +456,11 @@ class SummaryGenerationView(APIView):
             summary_service = SummaryGenerationService()
 
             # Generate the summary
-            result = summary_service.generate_summary(
+            # result = summary_service.generate_summary(
+            #     deal_id=deal_id,
+            #     temperature=temperature
+            # )
+            result = summary_service.generate_summary_v2(
                 deal_id=deal_id,
                 temperature=temperature
             )
