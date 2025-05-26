@@ -195,7 +195,8 @@ class DocumentProcessingService:
                 deal_id=str(job_id))
             logger.info(f"Category results: {category_results}")
             # Update job status to completed
-            job.save_json_to_db(category_results)
+            # job.save_json_to_db(category_results)
+            job.upsert_json_to_db(category_results)
             job.update_embedding_status('COMPLETED')
             logger.info(f"Updated job status to COMPLETED")
 

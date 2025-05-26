@@ -62,6 +62,7 @@ class ProcessingJob(Document):
             self.error_message = error_message
         self.updatedAt = datetime.utcnow()
         self.save()
+        print(f"Updated embedding status to {status}")
         return self
 
     def save_json_to_db(self, results, error_message=None):
@@ -74,3 +75,26 @@ class ProcessingJob(Document):
         self.updatedAt = datetime.utcnow()
         self.save()
         return self
+    
+    def upsert_json_to_db(self, new_results, error_message=None):
+        """
+        Update the schema results by merging with existing data (upsert).
+        For each section in new_results, if it already exists in schema_results,
+        completely replace the section data with new data.
+        For new sections, add them to the existing schema_results.
+        """
+        if not self.schema_results:
+            # If no existing data, just save the new results
+            self.schema_results = new_results
+        else:
+            # Merge new results with existing data
+            for section_name, section_data in new_results.items():
+                # Replace entire section data if section exists, otherwise add it
+                self.schema_results[section_name] = section_data
+
+        # Update processing status
+        self.schema_processing_completed = True
+        self.schema_processing_timestamp = datetime.now()
+        self.save()
+        return self
+
