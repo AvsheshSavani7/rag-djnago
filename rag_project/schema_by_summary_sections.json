@@ -6041,6 +6041,65 @@
           }
         ],
         "recommended_prompt_type": "Inference-optimized"
+      },
+      {
+        "field_name": "clean_room_protection_clause_present",
+        "instructions": "Return true if the agreement includes a clause that results in suspension, revocation, or restriction of the Company’s access to clean room or confidential data in connection with a Superior Proposal, regardless of whether initiated by the Parent or contractually required of the Company.",
+        "question_query": "Terminate data room access, Confidential information return, Third-party access under Acquisition Proposal, Superior Proposal restriction",
+
+        "definition": "Indicates whether the Parent has contractual authority to restrict the Company’s access to clean room data if the Company pursues a Superior Proposal.",
+        "purpose": "To identify protection mechanisms that safeguard confidential data in competitive bid situations.",
+        "rag_note": "Typically appears in confidentiality or access clauses, particularly tied to deal protection provisions.",
+        "category_mapping": [
+          {
+            "category": "Covenants  >  Deal Protection",
+            "rank": 1,
+            "match_score": 95,
+            "rationale": "Clean room restrictions serve as strategic protections against competitive threats arising from Superior Proposals."
+          },
+          {
+            "category": "Covenants  >  Access",
+            "rank": 2,
+            "match_score": 90,
+            "rationale": "This field regulates access to confidential information based on deal status."
+          },
+          {
+            "category": "Covenants  >  Notification / Publicity",
+            "rank": 3,
+            "match_score": 82,
+            "rationale": "Disclosure requirements surrounding Superior Proposals may indirectly relate to access rights."
+          }
+        ],
+        "recommended_prompt_type": "Inference-optimized"
+      },
+      {
+        "field_name": "clean_room_protection_clause_summary",
+        "instructions": "If the agreement contains any provision that results in suspension, revocation, or restriction of the Company’s access to clean room or confidential information in connection with a Superior Proposal, summarize the specific clause, including the party responsible for the restriction, triggering events (e.g., third-party access or engagement), scope (e.g., return or destruction of data), and timing (e.g., deadlines for compliance).",
+        "question_query": "Terminate clean room access, Confidential information return, Restriction upon Superior Proposal, Data room revocation, Company duty to revoke access, Superior Proposal access restrictions",
+        "definition": "Summarizes the scope and conditions under which the Parent may revoke the Company’s access to clean room data or confidential materials if a Superior Proposal emerges.",
+        "purpose": "To provide detailed insight into how and when access restrictions are triggered under competitive proposal scenarios.",
+        "rag_note": "Often includes phrases like 'in the event of a Superior Proposal', 'confidentiality protections', or 'information revocation rights'.",
+        "category_mapping": [
+          {
+            "category": "Covenants  >  Deal Protection",
+            "rank": 1,
+            "match_score": 94,
+            "rationale": "Summarizes provisions that deter the Company from entertaining alternate offers without risk to confidential access."
+          },
+          {
+            "category": "Covenants  >  Access",
+            "rank": 2,
+            "match_score": 89,
+            "rationale": "Details contractual limits around sharing or retaining access to protected information."
+          },
+          {
+            "category": "Covenants  >  Notification / Publicity",
+            "rank": 3,
+            "match_score": 81,
+            "rationale": "Clean room access may be governed alongside required disclosures of competitive activity."
+          }
+        ],
+        "recommended_prompt_type": "Inference-optimized"
       }
     ]
   },
@@ -7767,6 +7826,502 @@
           }
         ],
         "recommended_prompt_type": "Inference-optimized"
+      }
+    ]
+  },
+  "timeline": {
+    "agreement_signing_date": [
+      {
+        "field_name": "agreement_signing_date",
+        "instructions": "Identify the official date on which the merger agreement was signed by the parties.",
+        "question_query": "Agreement Signing Date, Execution Date",
+        "definition": "Identifies the specific date or deadline relevant to the transaction timeline.",
+        "purpose": "To track key transaction events and ensure compliance with contractual deadlines.",
+        "rag_note": "Look for these dates in recitals, covenants, or termination provisions.",
+        "category_mapping": [
+          {
+            "category": "Conditions to Closing  >  General and Mutual Conditions",
+            "rank": 1,
+            "match_score": 95,
+            "rationale": "Timeline milestones are typically tied to mutual preconditions for closing."
+          },
+          {
+            "category": "Termination  >  End Date Termination Right",
+            "rank": 2,
+            "match_score": 90,
+            "rationale": "End dates and related terms dictate termination rights if deadlines pass."
+          },
+          {
+            "category": "Covenants  >  Efforts",
+            "rank": 3,
+            "match_score": 85,
+            "rationale": "Many key dates are subject to effort-based obligations to meet regulatory or shareholder conditions."
+          }
+        ],
+        "recommended_prompt_type": "Precision-optimized"
+      }
+    ],
+    "confidentiality_agreement_signing_date": [
+      {
+        "field_name": "confidentiality_agreement_signing_date",
+        "instructions": "Find the date the confidentiality agreement or NDA related to the merger was signed, if specified.",
+        "question_query": "Confidentiality Agreement Date, NDA Signing",
+        "definition": "Identifies the specific date or deadline relevant to the transaction timeline.",
+        "purpose": "To track key transaction events and ensure compliance with contractual deadlines.",
+        "rag_note": "Look for these dates in recitals, covenants, or termination provisions.",
+        "category_mapping": [
+          {
+            "category": "Conditions to Closing  >  General and Mutual Conditions",
+            "rank": 1,
+            "match_score": 95,
+            "rationale": "Timeline milestones are typically tied to mutual preconditions for closing."
+          },
+          {
+            "category": "Termination  >  End Date Termination Right",
+            "rank": 2,
+            "match_score": 90,
+            "rationale": "End dates and related terms dictate termination rights if deadlines pass."
+          },
+          {
+            "category": "Covenants  >  Efforts",
+            "rank": 3,
+            "match_score": 85,
+            "rationale": "Many key dates are subject to effort-based obligations to meet regulatory or shareholder conditions."
+          }
+        ],
+        "recommended_prompt_type": "Precision-optimized"
+      }
+    ],
+    "announcement_date": [
+      {
+        "field_name": "announcement_date",
+        "instructions": "Determine the date the merger transaction was publicly announced. If the agreement references a press release issued at the time of execution or refers to announcing the signing of the agreement, return the agreement signing date as the announcement date. Return an empty string only if there is no reference to a press release or announcement.",
+        "question_query": "Announcement Date, Press Release Signing Date, Public Disclosure of Merger, Joint Press Statement, Execution Announcement Timing",
+        "definition": "Identifies the specific date or deadline relevant to the transaction timeline.",
+        "purpose": "To track key transaction events and ensure compliance with contractual deadlines.",
+        "rag_note": "Look for these dates in recitals, covenants, or termination provisions.",
+        "category_mapping": [
+          {
+            "category": "Conditions to Closing  >  General and Mutual Conditions",
+            "rank": 1,
+            "match_score": 95,
+            "rationale": "Timeline milestones are typically tied to mutual preconditions for closing."
+          },
+          {
+            "category": "Termination  >  End Date Termination Right",
+            "rank": 2,
+            "match_score": 90,
+            "rationale": "End dates and related terms dictate termination rights if deadlines pass."
+          },
+          {
+            "category": "Covenants  >  Efforts",
+            "rank": 3,
+            "match_score": 85,
+            "rationale": "Many key dates are subject to effort-based obligations to meet regulatory or shareholder conditions."
+          }
+        ],
+        "recommended_prompt_type": "Inference-optimized"
+      }
+    ],
+    "proxy_filing_deadline": [
+      {
+        "field_name": "proxy_filing_deadline",
+        "instructions": "Identify the clause specifying when the preliminary proxy statement and/or registration statement on Form F-4 must be filed following the signing of the agreement. Include timing references such as 'promptly,' 'within X days,' or similar phrases.",
+        "question_query": "Form F-4 Filing Deadline, Proxy Statement Filing Timeline, Filing Requirement, SEC Submission Schedule",
+        "definition": "Identifies the specific date or deadline relevant to the transaction timeline.",
+        "purpose": "To track key transaction events and ensure compliance with contractual deadlines.",
+        "rag_note": "Look for these dates in recitals, covenants, or termination provisions.",
+        "category_mapping": [
+          {
+            "category": "Conditions to Closing  >  General and Mutual Conditions",
+            "rank": 1,
+            "match_score": 95,
+            "rationale": "Timeline milestones are typically tied to mutual preconditions for closing."
+          },
+          {
+            "category": "Termination  >  End Date Termination Right",
+            "rank": 2,
+            "match_score": 90,
+            "rationale": "End dates and related terms dictate termination rights if deadlines pass."
+          },
+          {
+            "category": "Covenants  >  Efforts",
+            "rank": 3,
+            "match_score": 85,
+            "rationale": "Many key dates are subject to effort-based obligations to meet regulatory or shareholder conditions."
+          }
+        ],
+        "recommended_prompt_type": "Precision-optimized"
+      }
+    ],
+    "shareholder_vote_deadline": [
+      {
+        "field_name": "shareholder_vote_deadline",
+        "instructions": "Extract the deadline by which the shareholder vote or consent must occur, often expressed relative to the Form F-4 effectiveness.",
+        "question_query": "Shareholder Vote Deadline, Proxy Vote Timing",
+        "definition": "Identifies the specific date or deadline relevant to the transaction timeline.",
+        "purpose": "To track key transaction events and ensure compliance with contractual deadlines.",
+        "rag_note": "Look for these dates in recitals, covenants, or termination provisions.",
+        "category_mapping": [
+          {
+            "category": "Conditions to Closing  >  General and Mutual Conditions",
+            "rank": 1,
+            "match_score": 95,
+            "rationale": "Timeline milestones are typically tied to mutual preconditions for closing."
+          },
+          {
+            "category": "Termination  >  End Date Termination Right",
+            "rank": 2,
+            "match_score": 90,
+            "rationale": "End dates and related terms dictate termination rights if deadlines pass."
+          },
+          {
+            "category": "Covenants  >  Efforts",
+            "rank": 3,
+            "match_score": 85,
+            "rationale": "Many key dates are subject to effort-based obligations to meet regulatory or shareholder conditions."
+          }
+        ],
+        "recommended_prompt_type": "Precision-optimized"
+      }
+    ],
+    "outside_date": [
+      {
+        "question_query": "termination",
+        "field_name": "outside_date",
+        "instructions": "Identify the initial 'Outside Date' specified in the agreement-this is the earliest date on which either party may terminate the agreement if the merger has not yet closed. Return the exact calendar date if explicitly provided (e.g., 'March 31, 2025'). If the Outside Date is expressed as a relative time frame (e.g., '9 months from the Agreement Date' or '270 days after signing'), return the full phrase as written in the agreement. Only consider the earliest such date or condition stated in the termination provisions.",
+        "definition": "The first contractual deadline by which the transaction must be consummated; failure to close by this date allows termination.",
+        "purpose": "Establishes the initial timeline for closing and defines when termination rights become available due to delay.",
+        "rag_note": "Helps identify termination timing clauses that dictate when the deal must be closed or may be abandoned.",
+        "recommended_prompt_type": "Precision-optimized",
+        "category_mapping": [
+          {
+            "category": "Termination  >  End Date Termination Right",
+            "rank": 1,
+            "match_score": 98,
+            "rationale": "This field defines the initial contractual termination deadline, directly aligning with termination rights based on failure to close."
+          },
+          {
+            "category": "Termination  >  Notice of Termination",
+            "rank": 2,
+            "match_score": 89,
+            "rationale": "Understanding when termination may be initiated relates to how and when notice must be given."
+          },
+          {
+            "category": "The Merger  >  Closing Deliverables",
+            "rank": 3,
+            "match_score": 83,
+            "rationale": "The outside date is often linked to timing of required deliverables at closing."
+          }
+        ]
+      },
+      {
+        "question_query": "termination",
+        "field_name": "outside_date_extension_list",
+        "instructions": "You are reviewing the Termination section of a merger agreement. Identify and list each instance where the Outside Date (or termination date) may be extended.For each identified extension, create a numbered list with the following fields:Extension Length – What is the duration or length of the extension (e.g., “90 days”, “until regulatory approval”, “up to 6 months”)?Who Grants the Extension – Which party or parties must grant, approve, or initiate the extension (e.g., Parent, Company, both, automatic)?Conditions to Extend – What specific conditions must be satisfied for the extension to apply (e.g., awaiting regulatory approval, all other conditions met, written notice)?Termination Restrictions Due to Breach – Does the agreement restrict a party’s ability to terminate if their own material breach caused the failure to close by the outside date? If yes, identify the condition and the affected party.If no extension rights are specified, respond with: “No termination date extensions specified.”",
+        "definition": "The classification of the extension right applied to the Outside Date, indicating how and by whom it may be exercised.",
+        "purpose": "Clarifies the procedural mechanics of how and when the termination deadline can be extended.",
+        "rag_note": "Used to classify the mechanism of extension as automatic, discretionary, or mutual, to guide understanding of party rights.",
+        "recommended_prompt_type": "Inference-optimized",
+        "category_mapping": [
+          {
+            "category": "Termination  >  End Date Termination Right",
+            "rank": 1,
+            "match_score": 95,
+            "rationale": "This field governs how the termination right deadline is extended, closely tied to the end date provision."
+          },
+          {
+            "category": "Termination  >  Other Termination Rights",
+            "rank": 2,
+            "match_score": 88,
+            "rationale": "Describes discretionary or mutual rights that may include deadline extensions."
+          },
+          {
+            "category": "Miscellaneous  >  Administrative Terms",
+            "rank": 3,
+            "match_score": 80,
+            "rationale": "Categorizing the procedural logic for extensions aligns with administrative mechanisms in the agreement."
+          }
+        ]
+      }
+    ],
+    "hsr_filing_deadline": [
+      {
+        "field_name": "hsr_filing_deadline",
+        "instructions": "Find the deadline for submitting initial filings under the Hart-Scott-Rodino (HSR) Act.",
+        "question_query": "HSR Filing Deadline, Antitrust Filings",
+        "definition": "Identifies the specific date or deadline relevant to the transaction timeline.",
+        "purpose": "To track key transaction events and ensure compliance with contractual deadlines.",
+        "rag_note": "Look for these dates in recitals, covenants, or termination provisions.",
+        "category_mapping": [
+          {
+            "category": "Conditions to Closing  >  General and Mutual Conditions",
+            "rank": 1,
+            "match_score": 95,
+            "rationale": "Timeline milestones are typically tied to mutual preconditions for closing."
+          },
+          {
+            "category": "Termination  >  End Date Termination Right",
+            "rank": 2,
+            "match_score": 90,
+            "rationale": "End dates and related terms dictate termination rights if deadlines pass."
+          },
+          {
+            "category": "Covenants  >  Efforts",
+            "rank": 3,
+            "match_score": 85,
+            "rationale": "Many key dates are subject to effort-based obligations to meet regulatory or shareholder conditions."
+          }
+        ],
+        "recommended_prompt_type": "Precision-optimized"
+      }
+    ],
+    "second_request_deadline": [
+      {
+        "field_name": "second_request_deadline",
+        "instructions": "Identify any clause setting a deadline for complying with a Second Request under antitrust regulations.",
+        "question_query": "Second Request Deadline, Antitrust Response Date",
+        "definition": "Identifies the specific date or deadline relevant to the transaction timeline.",
+        "purpose": "To track key transaction events and ensure compliance with contractual deadlines.",
+        "rag_note": "Look for these dates in recitals, covenants, or termination provisions.",
+        "category_mapping": [
+          {
+            "category": "Conditions to Closing  >  General and Mutual Conditions",
+            "rank": 1,
+            "match_score": 95,
+            "rationale": "Timeline milestones are typically tied to mutual preconditions for closing."
+          },
+          {
+            "category": "Termination  >  End Date Termination Right",
+            "rank": 2,
+            "match_score": 90,
+            "rationale": "End dates and related terms dictate termination rights if deadlines pass."
+          },
+          {
+            "category": "Covenants  >  Efforts",
+            "rank": 3,
+            "match_score": 85,
+            "rationale": "Many key dates are subject to effort-based obligations to meet regulatory or shareholder conditions."
+          }
+        ],
+        "recommended_prompt_type": "Precision-optimized"
+      }
+    ],
+    "cfius_filing_deadline": [
+      {
+        "field_name": "cfius_filing_deadline",
+        "instructions": "Extract the date or timing by which a CFIUS filing must be submitted, if applicable.",
+        "question_query": "CFIUS Filing Deadline, Foreign Investment Review Timing",
+        "definition": "Identifies the specific date or deadline relevant to the transaction timeline.",
+        "purpose": "To track key transaction events and ensure compliance with contractual deadlines.",
+        "rag_note": "Look for these dates in recitals, covenants, or termination provisions.",
+        "category_mapping": [
+          {
+            "category": "Conditions to Closing  >  General and Mutual Conditions",
+            "rank": 1,
+            "match_score": 95,
+            "rationale": "Timeline milestones are typically tied to mutual preconditions for closing."
+          },
+          {
+            "category": "Termination  >  End Date Termination Right",
+            "rank": 2,
+            "match_score": 90,
+            "rationale": "End dates and related terms dictate termination rights if deadlines pass."
+          },
+          {
+            "category": "Covenants  >  Efforts",
+            "rank": 3,
+            "match_score": 85,
+            "rationale": "Many key dates are subject to effort-based obligations to meet regulatory or shareholder conditions."
+          }
+        ],
+        "recommended_prompt_type": "Precision-optimized"
+      }
+    ],
+    "regulatory_approval_outside_date": [
+      {
+        "field_name": "regulatory_approval_outside_date",
+        "instructions": "Find any clause that defines or modifies the outside date based on regulatory approval delays (e.g., Antitrust Law, CFIUS). If no separate date is specified, return the main outside date and describe the regulatory-based extension conditions.",
+        "question_query": "Regulatory Outside Date, Antitrust Termination Date, Extension for Antitrust, CFIUS Deadline, Regulatory Delay Clause",
+        "definition": "Identifies the specific date or deadline relevant to the transaction timeline.",
+        "purpose": "To track key transaction events and ensure compliance with contractual deadlines.",
+        "rag_note": "Look for these dates in recitals, covenants, or termination provisions.",
+        "category_mapping": [
+          {
+            "category": "Conditions to Closing  >  General and Mutual Conditions",
+            "rank": 1,
+            "match_score": 95,
+            "rationale": "Timeline milestones are typically tied to mutual preconditions for closing."
+          },
+          {
+            "category": "Termination  >  End Date Termination Right",
+            "rank": 2,
+            "match_score": 90,
+            "rationale": "End dates and related terms dictate termination rights if deadlines pass."
+          },
+          {
+            "category": "Covenants  >  Efforts",
+            "rank": 3,
+            "match_score": 85,
+            "rationale": "Many key dates are subject to effort-based obligations to meet regulatory or shareholder conditions."
+          }
+        ],
+        "recommended_prompt_type": "Precision-optimized"
+      }
+    ],
+    "termination_rights_trigger_dates": [
+      {
+        "field_name": "termination_rights_trigger_dates",
+        "instructions": "Extract any clause where a party may terminate the agreement due to failure to close by a certain date. Include references tied to 'Termination Date' or the anniversary of signing.",
+        "question_query": "Termination Trigger Date, End Date, Right to Terminate, Failure to Close Deadline",
+        "definition": "Identifies the specific date or deadline relevant to the transaction timeline.",
+        "purpose": "To track key transaction events and ensure compliance with contractual deadlines.",
+        "rag_note": "Look for these dates in recitals, covenants, or termination provisions.",
+        "category_mapping": [
+          {
+            "category": "Conditions to Closing  >  General and Mutual Conditions",
+            "rank": 1,
+            "match_score": 95,
+            "rationale": "Timeline milestones are typically tied to mutual preconditions for closing."
+          },
+          {
+            "category": "Termination  >  End Date Termination Right",
+            "rank": 2,
+            "match_score": 90,
+            "rationale": "End dates and related terms dictate termination rights if deadlines pass."
+          },
+          {
+            "category": "Covenants  >  Efforts",
+            "rank": 3,
+            "match_score": 85,
+            "rationale": "Many key dates are subject to effort-based obligations to meet regulatory or shareholder conditions."
+          }
+        ],
+        "recommended_prompt_type": "Precision-optimized"
+      }
+    ],
+    "marketing_period_dates": [
+      {
+        "field_name": "marketing_period_dates",
+        "instructions": "Extract the start and end dates or defined period of any marketing window related to debt financing or syndication.",
+        "question_query": "Marketing Period, Debt Financing Marketing Window",
+        "definition": "Identifies the specific date or deadline relevant to the transaction timeline.",
+        "purpose": "To track key transaction events and ensure compliance with contractual deadlines.",
+        "rag_note": "Look for these dates in recitals, covenants, or termination provisions.",
+        "category_mapping": [
+          {
+            "category": "Conditions to Closing  >  General and Mutual Conditions",
+            "rank": 1,
+            "match_score": 95,
+            "rationale": "Timeline milestones are typically tied to mutual preconditions for closing."
+          },
+          {
+            "category": "Termination  >  End Date Termination Right",
+            "rank": 2,
+            "match_score": 90,
+            "rationale": "End dates and related terms dictate termination rights if deadlines pass."
+          },
+          {
+            "category": "Covenants  >  Efforts",
+            "rank": 3,
+            "match_score": 85,
+            "rationale": "Many key dates are subject to effort-based obligations to meet regulatory or shareholder conditions."
+          }
+        ],
+        "recommended_prompt_type": "Precision-optimized"
+      }
+    ],
+    "inside_date": [
+      {
+        "field_name": "inside_date",
+        "instructions": "Identify any Inside Date specified in the agreement\u2014used to establish deadlines for financing or marketing activities before the outside date.",
+        "question_query": "Inside Date, Financing Activities Deadline",
+        "definition": "Identifies the specific date or deadline relevant to the transaction timeline.",
+        "purpose": "To track key transaction events and ensure compliance with contractual deadlines.",
+        "rag_note": "Look for these dates in recitals, covenants, or termination provisions.",
+        "category_mapping": [
+          {
+            "category": "Conditions to Closing  >  General and Mutual Conditions",
+            "rank": 1,
+            "match_score": 95,
+            "rationale": "Timeline milestones are typically tied to mutual preconditions for closing."
+          },
+          {
+            "category": "Termination  >  End Date Termination Right",
+            "rank": 2,
+            "match_score": 90,
+            "rationale": "End dates and related terms dictate termination rights if deadlines pass."
+          },
+          {
+            "category": "Covenants  >  Efforts",
+            "rank": 3,
+            "match_score": 85,
+            "rationale": "Many key dates are subject to effort-based obligations to meet regulatory or shareholder conditions."
+          }
+        ],
+        "recommended_prompt_type": "Precision-optimized"
+      }
+    ],
+    "closing_date": [
+      {
+        "field_name": "closing_date",
+        "instructions": "Extract the expected or defined date for closing, including any formulas like 'third business day after conditions are met'.",
+        "question_query": "Closing Date, Final Completion Timeline",
+        "definition": "Identifies the specific date or deadline relevant to the transaction timeline.",
+        "purpose": "To track key transaction events and ensure compliance with contractual deadlines.",
+        "rag_note": "Look for these dates in recitals, covenants, or termination provisions.",
+        "category_mapping": [
+          {
+            "category": "Conditions to Closing  >  General and Mutual Conditions",
+            "rank": 1,
+            "match_score": 95,
+            "rationale": "Timeline milestones are typically tied to mutual preconditions for closing."
+          },
+          {
+            "category": "Termination  >  End Date Termination Right",
+            "rank": 2,
+            "match_score": 90,
+            "rationale": "End dates and related terms dictate termination rights if deadlines pass."
+          },
+          {
+            "category": "Covenants  >  Efforts",
+            "rank": 3,
+            "match_score": 85,
+            "rationale": "Many key dates are subject to effort-based obligations to meet regulatory or shareholder conditions."
+          }
+        ],
+        "recommended_prompt_type": "Precision-optimized"
+      }
+    ],
+    "conditions_satisfaction_end_date": [
+      {
+        "field_name": "conditions_satisfaction_end_date",
+        "instructions": "Identify the final date by which all closing conditions must be satisfied under the agreement.",
+        "question_query": "Conditions Satisfaction Deadline, Deal Closing Requirements",
+        "definition": "Identifies the specific date or deadline relevant to the transaction timeline.",
+        "purpose": "To track key transaction events and ensure compliance with contractual deadlines.",
+        "rag_note": "Look for these dates in recitals, covenants, or termination provisions.",
+        "category_mapping": [
+          {
+            "category": "Conditions to Closing  >  General and Mutual Conditions",
+            "rank": 1,
+            "match_score": 95,
+            "rationale": "Timeline milestones are typically tied to mutual preconditions for closing."
+          },
+          {
+            "category": "Termination  >  End Date Termination Right",
+            "rank": 2,
+            "match_score": 90,
+            "rationale": "End dates and related terms dictate termination rights if deadlines pass."
+          },
+          {
+            "category": "Covenants  >  Efforts",
+            "rank": 3,
+            "match_score": 85,
+            "rationale": "Many key dates are subject to effort-based obligations to meet regulatory or shareholder conditions."
+          }
+        ],
+        "recommended_prompt_type": "Precision-optimized"
       }
     ]
   }

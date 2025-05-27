@@ -13,7 +13,8 @@ class SummaryEngineUtil:
         self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=5)
 
         # Set up openAi cleint
-        self.openai_client = openai.OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+        self.openai_client = openai.OpenAI(
+            api_key=os.environ.get("OPENAI_API_KEY"))
 
     # =========================
     # LLM FUNCTION FOR GENERATING BULLET POINTS
@@ -21,7 +22,8 @@ class SummaryEngineUtil:
     def generate_bullet(self, prompt, temperature=0.3, max_tokens=300):
         try:
 
-            self.openai_client = openai.OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+            self.openai_client = openai.OpenAI(
+                api_key=os.environ.get("OPENAI_API_KEY"))
             # self.MAX_METADATA_SIZE = 40960
 
             response = self.openai_client.chat.completions.create(
@@ -36,7 +38,7 @@ class SummaryEngineUtil:
                 temperature=temperature,
                 max_tokens=max_tokens,
             )
-            return "+ " + response.choices[0].message.content.strip()
+            return "" + response.choices[0].message.content.strip()
         except Exception as e:
             logger.error(f"⚠️ LLM error: {e}")
             return "Error generating summary."
@@ -53,7 +55,8 @@ class SummaryEngineUtil:
             return section_data  # ✅ Flat list structure
         elif isinstance(section_data, dict):
             # ✅ Nested dict with a list inside (grab the first list)
-            possible_lists = [v for v in section_data.values() if isinstance(v, list)]
+            possible_lists = [
+                v for v in section_data.values() if isinstance(v, list)]
             if possible_lists:
                 return possible_lists[0]
             else:
@@ -70,7 +73,8 @@ class SummaryEngineUtil:
 
         # ----- Pull data -----
         items = self.get_items(schema, section, subsection)
-        print(f"DEBUG: Found items → {[item.get('field_name') for item in items]}")
+        print(
+            f"DEBUG: Found items → {[item.get('field_name') for item in items]}")
 
         fields = {
             item.get("field_name"): item for item in items if "field_name" in item
@@ -80,10 +84,11 @@ class SummaryEngineUtil:
         source_item = fields.get(summary_field, {})
 
         if not source_item:
-            return f"+ {config['if_missing_summary']}"
+            return f" {config['if_missing_summary']}"
 
         # ----- Clause reference -----
-        reference = source_item.get(config.get("reference_field", "reference_section"))
+        reference = source_item.get(config.get(
+            "reference_field", "reference_section"))
 
         # ----- Clause text -----
         output_source_field = config.get("output_source_field", None)
@@ -91,7 +96,8 @@ class SummaryEngineUtil:
         if output_source_field:
             clause_text = source_item.get(output_source_field)
         else:
-            clause_text = source_item.get("clause_text") or source_item.get("answer")
+            clause_text = source_item.get(
+                "clause_text") or source_item.get("answer")
 
         logger.info(f"DEBUG: clause_text → {clause_text}")
         logger.info(f"DEBUG: reference → {reference}")
@@ -112,19 +118,20 @@ class SummaryEngineUtil:
 
         logger.info(f"DEBUG: included → {included_field}")
         logger.info(f"DEBUG: Soruce Item → {source_item}")
-        logger.info(f"DEBUG: included_value → {source_item.get(included_field, "")}")
+        logger.info(
+            f"DEBUG: included_value → {source_item.get(included_field, "")}")
 
         # ----- Handle exclusion -----
         if not included:
-            return f"+ {config['if_false_summary']}"
+            return f"{config['if_false_summary']}"
 
         if not clause_text:
-            return f"+ {config['if_missing_summary']}"
+            return f"{config['if_missing_summary']}"
 
         # ----- Skip LLM -----
         if not config.get("use_llm", True):
-            bullet = f"+ {clause_text}"
-            return bullet + (f"\n  + {reference}" if reference else "")
+            bullet = f" {clause_text}"
+            return bullet + (f"\n   {reference}" if reference else "")
 
         # ----- Format reference -----
         short_ref = (
@@ -145,7 +152,7 @@ class SummaryEngineUtil:
 
         # ----- Apply format -----
         if config.get("format_style", "bullet") == "paragraph":
-            bullet = bullet.lstrip("+").strip()
+            bullet = bullet.lstrip("").strip()
 
         if short_ref:
             bullet += f"\n  • {short_ref}"
