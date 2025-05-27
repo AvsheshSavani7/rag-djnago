@@ -111,9 +111,11 @@ class DocumentProcessingService:
             if embed_data:
                 # Start embedding task in the executor
                 self.executor.submit(
-                    self._process_embeddings, str(job.id), job.flattened_json_url
+                    self._process_embeddings, str(
+                        job.id), job.flattened_json_url
                 )
-                logger.info(f"Submitted embedding task for job {job.id} to executor")
+                logger.info(
+                    f"Submitted embedding task for job {job.id} to executor")
 
                 # Return response with embedding status
                 return {
@@ -170,7 +172,8 @@ class DocumentProcessingService:
 
             # Download flattened JSON
             s3_service = S3Service()
-            logger.info(f"Downloading flattened JSON from URL: {flattened_json_url}")
+            logger.info(
+                f"Downloading flattened JSON from URL: {flattened_json_url}")
             chunks = s3_service.download_from_url(flattened_json_url)
             logger.info(f"Downloaded {len(chunks)} chunks")
 
@@ -249,10 +252,12 @@ class S3Service:
             # Try parsing as JSON and handle errors explicitly
             try:
                 json_data = response.json()
-                logger.info(f"Successfully parsed JSON data, type: {type(json_data)}")
+                logger.info(
+                    f"Successfully parsed JSON data, type: {type(json_data)}")
                 return json_data
             except ValueError as json_err:
-                logger.error(f"Failed to parse JSON from response: {str(json_err)}")
+                logger.error(
+                    f"Failed to parse JSON from response: {str(json_err)}")
                 raise Exception(f"Invalid JSON in response: {str(json_err)}")
         except requests.exceptions.RequestException as req_err:
             logger.error(f"HTTP request failed: {str(req_err)}")
@@ -279,7 +284,8 @@ class EmbeddingService:
     def __init__(self):
         print("Initializing EmbeddingService")
         # Initialize OpenAI client
-        self.openai_client = openai.OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+        self.openai_client = openai.OpenAI(
+            api_key=os.environ.get("OPENAI_API_KEY"))
         self.MAX_METADATA_SIZE = 40960
         print(
             f"OpenAI API key set: {'Yes' if os.environ.get('OPENAI_API_KEY') else 'No'}"
@@ -292,7 +298,8 @@ class EmbeddingService:
         )
 
         # Get or create index
-        self.index_name = os.environ.get("PINECONE_INDEX_NAME", "contract-chunks")
+        self.index_name = os.environ.get(
+            "PINECONE_INDEX_NAME", "contract-chunks")
         print(f"Using Pinecone index: {self.index_name}")
 
         # Check if index exists
@@ -427,7 +434,8 @@ class EmbeddingService:
                         f"Created embedding for chunk {i+1} - vector size: {len(embedding)}"
                     )
                 except Exception as e:
-                    print(f"Error creating embedding for chunk {i+1}: {str(e)}")
+                    print(
+                        f"Error creating embedding for chunk {i+1}: {str(e)}")
                     raise Exception(
                         f"Failed to create embedding for chunk {i+1}: {str(e)}"
                     )
@@ -454,10 +462,12 @@ class EmbeddingService:
                 try:
                     self.index.upsert(
                         vectors=[
-                            {"id": chunk_id, "values": embedding, "metadata": metadata}
+                            {"id": chunk_id, "values": embedding,
+                                "metadata": metadata}
                         ]
                     )
-                    print(f"Uploaded chunk {i+1} to Pinecone with ID: {chunk_id}")
+                    print(
+                        f"Uploaded chunk {i+1} to Pinecone with ID: {chunk_id}")
                 except Exception as e:
                     print(f"Error uploading chunk {i+1} to Pinecone: {str(e)}")
                     print(f"Problematic metadata: {metadata}")
@@ -496,7 +506,8 @@ class EmbeddingService:
             dict: Search results with matching chunks
         """
         try:
-            print(f"Creating embedding for search query: {query_text[:100]}...")
+            print(
+                f"Creating embedding for search query: {query_text[:100]}...")
             query_embedding = self.create_embedding(query_text)
 
             # Prepare filter if deal_id is provided
@@ -548,7 +559,8 @@ class MetadataEnhancementService:
 
     def __init__(self):
         # Initialize OpenAI client
-        self.openai_client = openai.OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+        self.openai_client = openai.OpenAI(
+            api_key=os.environ.get("OPENAI_API_KEY"))
         # Schema URL
         self.schema_url = "https://mna-docs.s3.eu-north-1.amazonaws.com/clauses_category_template/Clauses_Category_Template.json"
         # Cache the categories
@@ -673,7 +685,8 @@ Return a JSON object in this exact format:
             logger.info(f"GPT determined category: {category}")
 
             # Clean markdown code block like ```json ... ```  # Clean markdown code block like ```json ... ```
-            markdown_match = re.search(r"```(?:json)?\s*([\s\S]+?)\s*```", category)
+            markdown_match = re.search(
+                r"```(?:json)?\s*([\s\S]+?)\s*```", category)
             if markdown_match:
                 category = markdown_match.group(1).strip()
             # Validate if the returned category is in our list
@@ -711,7 +724,8 @@ Return a JSON object in this exact format:
 
             # Check if category exists in schema
             if not category_name or category_name not in schema:
-                logger.warning(f"Category '{category_name}' not found in schema")
+                logger.warning(
+                    f"Category '{category_name}' not found in schema")
                 return {}
 
             # Get the fields for this category
@@ -772,7 +786,8 @@ Return your answer as a valid JSON object with each field name as the key and th
                 if not metadata_text.startswith("{"):
                     import re
 
-                    json_match = re.search(r"```json\s*([\s\S]*?)\s*```", metadata_text)
+                    json_match = re.search(
+                        r"```json\s*([\s\S]*?)\s*```", metadata_text)
                     if json_match:
                         metadata_text = json_match.group(1)
                     else:
@@ -816,7 +831,8 @@ Return your answer as a valid JSON object with each field name as the key and th
             # Get the text to classify
             text = chunk.get("combined_text", "")
             if not text:
-                logger.warning("Empty text in chunk, skipping category determination")
+                logger.warning(
+                    "Empty text in chunk, skipping category determination")
                 chunk["category_name"] = ""
                 return chunk
 
@@ -920,10 +936,12 @@ class FlattenProcessor:
 
         else:
             print(f"Article: else start")
-            article_label = f"ARTICLE {article.get('article', '')} {article.get('title', '')}".strip()
+            article_label = f"ARTICLE {article.get('article', '')} {article.get('title', '')}".strip(
+            )
             path = path + [article_label]
 
-            article_text = self.clean_unicode_quotes(article.get("text", "")).strip()
+            article_text = self.clean_unicode_quotes(
+                article.get("text", "")).strip()
 
             if not article.get("sections"):
                 if article_text:
@@ -944,7 +962,8 @@ class FlattenProcessor:
                     and "definitions" in section
                     and section.get("definitions") is not None
                 ):
-                    section_label = f"Section {section.get('section', '')} {section.get('title', '')}".strip()
+                    section_label = f"Section {section.get('section', '')} {section.get('title', '')}".strip(
+                    )
                     path_section = path + [section_label]
 
                     for item in section.get("definitions"):
@@ -959,7 +978,8 @@ class FlattenProcessor:
                         )
 
                 else:
-                    section_label = f"Section {section.get('section', '')} {section.get('title', '')}".strip()
+                    section_label = f"Section {section.get('section', '')} {section.get('title', '')}".strip(
+                    )
                     # section_text = self.clean_unicode_quotes(section.get("text", "")).strip()
                     section_text = (
                         " | ".join(
@@ -1044,12 +1064,14 @@ class FlattenProcessor:
                     for key, value in file_data.items():
                         if isinstance(value, dict):
                             # Try to process this as an article
-                            flattened_results.extend(self.walk_structure(value))
+                            flattened_results.extend(
+                                self.walk_structure(value))
                         elif isinstance(value, list):
                             # If the value is a list, process each item
                             for item in value:
                                 if isinstance(item, dict):
-                                    flattened_results.extend(self.walk_structure(item))
+                                    flattened_results.extend(
+                                        self.walk_structure(item))
             else:
                 logger.error(
                     f"Unexpected file_data format. Expected list or dict, got {type(file_data)}"
@@ -1089,7 +1111,8 @@ class ChatWithAIService:
 
     def __init__(self):
         # Initialize OpenAI client
-        self.openai_client = openai.OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+        self.openai_client = openai.OpenAI(
+            api_key=os.environ.get("OPENAI_API_KEY"))
         # Initialize embedding service for vector retrieval
         self.embedding_service = EmbeddingService()
         logger.info("ChatWithAIService initialized")
@@ -1149,7 +1172,8 @@ class ChatWithAIService:
             # Add message history
             for msg in message_history:
                 messages.append(
-                    {"role": msg.get("role", "user"), "content": msg.get("content", "")}
+                    {"role": msg.get("role", "user"),
+                     "content": msg.get("content", "")}
                 )
 
             # Add the current user query
@@ -1226,7 +1250,8 @@ class SummaryGenerationService:
 
     def __init__(self):
         # Initialize OpenAI client
-        self.openai_client = openai.OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+        self.openai_client = openai.OpenAI(
+            api_key=os.environ.get("OPENAI_API_KEY"))
         # Initialize embedding service for vector retrieval
         self.embedding_service = EmbeddingService()
         logger.info("SummaryGenerationService initialized")
@@ -1241,22 +1266,25 @@ class SummaryGenerationService:
             try:
                 object_id = ObjectId(deal_id)
                 job = ProcessingJob.objects.get(id=object_id)
-
+                # print the job
+                print(f"Job: {job}")
                 logger.info(f"Found job in database: {job}")
 
                 schema_results = job.schema_results
-                
+
                 if not schema_results:
-                    logger.info("No schema results found, returning empty list")
+                    logger.info(
+                        "No schema results found, returning empty list")
                     return []
-                
+
                 # Parse JSON string to dictionary
                 if isinstance(schema_results, str):
                     schema_results = json.loads(schema_results)
-                
+
                 clause_util = ClauseConfigUtil()
-                final_summary_sections = clause_util.get_organized_sections_for_summary(schema_results)
-                return final_summary_sections                              
+                final_summary_sections = clause_util.get_organized_sections_for_summary(
+                    schema_results)
+                return final_summary_sections
 
             except DoesNotExist:
                 logger.error(f"No processing job found for deal_id {deal_id}")
@@ -1295,7 +1323,8 @@ class SummaryGenerationService:
             # Check if schema_results exist
             schema_results = job.schema_results
             if not schema_results:
-                logger.warning(f"No schema results found for deal_id {deal_id}")
+                logger.warning(
+                    f"No schema results found for deal_id {deal_id}")
                 return []
 
             logger.info(f"Retrieved schema results for deal_id {deal_id}")
@@ -1351,7 +1380,8 @@ class SummaryGenerationService:
                 for section_name in sections:
                     if section_name != "Complex Consideration":
                         continue
-                    logger.info(f"Submitting section for processing: {section_name}")
+                    logger.info(
+                        f"Submitting section for processing: {section_name}")
                     future = executor.submit(
                         self._process_section, section_name, schema_results, temperature
                     )
@@ -1403,7 +1433,8 @@ class SummaryGenerationService:
                     json.dump(summaries, f, indent=2, ensure_ascii=False)
                 logger.info(f"Summaries saved to file: {filename}")
             except Exception as save_error:
-                logger.error(f"Error saving summaries to file: {str(save_error)}")
+                logger.error(
+                    f"Error saving summaries to file: {str(save_error)}")
 
             return summaries
 
@@ -1562,7 +1593,8 @@ class SummaryGenerationService:
                         "Complete_Effects_on_Capital_Stock", []
                     ):
                         if (
-                            item.get("field_name") == "is_contingent_payment_present"
+                            item.get(
+                                "field_name") == "is_contingent_payment_present"
                             and str(item.get("answer")).lower() == "true"
                         ):
                             contingent_payment_present = True
@@ -1740,7 +1772,8 @@ class SummaryGenerationService:
                     else:
                         return {section_name: "No Go-Shop Terms found."}
                 else:
-                    logger.warning(f"No relevant data found for Go-Shop Terms section.")
+                    logger.warning(
+                        f"No relevant data found for Go-Shop Terms section.")
 
             elif section_name == "Unusual Closing Conditions":
                 sections_to_combine = {
@@ -1781,7 +1814,8 @@ class SummaryGenerationService:
                         ]
                         combined_data.extend(filtered_data)
 
-                special_fields = ["unusual_or_deal_specific_closing_conditions"]
+                special_fields = [
+                    "unusual_or_deal_specific_closing_conditions"]
                 has_valid_special_field = False
                 for item in combined_data:
                     if (
@@ -1871,7 +1905,8 @@ class SummaryGenerationService:
                         section_name, combined_data, temperature, schema_results
                     )
                 else:
-                    logger.warning(f"No relevant data found for Outside Date section.")
+                    logger.warning(
+                        f"No relevant data found for Outside Date section.")
 
             elif section_name == "Regulatory Best Efforts":
                 sections_to_combine = {
@@ -2301,7 +2336,8 @@ Be precise:
         level_of_details = section_config.get("level_of_details", "5")
 
         # Get the appropriate prompt generator or use default
-        prompt_generator = prompt_generators.get(section_name, self._get_default_prompt)
+        prompt_generator = prompt_generators.get(
+            section_name, self._get_default_prompt)
 
         # Generate and return the prompt
         return prompt_generator(
@@ -2722,7 +2758,8 @@ Your response should:
         level_of_details=None,
     ):
         section_data1 = schema_results.get("Regulatory_Obligations_Timing", [])
-        section_data2 = schema_results.get("Regulatory_Obligations_Best_Efforts", [])
+        section_data2 = schema_results.get(
+            "Regulatory_Obligations_Best_Efforts", [])
 
         section_name = "Regulatory Obligations"
 
@@ -2930,8 +2967,10 @@ If the section states "No relevant document sections found" or contains **insuff
         format_type=None,
         level_of_details=None,
     ):
-        section_data1 = schema_results.get("Termination_Fees__Parent_to_Target_", [])
-        section_data2 = schema_results.get("Termination_Fees__Target_to_Parent_", [])
+        section_data1 = schema_results.get(
+            "Termination_Fees__Parent_to_Target_", [])
+        section_data2 = schema_results.get(
+            "Termination_Fees__Target_to_Parent_", [])
         section_data3 = schema_results.get("Termination_Fees__Other_", [])
 
         section_name = "Termination Fees"
@@ -3568,7 +3607,8 @@ class SchemaCategorySearch:
         # S3 service to download schema JSON
         self.s3_service = S3Service()
         # OpenAI client for GPT queries
-        self.openai_client = openai.OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+        self.openai_client = openai.OpenAI(
+            api_key=os.environ.get("OPENAI_API_KEY"))
         # Schema URL
         self.schema_url = "https://mna-docs.s3.eu-north-1.amazonaws.com/clauses_category_template/schema_by_summary_sections.json"
         # Cache for schema
@@ -3589,7 +3629,8 @@ class SchemaCategorySearch:
             logger.info(f"Fetching schema from URL: {self.schema_url}")
             schema = self.s3_service.download_from_url(self.schema_url)
             self._schema = schema
-            logger.info(f"Successfully downloaded schema with {len(schema)} sections")
+            logger.info(
+                f"Successfully downloaded schema with {len(schema)} sections")
             return schema
         except Exception as e:
             logger.error(f"Error fetching schema: {str(e)}")
@@ -3637,7 +3678,8 @@ class SchemaCategorySearch:
                 )
 
             # Call GPT
-            logger.info(f"Calling GPT to extract value for field: {field_name}")
+            logger.info(
+                f"Calling GPT to extract value for field: {field_name}")
             logger.info(f"Find answer Promt {prompt}")
             response = self.openai_client.chat.completions.create(
                 model="gpt-4o",
@@ -3648,10 +3690,12 @@ class SchemaCategorySearch:
 
             # Extract and return the value
             value = response.choices[0].message.content.strip()
-            logger.info(f"Extracted value for field '{field_name}': {value}...")
+            logger.info(
+                f"Extracted value for field '{field_name}': {value}...")
             try:
                 # First check if the response is wrapped in markdown code block
-                markdown_match = re.search(r"```(?:json)?\s*([\s\S]+?)\s*```", value)
+                markdown_match = re.search(
+                    r"```(?:json)?\s*([\s\S]+?)\s*```", value)
                 if markdown_match:
                     # Extract the JSON content from the markdown code block
                     json_content = markdown_match.group(1).strip()
@@ -3702,7 +3746,8 @@ class SchemaCategorySearch:
         """
         try:
             field_name = field.get("field_name", "")
-            logger.info(f"Processing field: {field_name} in section: {section_name}")
+            logger.info(
+                f"Processing field: {field_name} in section: {section_name}")
 
             # Get top categories for this field
             # Get all categories for this field without sorting or limiting
@@ -3718,7 +3763,8 @@ class SchemaCategorySearch:
                 ]
 
                 if not categories:
-                    logger.warning(f"No categories found for field: {field_name}")
+                    logger.warning(
+                        f"No categories found for field: {field_name}")
                     return {
                         "section": section_name,
                         "field_name": field_name,
@@ -3764,7 +3810,8 @@ class SchemaCategorySearch:
                     seen_texts.add(text)
                     unique_chunks.append(chunk)
 
-            logger.info(f"Found All {len(all_chunks)} All chunks matching categories")
+            logger.info(
+                f"Found All {len(all_chunks)} All chunks matching categories")
             logger.info(
                 f"Found Unique {len(unique_chunks)} unique chunks matching categories"
             )
@@ -3810,7 +3857,8 @@ class SchemaCategorySearch:
         try:
             field_name = field.get("field_name", "")
             question_query = field.get("question_query", "")
-            logger.info(f"Processing field: {field_name} in section: {section_name}")
+            logger.info(
+                f"Processing field: {field_name} in section: {section_name}")
 
             # Get categories for this field (same as before)
             categories = []
@@ -3840,7 +3888,8 @@ class SchemaCategorySearch:
             embedding = EmbeddingService()
 
             # FIRST QUERY: using field instructions (original query)
-            query_embedding_1 = embedding.create_embedding(field["instructions"])
+            query_embedding_1 = embedding.create_embedding(
+                field["instructions"])
 
             # Search in Pinecone using metadata filtering with original query
             search_response_1 = index.query(
@@ -3877,7 +3926,8 @@ class SchemaCategorySearch:
 
             # Combine results from both queries
             all_chunks = chunks_1 + chunks_2
-            logger.info(f"Combined chunks before deduplication: {len(all_chunks)}")
+            logger.info(
+                f"Combined chunks before deduplication: {len(all_chunks)}")
 
             # Remove duplicates
             unique_chunks = []
@@ -3888,7 +3938,8 @@ class SchemaCategorySearch:
                     seen_texts.add(text)
                     unique_chunks.append(chunk)
 
-            logger.info(f"Found All {len(all_chunks)} chunks matching categories")
+            logger.info(
+                f"Found All {len(all_chunks)} chunks matching categories")
             logger.info(
                 f"Found Unique {len(unique_chunks)} unique chunks after deduplication"
             )
@@ -3990,7 +4041,8 @@ class SchemaCategorySearch:
                         # Change this to your desired section
                         # if section_name == "best_efforts":
 
-                        logger.info(f"Submitting tasks for section: {section_name}")
+                        logger.info(
+                            f"Submitting tasks for section: {section_name}")
 
                         # Initialize the section's results
                         results[section_name] = {}
@@ -4054,7 +4106,8 @@ class SchemaCategorySearch:
                                     field,
                                     deal_id,
                                 )
-                                futures[section_name].append((field_name, future))
+                                futures[section_name].append(
+                                    (field_name, future))
                                 # else:
                                 #     logger.info(
                                 # f"Skipping field: {field_name}")
@@ -4062,7 +4115,8 @@ class SchemaCategorySearch:
                         elif isinstance(section_value, dict):
                             # Handle as a nested object with subsections (new format)
                             for subsection_name, fields in section_value.items():
-                                logger.info(f"Processing subsection: {subsection_name}")
+                                logger.info(
+                                    f"Processing subsection: {subsection_name}")
                                 # if subsection_name == "reverse_termination_fee":
                                 # continue
 
@@ -4202,7 +4256,8 @@ class SchemaCategorySearch:
                             try:
                                 # Get the result from the future
                                 field_result = future.result()
-                                logger.info(f"Completed field result: {field_result}")
+                                logger.info(
+                                    f"Completed field result: {field_result}")
                                 results[section_name].append(field_result)
                             except Exception as e:
                                 logger.error(
@@ -4273,7 +4328,8 @@ class SchemaCategorySearch:
                     json.dump(results, f, indent=2, ensure_ascii=False)
                 logger.info(f"Results saved to file: {filename}")
             except Exception as save_error:
-                logger.error(f"Error saving results to file: {str(save_error)}")
+                logger.error(
+                    f"Error saving results to file: {str(save_error)}")
 
             return results
 
