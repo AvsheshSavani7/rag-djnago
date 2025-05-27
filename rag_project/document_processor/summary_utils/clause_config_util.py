@@ -30,10 +30,6 @@ class ClauseConfigUtil:
             ],
         }
 
-        convenant_clauses = [
-            "Ordinary Course",
-        ]
-
     def get_organized_sections_for_summary(self, schema):
 
         concise = []
