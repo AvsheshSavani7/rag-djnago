@@ -191,6 +191,7 @@ class DocumentProcessingService:
             category_results = schema_search.search_all_schema_categories(
                 deal_id=str(job_id)
             )
+
             # Update job status to completed
             # job.save_json_to_db(category_results)
             job.upsert_json_to_db(category_results)
@@ -1284,6 +1285,7 @@ class SummaryGenerationService:
                 clause_util = ClauseConfigUtil()
                 final_summary_sections = clause_util.get_organized_sections_for_summary(
                     schema_results)
+
                 return final_summary_sections
 
             except DoesNotExist:
@@ -3692,6 +3694,10 @@ class SchemaCategorySearch:
             value = response.choices[0].message.content.strip()
             logger.info(
                 f"Extracted value for field '{field_name}': {value}...")
+
+            logger.info(f"Token usage - Prompt: {response.usage.prompt_tokens}, " +
+                        f"Completion: {response.usage.completion_tokens}, " +
+                        f"Total: {response.usage.total_tokens}")
             try:
                 # First check if the response is wrapped in markdown code block
                 markdown_match = re.search(
@@ -3709,6 +3715,7 @@ class SchemaCategorySearch:
                 # Extract all fields
                 return {
                     "answer": parsed_response.get("answer", ""),
+                    "summary": parsed_response.get("summary", ""),
                     "confidence": parsed_response.get("confidence", 1.0),
                     "reason": parsed_response.get("reason", ""),
                     "clause_text": parsed_response.get("clause_text", ""),
@@ -3894,7 +3901,7 @@ class SchemaCategorySearch:
             # Search in Pinecone using metadata filtering with original query
             search_response_1 = index.query(
                 vector=query_embedding_1,
-                top_k=5,  # Reduced from 10 to 5 as requested
+                top_k=3,  # Reduced from 10 to 5 as requested
                 include_metadata=True,
                 filter=filter_dict,
             )
@@ -3913,7 +3920,7 @@ class SchemaCategorySearch:
             # Search in Pinecone using metadata filtering with section name
             search_response_2 = index.query(
                 vector=query_embedding_2,
-                top_k=5,  # Use top_k=5 for section name query too
+                top_k=9,  # Use top_k=5 for section name query too
                 include_metadata=True,
                 filter=filter_dict,
             )
@@ -3965,10 +3972,12 @@ class SchemaCategorySearch:
                 "section": section_name,
                 "field_name": field_name,
                 "answer": value["answer"],
+                "summary": value["summary"],
                 "confidence": value["confidence"],
                 "reason": value["reason"],
                 "clause_text": value["clause_text"],
                 "reference_section": value["reference_section"],
+
                 # "categories_used": categories
             }
 
@@ -3978,7 +3987,11 @@ class SchemaCategorySearch:
             return {
                 "section": section_name,
                 "field_name": field.get("field_name", "unknown"),
-                "value": f"Error: {str(e)}",
+                "answer": f"Error: {str(e)}",
+                "confidence": 0.0,
+                "reason": "Processing error",
+                "clause_text": "",
+                "reference_section": "",
                 "categories_used": [],
             }
 
@@ -4013,7 +4026,7 @@ class SchemaCategorySearch:
         try:
             results = {}
             # Set up a ThreadPoolExecutor with a reasonable number of workers
-            with concurrent.futures.ThreadPoolExecutor(max_workers=20) as executor:
+            with concurrent.futures.ThreadPoolExecutor(max_workers=8) as executor:
                 # Dictionary to track all future objects by section and field
                 futures = {}
 
@@ -4039,7 +4052,7 @@ class SchemaCategorySearch:
                         "best_efforts",
                     ]:
                         # Change this to your desired section
-                        # if section_name == "best_efforts":
+                        # if section_name == "conditions_to_closing":
 
                         logger.info(
                             f"Submitting tasks for section: {section_name}")
@@ -4143,15 +4156,15 @@ class SchemaCategorySearch:
                                     futures[section_name][subsection_name].append(
                                         (field_name, future)
                                     )
-                                    # else:
-                                    #     logger.info(
-                                    #         f"Skipping field: {field_name}")
-                                # else:
-                                #     logger.info(
-                                #         f"Skipping section: {section_name}")
+                            # else:
+                            #     logger.info(
+                            #         f"Skipping field: {field_name}")
                         # else:
                         #     logger.info(
                         #         f"Skipping section: {section_name}")
+                    # else:
+                    #     logger.info(
+                    #         f"Skipping section: {section_name}")
                     else:
                         logger.info(f"Skipping section: {section_name}")
 

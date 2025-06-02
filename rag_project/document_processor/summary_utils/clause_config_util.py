@@ -7,6 +7,9 @@ from ..clause_configs.clause_config_conditions_to_closing import (
 )
 from ..clause_configs.financing_summary import (
     FINANCING_SUMMARY_CLAUSE_CONFIG)
+from ..clause_configs.closing_mechanics import (
+    CLOSING_MECHANICS_CLAUSE_CONFIG,
+)
 from .summarize_util import SummaryEngineUtil
 import logging
 from .conditions_summary import ConditionSummarizer
@@ -23,6 +26,7 @@ class ClauseConfigUtil:
             **NON_SOLICITATION_CLAUSE_CONFIG,
             **CLOSING_CONDITIONS_CLAUSE_CONFIG,
             **FINANCING_SUMMARY_CLAUSE_CONFIG,
+            **CLOSING_MECHANICS_CLAUSE_CONFIG,
             # Add more configs here
         }
 
@@ -34,6 +38,11 @@ class ClauseConfigUtil:
             "conditions_to_closing": [],
             "convenant_clauses": [
                 "Ordinary Course",
+            ],
+            "closing_mechanics": [
+                "Target Date",
+                "Marketing Period",
+                "Inside Date"
             ],
             "financial_clauses": [
                 "Committed Financing",
@@ -56,20 +65,19 @@ class ClauseConfigUtil:
 
 
 
+
         }
 
     def get_organized_sections_for_summary(self, schema):
         sections = []
         all_labels = self.clause_config.keys()
         sumamry_util = SummaryEngineUtil()
+        print(f"DEBUG: all_labels → {all_labels}")
 
         def summarize_clause(category, base):
             concise_label = f"{base} - Concise"
             fulsome_label = f"{base} - Fulsome"
             result = {"category": category, "concise": {}, "fullsome": {}}
-
-            logger.info(f"DEBUG: concise_label → {concise_label}")
-            logger.info(f"DEBUG: fulsome_label → {fulsome_label}")
 
             if concise_label in all_labels:
                 summary = sumamry_util.summarize_from_config(
@@ -84,7 +92,8 @@ class ClauseConfigUtil:
             return result
 
         with ThreadPoolExecutor(max_workers=25) as executor:
-            futures = []
+            # Store (future, section_obj, clause_type, label)
+            futures_meta = []
 
             for category in self.active_clauses:
                 section_obj = {category: {"concise": {}, "fullsome": {}}}
@@ -94,127 +103,81 @@ class ClauseConfigUtil:
                     summarizer = RegulatorySummarizer(schema.get(
                         "best_efforts"), parent_name="James Hardie")
 
-                    # Create futures for all best_efforts operations instead of running sequentially
-                    concise_futures = [
-                        executor.submit(
-                            summarizer.summarize_divestiture_section),
-                        executor.submit(
-                            summarizer.summarize_litigation_commitments)
-                    ]
+                    # Submit tasks
+                    task_map = {
+                        "Divestiture – Concise": summarizer.summarize_divestiture_section,
+                        "Litigation – Concise": summarizer.summarize_litigation_commitments,
+                        "HSR Filing – fullsome": summarizer.summarize_hsr_filing,
+                        "CFIUS Filing – fullsome": summarizer.summarize_cfiius_filing,
+                        "Foreign Filing – fullsome": summarizer.summarize_foreign_filing,
+                        "Effort Standard – fullsome": summarizer.summarize_effort_standard,
+                        "Withdrawal Control – fullsome": summarizer.summarize_withdrawal_controls,
+                        "Timing Agreement Restriction – fullsome": summarizer.summarize_timing_agreement,
+                        "Divestiture Cap Fulfsome": summarizer.summarize_divestiture_cap_fulsome,
+                        "Prior Approval Commitment – fullsome": summarizer.summarize_prior_approval_commitment,
+                        "Transaction Interference – fullsome": summarizer.summarize_transaction_interference,
+                        "Second Request Certification – fullsome": summarizer.summarize_second_request_certification,
+                        "FTC Warning Letter Handling – fullsome": summarizer.summarize_ftc_warning_letter_handling,
+                    }
 
-                    fullsome_futures = [
-                        executor.submit(summarizer.summarize_hsr_filing),
-                        executor.submit(summarizer.summarize_cfiius_filing),
-                        executor.submit(summarizer.summarize_foreign_filing),
-                        executor.submit(summarizer.summarize_effort_standard),
-                        executor.submit(
-                            summarizer.summarize_withdrawal_controls),
-                        executor.submit(summarizer.summarize_timing_agreement),
-                        executor.submit(
-                            summarizer.summarize_divestiture_cap_fulsome),
-                        executor.submit(
-                            summarizer.summarize_prior_approval_commitment),
-                        executor.submit(
-                            summarizer.summarize_transaction_interference),
-                        executor.submit(
-                            summarizer.summarize_second_request_certification),
-                        executor.submit(
-                            summarizer.summarize_ftc_warning_letter_handling)
-                    ]
-
-                    # Add results as they complete
-                    section_obj[category]["concise"]["Divestiture – Concise"] = concise_futures[0].result(
-                    )
-                    section_obj[category]["concise"]["Litigation – Concise"] = concise_futures[1].result(
-                    )
-
-                    section_obj[category]["fullsome"]["HSR Filing – fullsome"] = fullsome_futures[0].result(
-                    )
-                    section_obj[category]["fullsome"]["CFIUS Filing – fullsome"] = fullsome_futures[1].result(
-                    )
-                    section_obj[category]["fullsome"]["Foreign Filing – fullsome"] = fullsome_futures[2].result(
-                    )
-                    section_obj[category]["fullsome"]["Effort Standard – fullsome"] = fullsome_futures[3].result(
-                    )
-                    section_obj[category]["fullsome"]["Withdrawal Control – fullsome"] = fullsome_futures[4].result(
-                    )
-                    section_obj[category]["fullsome"]["Timing Agreement Restriction – fullsome"] = fullsome_futures[5].result(
-                    )
-                    section_obj[category]["fullsome"]["Divestiture Cap Fulfsome"] = fullsome_futures[6].result(
-                    )
-                    section_obj[category]["fullsome"]["Prior Approval Commitment – fullsome"] = fullsome_futures[7].result(
-                    )
-                    section_obj[category]["fullsome"]["Transaction Interference – fullsome"] = fullsome_futures[8].result(
-                    )
-                    section_obj[category]["fullsome"]["Second Request Certification – fullsome"] = fullsome_futures[9].result(
-                    )
-                    section_obj[category]["fullsome"]["FTC Warning Letter Handling – fullsome"] = fullsome_futures[10].result(
-                    )
+                    for label, fn in task_map.items():
+                        clause_type = "concise" if "Concise" in label else "fullsome"
+                        future = executor.submit(fn)
+                        futures_meta.append(
+                            (future, section_obj, category, clause_type, label))
 
                 elif category == "board_approvals":
                     summarizer = BoardApprovalsSummarizer(
                         schema.get("board_approval"))
-                    concise_futures = [executor.submit(
-                        summarizer.get_consice_summary)]
+                    concise_future = executor.submit(
+                        summarizer.get_consice_summary)
+                    fullsome_future = executor.submit(
+                        summarizer.get_fulsome_summary)
 
-                    fullsome_futures = [executor.submit(
-                        summarizer.get_fulsome_summary)]
-
-                    section_obj[category]["concise"]["Board Approvals – Concise"] = concise_futures[0].result(
-                    )
-
-                    if concise_futures.__len__() > 1:
-                        section_obj[category]["concise"]["Board Approvals – Concise2"] = concise_futures[1].result(
-                        )
-
-                    section_obj[category]["fullsome"]["Board Approvals – fullsome"] = fullsome_futures[0].result(
-                    )
+                    futures_meta.append(
+                        (concise_future, section_obj, category, "concise", "Board Approvals – Concise"))
+                    futures_meta.append(
+                        (fullsome_future, section_obj, category, "fullsome", "Board Approvals – fullsome"))
 
                 elif category == "conditions_to_closing":
                     summarizer = ConditionSummarizer(
                         schema.get("conditions_to_closing"))
 
-                    # Create futures for all conditions_to_closing operations
-                    concise_futures = [
-                        executor.submit(
-                            summarizer.summarize_mutual_conditions),
-                        executor.submit(
-                            summarizer.summarize_parent_conditions),
-                        executor.submit(
-                            summarizer.summarize_company_conditions)
-                    ]
+                    task_map = {
+                        "Mutual Conditions – Concise": summarizer.summarize_mutual_conditions,
+                        "Parent Closing Conditions – Concise": summarizer.summarize_parent_conditions,
+                        "Company Closing Conditions – Concise": summarizer.summarize_company_conditions,
+                        "Special Conditions Summary": summarizer.summarize_additional_key_conditions,
+                        "Non-Customary Conditions": summarizer.summarize_non_customary_conditions,
+                    }
 
-                    fullsome_futures = [
-                        executor.submit(
-                            summarizer.summarize_additional_key_conditions),
-                        executor.submit(
-                            summarizer.summarize_non_customary_conditions)
-                    ]
-
-                    # Add results as they complete
-                    section_obj[category]["concise"]["Mutual Conditions – Concise"] = concise_futures[0].result(
-                    )
-                    section_obj[category]["concise"]["Parent Closing Conditions – Concise"] = concise_futures[1].result(
-                    )
-                    section_obj[category]["concise"]["Company Closing Conditions – Concise"] = concise_futures[2].result(
-                    )
-                    section_obj[category]["fullsome"]["Special Conditions Summary"] = fullsome_futures[0].result(
-                    )
-                    section_obj[category]["fullsome"]["Non-Customary Conditions"] = fullsome_futures[1].result()
+                    for label, fn in task_map.items():
+                        clause_type = "concise" if "Concise" in label else "fullsome"
+                        future = executor.submit(fn)
+                        futures_meta.append(
+                            (future, section_obj, category, clause_type, label))
 
                 else:
                     for base in self.active_clauses[category]:
-                        futures.append(executor.submit(
-                            summarize_clause, category, base))
+                        future = executor.submit(
+                            summarize_clause, category, base)
+                        # 'bulk' for merged later
+                        futures_meta.append(
+                            (future, section_obj, category, "bulk", None))
 
-            # Merge threaded results
-            for future in as_completed(futures):
+            future_to_meta = {fut: (section_obj, category, clause_type, label)
+                              for fut, section_obj, category, clause_type, label in futures_meta}
+
+            # Collect and assign results
+            for future in as_completed(future_to_meta.keys(), timeout=None):
+                section_obj, category, clause_type, label = future_to_meta[future]
                 result = future.result()
-                for sec in sections:
-                    if result["category"] in sec:
-                        sec[result["category"]]["concise"].update(
-                            result["concise"])
-                        sec[result["category"]]["fullsome"].update(
-                            result["fullsome"])
+
+                if clause_type == "bulk":
+                    section_obj[category]["concise"].update(result["concise"])
+                    section_obj[category]["fullsome"].update(
+                        result["fullsome"])
+                else:
+                    section_obj[category][clause_type][label] = result
 
         return sections

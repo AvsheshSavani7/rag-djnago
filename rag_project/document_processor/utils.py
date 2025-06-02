@@ -24,13 +24,22 @@ Your response must be in one of the following formats:
     1. If the answer is clear and explicit, return: {{"answer": "..." }}
     2. If the concept clearly does not apply to this section, return: {{"answer": "NA" }}
     3. If the field should apply but there is no information present, return: {{ "answer": "Not found" }}
-    4. If the answer must be inferred based on indirect or functionally equivalent language, return:
+    4. If the Question explicitly ask for boolean value then return: 
+    {{
+        "answer": true/false,
+        "reason": "One sentence explanation citing specific language or the absence of such language",
+        "clause_text": "Exact sentence(s) or passage from the document supporting the boolean conclusion (up to 120 words)",
+        "reference_section": "Precise legal reference path such as: 'ARTICLE V – Covenants and Agreements > Section 5.4 – Appropriate Action; Consents; Filings > (a) > (i)'"
+    }}
+    5. If the answer must be inferred based on indirect or functionally equivalent language, return:
     {{
         "answer": "...",
+        "summary": "clear and concise 1-2 sentence summary using legal and financial language. can pull directly from clause text.",
         "confidence": (float between 0 and 1),
         "reason": "One sentence explanation citing specific language",
-        "clause_text": ("Extract and return the verbatim text of the sentence or clause from the document that directly supports the answer. If multiple sentences are relevant, include the full passage using exact legal language, but do not paraphrase or summarize. The total extracted text should not exceed 120 words. If the supporting clause exceeds this limit, include only the first complete sentences up to 120 words without cutting off mid-sentence.),
-        "reference_section": ( Provide the full hierarchical label for the clause from which the clause_text is extracted. This must include the article title, section heading, and any identified subclauses or paragraphs (e.g., '(a)', '(i)') from the source material. If the label for the chunk or excerpt includes subclause references, include them in the response as part of the reference. The goal is to return the most precise legal reference path, such as: 'ARTICLE V – Covenants and Agreements > Section 5.4 – Appropriate Action; Consents; Filings > (a) > (i)'.)
+        "clause_text": (Extract and return the verbatim text of the sentence or clause from the document that directly supports the answer. If multiple sentences are relevant, include the full passage using exact legal language, but do not paraphrase or summarize. The total extracted text should not exceed 120 words. If the supporting clause exceeds this limit, include only the first complete sentences up to 120 words without cutting off mid-sentence.),
+        "reference_section": ( Provide the full hierarchical label for the clause from which the clause_text is extracted. This must include the article title, section heading, and any identified subclauses or paragraphs (e.g., '(a)', '(i)') from the source material. If the label for the chunk or excerpt includes subclause references, include them in the response as part of the reference. The goal is to return the most precise legal reference path, such as: 'ARTICLE V – Covenants and Agreements > Section 5.4 – Appropriate Action; Consents; Filings > (a) > (i)'.),
+        
     }}
 
 Do **not** return summaries, paraphrased explanations, or fallback phrases like "No relevant document sections found". Only use one of the formats above.
@@ -39,10 +48,11 @@ Return your final result strictly in this JSON format (nothing else):
 
 {{
   "answer": "...",
-  "clause_text": ("Extract and return the verbatim text of the sentence or clause from the document that directly supports the answer. If multiple sentences are relevant, include the full passage using exact legal language, but do not paraphrase or summarize. The total extracted text should not exceed 120 words. If the supporting clause exceeds this limit, include only the first complete sentences up to 120 words without cutting off mid-sentence.),
+  "summary": "clear and concise 1-2 sentence summary using legal and financial language. can pull directly from clause text.",
+  "clause_text": (Extract and return the verbatim text of the sentence or clause from the document that directly supports the answer. If multiple sentences are relevant, include the full passage using exact legal language, but do not paraphrase or summarize. The total extracted text should not exceed 120 words. If the supporting clause exceeds this limit, include only the first complete sentences up to 120 words without cutting off mid-sentence.),
   "reference_section": (Provide the full hierarchical label for the clause from which the clause_text is extracted. This must include the article title, section heading, and any identified subclauses or paragraphs (e.g., '(a)', '(i)') from the source material. If the label for the chunk or excerpt includes subclause references, include them in the response as part of the reference. The goal is to return the most precise legal reference path, such as: 'ARTICLE V – Covenants and Agreements > Section 5.4 – Appropriate Action; Consents; Filings > (a) > (i)'.)
 }}
-
+- Do **not** forget to add the clause_text for any type of field.
 - Do **not** use quotes for numbers or booleans or dates.
 """
 
@@ -84,17 +94,30 @@ Based **only** on the content provided in chunks, respond using **one of the fou
     1. If the answer is clearly stated, return:{{ "answer": "..." }}
     2. If it is clear that the field does not apply at all, return:{{ "answer": "NA" }}
     3. If the field should apply but there is truly no relevant information in the excerpts, return:{{ "answer": "Not found" }}
-    4. If the answer is implied but not stated, and you are confident in the inference, return:{{
+    4. If the Question explicitly ask for boolean value then return: 
+    {{
+        "answer": true/false,
+        "reason": "One sentence explanation citing specific language or the absence of such language",
+        "clause_text": "Exact sentence(s) or passage from the document supporting the boolean conclusion (up to 120 words)",
+        "reference_section": "Precise legal reference path such as: 'ARTICLE V – Covenants and Agreements > Section 5.4 – Appropriate Action; Consents; Filings > (a) > (i)'"
+    }}
+    5. If the answer is implied but not stated, and you are confident in the inference, return:{{
         "answer": "...",
+        "summary": "clear and concise 1-2 sentence summary using legal and financial language. can pull directly from clause text.",
         "confidence": (float between 0 and 1),
         "reason": "One-sentence explanation based on specific wording or structure",
         "clause_text": (Extract and return the verbatim text of the sentence or clause from the document that directly supports the answer. If multiple sentences are relevant, include the full passage using exact legal language, but do not paraphrase or summarize. The total extracted text should not exceed 120 words. If the supporting clause exceeds this limit, include only the first complete sentences up to 120 words without cutting off mid-sentence.),
         "reference_section": (Provide the full hierarchical label for the clause from which the clause_text is extracted. This must include the article title, section heading, and any identified subclauses or paragraphs (e.g., '(a)', '(i)') from the source material. If the label for the chunk or excerpt includes subclause references, include them in the response as part of the reference. The goal is to return the most precise legal reference path, such as: 'ARTICLE V – Covenants and Agreements > Section 5.4 – Appropriate Action; Consents; Filings > (a) > (i)'.)
     }}
 
-        Always prefer format 4 over "Not found" when the meaning is legally inferable or strongly implied by standard language.
-        Return your final result **strictly** in JSON format:{{ "answer": "..." , "clause_text": ("Extract and return the verbatim text of the sentence or clause from the document that directly supports the answer. If multiple sentences are relevant, include the full passage using exact legal language, but do not paraphrase or summarize. The total extracted text should not exceed 120 words. If the supporting clause exceeds this limit, include only the first complete sentences up to 120 words without cutting off mid-sentence.),
-  "reference_section": ( Provide the full hierarchical label for the clause from which the clause_text is extracted. This must include the article title, section heading, and any identified subclauses or paragraphs (e.g., '(a)', '(i)') from the source material. If the label for the chunk or excerpt includes subclause references, include them in the response as part of the reference. The goal is to return the most precise legal reference path, such as: 'ARTICLE V – Covenants and Agreements > Section 5.4 – Appropriate Action; Consents; Filings > (a) > (i)'.)}}
-
-    Do **not** include quotes for numbers, booleans, or dates.
+        Always prefer format 5 over "Not found" when the meaning is legally inferable or strongly implied by standard language.
+        Return your final result **strictly** in JSON format:
+        {{
+              "answer": "..." , 
+              "summary": "clear and concise 1-2 sentence summary using legal and financial language. can pull directly from clause text.",
+              "clause_text": (Extract and return the verbatim text of the sentence or clause from the document that directly supports the answer. If multiple sentences are relevant, include the full passage using exact legal language, but do not paraphrase or summarize. The total extracted text should not exceed 120 words. If the supporting clause exceeds this limit, include only the first complete sentences up to 120 words without cutting off mid-sentence.),
+            "reference_section": ( Provide the full hierarchical label for the clause from which the clause_text is extracted. This must include the article title, section heading, and any identified subclauses or paragraphs (e.g., '(a)', '(i)') from the source material. If the label for the chunk or excerpt includes subclause references, include them in the response as part of the reference. The goal is to return the most precise legal reference path, such as: 'ARTICLE V – Covenants and Agreements > Section 5.4 – Appropriate Action; Consents; Filings > (a) > (i)'.)
+        }}
+    - Do **not** forget to add the clause_text for any type of field.
+    - Do **not** include quotes for numbers, booleans, or dates.
 """

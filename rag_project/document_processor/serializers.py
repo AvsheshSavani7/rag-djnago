@@ -7,7 +7,8 @@ class ProcessingJobSerializer(serializers.Serializer):
     cik = serializers.CharField(required=False, allow_null=True)
     acquire_name = serializers.CharField(required=False, allow_null=True)
     target_name = serializers.CharField(required=False, allow_null=True)
-    announce_date = serializers.DateTimeField(format="%Y-%m-%d", required=False, allow_null=True)
+    announce_date = serializers.DateTimeField(
+        format="%Y-%m-%d", required=False, allow_null=True)
     embedding_status = serializers.CharField()
     file_url = serializers.URLField()
     parsed_json_url = serializers.URLField(required=False, allow_null=True)
@@ -15,9 +16,10 @@ class ProcessingJobSerializer(serializers.Serializer):
     error_message = serializers.CharField(required=False, allow_null=True)
     createdAt = serializers.DateTimeField(format="%Y-%m-%d %H:%M:%S")
     updatedAt = serializers.DateTimeField(format="%Y-%m-%d %H:%M:%S")
-    schema_results = serializers.DictField(required=False, allow_null=True)
+    schema_results = serializers.JSONField(required=False, allow_null=True)
     schema_processing_completed = serializers.BooleanField()
-    schema_processing_timestamp = serializers.DateTimeField(required=False, allow_null=True)
+    schema_processing_timestamp = serializers.DateTimeField(
+        required=False, allow_null=True)
 
 
 class FileProcessRequestSerializer(serializers.Serializer):

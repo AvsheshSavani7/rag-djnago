@@ -121,6 +121,7 @@ class ProcessView(APIView):
                                     # Process document directly using the service
                                     process_result = doc_processor.process_document(
                                         file_url=file_url,
+                                        # file_url="https://rag-mna.s3.eu-north-1.amazonaws.com/parsed_jsons/spirit_airlines__inc__2022-07-28_original.json",
                                         deal_id=deal_id
                                     )
 
