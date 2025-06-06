@@ -119,7 +119,7 @@ class SummaryEngineUtil:
         logger.info(f"DEBUG: included → {included_field}")
         logger.info(f"DEBUG: Soruce Item → {source_item}")
         logger.info(
-            f"DEBUG: included_value → {source_item.get(included_field, "")}")
+            f"DEBUG: included_value → {source_item.get(included_field, '')}")
 
         # ----- Handle exclusion -----
         if not included:
