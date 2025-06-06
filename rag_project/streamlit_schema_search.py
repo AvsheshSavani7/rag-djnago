@@ -59,6 +59,14 @@ st.markdown("""
         white-space: pre;
         overflow-x: auto;
     }
+    .st-emotion-cache-zy6yx3 {
+        padding: 1rem 0.5rem 1rem 0.5rem !important;
+        margin: 0.5rem 0 !important;
+        border-radius: 0.5rem !important;
+        font-size: 0.9rem !important;
+        line-height: 1.5 !important;
+        border: none !important;
+    }
     .diff-viewer {
         font-family: monospace;
         white-space: pre-wrap;
@@ -146,7 +154,7 @@ st.markdown("""
         top: 0;
         z-index: 999;
         background-color: white;
-        padding: 10px 0;
+        padding: 5px 0;
         border-bottom: 1px solid #eee;
         margin-bottom: 20px;
     }
@@ -628,7 +636,16 @@ with edit_tab:
         # Filter the schema to show only specific fields
         current_schema = filter_schema_fields(full_schema)
 
-        st.subheader(f"JSON Editor - {edit_section}")
+        # Create two columns for the header area
+        header_col1, header_col2 = st.columns([3, 1])
+
+        with header_col1:
+            st.subheader(f"JSON Editor - {edit_section}")
+
+        with header_col2:
+            # Save button aligned to the right
+            st.button("💾 Save Changes", type="primary", key="save_button")
+
         # Create an ACE editor for JSON
         edited_content = st_ace(
             value=json.dumps(current_schema, indent=2),
@@ -643,8 +660,8 @@ with edit_tab:
             font_size=14,
         )
 
-        # Save button
-        if st.button("💾 Save Changes", type="primary"):
+        # Handle save button click
+        if st.session_state.get("save_button"):
             try:
                 logger.info(f"Saving changes for section: {edit_section}")
                 edited_json = json.loads(edited_content)
@@ -659,6 +676,7 @@ with edit_tab:
                 # Save to session state
                 st.session_state.edited_schema[edit_section] = merged
 
+                # Show success message with proper text
                 st.success("Successfully saved changes locally")
 
             except json.JSONDecodeError as e:
