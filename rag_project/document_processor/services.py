@@ -3765,6 +3765,7 @@ class SchemaCategorySearch:
                     "reason": parsed_response.get("reason", ""),
                     "clause_text": parsed_response.get("clause_text", ""),
                     "reference_section": parsed_response.get("reference_section", ""),
+                    "prompt": prompt,
                 }
 
             except json.JSONDecodeError as e:
@@ -3892,6 +3893,7 @@ class SchemaCategorySearch:
                 "confidence": value["confidence"],
                 "reason": value["reason"],
                 "categories_used": categories,
+                "prompt": value["prompt"],
             }
 
         except Exception as e:
@@ -3902,6 +3904,7 @@ class SchemaCategorySearch:
                 "field_name": field.get("field_name", "unknown"),
                 "value": f"Error: {str(e)}",
                 "categories_used": [],
+                "prompt": "",
             }
 
     def process_schema_field1(self, section_name, field, deal_id, subsection_name=None):
@@ -4074,7 +4077,7 @@ class SchemaCategorySearch:
                 "reason": value["reason"],
                 "clause_text": value["clause_text"],
                 "reference_section": value["reference_section"],
-
+                "prompt": value["prompt"],
                 # "categories_used": categories
             }
 
@@ -4090,6 +4093,7 @@ class SchemaCategorySearch:
                 "clause_text": "",
                 "reference_section": "",
                 "categories_used": [],
+                "prompt": "",
             }
 
     def remove_duplicate_chunks(chunks):
