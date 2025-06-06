@@ -1,23 +1,15 @@
 from document_processor.services import SchemaCategorySearch
-from django.conf import settings
-import json
 import streamlit as st
-import django
-import os
-import sys
-from pathlib import Path
 from streamlit_ace import st_ace
+import json
+from pathlib import Path
+import os
 
-# Setup Django environment first
-current_dir = Path(__file__).resolve().parent
-parent_dir = current_dir.parent
-sys.path.insert(0, str(parent_dir))
+# Initialize Django first, before any other imports
+from django_init import init_django
+init_django()
 
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'rag_project.settings')
-
-# Only setup Django if it hasn't been set up yet
-if not django.conf.settings.configured:
-    django.setup()
+# Now we can safely import Django-related modules
 
 # Set page config
 st.set_page_config(
@@ -72,6 +64,7 @@ if 'edited_schema' not in st.session_state:
     st.session_state.edited_schema = {}
 if 'full_schema' not in st.session_state:
     # Load the original schema
+    current_dir = Path(__file__).resolve().parent
     schema_path = os.path.join(current_dir, 'schema_by_summary_sections.json')
     try:
         with open(schema_path, 'r') as f:
