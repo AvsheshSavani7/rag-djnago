@@ -1,0 +1,644 @@
+{
+  "termination": {
+    "outside_date": [
+      {
+        "question_query": "aaa,termination,Preamble, Recitals, AGREEMENT AND PLAN OF MERGER",
+        "field_name": "primary_date",
+        "instructions": "Identify the initial 'Outside Date' specified in the agreement-this is the earliest date on which either party may terminate the agreement if the merger has not yet closed. Return the exact calendar date if explicitly provided (e.g., 'March 31, 2025'). If the Outside Date is expressed as a relative time frame (e.g., '9 months from the Agreement Date' or '270 days after signing'), calculate and return the exact calendar date using the Agreement Date. Only consider the earliest such date or condition stated in the termination provisions.",
+        "definition": "The first contractual deadline by which the transaction must be consummated; failure to close by this date allows termination.",
+        "purpose": "Establishes the initial timeline for closing and defines when termination rights become available due to delay.",
+        "rag_note": "Helps identify termination timing clauses that dictate when the deal must be closed or may be abandoned.",
+        "recommended_prompt_type": "Precision-optimized",
+        "category_mapping": [
+          {
+            "category": "Termination  >  End Date Termination Right",
+            "rank": 1,
+            "match_score": 98,
+            "rationale": "This field defines the initial contractual termination deadline, directly aligning with termination rights based on failure to close."
+          },
+          {
+            "category": "Termination  >  Notice of Termination",
+            "rank": 2,
+            "match_score": 89,
+            "rationale": "Understanding when termination may be initiated relates to how and when notice must be given."
+          },
+          {
+            "category": "The Merger  >  Closing Deliverables",
+            "rank": 3,
+            "match_score": 83,
+            "rationale": "The outside date is often linked to timing of required deliverables at closing."
+          }
+        ]
+      }
+    ],
+    "extension": [
+      {
+        "question_query": "termination",
+        "field_name": "extension_list",
+        "instructions": "You are reviewing the Termination section of a merger agreement. Identify and list each instance where the Outside Date (or termination date) may be extended.For each identified extension, create a numbered list with the following fields:Extension Length \u2013 What is the duration or length of the extension (e.g., \u201c90 days\u201d, \u201cuntil regulatory approval\u201d, \u201cup to 6 months\u201d)?Who Grants the Extension \u2013 Which party or parties must grant, approve, or initiate the extension (e.g., Parent, Company, both, automatic)?Conditions to Extend \u2013 What specific conditions must be satisfied for the extension to apply (e.g., awaiting regulatory approval, all other conditions met, written notice)?Termination Restrictions Due to Breach \u2013 Does the agreement restrict a party\u2019s ability to terminate if their own material breach caused the failure to close by the outside date? If yes, identify the condition and the affected party.If no extension rights are specified, respond with: \u201cNo termination date extensions specified.\u201d",
+        "definition": "The classification of the extension right applied to the Outside Date, indicating how and by whom it may be exercised.",
+        "purpose": "Clarifies the procedural mechanics of how and when the termination deadline can be extended.",
+        "rag_note": "Used to classify the mechanism of extension as automatic, discretionary, or mutual, to guide understanding of party rights.",
+        "recommended_prompt_type": "Inference-optimized",
+        "category_mapping": [
+          {
+            "category": "Termination  >  End Date Termination Right",
+            "rank": 1,
+            "match_score": 95,
+            "rationale": "This field governs how the termination right deadline is extended, closely tied to the end date provision."
+          },
+          {
+            "category": "Termination  >  Other Termination Rights",
+            "rank": 2,
+            "match_score": 88,
+            "rationale": "Describes discretionary or mutual rights that may include deadline extensions."
+          },
+          {
+            "category": "Miscellaneous  >  Administrative Terms",
+            "rank": 3,
+            "match_score": 80,
+            "rationale": "Categorizing the procedural logic for extensions aligns with administrative mechanisms in the agreement."
+          }
+        ]
+      }
+    ],
+    "termination_fee": [
+      {
+        "question_query": "termination",
+        "field_name": "termination_fee",
+        "definition": "The \"termination_fee\" field captures the exact monetary amount or formula that the target company agrees to pay to the parent company in case of the termination of the merger agreement under specified circumstances. This field is usually found under the \"Termination Fees \u2013 Target to Parent\" clause of the merger agreement. It is distinct from the \"termination_fee_recipient\" field, which identifies the party receiving the fee, and the \"termination_fee_trigger\" field, which specifies the conditions under which the fee is to be paid. The \"termination_fee\" field does not include any potential penalties or additional costs beyond the agreed termination fee. The amount may be expressed as a fixed sum, a percentage of the deal value, or a formula based on financial metrics of the target company. For example, the clause might state \"The termination fee payable by the Target to the Parent shall be $10 million\" or \"The termination fee shall be calculated as 3% of the total transaction value\".",
+        "purpose": "Establishes compensation for deal failure due to target-side decisions, protecting the buyer's investment and time.",
+        "rag_note": "Appears in termination fee provisions; look for 'the Company shall pay a Termination Fee of'",
+        "instructions": "Extract the exact dollar amount or percentage specified for the termination fee payable by the Target to the Parent. If the agreement uses a defined term such as 'Termination Amount,' follow the reference to the Definitions section and retrieve the corresponding value or formula. If the value is not explicitly stated but a calculation formula is provided, extract and summarize the formula.",
+        "category_mapping": [
+          {
+            "category": "Termination  >  Termination Fee",
+            "rank": 1,
+            "match_score": 98.5,
+            "rationale": "The 'termination_fee' field directly relates to the termination fee, which is the amount payable by the target company to the parent company in case of termination of the merger agreement. This category is the most relevant as it directly deals with termination fees."
+          },
+          {
+            "category": "Covenants  >  Deal Protection",
+            "rank": 2,
+            "match_score": 75.0,
+            "rationale": "The termination fee serves as a form of deal protection, compensating the buyer for their investment and time in case the deal fails due to target-side decisions. This category is relevant as it covers provisions aimed at protecting the deal, which includes termination fees."
+          },
+          {
+            "category": "Financing Provisions  >  Debt Financing",
+            "rank": 3,
+            "match_score": 65.0,
+            "rationale": "The termination fee could potentially be a significant financial obligation for the target company, which might impact its debt financing. This category is somewhat relevant as it deals with financial aspects of the merger agreement, including potential liabilities like termination fees."
+          }
+        ],
+        "recommended_prompt_type": "Precision-optimized"
+      }
+    ],
+    "reverse_termination_fee": [
+      {
+        "question_query": "Reverse Termination Fee, Defined Terms, Termination",
+        "field_name": "reverse_termination_fee",
+        "definition": "The \"reverse_termination_fee\" field captures the specific monetary value that the Parent company agrees to pay to the Target company in the event of a termination of the merger agreement under certain pre-specified conditions. This fee is typically stipulated in the \"Termination Fees \u2013 Parent to Target\" section of the merger agreement. It is usually expressed as a fixed sum or as a percentage of the transaction's total value. This field does not include any other types of fees or penalties that may be associated with the termination of the agreement, such as reimbursement of expenses or reverse termination fees. The termination fee amount is usually found in clauses that contain language such as \"shall pay a termination fee of\", \"agrees to pay to the other party a fee of\", or \"shall be obligated to pay a termination fee in the amount of\".",
+        "purpose": "Quantifies financial exposure and establishes enforceable breakup compensation.",
+        "rag_note": "Appears in termination fee section; look for 'Parent shall pay a termination fee of'",
+        "instructions": "You are reviewing a merger agreement to determine whether a reverse termination fee exists. A reverse termination fee is defined as a payment from the Parent (or Merger Sub) to the Company if the agreement is terminated under certain conditions, such as failure to obtain regulatory approval, financing failure, or Parent breach. Return the dollar amount of that fee if such a provision is explicitly included. If the amount is not stated explicitly, return \u2018Not specified\u2019. If no reverse termination fee exists, return \u2018N/A\u2019. Respond concisely with only the amount, \u2018Not specified\u2019, or \u2018N/A\u2019. ",
+        "category_mapping": [
+          {
+            "category": "Termination  >  Termination Fee",
+            "rank": 1,
+            "match_score": 95,
+            "rationale": "The field directly relates to the termination fee that the Parent company agrees to pay to the Target company in the event of a termination of the merger agreement. This category is the most direct match."
+          },
+          {
+            "category": "Covenants  >  Deal Protection",
+            "rank": 2,
+            "match_score": 75,
+            "rationale": "The termination fee can be seen as a form of deal protection, as it establishes a financial penalty for the termination of the agreement. However, it is not a perfect match as deal protection can encompass other provisions as well."
+          },
+          {
+            "category": "Miscellaneous  >  Legal Enforcement",
+            "rank": 3,
+            "match_score": 60,
+            "rationale": "The termination fee is a legally enforceable obligation, making this category relevant. However, it is a broader category that includes many other types of legal enforcement mechanisms, so the match is not as strong."
+          }
+        ],
+        "recommended_prompt_type": "Inference-optimized"
+      }
+    ],
+    "reverse_termination_fee_exist": [
+      {
+        "question_query": "Reverse Termination Fee, Defined Terms, Termination",
+        "field_name": "reverse_termination_fee_exist",
+        "definition": "The \"reverse_termination_fee\" field captures the specific monetary value that the Parent company agrees to pay to the Target company in the event of a termination of the merger agreement under certain pre-specified conditions. This fee is typically stipulated in the \"Termination Fees \u2013 Parent to Target\" section of the merger agreement. It is usually expressed as a fixed sum or as a percentage of the transaction's total value. This field does not include any other types of fees or penalties that may be associated with the termination of the agreement, such as reimbursement of expenses or reverse termination fees. The termination fee amount is usually found in clauses that contain language such as \"shall pay a termination fee of\", \"agrees to pay to the other party a fee of\", or \"shall be obligated to pay a termination fee in the amount of\".",
+        "purpose": "Quantifies financial exposure and establishes enforceable breakup compensation.",
+        "rag_note": "Appears in termination fee section; look for 'Parent shall pay a termination fee of'",
+        "instructions": "You are reviewing a merger agreement to determine whether a reverse termination fee exists. A reverse termination fee is defined as a payment from the Parent (or Merger Sub) to the Company if the agreement is terminated under certain conditions, such as failure to obtain regulatory approval, financing failure, or Parent breach. Return true if such a provision is explicitly included. If no such provision exists or if the only termination fee is paid by the Company to the Parent, return false. Respond only with true or false. ",
+        "category_mapping": [
+          {
+            "category": "Termination  >  Termination Fee",
+            "rank": 1,
+            "match_score": 95,
+            "rationale": "The field directly relates to the termination fee that the Parent company agrees to pay to the Target company in the event of a termination of the merger agreement. This category is the most direct match."
+          },
+          {
+            "category": "Covenants  >  Deal Protection",
+            "rank": 2,
+            "match_score": 75,
+            "rationale": "The termination fee can be seen as a form of deal protection, as it establishes a financial penalty for the termination of the agreement. However, it is not a perfect match as deal protection can encompass other provisions as well."
+          },
+          {
+            "category": "Miscellaneous  >  Legal Enforcement",
+            "rank": 3,
+            "match_score": 60,
+            "rationale": "The termination fee is a legally enforceable obligation, making this category relevant. However, it is a broader category that includes many other types of legal enforcement mechanisms, so the match is not as strong."
+          }
+        ],
+        "recommended_prompt_type": "Inference-optimized"
+      }
+    ],
+    "termination_fee_superior_proposal": [
+      {
+        "field_name": "termination_fee_superior_proposal_exists",
+        "question_query": "termination fee for superior proposal exists, is company required to pay a fee for accepting superior proposal, is there a break-up fee for superior proposal termination",
+        "definition": "Indicates whether the merger agreement includes a clause that requires the Company to pay a termination fee to the Parent if it accepts a Superior Proposal.",
+        "purpose": "Provides a binary signal for the presence of superior proposal-related termination obligations, supporting high-level analysis and filtering.",
+        "rag_note": "Check for presence of language like 'Superior Proposal', 'Company Termination Fee', or references to fee payment upon accepting a better offer.",
+        "instructions": "Return `true` if the agreement explicitly includes a provision requiring the Company to pay a fee to the Parent upon accepting a Superior Proposal.Return `false` if no such provision is found. Strictly return true or false.",
+        "category_mapping": [
+          {
+            "category": "Termination  >  Termination Fee",
+            "rank": 1,
+            "match_score": 99.0,
+            "rationale": "This boolean field aligns directly with the presence of a termination fee under superior offer scenarios."
+          }
+        ],
+        "recommended_prompt_type": "Precision-optimized"
+      },
+      {
+        "field_name": "termination_fee_superior_proposal",
+        "question_query": "termination fee for superior proposal, break-up fee if company accepts superior offer, company termination payment due to superior bid, fee payable for accepting better proposal, termination amount for superior offer, superior proposal termination clause",
+        "definition": "The \"termination_fee_superior_proposal\" field captures the specific monetary amount, percentage, or formula the Company must pay to the Parent if it terminates the merger agreement to accept a Superior Proposal. A Superior Proposal generally refers to a bona fide acquisition offer deemed more favorable by the Company\u2019s board, in good faith and consistent with its fiduciary duties.",
+        "purpose": "Protects the Parent\u2019s interests by compensating for the time, cost, and opportunity lost if the Company terminates the agreement to pursue a more favorable offer.",
+        "rag_note": "Appears in provisions referencing 'Superior Proposal', 'Company Termination Fee', or break-up fee terms specifically linked to a board-approved third-party offer. Look for phrases like '... terminates this Agreement to enter into a Superior Proposal... shall pay a fee of...'",
+        "instructions": "Return the exact dollar amount, percentage, or formula the Company must pay to the Parent if it terminates the agreement to pursue a Superior Proposal. If a defined term like 'Company Termination Fee' or 'Termination Amount' is used, trace and extract the applicable definition or reference value. Ignore general termination fees unrelated to superior offers. Include conditions only if they affect the fee amount.If the amount is not stated explicitly, return \u2018Not specified\u2019. If no it does not xists, return \u2018N/A\u2019. Respond concisely with only the amount, \u2018Not specified\u2019, or \u2018N/A\u2019",
+        "category_mapping": [
+          {
+            "category": "Termination  >  Termination Fee",
+            "rank": 1,
+            "match_score": 99.5,
+            "rationale": "This field directly concerns a specific type of termination fee triggered when the Company exits to pursue a superior offer. It belongs in the 'Termination Fee' category."
+          },
+          {
+            "category": "Covenants  >  Deal Protection",
+            "rank": 2,
+            "match_score": 84.0,
+            "rationale": "The fee functions as a deal protection mechanism to discourage or compensate for superior offer terminations, aligning with this covenant category."
+          },
+          {
+            "category": "Representations & Warranties  >  Recommendation of the Target Board",
+            "rank": 3,
+            "match_score": 70.0,
+            "rationale": "Superior Proposal clauses often relate to changes in board recommendations. While financial in nature, they are interlinked with fiduciary out provisions."
+          }
+        ],
+        "recommended_prompt_type": "Precision-optimized"
+      }
+    ],
+    "termination_fee_company_shareholder_approval": [
+      {
+        "field_name": "termination_fee_company_shareholder_approval_failure_exists",
+        "question_query": "does company pay termination fee if shareholder approval fails, is there a break-up fee due to failed shareholder vote, is termination fee triggered by shareholder rejection present",
+        "definition": "Indicates whether the merger agreement includes a provision requiring the Company to pay a termination fee to the Parent if shareholder approval is not obtained.",
+        "purpose": "Allows binary classification of the presence of shareholder-related termination fee provisions.",
+        "rag_note": "Appears in sections describing termination rights tied to failure to secure 'Company Stockholder Approval'. Search for obligations triggered by failed votes.",
+        "instructions": "Return `true` if the agreement includes a termination fee triggered by failure to obtain shareholder approval, regardless of whether a superior proposal is involved. Return `false` only if no such fee is specified in any scenario. Strictly return true or false.",
+        "category_mapping": [
+          {
+            "category": "Termination  >  Termination Fee",
+            "rank": 1,
+            "match_score": 97.5,
+            "rationale": "This field tracks whether the agreement includes the specific failure-triggered termination fee."
+          }
+        ],
+        "recommended_prompt_type": "Precision-optimized"
+      },
+      {
+        "field_name": "termination_fee_company_shareholder_approval_failure",
+        "question_query": "termination fee for failure to obtain shareholder approval, breakup fee due to shareholder rejection, fee payable if shareholder vote fails, payment due to failed shareholder consent",
+        "definition": "The \"termination_fee_shareholder_approval_failure\" field captures the monetary amount or formula the Company must pay to the Parent if the merger agreement is terminated due to the Company\u2019s failure to obtain the required shareholder approval.",
+        "purpose": "Captures the economic remedy available to the Parent when the Company\u2019s shareholders reject or fail to approve the merger, reflecting the risk of shareholder-driven deal failure.",
+        "rag_note": "Look for clauses stating that the Company shall pay a termination fee if its stockholders do not approve the transaction. Common phrasing includes 'failure to obtain Company Stockholder Approval' or 'the shareholders fail to adopt the Agreement'.",
+        "instructions": "Return the specific amount, percentage, or formula that the Company must pay to the Parent if the merger is terminated due to the failure to obtain the required shareholder approval, provided this obligation is not tied to a Superior Proposal or Adverse Recommendation Change. If the fee is defined by reference (e.g., 'Termination Amount'), trace the reference and return the actual value. If no specific amount is provided, return 'Not specified'. If no such fee exists under the failure-to-approve scenario, return 'N/A'. Respond only with a numeric value, 'Not specified', or 'N/A'.",
+        "category_mapping": [
+          {
+            "category": "Termination  >  Termination Fee",
+            "rank": 1,
+            "match_score": 98.5,
+            "rationale": "The field clearly concerns a specific fee triggered by shareholder disapproval, placing it in the core termination fee group."
+          },
+          {
+            "category": "Covenants  >  Deal Protection",
+            "rank": 2,
+            "match_score": 82.0,
+            "rationale": "This fee is also a deal protection mechanism for the Parent in scenarios of failed stockholder votes."
+          },
+          {
+            "category": "Covenants  >  Shareholder Vote/Meeting",
+            "rank": 3,
+            "match_score": 78.0,
+            "rationale": "The clause often cross-references the company\u2019s obligation to seek stockholder approval and the consequences of failure."
+          }
+        ],
+        "recommended_prompt_type": "Precision-optimized"
+      }
+    ],
+    "reverse_termination_fee_shareholder_approval": [
+      {
+        "field_name": "reverse_termination_fee_shareholder_approval_failure_exists",
+        "question_query": "is there a reverse termination fee for parent shareholder vote failure, does buyer pay fee if its shareholders reject deal, reverse termination fee triggered by parent vote",
+        "definition": "Indicates whether the agreement includes a provision requiring the Parent to pay a Reverse Termination Fee to the Company if its shareholders fail to approve the merger.",
+        "purpose": "Binary indicator of the presence of parent-side financial responsibility due to shareholder vote failure.",
+        "rag_note": "Appears in termination-related provisions involving Parent-side failure, often referencing 'Reverse Termination Fee' or 'Buyer Termination Fee'.",
+        "instructions": "Return `true` if the agreement includes a provision requiring the Parent to pay a Reverse Termination Fee upon failure to obtain its shareholder approval. Return `false` if no such clause exists. Strictly return true or false.",
+        "category_mapping": [
+          {
+            "category": "Termination  >  Reverse Termination Fee",
+            "rank": 1,
+            "match_score": 98.0,
+            "rationale": "This is a direct test for the presence of an RTF tied to shareholder vote failure."
+          }
+        ],
+        "recommended_prompt_type": "Boolean"
+      },
+      {
+        "field_name": "reverse_termination_fee_shareholder_approval_failure",
+        "question_query": "reverse termination fee for failure to obtain parent shareholder approval, payment to target due to failed parent vote, buyer termination fee for shareholder disapproval, fee payable by parent if shareholder vote fails",
+        "definition": "The \"reverse_termination_fee_shareholder_approval_failure\" field captures the monetary amount or formula the Parent must pay to the Company if the merger agreement is terminated due to the Parent\u2019s failure to obtain its required shareholder approval. This obligation is classified as a Reverse Termination Fee, not a standard termination fee.",
+        "purpose": "Captures the financial remedy available to the Company if the Parent\u2019s shareholders reject the transaction, protecting the Company against execution failure driven by Parent-side governance.",
+        "rag_note": "Appears in provisions labeled 'Reverse Termination Fee', 'Buyer Termination Payment', or clauses describing obligations triggered by the Parent\u2019s shareholder vote failure. Look for 'if the Parent fails to obtain its required stockholder approval... shall pay a Reverse Termination Fee of...'",
+        "instructions": "Extract the specific dollar amount, percentage, or formula the Parent is obligated to pay to the Company if the agreement is terminated due to failure to obtain the Parent's shareholder approval. Be careful to exclude clauses where the Company pays a termination fee \u2014 focus only on fees payable **by the Parent**, typically under 'Reverse Termination Fee' clauses but not limited to only.If the amount is not stated explicitly, return \u2018Not specified\u2019. If it does not xists, return \u2018N/A\u2019. Respond concisely with only the amount, \u2018Not specified\u2019, or \u2018N/A\u2019",
+        "category_mapping": [
+          {
+            "category": "Termination  >  Reverse Termination Fee",
+            "rank": 1,
+            "match_score": 99.0,
+            "rationale": "This clause is a direct instance of a Reverse Termination Fee triggered by the Parent\u2019s shareholder disapproval."
+          },
+          {
+            "category": "Covenants  >  Deal Protection",
+            "rank": 2,
+            "match_score": 83.0,
+            "rationale": "It functions as a financial safeguard for the Company when the Parent cannot complete the deal due to its internal approvals."
+          },
+          {
+            "category": "Covenants  >  Shareholder Vote/Meeting",
+            "rank": 3,
+            "match_score": 77.0,
+            "rationale": "The triggering event is the failure to secure a shareholder vote, which links to obligations around Parent-side approvals."
+          }
+        ],
+        "recommended_prompt_type": "Precision-optimized"
+      }
+    ],
+    "termination_rights": [
+      {
+        "field_name": "mutual_termination_rights",
+        "definition": "Captures all termination rights that are expressly granted to both the Parent and the Company under the merger agreement. These typically include events such as failure to close by the termination date, regulatory injunctions, or mutual consent.",
+        "purpose": "To identify the scenarios in which either party\u2014Parent or Company\u2014can unilaterally or jointly terminate the agreement, enabling clear understanding of shared exit options.",
+        "instructions": "List each distinct event or condition that allows both the Parent and the Company to terminate the agreement. Focus only on mutual or shared termination rights, such as failure to receive regulatory approval, failure to close by the outside date, or injunctions. Do not include terminations that are exclusive to one party. Return a list of textual conditions as stated in the agreement.If no such conditions are found, return `Not found`. Otherwise, return an array of strings, each representing one mutual termination condition exactly as stated in the agreement.",
+        "question_query": "termination rights both parties, mutual termination, company and parent termination clauses",
+        "rag_note": "Typically found in 'ARTICLE VII - Termination' under a section titled 'Termination by Either Party' or similar. Look for language such as 'by either the Company or the Parent' or 'each of the Company and the Parent shall have the right'.",
+        "category_mapping": [
+          {
+            "category": "Termination  >  Mutual Termination Rights",
+            "rank": 1,
+            "match_score": 98,
+            "rationale": "Captures provisions explicitly giving both parties the right to terminate under certain conditions."
+          },
+          {
+            "category": "Termination  >  Termination Mechanics",
+            "rank": 2,
+            "match_score": 86,
+            "rationale": "Defines the method and permissible reasons for mutual termination."
+          }
+        ],
+        "recommended_prompt_type": "Precision-optimized"
+      },
+      {
+        "field_name": "parent_termination_rights",
+        "definition": "Captures all termination rights that are specifically granted to the Parent under the merger agreement. These rights allow the Parent to terminate the deal under particular circumstances not shared with the Company.",
+        "purpose": "To understand under what exclusive conditions the Parent can unilaterally terminate the agreement, such as breach by the Company, failure to obtain Company shareholder approval, or occurrence of a Company Material Adverse Effect.",
+        "instructions": "List each distinct event or condition that permits only the Parent to terminate the agreement. Focus exclusively on clauses that provide the Parent with a unilateral right to terminate\u2014e.g., breach by the Company, failure to meet conditions related to the Company, or Company MAE. Do not include mutual or Company-only termination rights. If no such conditions are found, return `Not found`. Otherwise, return an array of strings, each representing one parent-specific termination condition exactly as stated in the agreement.",
+        "question_query": "parent exclusive termination rights, termination by parent only, parent right to terminate the agreement",
+        "rag_note": "These clauses are typically found in 'ARTICLE VII - Termination', often under a subsection titled 'Termination by Parent' or phrased as 'Parent may terminate...'.",
+        "category_mapping": [
+          {
+            "category": "Termination  >  Parent-Specific Termination Rights",
+            "rank": 1,
+            "match_score": 97,
+            "rationale": "Captures specific termination triggers that apply solely to the Parent."
+          },
+          {
+            "category": "Termination  >  Termination Mechanics",
+            "rank": 2,
+            "match_score": 84,
+            "rationale": "Defines procedural and conditional elements for how the Parent may terminate the agreement."
+          }
+        ],
+        "recommended_prompt_type": "Precision-optimized"
+      },
+      {
+        "field_name": "company_termination_rights",
+        "definition": "Captures all termination rights that are specifically granted to the Company under the merger agreement. These are circumstances under which the Company may unilaterally terminate the agreement.",
+        "purpose": "To identify the conditions under which only the Company\u2014not the Parent\u2014has the right to terminate the agreement. Examples include failure of the Parent to meet its obligations, rejection of a Superior Proposal by the Company board, or Parent MAE.",
+        "instructions": "List each distinct event or condition that permits only the Company to terminate the agreement. Focus on Company-exclusive rights to terminate\u2014such as breaches by the Parent, failure to secure financing (if applicable), or receipt of a Superior Proposal. Do not include mutual or Parent-only rights. If no such conditions are found, return `Not found`. Otherwise, return an array of strings, each representing one company-specific termination condition exactly as stated in the agreement.",
+        "question_query": "company exclusive termination rights, termination by company only, company right to terminate the agreement",
+        "rag_note": "These clauses are usually located in 'ARTICLE VII - Termination', under a subsection titled 'Termination by the Company' or similar. Look for language like 'the Company may terminate' or 'in favor of a Superior Proposal'.",
+        "category_mapping": [
+          {
+            "category": "Termination  >  Company-Specific Termination Rights",
+            "rank": 1,
+            "match_score": 97,
+            "rationale": "Specifically targets unilateral rights available only to the Company."
+          },
+          {
+            "category": "Termination  >  Termination Mechanics",
+            "rank": 2,
+            "match_score": 84,
+            "rationale": "Outlines procedural steps and exclusivity in how the Company may terminate."
+          }
+        ],
+        "recommended_prompt_type": "Precision-optimized"
+      }
+    ],
+    "termination_fee_events": [
+      {
+        "field_name": "company_termination_fee_events",
+        "instructions": "Extract all scenarios under which the Company is required to pay a termination fee (sometimes referred to as a termination amount or break fee). Focus on conditions or events that trigger this obligation\u2014such as termination for a superior proposal, board recommendation change, or other breaches. Return an array of string events that would cause the fee obligation. If no such provisions are found, return 'Not found'.",
+        "question_query": "Company Termination Fee Triggers, Break Fee Conditions, Events Requiring Termination Payment by Company",
+        "definition": "Identifies each contractual event or circumstance that would require the Company to pay a termination fee to the Parent or Merger Sub.",
+        "purpose": "To assess financial liabilities the Company may incur if the deal is terminated under specified circumstances.",
+        "rag_note": "Typically found in Article VII (Termination) or in separate termination fee sections if present. Look for references to 'Termination Amount' or 'Company shall pay'.",
+        "category_mapping": [
+          {
+            "category": "Termination and Fees > Company Termination Obligations",
+            "rank": 1,
+            "match_score": 95,
+            "rationale": "Captures the precise conditions under which the Company must pay a fee due to termination."
+          },
+          {
+            "category": "Termination and Fees > Deal Protection Measures",
+            "rank": 2,
+            "match_score": 90,
+            "rationale": "Such payments often act as protections against adverse deal changes."
+          }
+        ],
+        "recommended_prompt_type": "Precision-optimized"
+      },
+      {
+        "field_name": "parent_reverse_termination_fee_events",
+        "instructions": "Extract all scenarios under which the Parent is required to pay a reverse termination fee (RTF). Focus only on provisions that explicitly refer to payment by the Parent or Merger Sub, often labeled as 'Reverse Termination Fee' or similar. Do not include general termination fees payable by the Company. Return a list of triggering events. If no such obligation is found, return 'Not found'.",
+        "question_query": "Reverse Termination Fee Triggers, Parent Termination Payment Events, RTF Conditions, Events Requiring Parent to Pay Fee",
+        "definition": "Enumerates the circumstances in which the Parent or Merger Sub is contractually obligated to pay a reverse termination fee to the Company.",
+        "purpose": "To identify financial liabilities of the Parent in scenarios where the deal fails due to specific Parent-side triggers such as financing failure or regulatory block.",
+        "rag_note": "These clauses are often located in Article VII (Termination) or under separate fee-related provisions, and may reference failure to secure financing, regulatory approval, or breach by Parent.",
+        "category_mapping": [
+          {
+            "category": "Termination and Fees > Parent Termination Obligations",
+            "rank": 1,
+            "match_score": 96,
+            "rationale": "Captures financial liability of the Parent in terminating scenarios specific to Parent-side obligations."
+          },
+          {
+            "category": "Termination and Fees > Deal Protection Measures",
+            "rank": 2,
+            "match_score": 90,
+            "rationale": "Reverse termination fees protect the target against risk of Parent-side failures."
+          }
+        ],
+        "recommended_prompt_type": "Precision-optimized"
+      }
+    ],
+    "reimbursement_obligations": [
+      {
+        "field_name": "target_reimbursement_obligations",
+        "definition": "Identifies any contractual obligations requiring the target to reimburse the acquirer or other parties for expenses incurred in connection with the merger or its termination.",
+        "purpose": "To determine whether the target has agreed to cover costs, fees, or expenses\u2014such as legal, advisory, or regulatory filing costs\u2014under certain circumstances.",
+        "instructions": "Specify any payments that would be required of the target related specifically to reimbursements and not directly related to the standard Termination Fee. Focus on clauses that obligate the target to pay or reimburse the parent or merger sub for costs and expenses incurred, especially upon termination or breach. Include references to termination sections or fee provisions if applicable.",
+        "question_query": "Target Reimbursement Obligations, Expense Payment by Company, Cost Reimbursement by Target, Termination Expense Obligations",
+        "rag_note": "Often located in termination, fee, or expense provisions. Look for reimbursement clauses following termination or breach events.",
+        "recommended_prompt_type": "Precision-optimized",
+        "category_mapping": [
+          {
+            "category": "Termination  >  Fees and Reimbursements",
+            "rank": 1,
+            "match_score": 95,
+            "rationale": "This field directly addresses whether the target must cover expenses in connection with termination or other defined events."
+          },
+          {
+            "category": "Covenants  >  Expenses",
+            "rank": 2,
+            "match_score": 90,
+            "rationale": "Expense provisions in covenants may allocate responsibility for merger-related costs including reimbursements."
+          },
+          {
+            "category": "Conditions to Closing  >  Failure and Remedies",
+            "rank": 3,
+            "match_score": 80,
+            "rationale": "Reimbursement may be triggered by a failure to close or by breach, aligning with condition failure remedies."
+          }
+        ]
+      },
+      {
+        "field_name": "parent_reimbursement_obligations",
+        "definition": "Specifies any payments or reimbursements which are not directly related to the standard Termination Fee or Reverse Termination Fee that the parent is obligated to make, typically for transaction-related expenses incurred by the company, particularly in cases of termination, breach, or failure to close.",
+        "purpose": "To capture any reimbursement or expense-bearing responsibilities assigned to the parent entity under specific scenarios, especially when a deal is not consummated.",
+        "rag_note": "Focus on clauses that obligate the parent to reimburse the company for deal-related costs or expenses, often tied to termination events or breaches. Check Articles on Termination, Fees, or Miscellaneous provisions.",
+        "instructions": "Specify any payments that would be required of the parent related to reimbursements  which are not directly related to the standard Termination Fee or Reverse Termination Fee. Focus on clauses that obligate the parent to pay or reimburse the target company for costs and expenses incurred, especially upon termination, breach, or failure to obtain approvals.",
+        "question_query": "Parent Reimbursement Obligations, Expense Payment by Parent, Cost Reimbursement by Parent, Termination Expense Obligations",
+        "recommended_prompt_type": "Precision-optimized",
+        "category_mapping": [
+          {
+            "category": "Termination Provisions  >  Fee and Expense Allocation",
+            "rank": 1,
+            "match_score": 94,
+            "rationale": "Reimbursement obligations typically appear in sections that outline cost allocation upon termination."
+          },
+          {
+            "category": "Covenants  >  Fees and Expenses",
+            "rank": 2,
+            "match_score": 88,
+            "rationale": "Broader covenants may allocate responsibility for expenses even outside of termination scenarios."
+          },
+          {
+            "category": "Conditions to Closing  >  Failure Scenario Payment Obligations",
+            "rank": 3,
+            "match_score": 81,
+            "rationale": "Failure to close the transaction may trigger reimbursement obligations from the parent."
+          }
+        ]
+      }
+    ],
+    "regulatory_termination_fee": [
+      {
+        "field_name": "regulatory_termination_fee",
+        "question_query": "regulatory termination fee, termination fee due to regulatory failure, antitrust termination fee, HSR failure payment, payment if merger blocked by regulator",
+        "definition": "The specific monetary amount, if any, that must be paid in the event the merger is terminated due to regulatory failure or an inability to obtain required antitrust or governmental approvals.",
+        "purpose": "To identify whether the agreement includes a dedicated termination fee clause tied to regulatory failure, including antitrust review failures, consent denials, or similar regulatory blocks.",
+        "instructions": "Search for any clause that specifies a fee or payment obligation triggered by a regulatory failure, such as the failure to obtain antitrust approval or any other governmental consent. Extract the exact monetary value if stated, or summarize the conditions if monetary value is not specified. Only return a value if the fee is explicitly tied to a regulatory-related termination. If no such fee exists, return 'Not found'.",
+        "recommended_prompt_type": "Precision-optimized",
+        "category_mapping": [
+          {
+            "category": "Termination  >  Fee Triggers",
+            "rank": 1,
+            "match_score": 95,
+            "rationale": "This field identifies termination-related payments, specifically those caused by regulatory failure, which are commonly seen in complex M&A transactions."
+          },
+          {
+            "category": "Regulatory Matters  >  Government Approvals",
+            "rank": 2,
+            "match_score": 85,
+            "rationale": "Failure to obtain regulatory approval is typically the cause of these fees, linking it directly to the regulatory approval process."
+          }
+        ]
+      }
+    ],
+    "failure_to_close_fee": [
+      {
+        "field_name": "failure_to_close_fee",
+        "question_query": "failure to close fee, failure to consummate merger payment, termination fee for not closing, drop-dead fee, deal failure payment, closing failure fee, payment if transaction not completed",
+        "definition": "Any payment obligation specified in the agreement that arises if the transaction fails to close for reasons not otherwise categorized (e.g., not due to a superior proposal or regulatory block), typically covering general failure to consummate the merger by the required time or due to breach of closing conditions.",
+        "purpose": "To identify whether the agreement includes a fee specifically triggered by a general failure to close the transaction, either due to unmet conditions, inaction, or missed deadlines.",
+        "instructions": "Locate any clause that describes a fee or monetary obligation that becomes payable if the merger fails to close, regardless of cause or as a result of unmet general closing conditions. Do not include fees tied to specific causes such as regulatory failure or superior proposals unless they are also explicitly framed as failure to close. If no such provision exists, return 'Not found'. Extract the monetary value if available or summarize the condition.",
+        "recommended_prompt_type": "Precision-optimized",
+        "category_mapping": [
+          {
+            "category": "Termination  >  Fee Triggers",
+            "rank": 1,
+            "match_score": 95,
+            "rationale": "This field relates directly to fees triggered by the failure to close, which is a core subset of termination fee triggers."
+          },
+          {
+            "category": "Conditions to Closing  >  Timing and Deadlines",
+            "rank": 2,
+            "match_score": 80,
+            "rationale": "Such fees are often linked to missed deadlines or unmet closing conditions, making this a secondary but relevant category."
+          }
+        ]
+      }
+    ],
+    "reverse_termination_fee_regulatory": [
+      {
+        "field_name": "reverse_termination_fee_regulatory",
+        "definition": "The amount the parent is required to pay to the company if the parent fails to obtain necessary regulatory approvals, resulting in termination of the agreement.",
+        "purpose": "To capture the financial consequence for the parent in scenarios where failure to secure regulatory clearance prevents the transaction from closing.",
+        "rag_note": "Look for provisions detailing payment obligations imposed on the parent upon termination due to unmet regulatory conditions or antitrust clearance failures.",
+        "question_query": "reverse termination fee, parent fails regulatory approvals, parent payment on failure to get antitrust approval, regulatory failure termination fee by parent, failure to secure clearance payment by parent",
+        "instructions": "Extract the specific payment amount and any conditions under which the parent is obligated to pay a reverse termination fee due to failure to obtain regulatory approvals. Return the monetary amount along with a brief context if available. If no such clause exists, return 'Not found'.",
+        "recommended_prompt_type": "Precision-optimized",
+        "category_mapping": [
+          {
+            "category": "Termination  >  Fees and Reimbursements",
+            "rank": 1,
+            "match_score": 95,
+            "rationale": "This field captures a specific type of fee triggered by failure to secure regulatory approvals, which is a common termination scenario."
+          },
+          {
+            "category": "Conditions to Closing  >  Regulatory Approval",
+            "rank": 2,
+            "match_score": 90,
+            "rationale": "The field is tightly coupled with the parent\u2019s obligation to fulfill antitrust or other regulatory conditions to close the deal."
+          }
+        ]
+      }
+    ],
+    "extend_or_terminate_limitation_due_to_breach": [
+      {
+        "field_name": "extend_or_terminate_limitation_due_to_breach",
+        "definition": "Specifies whether a party is restricted from extending or terminating the merger agreement if its own material breach was the proximate cause of the failure to consummate the transaction by the scheduled closing date or outside date.",
+        "purpose": "To determine whether a party that materially breaches the agreement is barred from invoking extension or termination provisions\u2014thereby ensuring accountability and discouraging opportunistic behavior.",
+        "rag_note": "Focus on language in the termination or extension provisions that conditions a party's right to act on the absence of their own breach or failure to perform. Look for statements like 'provided that such party is not in breach' or 'such right shall not be available if such party\u2019s breach caused the failure to close'.",
+        "question_query": "termination limitation due to breach, extension barred by breach, right to terminate conditioned on no breach, may not terminate if in breach, breach affects extension right, fail to close due to breach, party breach termination clause",
+        "instructions": "Identify if the agreement includes a provision stating that a party cannot exercise its right to extend or terminate the agreement if its own material breach was the proximate cause of the failure to close. Return a detail summary if available and if no such clause is found return Not Found.",
+        "recommended_prompt_type": "Precision-optimized",
+        "category_mapping": [
+          {
+            "category": "Termination Rights  >  Party-Specific Restrictions",
+            "rank": 1,
+            "match_score": 97,
+            "rationale": "This provision directly governs whether a party may access termination rights depending on their conduct."
+          },
+          {
+            "category": "Conditions to Closing  >  Failure to Satisfy",
+            "rank": 2,
+            "match_score": 88,
+            "rationale": "A breach that causes failure to close links closely with closing conditions and their satisfaction."
+          }
+        ]
+      }
+    ]
+  },
+  "ordinary_course": {
+    "ordinary_course_covenant": [
+      {
+        "question_query": "bbb,covenant",
+        "field_name": "concise_standard_summary",
+        "definition": "A concise summary of the operational standard imposed on the target company during the interim period between signing and closing, specifically referring to the requirement that the business be conducted in the 'ordinary course'\u2014often further qualified by consistency with past practice or a defined effort standard.",
+        "purpose": "To ensure the target company maintains normal business operations and does not undertake unusual or material changes that could affect the value or risk profile of the transaction before closing.",
+        "rag_note": "Focus on extracting language that defines how the target must operate post-signing, emphasizing 'ordinary course' phrases and whether it includes qualifiers such as 'consistent with past practice' or 'reasonable efforts'. This field captures a common covenant governing operational continuity pre-closing.",
+        "instructions": "aaa,Extract a concise summary of the 'ordinary course of business' covenant with emphasis on the level of effort required (e.g., commercially reasonable efforts) and how the target must operate between signing and closing.",
+        "recommended_prompt_type": "Precision-optimized",
+        "category_mapping": [
+          {
+            "category": "Covenants  >  Conduct of Business",
+            "rank": 1,
+            "match_score": 95,
+            "rationale": "This field directly addresses the conduct of business by the target during the interim period, a central concern of this covenant category."
+          },
+          {
+            "category": "Covenants  >  Efforts",
+            "rank": 2,
+            "match_score": 85,
+            "rationale": "The standard often includes phrases indicating levels of effort such as 'reasonable best efforts', tying it to this category."
+          },
+          {
+            "category": "Conditions to Closing  >  Party-Specific Conditions",
+            "rank": 3,
+            "match_score": 75,
+            "rationale": "Failure to comply with the ordinary course covenant may be grounds for the other party to not close, linking this to party-specific closing conditions."
+          }
+        ]
+      }
+    ],
+    "parent_ordinary_course_covenant": [
+      {
+        "question_query": "Parent commercially reasonable efforts, Parent and Merger Sub ordinary course, Parent covenant not to impair or delay closing, Parent obligations prior to Effective Time, Parent conduct interim period merger",
+        "field_name": "parent_conduct_covenant_summary",
+        "definition": "A concise summary of any operational, strategic, financing, or regulatory cooperation covenants imposed on the parent company during the interim period between signing and closing. This may include obligations to use efforts to obtain approvals, maintain financing, or support the merger process.",
+        "purpose": "To capture the key behavioral expectations and obligations placed on the parent company during the period before the merger closes, which may affect deal certainty, regulatory clearance, or financing stability.",
+        "rag_note": "Focus on extracting specific language describing what the parent is required to do or refrain from doing between signing and closing, including obligations to maintain financing, pursue regulatory approvals, provide access to information, or cooperate with the company. Emphasize effort standards such as 'reasonable best efforts', 'commercially reasonable efforts', or unconditional obligations.",
+        "instructions": "Extract a concise summary of any covenants or obligations placed on the parent company for the interim period. Focus on phrases describing effort standards, cooperation obligations, financing maintenance, or regulatory actions required of the parent.",
+        "recommended_prompt_type": "Precision-optimized",
+        "category_mapping": [
+          {
+            "category": "Covenants  >  Conduct of Business",
+            "rank": 1,
+            "match_score": 90,
+            "rationale": "This field captures Parent-side interim covenants similar in nature to the target\u2019s ordinary course obligations."
+          },
+          {
+            "category": "Covenants  >  Efforts",
+            "rank": 2,
+            "match_score": 85,
+            "rationale": "Most of the obligations placed on the parent relate to efforts to achieve closing conditions, such as regulatory or financing efforts."
+          },
+          {
+            "category": "Conditions to Closing  >  Party-Specific Conditions",
+            "rank": 3,
+            "match_score": 75,
+            "rationale": "Parent\u2019s failure to meet interim covenants may give the target the right to terminate or delay closing, tying this to closing conditions."
+          }
+        ]
+      }
+    ]
+  }
+}

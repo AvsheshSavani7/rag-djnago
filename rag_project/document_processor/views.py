@@ -109,9 +109,10 @@ class ProcessFileView(APIView):
             # Update the job with results
             job.flattened_json_url = result.get(
                 'flattened_json_url')  # Update the flattened URL
-            
+
             if job.schema_results is not None and not isinstance(job.schema_results, dict):
-                logger.warning(f"⚠️ Invalid schema_results type: {type(job.schema_results)}. Resetting to empty dict.")
+                logger.warning(
+                    f"⚠️ Invalid schema_results type: {type(job.schema_results)}. Resetting to empty dict.")
             else:
                 job.save()
 
@@ -165,10 +166,10 @@ class ProcessingJobDetailView(APIView):
 
             # Convert schema_results from a JSON string to a dictionary if applicable, ensuring valid DictField representation
             if isinstance(job.schema_results, str):
-                    try:
-                        job.schema_results = json.loads(job.schema_results)
-                    except json.JSONDecodeError:
-                        job.schema_results = {}
+                try:
+                    job.schema_results = json.loads(job.schema_results)
+                except json.JSONDecodeError:
+                    job.schema_results = {}
 
             serializer = ProcessingJobSerializer(job)
             return Response(serializer.data, status=status.HTTP_200_OK)
@@ -178,6 +179,7 @@ class ProcessingJobDetailView(APIView):
 
         except Exception as e:
             return Response({"error": f"Unexpected error: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 
 class ProcessEmbeddingsView(APIView):
     """
@@ -231,7 +233,7 @@ class ListAllDealsView(APIView):
         try:
             # Get all deals from the database
             jobs = ProcessingJob.objects.all().order_by('-createdAt')
-            
+
             # Convert schema_results from a JSON string to a dictionary if applicable, ensuring valid DictField representation
             for job in jobs:
                 if isinstance(job.schema_results, str):

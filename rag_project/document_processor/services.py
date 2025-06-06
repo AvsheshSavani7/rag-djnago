@@ -172,10 +172,10 @@ class DocumentProcessingService:
 
             # Download flattened JSON
             s3_service = S3Service()
-            logger.info(
-                f"Downloading flattened JSON from URL: {flattened_json_url}")
-            chunks = s3_service.download_from_url(flattened_json_url)
-            logger.info(f"Downloaded {len(chunks)} chunks")
+            # logger.info(
+            #     f"Downloading flattened JSON from URL: {flattened_json_url}")
+            # chunks = s3_service.download_from_url(flattened_json_url)
+            # logger.info(f"Downloaded {len(chunks)} chunks")
 
             # Process embeddings
             # logger.info("Initializing embedding service")
@@ -188,13 +188,13 @@ class DocumentProcessingService:
             # Create an instance of the class
             schema_search = SchemaCategorySearch()
 
-            category_results = schema_search.search_all_schema_categories(
-                deal_id=str(job_id)
-            )
+            # category_results = schema_search.search_all_schema_categories(
+            #     deal_id=str(job_id)
+            # )
 
             # Update job status to completed
-            # job.save_json_to_db(category_results)
-            job.upsert_json_to_db(category_results)
+
+            # job.upsert_json_to_db(category_results)
             job.update_embedding_status("COMPLETED")
             logger.info(f"Updated job status to COMPLETED")
 
@@ -348,15 +348,19 @@ class EmbeddingService:
         if len(meta_bytes) <= self.MAX_METADATA_SIZE:
             return metadata  # ✅ Already valid
 
+        logger.warning(
+            f"Metadata size ({len(meta_bytes)} bytes) exceeds maximum allowed size ({self.MAX_METADATA_SIZE} bytes). Metadata: {metadata}")
         # Sort keys by importance (edit this order as needed)
         priority_keys = [
-            "categories",
             "chunk_index",
             "clause_summary",
             "combined_text",
             "deal_id",
             "deal_name",
             "label",
+            "reference_section",
+            "section",
+            "categories",
             "original_text",
         ]
 
@@ -389,6 +393,44 @@ class EmbeddingService:
                     trimmed.pop(key)
 
         return trimmed
+
+    def extract_section_references(self, text):
+        """
+        Extract Section references from text using regex.
+        Extracts the full section reference (e.g., from 'Section 2.1(c)' extracts 'Section 2.1')
+        """
+        # Pattern to match Section references and capture both "Section" and the number
+        pattern = r'(Section\s+\d+(?:\.\d+)*)'
+        matches = re.finditer(pattern, text, re.IGNORECASE)
+        references = []
+
+        # Extract unique section references
+        seen = set()
+        for match in matches:
+            # Get the full section reference
+            full_section = match.group(1)
+            # Remove any trailing content after the section number
+            base_section = re.sub(r'(\(.*?\))|(\s+[a-z].*$)', '', full_section)
+            if base_section not in seen:
+                seen.add(base_section)
+                references.append(base_section)
+
+        return sorted(references)
+
+    def extract_section_from_label(self, label):
+        """
+        Extract a single section reference from the label.
+        Example: "ARTICLE Article VIII GENERAL PROVISIONS > Section 8.12 Consent to Jurisdiction" returns ["Section 8.12"]
+        """
+        # Pattern to match section after ">" symbol
+        pattern = r'>\s*(Section\s+\d+(?:\.\d+)*)'
+        match = re.search(pattern, label, re.IGNORECASE)
+        if match:
+            # Get the full section reference and clean it
+            base_section = re.sub(
+                r'(\(.*?\))|(\s+[a-z].*$)', '', match.group(1))
+            return [base_section]
+        return []  # Return empty list if no match
 
     def process_chunks(self, chunks, deal_id):
         """Process a list of text chunks and store embeddings in Pinecone one by one"""
@@ -455,8 +497,11 @@ class EmbeddingService:
                     "combined_text": enhanced_chunk.get("combined_text", "") or "",
                     # "categories": enhanced_chunk.get("categories", "") or "",
                     "chunk_index": i,
+                    # "reference_section": self.extract_section_references(enhanced_chunk.get("combined_text", "")),
+                    # "section": self.extract_section_from_label(enhanced_chunk.get("label", ""))
                     # "clause_summary": enhanced_chunk.get("clause_summary", "") or "",
                 }
+                logger.info(f"Metadata: {metadata}")
 
                 # Upsert single vector to Pinecone
                 metadata = self.trim_metadata(metadata)
@@ -3687,7 +3732,7 @@ class SchemaCategorySearch:
                 model="gpt-4o",
                 messages=[{"role": "user", "content": prompt}],
                 temperature=0.1,
-                max_tokens=2000,
+                max_tokens=4000,
             )
 
             # Extract and return the value
@@ -3931,10 +3976,62 @@ class SchemaCategorySearch:
             # Extract metadata from second query matches
             chunks_2 = [match.metadata for match in search_response_2.matches]
 
-            # Combine results from both queries
+            # Collect all section references from both queries' metadata
+            # section_references = set()
+            # for chunk in chunks_1 + chunks_2:
+            #     # Add references from reference_section array
+            #     if chunk.get('reference_section'):
+            #         section_references.update(ref.replace(
+            #             'Section ', '') for ref in chunk.get('reference_section', []))
+            #     # Add references from section array
+            #     if chunk.get('section'):
+            #         logger.info(f"Section: {chunk.get('section')}")
+            #         section_references.update(ref.replace(
+            #             'Section ', '') for ref in chunk.get('section', []))
+
+            # Convert back to list and add "Section " prefix
+            # section_references = [
+            #     f"Section {ref}" for ref in sorted(section_references)]
+
+            # logger.info(f"Section references: {section_references}")
+
+            # THIRD QUERY: using section references in filter
+            # if section_references:
+            #     # Create a dummy vector for metadata-only search
+            #     # Dimension for text-embedding-3-large
+            #     dummy_vector = [0.0] * 3072
+
+            #     # Update filter dict to include section references
+            #     section_filter_dict = {
+            #         "deal_id": str(deal_id),
+            #         "section": {"$in": list(section_references)}
+            #     }
+
+            #     # Search in Pinecone using metadata filtering
+            #     search_response_3 = index.query(
+            #         vector=dummy_vector,
+            #         top_k=len(section_references),
+            #         include_metadata=True,
+            #         filter=section_filter_dict
+            #     )
+            #     logger.info(
+            #         f"Search response 3 (section filter): {len(search_response_3.matches)}")
+
+            #     # Extract metadata from third query matches
+            #     chunks_3 = [
+            #         match.metadata for match in search_response_3.matches]
+            # else:
+            # chunks_3 = []
+
+            # Combine results from all three queries
             all_chunks = chunks_1 + chunks_2
             logger.info(
                 f"Combined chunks before deduplication: {len(all_chunks)}")
+
+            # Combine results from both queries
+            # all_chunks = chunks_1 + chunks_2
+            # logger.info(
+            #     f"Combined chunks before deduplication: {len(all_chunks)}")
 
             # Remove duplicates
             unique_chunks = []
@@ -4026,7 +4123,7 @@ class SchemaCategorySearch:
         try:
             results = {}
             # Set up a ThreadPoolExecutor with a reasonable number of workers
-            with concurrent.futures.ThreadPoolExecutor(max_workers=8) as executor:
+            with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
                 # Dictionary to track all future objects by section and field
                 futures = {}
 
@@ -4052,7 +4149,7 @@ class SchemaCategorySearch:
                         "best_efforts",
                     ]:
                         # Change this to your desired section
-                        # if section_name == "conditions_to_closing":
+                        # if section_name == "best_efforts":
 
                         logger.info(
                             f"Submitting tasks for section: {section_name}")
@@ -4156,12 +4253,12 @@ class SchemaCategorySearch:
                                     futures[section_name][subsection_name].append(
                                         (field_name, future)
                                     )
-                            # else:
-                            #     logger.info(
-                            #         f"Skipping field: {field_name}")
-                        # else:
-                        #     logger.info(
-                        #         f"Skipping section: {section_name}")
+                    # else:
+                    #     logger.info(
+                    #         f"Skipping field: {field_name}")
+                    # else:
+                    #     logger.info(
+                    #         f"Skipping section: {section_name}")
                     # else:
                     #     logger.info(
                     #         f"Skipping section: {section_name}")
