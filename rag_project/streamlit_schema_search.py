@@ -1,3 +1,4 @@
+import openai
 from django_init import init_django
 from document_processor.services import SchemaCategorySearch
 import streamlit as st
@@ -38,6 +39,11 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="collapsed"
 )
+
+st.secrets["OPENAI_API_KEY"]
+openai.api_key = st.secrets["OPENAI_API_KEY"]
+
+openai.organization = st.secrets["OPENAI_ORG_ID"]
 
 # Add custom CSS
 st.markdown("""
