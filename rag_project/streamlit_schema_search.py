@@ -13,19 +13,6 @@ import logging
 from datetime import datetime
 from copy import deepcopy
 
-# Initialize OpenAI API key
-if 'OPENAI_API_KEY' in st.secrets:
-    openai.api_key = st.secrets['OPENAI_API_KEY']
-    os.environ['OPENAI_API_KEY'] = st.secrets['OPENAI_API_KEY']
-else:
-    # Fallback to environment variable if not in secrets
-    openai.api_key = os.getenv('OPENAI_API_KEY')
-
-if not openai.api_key:
-    st.error(
-        "OpenAI API key not found. Please set it in Streamlit secrets or environment variables.")
-    st.stop()
-
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
