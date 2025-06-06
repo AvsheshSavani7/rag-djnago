@@ -37,8 +37,7 @@ st.set_page_config(
     page_title="Schema Enhancement Tool",
     page_icon="🔍",
     layout="wide",
-    initial_sidebar_state="collapsed",
-    theme="light"
+    initial_sidebar_state="collapsed"
 )
 
 
