@@ -33,9 +33,10 @@ init_django()
 
 # Set page config
 st.set_page_config(
-    page_title="Schema Search Tool",
+    page_title="Schema Enhancement Tool",
     page_icon="🔍",
-    layout="wide"
+    layout="wide",
+    initial_sidebar_state="collapsed"
 )
 
 # Add custom CSS
@@ -471,7 +472,20 @@ with col3:
     st.write("")
     st.write("")
     # Add a search button
-    if st.button("🔍 Run", type="secondary", key="run_button"):
+    run_button = st.button("🔍 Run", type="secondary", key="run_button")
+
+# Close the sticky container
+st.markdown('</div>', unsafe_allow_html=True)
+
+# Store selected section in session state
+st.session_state.selected_section = selected_section
+
+# Create tabs for different functionalities
+search_tab, edit_tab, review_tab = st.tabs(
+    ["🔍 Results", "✏️ Edit Schema", "📋 Review Changes"])
+
+if run_button:
+    with search_tab:
         try:
             with st.spinner("Searching schema categories..."):
                 logger.info(
@@ -597,16 +611,6 @@ with col3:
         except Exception as e:
             st.error(f"An error occurred: {str(e)}")
             st.error("Full error details")
-
-# Close the sticky container
-st.markdown('</div>', unsafe_allow_html=True)
-
-# Store selected section in session state
-st.session_state.selected_section = selected_section
-
-# Create tabs for different functionalities
-search_tab, edit_tab, review_tab = st.tabs(
-    ["🔍 Results", "✏️ Edit Schema", "📋 Review Changes"])
 
 with edit_tab:
     st.header("Edit Schema")
