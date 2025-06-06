@@ -10,11 +10,14 @@ from streamlit_ace import st_ace
 
 # Setup Django environment first
 current_dir = Path(__file__).resolve().parent
-sys.path.insert(0, str(current_dir))
+parent_dir = current_dir.parent
+sys.path.insert(0, str(parent_dir))
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'rag_project.settings')
 
-django.setup()
+# Only setup Django if it hasn't been set up yet
+if not django.conf.settings.configured:
+    django.setup()
 
 # Set page config
 st.set_page_config(
