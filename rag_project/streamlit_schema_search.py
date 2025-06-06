@@ -622,12 +622,9 @@ with edit_tab:
             edit_section,
             st.session_state.full_schema.get(edit_section, {})
         )
-        logger.info(f"Full schema: {json.dumps(full_schema, indent=2)}")
 
         # Filter the schema to show only specific fields
         current_schema = filter_schema_fields(full_schema)
-
-        logger.info(f"Current schema: {json.dumps(current_schema, indent=2)}")
 
         st.subheader(f"JSON Editor - {edit_section}")
         # Create an ACE editor for JSON
@@ -649,23 +646,17 @@ with edit_tab:
             try:
                 logger.info(f"Saving changes for section: {edit_section}")
                 edited_json = json.loads(edited_content)
-                logger.info(
-                    f"Edited JSON: {json.dumps(edited_json, indent=2)}")
 
                 # Get the full original schema for this section
                 full_section = deepcopy(
                     st.session_state.full_schema.get(edit_section, {}))
-                logger.info(
-                    f"Full section before merge: {json.dumps(full_section, indent=2)}")
 
                 # Merge edited filtered fields back into the full schema
                 merged = deep_merge_filtered_back(full_section, edited_json)
-                logger.info(f"Merged section: {json.dumps(merged, indent=2)}")
 
                 # Save to session state
                 st.session_state.edited_schema[edit_section] = merged
-                logger.info(
-                    f"Successfully saved changes for section: {edit_section}")
+
                 st.success("Successfully saved changes locally")
 
             except json.JSONDecodeError as e:
@@ -746,10 +737,6 @@ with review_tab:
 
                 # Log the comparison of filtered schemas
                 logger.debug(f"Comparing filtered section {section}:")
-                logger.debug(
-                    f"Filtered Original: {json.dumps(filtered_original, indent=2)}")
-                logger.debug(
-                    f"Filtered Modified: {json.dumps(filtered_modified, indent=2)}")
 
                 # Generate and display diff using filtered schemas
                 diff_html = generate_diff(
