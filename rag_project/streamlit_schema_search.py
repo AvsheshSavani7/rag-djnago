@@ -769,27 +769,42 @@ with review_tab:
 # Add helpful information
 with st.sidebar.expander("ℹ️ How to use"):
     st.markdown("""
-    1. **Search Tab:**
-       - Select a deal ID from the dropdown
-       - Choose a section to search through
-       - Click '🔍 Run' to view results
-       - View results in  Raw JSON format
+    ### 1. Search & View Results 🔍
+    - Select a deal from the dropdown menu
+    - Choose a section to analyze
+    - Click '🔍 Run' to start the search
+    - View results in two formats:
+        - Raw JSON: Complete data in JSON format
+        - Output: Formatted view with expandable sections
     
-    2. **Edit Tab:**
-       - Select a section to edit from the dropdown
-       - Make changes in the JSON editor
-       - The editor provides:
-         • Syntax highlighting
-         • Line numbers
-         • Auto-indentation
-         • Error detection
-       - Click '💾 Save Changes' to save
-       - Click '🔄 Reset to Original' to revert changes
-       
-    3. **Note on Saving:**
-       - Changes are saved to a separate edited schema file
-       - Original schema remains unchanged
-       - Searches will use edited version when available
+    ### 2. Edit Schema ✏️
+    - Navigate to the 'Edit Schema' tab
+    - Select the section you want to modify
+    - Edit the following fields:
+        - instructions
+        - recommended_prompt_type
+        - question_query
+        - field_name
+    - Use the JSON editor with features:
+        - Syntax highlighting
+        - Line numbers
+        - Auto-indentation
+        - Error detection
+    - Click '💾 Save Changes' to save locally
+    
+    ### 3. Review & Publish Changes 📋
+    - Go to the 'Review Changes' tab
+    - Review your modifications:
+        - Green highlights show additions
+        - Red highlights show removals
+    - Actions available:
+        - '🔄 Discard Changes': Reset all modifications
+        - '🔄 Confirm and Merge Changes to S3': Publish to S3
+    
+    ### Note:
+    - Changes are saved locally until you publish
+    - The search function uses your latest changes
+    - All other fields are preserved when saving
     """)
 
 # Footer
