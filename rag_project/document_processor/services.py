@@ -3876,7 +3876,7 @@ class SchemaCategorySearch:
                     if combined_text:
                         combined_text += "\n\n"
                     combined_text += (
-                        f"[Label : {chunk.get("label", "")}]\n\n{chunk_text.strip()}"
+                        f"[Label : {chunk.get('label', '')}]\n\n{chunk_text.strip()}"
                     )
 
             # Extract value with GPT
