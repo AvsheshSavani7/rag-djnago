@@ -40,10 +40,6 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-st.secrets["OPENAI_API_KEY"]
-openai.api_key = st.secrets["OPENAI_API_KEY"]
-
-openai.organization = st.secrets["OPENAI_ORG_ID"]
 
 # Add custom CSS
 st.markdown("""
