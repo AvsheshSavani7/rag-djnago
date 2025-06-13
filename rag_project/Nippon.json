@@ -1,0 +1,1594 @@
+{
+  "conditions_to_closing": {
+    "mutual_conditions_list": {
+      "answer": [
+        "The Required Company Stockholder Vote shall have been obtained.",
+        "No injunction or similar Order by any Governmental Entity that prohibits the consummation of the Merger shall have been entered and shall continue to be in effect, and no Law shall have been enacted that prohibits or makes illegal the consummation of the Merger.",
+        "The applicable waiting period under the HSR Act shall have expired or been earlier terminated, the CFIUS Approval shall have been obtained, and the approvals and clearances specified in the Company Disclosure Letter shall have been obtained."
+      ],
+      "clause_text": "The respective obligations of each Party to effect the Merger and the other Contemplated Transactions shall be subject to the satisfaction (or waiver by each of Parent and the Company to the extent permitted by applicable Law) at or prior to the Effective Time of the following conditions: (a) Stockholder Approval. The Required Company Stockholder Vote shall have been obtained. (b) No Legal Restraints. No injunction or similar Order by any Governmental Entity in the U.S. or any other jurisdiction specified in Section 7.1(c) of the Company Disclosure Letter with competent jurisdiction over any Party that prohibits the consummation of the Merger and the other Contemplated Transactions shall have been entered and shall continue to be in effect, and no Law shall have been enacted, entered, promulgated, enforced or deemed applicable by any Governmental Entity with competent jurisdiction over any Party in the U.S. or any other jurisdiction specified in Section 7.1(c) of the Company Disclosure Letter that remains in effect and, in any case, prohibits or makes illegal the consummation of the Merger (any such Order, injunction or Law, a \"Legal Restraint\"). (c) Regulatory Approvals. (i) The applicable waiting period (and any extension thereof) and any agreement with a Governmental Entity not to consummate the Contemplated Transactions under the HSR Act shall have expired or been earlier terminated, (ii) the CFIUS Approval shall have been obtained, and (iii) the approvals and clearances specified in Section 7.1(c) of the Company Disclosure Letter shall have been obtained (the approvals and clearances described in clauses (i) through (iii), collectively, the \"Required Approvals\").",
+      "reference_section": "Section 7.1"
+    },
+    "parent_closing_conditions": {
+      "answer": [
+        "The representations and warranties of the Company specified in certain sections must be true and correct at the date of the agreement and the Closing Date, with some inaccuracies allowed up to $50,000,000.",
+        "The Company must have performed and complied with all material obligations and covenants required by the agreement prior to the Effective Time.",
+        "No Company Material Adverse Effect should have occurred since the date of the agreement.",
+        "The Company must deliver a certificate, signed by a senior officer, certifying that the conditions regarding representations, warranties, and no material adverse effect have been satisfied."
+      ],
+      "clause_text": "The obligations of Parent and Merger Sub to effect the Merger and the other Contemplated Transactions are further subject to the satisfaction (or waiver by Parent and Merger Sub to the extent permitted by applicable Law) of the following conditions: (a) (i) The representations and warranties of the Company set forth in Section 4.1(a), the first sentence of Section 4.2(a), clauses (i) through (viii) of Section 4.2(b), Section 4.2(c) (solely with respect to the Company) and Section 4.6(a) shall be true and correct in all respects at and as of the date hereof and the Closing Date, as if made at and as of such time...",
+      "reference_section": "Section 7.3"
+    },
+    "company_closing_conditions": {
+      "answer": [
+        "The representations and warranties of Parent and Merger Sub set forth in Article 5 shall be true and correct at and as of the Closing Date, except where the failure does not constitute a Parent Material Adverse Effect.",
+        "Parent and Merger Sub shall have performed in all material respects all obligations and complied in all material respects with all covenants required by this Agreement to be performed or complied with by them prior to the Effective Time.",
+        "Parent shall have delivered to the Company a certificate, dated as of the Closing Date and signed by its Chief Executive Officer or another senior officer, certifying to the effect that the conditions set forth in Section 7.2(a) and Section 7.2(b) have been satisfied."
+      ],
+      "clause_text": "The obligation of the Company to effect the Merger and the other Contemplated Transactions is further subject to the satisfaction (or waiver by the Company to the extent permitted by applicable Law) of the following conditions: (a) The representations and warranties of Parent and Merger Sub set forth in Article 5 (without regard to any qualifications as to materiality or Parent Material Adverse Effect contained in such representations and warranties) shall be true and correct at and as of the Closing Date, as if made at and as of such time (except to the extent made as of an earlier date, in which case at and as of such date), except where the failure of such representations and warranties to be so true and correct does not, individually or in the aggregate, constitute a Parent Material Adverse Effect. (b) Parent and Merger Sub shall have performed in all material respects all obligations and complied in all material respects with all covenants required by this Agreement to be performed or complied with by them prior to the Effective Time. (c) Parent shall have delivered to the Company a certificate, dated as of the Closing Date and signed by its Chief Executive Officer or another senior officer, certifying to the effect that the conditions set forth in Section 7.2(a) and Section 7.2(b) have been satisfied.",
+      "reference_section": "Section 7.2"
+    },
+    "target_shareholder_approval_required": {
+      "answer": true,
+      "clause_text": "The Required Company Stockholder Vote shall have been obtained.",
+      "reference_section": "Section 7.1 (a)"
+    },
+    "target_shareholder_approval_threshold": {
+      "answer": "majority of the shares of Common Stock outstanding on the record date for the Company Stockholders' Meeting",
+      "clause_text": "Assuming the accuracy of the representations and warranties set forth in Section 5.10, the affirmative vote of the holders of a majority of the shares of Common Stock outstanding on the record date for the Company Stockholders' Meeting in favor of adopting this Agreement (the 'Required Company Stockholder Vote') is the only vote of the holders of any class or series of the Company's capital stock, or any holders of any other securities of the Company, necessary to adopt this Agreement and approve the Merger.",
+      "reference_section": "Section 4.22"
+    },
+    "parent_shareholder_approval_required": {
+      "answer": false,
+      "clause_text": "No vote of the stockholders of Parent or the holders of any other securities of Parent or any of its Affiliates (equity or otherwise) is required by any applicable Law, the certificate of incorporation or bylaws or other equivalent organizational documents of Parent or the applicable rules of any exchange on which securities of Parent or any of its Affiliates are traded, in order for Parent to consummate the Contemplated Transactions.",
+      "reference_section": "Section 5.6"
+    },
+    "parent_shareholder_approval_threshold": {
+      "answer": "",
+      "clause_text": "No vote of the stockholders of Parent or the holders of any other securities of Parent or any of its Affiliates (equity or otherwise) is required by any applicable Law, the certificate of incorporation or bylaws or other equivalent organizational documents of Parent or the applicable rules of any exchange on which securities of Parent or any of its Affiliates are traded, in order for Parent to consummate the Contemplated Transactions.",
+      "reference_section": "Section 5.6"
+    },
+    "hsr_clearance_required": {
+      "answer": true,
+      "clause_text": "The applicable waiting period (and any extension thereof) and any agreement with a Governmental Entity not to consummate the Contemplated Transactions under the HSR Act shall have expired or been earlier terminated.",
+      "reference_section": "Section 7.1 (c)"
+    },
+    "other_customary_conditions": {
+      "answer": [
+        "Stockholder Approval",
+        "No Legal Restraints",
+        "Regulatory Approvals"
+      ],
+      "clause_text": "The respective obligations of each Party to effect the Merger and the other Contemplated Transactions shall be subject to the satisfaction (or waiver by each of Parent and the Company to the extent permitted by applicable Law) at or prior to the Effective Time of the following conditions: (a) Stockholder Approval. The Required Company Stockholder Vote shall have been obtained. (b) No Legal Restraints. No injunction or similar Order by any Governmental Entity in the U.S. or any other jurisdiction specified in Section 7.1(c) of the Company Disclosure Letter with competent jurisdiction over any Party that prohibits the consummation of the Merger and the other Contemplated Transactions shall have been entered and shall continue to be in effect, and no Law shall have been enacted, entered, promulgated, enforced or deemed applicable by any Governmental Entity with competent jurisdiction over any Party in the U.S. or any other jurisdiction specified in Section 7.1(c) of the Company Disclosure Letter that remains in effect and, in any case, prohibits or makes illegal the consummation of the Merger (any such Order, injunction or Law, a \"Legal Restraint\"). (c) Regulatory Approvals. (i) The applicable waiting period (and any extension thereof) and any agreement with a Governmental Entity not to consummate the Contemplated Transactions under the HSR Act shall have expired or been earlier terminated, (ii) the CFIUS Approval shall have been obtained, and (iii) the approvals and clearances specified in Section 7.1(c) of the Company Disclosure Letter shall have been obtained (the approvals and clearances described in clauses (i) through (iii), collectively, the \"Required Approvals\").",
+      "reference_section": "Section 7.1"
+    },
+    "financial_conditions_minimum_cash_threshold": {
+      "answer": "Not found",
+      "clause_text": "",
+      "reference_section": ""
+    },
+    "financial_conditions_maximum_net_debt": {
+      "answer": "Not found",
+      "clause_text": "",
+      "reference_section": ""
+    },
+    "financial_conditions_minimum_any_condition": {
+      "answer": "Not found",
+      "clause_text": "",
+      "reference_section": ""
+    },
+    "tax_conditions_tax_opinion_required": {
+      "answer": "Not found",
+      "clause_text": "",
+      "reference_section": ""
+    },
+    "required_regulatory_clearances": {
+      "answer": "HSR, CFIUS",
+      "clause_text": "The applicable waiting period (and any extension thereof) and any agreement with a Governmental Entity not to consummate the Contemplated Transactions under the HSR Act shall have expired or been earlier terminated, (ii) the CFIUS Approval shall have been obtained, and (iii) the approvals and clearances specified in Section 7.1(c) of the Company Disclosure Letter shall have been obtained (the approvals and clearances described in clauses (i) through (iii), collectively, the 'Required Approvals').",
+      "reference_section": "Section 7.1"
+    }
+  },
+  "material_adverse_effect": {
+    "mae_carveout": {
+      "mae_carveout_general_economic_conditions_included": {
+        "answer": true,
+        "clause_text": "any action taken by the Company solely at the express written direction of Parent or any action required to be taken by Parent, Merger Sub or the Company pursuant to the terms of this Agreement following the disclosure by the Company to Parent and Merger Sub of all material and relevant facts and information",
+        "reference_section": "Section 1.1"
+      },
+      "mae_carveout_general_economic_conditions_explanation": {
+        "answer": "Adverse effects resulting from general economic conditions are excluded from the definition of Material Adverse Effect.",
+        "clause_text": "Company Material Adverse Effect means an event, change, occurrence, effect, condition or development that, individually or in the aggregate with all other events, changes, occurrences, effects, conditions or developments, ... but shall not include, for the purposes of clause (x), events, changes, occurrences, effects, conditions or developments to the extent relating to or resulting from ... (c) the general conditions or trends in the industries in which the Acquired Companies operate or in the domestic, foreign or global economy generally or other general business, financial or market conditions; ...",
+        "reference_section": "Section 1.1"
+      },
+      "mae_carveout_industry_conditions_included": {
+        "answer": true,
+        "clause_text": "Company Material Adverse Effect means an event, change, occurrence, effect, condition or development... but shall not include, for the purposes of clause (x), events, changes, occurrences, effects, conditions or developments to the extent relating to or resulting from... (c) the general conditions or trends in the industries in which the Acquired Companies operate...",
+        "reference_section": "Section 1.1"
+      },
+      "mae_carveout_industry_conditions_explanation": {
+        "answer": "Company Material Adverse Effect means an event, change, occurrence, effect, condition or development that, individually or in the aggregate with all other events, changes, occurrences, effects, conditions or developments, (x) has had, or would reasonably be expected to have, a material adverse effect on the business, assets, liabilities, properties, results of operations or financial condition of the Company and its Subsidiaries, taken as a whole, or (y) would reasonably be expected to prevent or materially delay or materially impair the ability of the Company to consummate the Merger and the other Contemplated Transactions (other than any failure to obtain any Required Approval), but shall not include, for the purposes of clause (x), events, changes, occurrences, effects, conditions or developments to the extent relating to or resulting from (c) the general conditions or trends in the industries in which the Acquired Companies operate or in the domestic, foreign or global economy generally or other general business, financial or market conditions;",
+        "clause_text": "Company Material Adverse Effect means an event, change, occurrence, effect, condition or development that, individually or in the aggregate with all other events, changes, occurrences, effects, conditions or developments, (x) has had, or would reasonably be expected to have, a material adverse effect on the business, assets, liabilities, properties, results of operations or financial condition of the Company and its Subsidiaries, taken as a whole, or (y) would reasonably be expected to prevent or materially delay or materially impair the ability of the Company to consummate the Merger and the other Contemplated Transactions (other than any failure to obtain any Required Approval), but shall not include, for the purposes of clause (x), events, changes, occurrences, effects, conditions or developments to the extent relating to or resulting from (c) the general conditions or trends in the industries in which the Acquired Companies operate or in the domestic, foreign or global economy generally or other general business, financial or market conditions;",
+        "reference_section": "Section 1.1"
+      },
+      "mae_carveout_stock_price_changes_included": {
+        "answer": true,
+        "clause_text": "Company Material Adverse Effect means an event, change, occurrence, effect, condition or development... but shall not include, for the purposes of clause (x), events, changes, occurrences, effects, conditions or developments to the extent relating to or resulting from (a) any change, in and of itself, in the market price or trading volume of the Company's Common Stock...",
+        "reference_section": "Section 1.1"
+      },
+      "mae_carveout_stock_price_changes_explanation": {
+        "answer": "Not found",
+        "clause_text": "",
+        "reference_section": ""
+      },
+      "mae_carveout_credit_rating_changes_included": {
+        "answer": true,
+        "clause_text": "Company Material Adverse Effect means an event, change, occurrence, effect, condition or development... but shall not include, for the purposes of clause (x), events, changes, occurrences, effects, conditions or developments to the extent relating to or resulting from (a) any change, in and of itself, in the market price or trading volume of the Company's Common Stock or any change in the credit rating of the Company or any of its securities...",
+        "reference_section": "Section 1.1"
+      },
+      "mae_carveout_credit_rating_changes_explanation": {
+        "answer": "Changes in credit ratings are excluded from the definition of a Company Material Adverse Effect.",
+        "clause_text": "Company Material Adverse Effect means an event, change, occurrence, effect, condition or development that... shall not include... any change in the credit rating of the Company or any of its securities (provided, that the underlying causes thereof, to the extent not otherwise excluded by this definition, may be considered in determining whether a Company Material Adverse Effect has occurred).",
+        "reference_section": "Section 1.1"
+      },
+      "mae_carveout_legal_or_regulatory_changes_included": {
+        "answer": true,
+        "clause_text": "Company Material Adverse Effect means ... but shall not include ... (l) any change in any applicable Law or GAAP or any other applicable accounting principles or standards (or interpretations of any applicable Law or GAAP or any other applicable accounting principles or standards) after the date of this Agreement ...",
+        "reference_section": "Section 1.1"
+      },
+      "mae_carveout_legal_or_regulatory_changes_explanation": {
+        "answer": "Not found",
+        "clause_text": "",
+        "reference_section": ""
+      },
+      "mae_carveout_force_majeure_events_included": {
+        "answer": true,
+        "clause_text": "Company Material Adverse Effect means an event, change, occurrence, effect, condition or development... but shall not include, for the purposes of clause (x), events, changes, occurrences, effects, conditions or developments to the extent relating to or resulting from... (f) any natural or manmade disasters or weather developments, including earthquakes, hurricanes, tsunamis, typhoons, lightning, hail storms, blizzards, tornadoes, droughts, floods, cyclones, arctic frosts, mudslides and wildfires, any acts of God, epidemics, pandemics or disease outbreaks (including COVID-19) or similar force majeure events...",
+        "reference_section": "Section 1.1"
+      },
+      "mae_carveout_force_majeure_events_explanation": {
+        "answer": "Acts of God, natural disasters, or weather-related events are excluded from the definition of Material Adverse Effect.",
+        "clause_text": "Company Material Adverse Effect means an event, change, occurrence, effect, condition or development... but shall not include... (f) any natural or manmade disasters or weather developments, including earthquakes, hurricanes, tsunamis, typhoons, lightning, hail storms, blizzards, tornadoes, droughts, floods, cyclones, arctic frosts, mudslides and wildfires, any acts of God, epidemics, pandemics or disease outbreaks (including COVID-19) or similar force majeure events...",
+        "reference_section": "Section 1.1"
+      },
+      "mae_carveout_political_events_or_war_included": {
+        "answer": true,
+        "clause_text": "Company Material Adverse Effect means an event, change, occurrence, effect, condition or development... but shall not include, for the purposes of clause (x), events, changes, occurrences, effects, conditions or developments to the extent relating to or resulting from... (e) geopolitical conditions, any act of civil unrest, civil disobedience, protests, public demonstrations, insurrection, terrorism, war, sanctions, cyberterrorism, ransomware or malware, military activity, sabotage, or cybercrime...",
+        "reference_section": "Section 1.1"
+      },
+      "mae_carveout_political_events_or_war_explanation": {
+        "answer": "Not found",
+        "clause_text": "",
+        "reference_section": ""
+      },
+      "mae_carveout_pandemic_health_events_included": {
+        "answer": true,
+        "clause_text": "Company Material Adverse Effect means an event, change, occurrence, effect, condition or development... but shall not include... (f) any natural or manmade disasters or weather developments... epidemics, pandemics or disease outbreaks (including COVID-19)...",
+        "reference_section": "Section 1.1"
+      },
+      "mae_carveout_pandemic_health_events_explanation": {
+        "answer": "Pandemics, epidemics, or public health emergencies, including COVID-19, are excluded from the definition of a Material Adverse Effect.",
+        "clause_text": "Company Material Adverse Effect means an event, change, occurrence, effect, condition or development that...but shall not include, for the purposes of clause (x), events, changes, occurrences, effects, conditions or developments to the extent relating to or resulting from...epidemics, pandemics or disease outbreaks (including COVID-19)...",
+        "reference_section": "Section 1.1"
+      },
+      "mae_carveout_agreement_compliance_effects_included": {
+        "answer": true,
+        "clause_text": "Company Material Adverse Effect means an event, change, occurrence, effect, condition or development... but shall not include, for the purposes of clause (x), events, changes, occurrences, effects, conditions or developments to the extent relating to or resulting from... (b) the execution, announcement, consummation, existence, delivery, performance or pendency of this Agreement or the terms hereof...",
+        "reference_section": "Section 1.1"
+      },
+      "mae_carveout_agreement_compliance_effects_explanation": {
+        "answer": "The definition of Company Material Adverse Effect excludes effects resulting from the execution, announcement, or consummation of the merger agreement.",
+        "clause_text": "Company Material Adverse Effect ... shall not include, for the purposes of clause (x), events, changes, occurrences, effects, conditions or developments to the extent relating to or resulting from ... the execution, announcement, consummation, existence, delivery, performance or pendency of this Agreement or the terms hereof ... or the announcement, pendency or consummation of the Contemplated Transactions...",
+        "reference_section": "Section 1.1"
+      },
+      "mae_carveout_parent_actions_included": {
+        "answer": true,
+        "clause_text": "Company Material Adverse Effect means an event, change, occurrence, effect, condition or development... (j) any action taken by the Company solely at the express written direction of Parent...",
+        "reference_section": "Section 1.1"
+      },
+      "mae_carveout_parent_actions_explanation": {
+        "answer": "Adverse effects resulting from actions taken by the Company at the express written direction of Parent are excluded from the definition of Material Adverse Effect.",
+        "clause_text": "any action taken by the Company solely at the express written direction of Parent or any action required to be taken by Parent, Merger Sub or the Company pursuant to the terms of this Agreement following the disclosure by the Company to Parent and Merger Sub of all material and relevant facts and information",
+        "reference_section": "Section 1.1"
+      },
+      "mae_carveout_projections_miss_included": {
+        "answer": true,
+        "clause_text": "the failure, in and of itself, of the Acquired Companies to meet internal or analysts' expectations or projections, forecasts, guidance, estimates or budgets or revenue or earning predictions (provided, that the underlying causes thereof, to the extent not otherwise excluded by this definition, may be deemed to contribute to a Company Material Adverse Effect;",
+        "reference_section": "Section 1.1"
+      },
+      "mae_carveout_projections_miss_explanation": {
+        "answer": "The failure, in and of itself, of the Acquired Companies to meet internal or analysts' expectations or projections, forecasts, guidance, estimates or budgets or revenue or earning predictions is excluded from the definition of Company Material Adverse Effect.",
+        "clause_text": "The failure, in and of itself, of the Acquired Companies to meet internal or analysts' expectations or projections, forecasts, guidance, estimates or budgets or revenue or earning predictions (provided, that the underlying causes thereof, to the extent not otherwise excluded by this definition, may be deemed to contribute to a Company Material Adverse Effect; provided, further, that this clause (h) shall not be construed as implying that the Company is making any representation or warranty hereunder with respect to any internal or analysts' expectations or projections, forecasts, guidance, estimates or budgets or revenue or earning predictions except for the representations and warranties set forth in Section 4.9(g));",
+        "reference_section": "Section 1.1"
+      },
+      "mae_carveout_other_custom_items_present": {
+        "answer": true,
+        "clause_text": "Company Material Adverse Effect means an event, change, occurrence, effect, condition or development that... shall not include... (e) geopolitical conditions, any act of civil unrest, civil disobedience, protests, public demonstrations, insurrection, terrorism, war, sanctions, cyberterrorism, ransomware or malware, military activity, sabotage, or cybercrime, data breach national or international calamity...",
+        "reference_section": "Section 1.1"
+      },
+      "mae_carveout_other_custom_items": {
+        "answer": "Not found",
+        "clause_text": "",
+        "reference_section": ""
+      },
+      "standard_mae_carveouts_list": {
+        "answer": "[(a) any change, in and of itself, in the market price or trading volume of the Company's Common Stock or any change in the credit rating of the Company or any of its securities (provided, that the underlying causes thereof, to the extent not otherwise excluded by this definition, may be considered in determining whether a Company Material Adverse Effect has occurred); (b) the execution, announcement, consummation, existence, delivery, performance or pendency of this Agreement or the terms hereof (including the identity of Parent, Merger Sub or their Affiliates), or the announcement, pendency or consummation of the Contemplated Transactions, including the impact thereof on the relationships, contractual or otherwise, of the Acquired Companies with employees, partnerships, labor unions, works councils, financing sources, customers, suppliers, partners, Governmental Entities or other business relationships (provided, that this clause (b) shall not apply to any representation or warranty set forth in Section 4.4 or Section 4.16(k) or with respect to the condition to Closing contained in Section 7.3(a) to the extent it relates to such representations and warranties); (c) the general conditions or trends in the industries in which the Acquired Companies operate or in the domestic, foreign or global economy generally or other general business, financial or market conditions; (d) domestic, foreign or global political conditions, economic, regulatory, financial or capital markets conditions (including interest rates, foreign exchange rates, inflation rates, exchange rates, tariffs, trade wars and credit markets); (e) geopolitical conditions, any act of civil unrest, civil disobedience, protests, public demonstrations, insurrection, terrorism, war, sanctions, cyberterrorism, ransomware or malware, military activity, sabotage, or cybercrime, data breach national or international calamity or any other similar event, including an outbreak or escalation of hostilities involving the United States or any other Governmental Entity or the declaration by the United States or any other Governmental Entity of a national emergency or war, or any worsening of any such conditions threatened or existing on the date of this Agreement; (f) any natural or manmade disasters or weather developments, including earthquakes, hurricanes, tsunamis, typhoons, lightning, hail storms, blizzards, tornadoes, droughts, floods, cyclones, arctic frosts, mudslides and wildfires, any acts of God, epidemics, pandemics or disease outbreaks (including COVID-19) or similar force majeure events, including any worsening of such conditions threatened or existing on the date of this Agreement; (g) compliance by the Company and its Subsidiaries with applicable Law (including COVID-19 Measures); (h) the failure, in and of itself, of the Acquired Companies to meet internal or analysts' expectations or projections, forecasts, guidance, estimates or budgets or revenue or earning predictions (provided, that the underlying causes thereof, to the extent not otherwise excluded by this definition, may be deemed to contribute to a Company Material Adverse Effect; provided, further, that this clause (h) shall not be construed as implying that the Company is making any representation or warranty hereunder with respect to any internal or analysts' expectations or projections, forecasts, guidance, estimates or budgets or revenue or earning predictions except for the representations and warranties set forth in Section 4.9(g)); (i) any Action or proceeding relating to or resulting from this Agreement or the Contemplated Transactions; (j) any action taken by the Company solely at the express written direction of Parent or any action required to be taken by Parent, Merger Sub or the Company pursuant to the terms of this Agreement following the disclosure by the Company to Parent and Merger Sub of all material and relevant facts and information (provided, that this clause (j) shall not apply with respect to the representations or warranties set forth in Section 4.4 or with respect to the condition to Closing contained in Section 7.3(a) to the extent it relates to such representations and warranties); (k) any breach by Parent or Merger Sub of this Agreement; (l) any change in any applicable Law or GAAP or any other applicable accounting principles or standards (or interpretations of any applicable Law or GAAP or any other applicable accounting principles or standards) after the date of this Agreement or (m) the failure to obtain any Required Approvals; provided, that in the case of the foregoing clause (c), (d), (e), (f) or (l) to the extent such event, change, occurrence, effect, condition or development referred to therein is not otherwise excluded from the definition hereof and has a materially disproportionate adverse impact on the business, assets, liabilities, properties, results of operations or financial condition of the Acquired Companies, taken as a whole, relative to other similarly situated Persons engaged in the same industry or industries or geographic markets in which the Company and its Subsidiaries operate, then the incremental material disproportionate impact of such event, change, occurrence, effect, condition or development shall be taken into account for the purpose of determining whether a Company Material Adverse Effect has occurred.]",
+        "clause_text": "Company Material Adverse Effect means an event, change, occurrence, effect, condition or development that, individually or in the aggregate with all other events, changes, occurrences, effects, conditions or developments, (x) has had, or would reasonably be expected to have, a material adverse effect on the business, assets, liabilities, properties, results of operations or financial condition of the Company and its Subsidiaries, taken as a whole, or (y) would reasonably be expected to prevent or materially delay or materially impair the ability of the Company to consummate the Merger and the other Contemplated Transactions (other than any failure to obtain any Required Approval), but shall not include, for the purposes of clause (x), events, changes, occurrences, effects, conditions or developments to the extent relating to or resulting from (a) any change, in and of itself, in the market price or trading volume of the Company's Common Stock or any change in the credit rating of the Company or any of its securities (provided, that the underlying causes thereof, to the extent not otherwise excluded by this definition, may be considered in determining whether a Company Material Adverse Effect has occurred); (b) the execution, announcement, consummation, existence, delivery, performance or pendency of this Agreement or the terms hereof (including the identity of Parent, Merger Sub or their Affiliates), or the announcement, pendency or consummation of the Contemplated Transactions, including the impact thereof on the relationships, contractual or otherwise, of the Acquired Companies with employees, partnerships, labor unions, works councils, financing sources, customers, suppliers, partners, Governmental Entities or other business relationships (provided, that this clause (b) shall not apply to any representation or warranty set forth in Section 4.4 or Section 4.16(k) or with respect to the condition to Closing contained in Section 7.3(a) to the extent it relates to such representations and warranties); (c) the general conditions or trends in the industries in which the Acquired Companies operate or in the domestic, foreign or global economy generally or other general business, financial or market conditions; (d) domestic, foreign or global political conditions, economic, regulatory, financial or capital markets conditions (including interest rates, foreign exchange rates, inflation rates, exchange rates, tariffs, trade wars and credit markets); (e) geopolitical conditions, any act of civil unrest, civil disobedience, protests, public demonstrations, insurrection, terrorism, war, sanctions, cyberterrorism, ransomware or malware, military activity, sabotage, or cybercrime, data breach national or international calamity or any other similar event, including an outbreak or escalation of hostilities involving the United States or any other Governmental Entity or the declaration by the United States or any other Governmental Entity of a national emergency or war, or any worsening of any such conditions threatened or existing on the date of this Agreement; (f) any natural or manmade disasters or weather developments, including earthquakes, hurricanes, tsunamis, typhoons, lightning, hail storms, blizzards, tornadoes, droughts, floods, cyclones, arctic frosts, mudslides and wildfires, any acts of God, epidemics, pandemics or disease outbreaks (including COVID-19) or similar force majeure events, including any worsening of such conditions threatened or existing on the date of this Agreement; (g) compliance by the Company and its Subsidiaries with applicable Law (including COVID-19 Measures); (h) the failure, in and of itself, of the Acquired Companies to meet internal or analysts' expectations or projections, forecasts, guidance, estimates or budgets or revenue or earning predictions (provided, that the underlying causes thereof, to the extent not otherwise excluded by this definition, may be deemed to contribute to a Company Material Adverse Effect; provided, further, that this clause (h) shall not be construed as implying that the Company is making any representation or warranty hereunder with respect to any internal or analysts' expectations or projections, forecasts, guidance, estimates or budgets or revenue or earning predictions except for the representations and warranties set forth in Section 4.9(g)); (i) any Action or proceeding relating to or resulting from this Agreement or the Contemplated Transactions; (j) any action taken by the Company solely at the express written direction of Parent or any action required to be taken by Parent, Merger Sub or the Company pursuant to the terms of this Agreement following the disclosure by the Company to Parent and Merger Sub of all material and relevant facts and information (provided, that this clause (j) shall not apply with respect to the representations or warranties set forth in Section 4.4 or with respect to the condition to Closing contained in Section 7.3(a) to the extent it relates to such representations and warranties); (k) any breach by Parent or Merger Sub of this Agreement; (l) any change in any applicable Law or GAAP or any other applicable accounting principles or standards (or interpretations of any applicable Law or GAAP or any other applicable accounting principles or standards) after the date of this Agreement or (m) the failure to obtain any Required Approvals; provided, that in the case of the foregoing clause (c), (d), (e), (f) or (l) to the extent such event, change, occurrence, effect, condition or development referred to therein is not otherwise excluded from the definition hereof and has a materially disproportionate adverse impact on the business, assets, liabilities, properties, results of operations or financial condition of the Acquired Companies, taken as a whole, relative to other similarly situated Persons engaged in the same industry or industries or geographic markets in which the Company and its Subsidiaries operate, then the incremental material disproportionate impact of such event, change, occurrence, effect, condition or development shall be taken into account for the purpose of determining whether a Company Material Adverse Effect has occurred.",
+        "reference_section": "Section 1.1"
+      }
+    },
+    "mae_carveback": {
+      "mae_carveback_disproportionate_effects_included": {
+        "answer": true,
+        "clause_text": "provided, that in the case of the foregoing clause (c), (d), (e), (f) or (l) to the extent such event, change, occurrence, effect, condition or development referred to therein is not otherwise excluded from the definition hereof and has a materially disproportionate adverse impact on the business, assets, liabilities, properties, results of operations or financial condition of the Acquired Companies, taken as a whole, relative to other similarly situated Persons engaged in the same industry or industries or geographic markets in which the Company and its Subsidiaries operate, then the incremental material disproportionate impact of such event, change, occurrence, effect, condition or development shall be taken into account for the purpose of determining whether a Company Material Adverse Effect has occurred.",
+        "reference_section": "Section 1.1"
+      },
+      "mae_carveback_disproportionate_effects_explanation": {
+        "answer": "The MAE definition includes a carve-back for disproportionate effects.",
+        "clause_text": "provided, that in the case of the foregoing clause (c), (d), (e), (f) or (l) to the extent such event, change, occurrence, effect, condition or development referred to therein is not otherwise excluded from the definition hereof and has a materially disproportionate adverse impact on the business, assets, liabilities, properties, results of operations or financial condition of the Acquired Companies, taken as a whole, relative to other similarly situated Persons engaged in the same industry or industries or geographic markets in which the Company and its Subsidiaries operate, then the incremental material disproportionate impact of such event, change, occurrence, effect, condition or development shall be taken into account for the purpose of determining whether a Company Material Adverse Effect has occurred.",
+        "reference_section": "Section 1.1"
+      },
+      "mae_carveback_additional_exceptions_included": {
+        "answer": true,
+        "clause_text": "provided, that in the case of the foregoing clause (c), (d), (e), (f) or (l) to the extent such event, change, occurrence, effect, condition or development referred to therein is not otherwise excluded from the definition hereof and has a materially disproportionate adverse impact on the business, assets, liabilities, properties, results of operations or financial condition of the Acquired Companies, taken as a whole, relative to other similarly situated Persons engaged in the same industry or industries or geographic markets in which the Company and its Subsidiaries operate, then the incremental material disproportionate impact of such event, change, occurrence, effect, condition or development shall be taken into account for the purpose of determining whether a Company Material Adverse Effect has occurred.",
+        "reference_section": "Section 1.1"
+      },
+      "mae_carveback_additional_exceptions_explanation": {
+        "answer": [
+          "The carve-back provision applies to events, changes, occurrences, effects, conditions, or developments referred to in clauses (c), (d), (e), (f), or (l) if they have a materially disproportionate adverse impact on the business, assets, liabilities, properties, results of operations, or financial condition of the Acquired Companies, taken as a whole, relative to other similarly situated Persons engaged in the same industry or industries or geographic markets in which the Company and its Subsidiaries operate.",
+          "The incremental material disproportionate impact of such event, change, occurrence, effect, condition, or development shall be taken into account for the purpose of determining whether a Company Material Adverse Effect has occurred."
+        ],
+        "clause_text": "provided, that in the case of the foregoing clause (c), (d), (e), (f) or (l) to the extent such event, change, occurrence, effect, condition or development referred to therein is not otherwise excluded from the definition hereof and has a materially disproportionate adverse impact on the business, assets, liabilities, properties, results of operations or financial condition of the Acquired Companies, taken as a whole, relative to other similarly situated Persons engaged in the same industry or industries or geographic markets in which the Company and its Subsidiaries operate, then the incremental material disproportionate impact of such event, change, occurrence, effect, condition or development shall be taken into account for the purpose of determining whether a Company Material Adverse Effect has occurred.",
+        "reference_section": "Section 1.1"
+      },
+      "mae_carveback_causation_based_analysis_included": {
+        "answer": true,
+        "clause_text": "Company Material Adverse Effect means an event, change, occurrence, effect, condition or development... but shall not include... (a) any change, in and of itself, in the market price or trading volume of the Company's Common Stock... (provided, that the underlying causes thereof, to the extent not otherwise excluded by this definition, may be considered in determining whether a Company Material Adverse Effect has occurred);... (h) the failure, in and of itself, of the Acquired Companies to meet internal or analysts' expectations or projections... (provided, that the underlying causes thereof, to the extent not otherwise excluded by this definition, may be deemed to contribute to a Company Material Adverse Effect...",
+        "reference_section": "Section 1.1"
+      },
+      "mae_carveback_causation_based_analysis_explanation": {
+        "answer": "The facts or occurrences giving rise to an excluded event may still be taken into account in determining whether a Material Adverse Effect has occurred, specifically for changes in the market price or trading volume of the Company's Common Stock and the failure to meet expectations or projections.",
+        "clause_text": "provided, that the underlying causes thereof, to the extent not otherwise excluded by this definition, may be considered in determining whether a Company Material Adverse Effect has occurred",
+        "reference_section": "Section 1.1"
+      }
+    }
+  },
+  "non_solicitation": {
+    "no_shop_clause": {
+      "no_shop_clause_included": {
+        "answer": true,
+        "clause_text": "Subject to the provisions of this Section 6.4, from the date hereof until the earlier of the Effective Time and the Termination Date, the Company agrees that it shall not, and shall cause its Subsidiaries not to, and shall use its reasonable best efforts to cause their respective Representatives not to, directly or indirectly, (i) solicit, initiate, induce, knowingly facilitate or knowingly encourage the making or submission of, any proposal, offer, inquiry or request that constitutes, or would reasonably be expected to result in or lead to, any Alternative Proposal...",
+        "reference_section": "Section 6.4 (a)"
+      },
+      "no_shop_claus_explanation": {
+        "answer": "The Company agrees not to solicit, initiate, induce, knowingly facilitate or encourage any Alternative Proposal, nor engage in negotiations or discussions regarding such proposals, nor provide non-public information or access to operational properties to any third party, except to notify them of these restrictions or to ascertain facts about a potential Superior Proposal.",
+        "clause_text": "Subject to the provisions of this Section 6.4, from the date hereof until the earlier of the Effective Time and the Termination Date, the Company agrees that it shall not, and shall cause its Subsidiaries not to, and shall use its reasonable best efforts to cause their respective Representatives not to, directly or indirectly, (i) solicit, initiate, induce, knowingly facilitate or knowingly encourage the making or submission of, any proposal, offer, inquiry or request that constitutes, or would reasonably be expected to result in or lead to, any Alternative Proposal or (ii) engage in, continue or otherwise participate in any negotiations or discussions regarding any proposal, offer, inquiry or request that constitutes, or would reasonably be expected to result in or lead to, an Alternative Proposal or furnish any non-public information regarding the Company or any of its Subsidiaries or provide access to their respective operational properties to any Person (other than Guarantor, Parent, Merger Sub and their respective Representatives) relating to any proposal, offer, inquiry or request that constitutes, or would reasonably be expected to result in or lead to, an Alternative Proposal (except, in each case, to (x) notify such Person that the provisions of this Section 6.4 prohibit any such discussions or negotiations or (y) ascertain facts from the Person making (or considering making) such Alternative Proposal solely for the purpose of informing itself about such Alternative Proposal and the Person making (or considering making) such Alternative Proposal to determine whether or not such Alternative Proposal constitutes, or could reasonably be expected to result in, a Superior Proposal).",
+        "reference_section": "Section 6.4 (a)"
+      }
+    },
+    "notice_of_competing_offer": {
+      "notice_of_competing_offer_included": {
+        "answer": true,
+        "clause_text": "From and after the date hereof until the earlier of the Effective Time and the Termination Date, the Company shall (i) promptly (and in any event within twenty-four (24) hours of receipt) notify Parent (orally and in writing) of the receipt by the Company or any of its Subsidiaries or their respective Representatives of any proposal, offer, inquiry or request that constitutes, or would reasonably be expected to result in or lead to, an Alternative Proposal...",
+        "reference_section": "Section 6.4 (c)"
+      },
+      "notice_of_competing_offer_explanation": {
+        "answer": "The Company is required to notify the Parent of any Alternative Proposal within twenty-four (24) hours of receipt, including a summary of the material terms and conditions and the identity of the Person making such proposal.",
+        "clause_text": "From and after the date hereof until the earlier of the Effective Time and the Termination Date, the Company shall (i) promptly (and in any event within twenty-four (24) hours of receipt) notify Parent (orally and in writing) of the receipt by the Company or any of its Subsidiaries or their respective Representatives of any proposal, offer, inquiry or request that constitutes, or would reasonably be expected to result in or lead to, an Alternative Proposal, which notice shall include a summary of the material terms and conditions of (and the identity of the Person making) such proposal, offer, inquiry or request and shall include with such notice copies of such proposal, offer, inquiry or request and copies of any other documents, in each case, evidencing or specifying the material terms and conditions of such proposal, offer, inquiry or request, in each case, to the extent provided in writing and (ii) thereafter keep Parent reasonably informed on a prompt (and, in any event within twenty-four (24) hours) basis of any material developments with respect to, or any material change to the terms of, any such Alternative Proposal, including by providing copies of any additional draft agreements relating to, or written proposals containing any material term of, any such Alternative Proposal received by the Company, any of its Affiliates or any of their respective Representatives.",
+        "reference_section": "Section 6.4 (c)"
+      }
+    },
+    "ongoing_update": {
+      "ongoing_update_included": {
+        "answer": true,
+        "clause_text": "The Company shall (i) promptly (and in any event within twenty-four (24) hours of receipt) notify Parent (orally and in writing) of the receipt by the Company or any of its Subsidiaries or their respective Representatives of any proposal, offer, inquiry or request that constitutes, or would reasonably be expected to result in or lead to, an Alternative Proposal... and (ii) thereafter keep Parent reasonably informed on a prompt (and, in any event within twenty-four (24) hours) basis of any material developments with respect to, or any material change to the terms of, any such Alternative Proposal...",
+        "reference_section": "Section 6.4 (c)"
+      },
+      "ongoing_update_explanation": {
+        "answer": "The Company is obligated to promptly notify Parent within twenty-four (24) hours of receipt of any proposal, offer, inquiry, or request that constitutes, or would reasonably be expected to result in or lead to, an Alternative Proposal. The Company must also keep Parent reasonably informed on a prompt basis of any material developments or changes to the terms of such Alternative Proposal.",
+        "clause_text": "From and after the date hereof until the earlier of the Effective Time and the Termination Date, the Company shall (i) promptly (and in any event within twenty-four (24) hours of receipt) notify Parent (orally and in writing) of the receipt by the Company or any of its Subsidiaries or their respective Representatives of any proposal, offer, inquiry or request that constitutes, or would reasonably be expected to result in or lead to, an Alternative Proposal, which notice shall include a summary of the material terms and conditions of (and the identity of the Person making) such proposal, offer, inquiry or request and shall include with such notice copies of such proposal, offer, inquiry or request and copies of any other documents, in each case, evidencing or specifying the material terms and conditions of such proposal, offer, inquiry or request, in each case, to the extent provided in writing and (ii) thereafter keep Parent reasonably informed on a prompt (and, in any event within twenty-four (24) hours) basis of any material developments with respect to, or any material change to the terms of, any such Alternative Proposal, including by providing copies of any additional draft agreements relating to, or written proposals containing any material term of, any such Alternative Proposal received by the Company, any of its Affiliates or any of their respective Representatives.",
+        "reference_section": "Section 6.4 (c)"
+      }
+    },
+    "superior_proposal_engagement": {
+      "superior_proposal_engagement_included": {
+        "answer": true,
+        "clause_text": "if, at any time following the date hereof and prior to the receipt of the Required Company Stockholder Vote, the Company receives a bona fide written Alternative Proposal, which Alternative Proposal did not result from a breach of this Section 6.4, and the Company Board determines in good faith after consultation with its outside legal and financial advisors that (x) such Alternative Proposal constitutes, or could reasonably be expected to result in, a Superior Proposal, and (y) the failure to take such action could reasonably be expected to be inconsistent with the directors' fiduciary duties under applicable Law, the Company may take the following actions: (i) furnish information, including material non-public information, to any Person making such Alternative Proposal, as well as its Representatives and potential financing sources, if, and only if, prior to so furnishing such information, the third party has executed a confidentiality agreement with the Company having provisions as to confidential treatment of information that are not materially less favorable in any substantive respect to the Company than the confidentiality provisions of the Confidentiality Agreement (it being understood that (A) any confidentiality agreement need not contain any 'standstill,' employee non-solicitation or similar provisions or otherwise prohibit the making or amendment of any Alternative Proposal and (B) any confidentiality agreement shall not prohibit the Company from satisfying its obligations hereunder) (provided, that the Company shall, prior to or concurrently with such disclosure, make available to Parent any non-public information that is made available to such Person to the extent not previously provided to Parent or its Representatives), and (ii) engage in discussions or negotiations with any Person (as well as its Representatives) with respect to the Alternative Proposal.",
+        "reference_section": "Section 6.4 (d)"
+      },
+      "superior_proposal_engagement_explanation": {
+        "answer": "The Company may engage with third parties if a Superior Proposal is received, provided the Company Board determines in good faith that the proposal could reasonably be expected to result in a Superior Proposal and failure to engage would be inconsistent with fiduciary duties.",
+        "clause_text": "if, at any time following the date hereof and prior to the receipt of the Required Company Stockholder Vote, the Company receives a bona fide written Alternative Proposal, which Alternative Proposal did not result from a breach of this Section 6.4, and the Company Board determines in good faith after consultation with its outside legal and financial advisors that (x) such Alternative Proposal constitutes, or could reasonably be expected to result in, a Superior Proposal, and (y) the failure to take such action could reasonably be expected to be inconsistent with the directors' fiduciary duties under applicable Law, the Company may take the following actions: (i) furnish information, including material non-public information, to any Person making such Alternative Proposal, as well as its Representatives and potential financing sources, if, and only if, prior to so furnishing such information, the third party has executed a confidentiality agreement with the Company having provisions as to confidential treatment of information that are not materially less favorable in any substantive respect to the Company than the confidentiality provisions of the Confidentiality Agreement (it being understood that (A) any confidentiality agreement need not contain any \"standstill,\" employee non-solicitation or similar provisions or otherwise prohibit the making or amendment of any Alternative Proposal and (B) any confidentiality agreement shall not prohibit the Company from satisfying its obligations hereunder) (provided, that the Company shall, prior to or concurrently with such disclosure, make available to Parent any non-public information that is made available to such Person to the extent not previously provided to Parent or its Representatives), and (ii) engage in discussions or negotiations with any Person (as well as its Representatives) with respect to the Alternative Proposal.",
+        "reference_section": "Section 6.4 (d)"
+      }
+    },
+    "match_right": {
+      "match_right_initial_included": {
+        "answer": true,
+        "clause_text": "provided, that the Company Board shall not be entitled to make such a Change of Recommendation or cause such termination of this Agreement pursuant to Section 8.1(g)(i) unless, in each case, (A) the Company shall have given Parent at least five (5) Business Days' written notice (a 'Superior Proposal Notice') advising Parent of its intention to make such a Change of Recommendation or terminate this Agreement, which Superior Proposal Notice shall include a description of the material terms and conditions of the Superior Proposal and the other information specified in Section 6.4(c), (B) during such five (5)-Business Day period, if requested by Parent, the Company, its Subsidiaries and their respective Representatives shall engage in good faith negotiations with Parent and its Representatives (to the extent Parent so desires to negotiate) to consider amendments to the terms and conditions of this Agreement in such a manner so that such Alternative Proposal would cease to constitute a Superior Proposal",
+        "reference_section": "Section 6.4 (e)"
+      },
+      "match_right_initial_explanation": {
+        "answer": "The Company shall have given Parent at least five (5) Business Days' written notice (a 'Superior Proposal Notice') advising Parent of its intention to make such a Change of Recommendation or terminate this Agreement, which Superior Proposal Notice shall include a description of the material terms and conditions of the Superior Proposal and the other information specified in Section 6.4(c), (B) during such five (5)-Business Day period, if requested by Parent, the Company, its Subsidiaries and their respective Representatives shall engage in good faith negotiations with Parent and its Representatives (to the extent Parent so desires to negotiate) to consider amendments to the terms and conditions of this Agreement in such a manner so that such Alternative Proposal would cease to constitute a Superior Proposal.",
+        "clause_text": "The Company shall have given Parent at least five (5) Business Days' written notice (a 'Superior Proposal Notice') advising Parent of its intention to make such a Change of Recommendation or terminate this Agreement, which Superior Proposal Notice shall include a description of the material terms and conditions of the Superior Proposal and the other information specified in Section 6.4(c), (B) during such five (5)-Business Day period, if requested by Parent, the Company, its Subsidiaries and their respective Representatives shall engage in good faith negotiations with Parent and its Representatives (to the extent Parent so desires to negotiate) to consider amendments to the terms and conditions of this Agreement in such a manner so that such Alternative Proposal would cease to constitute a Superior Proposal.",
+        "reference_section": "Section 6.4 (e)"
+      },
+      "match_right_amended_included": {
+        "answer": true,
+        "clause_text": "provided, that in the event of any material modification of the financial terms or any other material modifications to the terms of such Superior Proposal, the Company shall be required to deliver a new written notice to Parent and to again comply with the requirements of this Section 6.4(e) with respect to such new written notice, except that the notice period under clause (A) shall be three (3) Business Days.",
+        "reference_section": "Section 6.4 (e)"
+      },
+      "match_right_amended_explanation": {
+        "answer": "Not found",
+        "clause_text": "",
+        "reference_section": ""
+      }
+    },
+    "adverse_recommendation_change": {
+      "adverse_recommendation_change_superior_proposal_included": {
+        "answer": true,
+        "clause_text": "Notwithstanding anything to the contrary set forth in this Agreement, prior to obtaining the Required Company Stockholder Vote, the Company Board may, in response to an Alternative Proposal received by the Company after the date of this Agreement that has not been subsequently withdrawn, which Alternative Proposal did not result from a material breach of this Section 6.4, and with respect to which the Company Board determines in good faith, after consultation with the Company's financial advisors and outside legal counsel, (1) such Alternative Proposal would if consummated, constitute a Superior Proposal and (2) the failure to take such action would reasonably be expected to be inconsistent with the directors' fiduciary duties under applicable Law, (x) make a Change of Recommendation with respect to such Superior Proposal and/or (y) cause the Company to terminate this Agreement pursuant to Section 8.1(g)(i);",
+        "reference_section": "Section 6.4 (e)"
+      },
+      "adverse_recommendation_change_superior_proposal_explanation": {
+        "answer": "The Company Board is permitted to change its recommendation in response to a Superior Proposal.",
+        "clause_text": "Notwithstanding anything to the contrary set forth in this Agreement, prior to obtaining the Required Company Stockholder Vote, the Company Board may, in response to an Alternative Proposal received by the Company after the date of this Agreement that has not been subsequently withdrawn, which Alternative Proposal did not result from a material breach of this Section 6.4, and with respect to which the Company Board determines in good faith, after consultation with the Company's financial advisors and outside legal counsel, (1) such Alternative Proposal would if consummated, constitute a Superior Proposal and (2) the failure to take such action would reasonably be expected to be inconsistent with the directors' fiduciary duties under applicable Law, (x) make a Change of Recommendation with respect to such Superior Proposal and/or (y) cause the Company to terminate this Agreement pursuant to Section 8.1(g)(i); provided, that the Company Board shall not be entitled to make such a Change of Recommendation or cause such termination of this Agreement pursuant to Section 8.1(g)(i) unless, in each case, (A) the Company shall have given Parent at least five (5) Business Days' written notice (a \"Superior Proposal Notice\") advising Parent of its intention to make such a Change of Recommendation or terminate this Agreement, which Superior Proposal Notice shall include a description of the material terms and conditions of the Superior Proposal and the other information specified in Section 6.4(c), (B) during such five (5)-Business Day period, if requested by Parent, the Company, its Subsidiaries and their respective Representatives shall engage in good faith negotiations with Parent and its Representatives (to the extent Parent so desires to negotiate) to consider amendments to the terms and conditions of this Agreement in such a manner so that such Alternative Proposal would cease to constitute a Superior Proposal and (C) at the end of such five (5)-Business Day period, after taking into account any irrevocable commitments or binding proposals made by Parent to the Company in writing to amend the terms of this Agreement during such five (5)-Business Day period, the Company Board determines in good faith after consultation with the Company's financial advisors and outside legal counsel that (I) the Alternative Proposal giving rise to the Superior Proposal Notice continues to constitute a Superior Proposal and (II) the failure to take such action would reasonably be expected to be inconsistent with the directors' fiduciary duties under applicable Law; provided, that in the event of any material modification of the financial terms or any other material modifications to the terms of such Superior Proposal, the Company shall be required to deliver a new written notice to Parent and to again comply with the requirements of this Section 6.4(e) with respect to such new written notice, except that the notice period under clause (A) shall be three (3) Business Days.",
+        "reference_section": "Section 6.4 (e)"
+      },
+      "adverse_recommendation_change_intervening_event_included": {
+        "answer": true,
+        "clause_text": "Notwithstanding anything to the contrary set forth in this Agreement, prior to obtaining the Required Company Stockholder Vote, the Company Board may, in response to an Intervening Event that is continuing, make a Change of Recommendation if the Company Board determines in good faith, after consultation with the Company's financial advisors and outside legal counsel, that the failure of the Company Board to make a Change of Recommendation in response to such Intervening Event would reasonably be expected to be inconsistent with the directors' fiduciary duties under applicable Law.",
+        "reference_section": "Section 6.4 (f)"
+      },
+      "adverse_recommendation_change_intervening_event_explanation": {
+        "answer": "The Company Board may make a Change of Recommendation in response to an Intervening Event if it determines in good faith, after consultation with financial and legal advisors, that not doing so would be inconsistent with fiduciary duties.",
+        "clause_text": "Notwithstanding anything to the contrary set forth in this Agreement, prior to obtaining the Required Company Stockholder Vote, the Company Board may, in response to an Intervening Event that is continuing, make a Change of Recommendation if the Company Board determines in good faith, after consultation with the Company's financial advisors and outside legal counsel, that the failure of the Company Board to make a Change of Recommendation in response to such Intervening Event would reasonably be expected to be inconsistent with the directors' fiduciary duties under applicable Law.",
+        "reference_section": "Section 6.4 (f)"
+      },
+      "adverse_recommendation_change_timing": {
+        "answer": "The Company Board must provide Parent at least five (5) Business Days' written notice before making an Adverse Recommendation Change.",
+        "clause_text": "The Company shall have given Parent at least five (5) Business Days' written notice (a \"Superior Proposal Notice\") advising Parent of its intention to make such a Change of Recommendation or terminate this Agreement.",
+        "reference_section": "Section 6.4 (e)"
+      }
+    },
+    "go_shop": {
+      "go_shop_included": {
+        "answer": false,
+        "clause_text": "Subject to the provisions of this Section 6.4, from the date hereof until the earlier of the Effective Time and the Termination Date, the Company agrees that it shall not, and shall cause its Subsidiaries not to, and shall use its reasonable best efforts to cause their respective Representatives not to, directly or indirectly, (i) solicit, initiate, induce, knowingly facilitate or knowingly encourage the making or submission of, any proposal, offer, inquiry or request that constitutes, or would reasonably be expected to result in or lead to, any Alternative Proposal...",
+        "reference_section": "Section 6.4 (a)"
+      },
+      "go_shop_explanation": {
+        "answer": "Not found",
+        "clause_text": "",
+        "reference_section": ""
+      }
+    },
+    "buyer_diligence_access": {
+      "buyer_diligence_access_included": {
+        "answer": false,
+        "clause_text": "The Company shall afford to Parent and to its officers, directors, employees, accountants, consultants, legal counsel, financial advisors and agents and other representatives (collectively, 'Representatives') reasonable access during normal business hours, upon reasonable advance notice, throughout the period prior to the earlier of the Effective Time and the Termination Date, to the Company's and its Subsidiaries' employees, officers, properties, contracts, commitments, books and records, other than any such matters that relate to the negotiation and execution of this Agreement, including with respect to the consideration or valuation of the Merger or any financial or strategic alternatives thereto, or that relate to any Alternative Proposal or Superior Proposal.",
+        "reference_section": "Section 6.3 (a)"
+      },
+      "buyer_diligence_access_explanation": {
+        "answer": "Parent shall be provided",
+        "clause_text": "provided, that the Company shall, prior to or concurrently with such disclosure, make available to Parent any non-public information that is made available to such Person to the extent not previously provided to Parent or its Representatives",
+        "reference_section": "Section 6.4 (d)"
+      }
+    },
+    "recommendation_change_restriction": {
+      "recommendation_change_restriction_included": {
+        "answer": true,
+        "clause_text": "The Company shall have given Parent at least five (5) Business Days' written notice (a 'Superior Proposal Notice') advising Parent of its intention to make such a Change of Recommendation or terminate this Agreement, which Superior Proposal Notice shall include a description of the material terms and conditions of the Superior Proposal.",
+        "reference_section": "Section 6.4 (e)"
+      },
+      "recommendation_change_restriction_explanation": {
+        "answer": "The agreement imposes procedural and timing-based restrictions on how the Company may change its recommendation.",
+        "clause_text": "The Company shall have given Parent at least five (5) Business Days' written notice (a 'Superior Proposal Notice') advising Parent of its intention to make such a Change of Recommendation or terminate this Agreement, which Superior Proposal Notice shall include a description of the material terms and conditions of the Superior Proposal.",
+        "reference_section": "Section 6.4 (e)"
+      }
+    }
+  },
+  "best_efforts": {
+    "regulatory_efforts": {
+      "effort_standard": {
+        "answer": "Reasonable Best Efforts",
+        "clause_text": "Subject to the terms and conditions set forth in this Agreement, each of the Parties shall use (and shall cause their respective Subsidiaries and controlled Affiliates to use) their respective reasonable best efforts to take promptly, or cause to be taken, all actions, and to do promptly, or cause to be done, and to assist and cooperate with the other Parties in doing, all things necessary, proper or advisable under applicable Laws to consummate and make effective the Merger and the other Contemplated Transactions as promptly as practicable and in any event prior to the End Date...",
+        "reference_section": "Section 6.7 (a)"
+      },
+      "effort_scope": {
+        "answer": "RBE for HSR and CFIUS filings",
+        "clause_text": "Subject to the terms and conditions in this Agreement and without limiting the foregoing, the Company and Parent shall (and shall cause their respective Subsidiaries and controlled Affiliates to) (i) promptly, but in no event later than twenty-five (25) Business Days after the date hereof, file or cause to be filed any and all required notification and report forms under the HSR Act with respect to the Merger and the other Contemplated Transactions and (ii) as promptly as practicable after the date hereof, file or cause to be filed any and all required notifications (including draft notifications for the purpose of any prenotification procedures), filings and consents as necessary in connection with obtaining the Required Approvals (other than CFIUS, which is addressed in Section 6.7(h)).",
+        "reference_section": "Section 6.7 (b)"
+      }
+    },
+    "regulatory_fillings_hsr": {
+      "hsr_required": {
+        "answer": true,
+        "clause_text": "The applicable waiting period (and any extension thereof) and any agreement with a Governmental Entity not to consummate the Contemplated Transactions under the HSR Act shall have expired or been earlier terminated.",
+        "reference_section": "Section 7.1"
+      },
+      "hsr_filing_deadline_days": {
+        "answer": "25",
+        "clause_text": "Subject to the terms and conditions in this Agreement and without limiting the foregoing, the Company and Parent shall (and shall cause their respective Subsidiaries and controlled Affiliates to) (i) promptly, but in no event later than twenty-five (25) Business Days after the date hereof, file or cause to be filed any and all required notification and report forms under the HSR Act with respect to the Merger and the other Contemplated Transactions...",
+        "reference_section": "Section 6.7 (b)"
+      },
+      "hsr_notes": {
+        "answer": "Must file within 25 business days of signing; filing required under HSR Act as a condition to closing.",
+        "clause_text": "Subject to the terms and conditions in this Agreement and without limiting the foregoing, the Company and Parent shall (and shall cause their respective Subsidiaries and controlled Affiliates to) (i) promptly, but in no event later than twenty-five (25) Business Days after the date hereof, file or cause to be filed any and all required notification and report forms under the HSR Act with respect to the Merger and the other Contemplated Transactions and (ii) as promptly as practicable after the date hereof, file or cause to be filed any and all required notifications (including draft notifications for the purpose of any prenotification procedures), filings and consents as necessary in connection with obtaining the Required Approvals (other than CFIUS, which is addressed in Section 6.7(h)).",
+        "reference_section": "Section 6.7 (b)"
+      }
+    },
+    "regulatory_fillings_cfius": {
+      "cfius_required": {
+        "answer": true,
+        "clause_text": "Parent and the Company shall submit, or cause to be submitted, (i) as promptly as practicable following the execution of this Agreement, a draft of the joint notice to CFIUS ('CFIUS Notice') contemplated under 31 C.F.R. § 800.501(g) with respect to the Contemplated Transactions.",
+        "reference_section": "Section 6.7 (h)"
+      },
+      "cfius_filing_deadline_days": {
+        "answer": "Not found",
+        "clause_text": "",
+        "reference_section": ""
+      },
+      "cfius_notes": {
+        "answer": "CFIUS filing is required",
+        "clause_text": "Parent and the Company shall submit, or cause to be submitted, (i) as promptly as practicable following the execution of this Agreement, a draft of the joint notice to CFIUS (\"CFIUS Notice\") contemplated under 31 C.F.R. § 800.501(g) with respect to the Contemplated Transactions.",
+        "reference_section": "Section 6.7 (h)"
+      }
+    },
+    "regulatory_fillings_foreign": {
+      "foreign_filling_notes": {
+        "answer": "Foreign filings may be required under applicable non-U.S. laws",
+        "clause_text": "Antitrust Laws shall mean the Sherman Antitrust Act, the Clayton Antitrust Act of 1914, the HSR Act and all other federal, state and foreign statutes, rules, regulations, Orders, decrees and other Laws that are designed or intended to prohibit, restrict or regulate actions having the purpose or effect of monopolization or restraint of trade or competition.",
+        "reference_section": "Section 1.1"
+      },
+      "foreign_filling_required": {
+        "answer": true,
+        "clause_text": "Parent may not (x) commit to or agree with any Governmental Entity to voluntarily stay, toll or extend any applicable HSR Act waiting period or review period, (y) enter into any timing agreement with any Governmental Entity, or (z) pull and refile any filing under the HSR Act or any other applicable Antitrust Law or Foreign Investment Law, without the Company's prior written consent.",
+        "reference_section": "Section 6.7 (b)"
+      },
+      "foreign_filling_deadline_days": {
+        "answer": "Not found",
+        "clause_text": "",
+        "reference_section": ""
+      }
+    },
+    "divestiture_commitments": {
+      "divestiture_required": {
+        "answer": true,
+        "clause_text": "Parent and the Company (and their respective Subsidiaries and controlled Affiliates) shall take, or cause to be taken, all other actions and do, or cause to be done, all other things necessary, proper or advisable to consummate and make effective the Merger and the other Contemplated Transactions, by taking all such further action as may be necessary to resolve such objections, and to avoid or eliminate each and every impediment, in each case, under any Foreign Investment Law or Antitrust Law...",
+        "reference_section": "Section 6.7 (c)"
+      },
+      "divestiture_cap_target_notes": {
+        "answer": "Not found",
+        "clause_text": "",
+        "reference_section": ""
+      },
+      "divestiture_cap_buyer_notes": {
+        "answer": "Parent is not required to divest any of its businesses unless such Remedial Action is binding on or applicable to Parent or its Affiliates only from and after the Effective Time in the event that the Closing occurs.",
+        "clause_text": "provided, further, that neither Parent nor any of its Affiliates shall be required to become subject to, or consent or agree to or otherwise take any action with respect to any Remedial Action, unless such Remedial Action is binding on or otherwise applicable to Parent or its Affiliates only from and after the Effective Time in the event that the Closing occurs.",
+        "reference_section": "Section 6.7 (c)"
+      }
+    },
+    "litigation_commitments": {
+      "litigation_requirement_status": {
+        "answer": "Explicit Requirement to Litigate",
+        "clause_text": "each of the Company, Parent and Merger Sub shall cooperate in all respects with each other and shall use their respective reasonable best efforts to contest and resist any such Action or Legal Proceeding and to have vacated, lifted, reversed or overturned any Action, decree, judgment, injunction or other Order, whether temporary, preliminary or permanent, that is in effect and that prohibits, prevents or restricts consummation of the Merger and the other Contemplated Transactions.",
+        "reference_section": "Section 6.7 (f)"
+      },
+      "litigation_clause_scope": {
+        "answer": "Contest and resist legal proceedings to have any prohibitive orders vacated or overturned.",
+        "clause_text": "each of the Company, Parent and Merger Sub shall cooperate in all respects with each other and shall use their respective reasonable best efforts to contest and resist any such Action or Legal Proceeding and to have vacated, lifted, reversed or overturned any Action, decree, judgment, injunction or other Order, whether temporary, preliminary or permanent, that is in effect and that prohibits, prevents or restricts consummation of the Merger and the other Contemplated Transactions.",
+        "reference_section": "Section 6.7 (f)"
+      },
+      "required_to_litigate_notes": {
+        "answer": "Not found",
+        "clause_text": "",
+        "reference_section": ""
+      }
+    },
+    "withdrawal_and_timing_controls_withdrawal": {
+      "withdrawal_control_type": {
+        "answer": "mutual_consent_required",
+        "clause_text": "Parent may not (x) commit to or agree with any Governmental Entity to voluntarily stay, toll or extend any applicable HSR Act waiting period or review period, (y) enter into any timing agreement with any Governmental Entity, or (z) pull and refile any filing under the HSR Act or any other applicable Antitrust Law or Foreign Investment Law, without the Company's prior written consent.",
+        "reference_section": "Section 6.7 (b)"
+      },
+      "withdrawal_control_type_notes": {
+        "answer": "Parent may not (x) commit to or agree with any Governmental Entity to voluntarily stay, toll or extend any applicable HSR Act waiting period or review period, (y) enter into any timing agreement with any Governmental Entity, or (z) pull and refile any filing under the HSR Act or any other applicable Antitrust Law or Foreign Investment Law, without the Company's prior written consent.",
+        "clause_text": "Parent may not (x) commit to or agree with any Governmental Entity to voluntarily stay, toll or extend any applicable HSR Act waiting period or review period, (y) enter into any timing agreement with any Governmental Entity, or (z) pull and refile any filing under the HSR Act or any other applicable Antitrust Law or Foreign Investment Law, without the Company's prior written consent.",
+        "reference_section": "Section 6.7 (b)"
+      }
+    },
+    "withdrawal_and_timing_controls_timing": {
+      "timing_agreement_restriction": {
+        "answer": true,
+        "clause_text": "Parent may not (x) commit to or agree with any Governmental Entity to voluntarily stay, toll or extend any applicable HSR Act waiting period or review period, (y) enter into any timing agreement with any Governmental Entity, or (z) pull and refile any filing under the HSR Act or any other applicable Antitrust Law or Foreign Investment Law, without the Company's prior written consent.",
+        "reference_section": "Section 6.7 (b)"
+      },
+      "timing_agreement_restriction_notes": {
+        "answer": "Parent may not commit to or agree with any Governmental Entity to voluntarily stay, toll or extend any applicable HSR Act waiting period or review period, enter into any timing agreement with any Governmental Entity, or pull and refile any filing under the HSR Act or any other applicable Antitrust Law or Foreign Investment Law, without the Company's prior written consent.",
+        "clause_text": "Parent may not (x) commit to or agree with any Governmental Entity to voluntarily stay, toll or extend any applicable HSR Act waiting period or review period, (y) enter into any timing agreement with any Governmental Entity, or (z) pull and refile any filing under the HSR Act or any other applicable Antitrust Law or Foreign Investment Law, without the Company's prior written consent.",
+        "reference_section": "Section 6.7 (b)"
+      }
+    },
+    "remedy_actions_other": {
+      "remedy_definitions_provided": {
+        "answer": true,
+        "clause_text": "In furtherance and not in limitation of the foregoing, Parent and the Company (and their respective Subsidiaries and controlled Affiliates) shall take, or cause to be taken, all other actions and do, or cause to be done, all other things necessary, proper or advisable to consummate and make effective the Merger and the other Contemplated Transactions, by taking all such further action as may be necessary to resolve such objections, and to avoid or eliminate each and every impediment, in each case, under any Foreign Investment Law or Antitrust Law that may be asserted by the United States Federal Trade Commission (\"FTC\"), the Antitrust Division of the United States Department of Justice (\"DOJ,\" and together with the FTC, the \"U.S. Antitrust Agencies\"), state antitrust enforcement authorities, or any other Governmental Entity or Person with respect to the Merger and the other Contemplated Transactions so as to enable the Closing to occur as promptly as practicable after the date hereof (and in any event no later than the End Date), including (i) supplying or causing to be supplied to any Governmental Entity as promptly as practicable any and all additional information or documentary material that may be requested, and certifying compliance with such request (as applicable), under any Law or by such Governmental Entity, including pursuant to a Request for Additional Information and Documentary Material by the U.S. Antitrust Agencies (a \"Second Request\"), (ii) proposing, negotiating, committing to, effecting, agreeing to and executing, by consent decree, settlement, undertaking, stipulations, hold separate order, binding agreement with a third part(ies) or otherwise, the sale, divestiture, transfer, license, hold separate or disposition of any and all of the share capital or other equity voting interests, assets (whether tangible or intangible), businesses, divisions, operations, products or product lines of Parent (including its Subsidiaries and Affiliates) and of the Company (including its Subsidiaries), (iii) terminating, transferring or creating relationships, contractual rights or other obligations of Parent (including its Subsidiaries and Affiliates) and the Company (including its Subsidiaries), and (iv) otherwise taking or committing to take any actions or agree to any undertakings that would limit Parent's (including its Subsidiaries', Affiliates', and the Surviving Corporation's) freedom of action with respect to, or their ability to retain, or impose obligations on Parent's (including its Subsidiaries', Affiliates', and the Surviving Corporation's) future operations with respect to, assets (whether tangible or intangible), businesses, divisions, personnel, operations, products or product lines or contractual or supply relationships of Parent (and its Subsidiaries and Affiliates, including the Surviving Corporation) or the Company (and its Subsidiaries), in each case so as to satisfy the conditions to the Closing or to avoid the entry of, or to effect the dissolution of, any injunction, temporary restraining order or other order in any Legal Proceeding that would otherwise have the effect of preventing the Closing or delaying the Closing beyond the End Date (each such action in the foregoing clauses (ii), (iii) and (iv), individually or collectively, a \"Remedial Action\"); provided, that the Company (and its Subsidiaries) shall not be permitted to offer or agree to or effectuate any Remedial Action without the prior written consent of Parent; provided, further, that neither Parent nor any of its Affiliates shall be required to become subject to, or consent or agree to or otherwise take any action with respect to any Remedial Action, unless such Remedial Action is binding on or otherwise applicable to Parent or its Affiliates only from and after the Effective Time in the event that the Closing occurs.",
+        "reference_section": "Section 6.7 (c)"
+      },
+      "remedy_definition_text": {
+        "answer": "Each of the Parties shall use their respective reasonable best efforts to take all actions necessary, proper or advisable under applicable Laws to consummate and make effective the Merger and the other Contemplated Transactions, including obtaining necessary approvals and defending against legal proceedings. However, neither the Company nor its Affiliates are required to take any action with respect to any Remedial Action unless it is binding only from and after the Effective Time. Parent and the Company shall take all actions necessary to resolve objections and avoid impediments under any Foreign Investment Law or Antitrust Law, including proposing and executing Remedial Actions, but the Company cannot offer or agree to any Remedial Action without Parent's consent.",
+        "clause_text": "Subject to the terms and conditions set forth in this Agreement, each of the Parties shall use (and shall cause their respective Subsidiaries and controlled Affiliates to use) their respective reasonable best efforts to take promptly, or cause to be taken, all actions, and to do promptly, or cause to be done, and to assist and cooperate with the other Parties in doing, all things necessary, proper or advisable under applicable Laws to consummate and make effective the Merger and the other Contemplated Transactions as promptly as practicable and in any event prior to the End Date, including (i) the obtaining of all necessary actions or nonactions, waivers, consents, clearances, approvals and expirations or terminations of waiting periods, including the Required Approvals, from Governmental Entities and the making of all necessary registrations and filings and the taking of all steps as may be necessary to obtain an approval, clearance or waiver from, or to avoid an Action or Legal Proceeding by, any Governmental Entity, (ii) the obtaining of all necessary consents, approvals or waivers from third parties, (iii) the defending of any Actions, lawsuits or other Legal Proceedings, whether judicial or administrative, challenging this Agreement or challenging, hindering, impeding, interfering with or delaying the consummation of the Merger and the other Contemplated Transactions, including seeking to have any stay, temporary restraining order or injunction entered by any court or other Governmental Entity in connection with the foregoing vacated or reversed and (iv) the execution and delivery of any additional instruments necessary to consummate the Contemplated Transactions; provided, that in no event shall the Company or any of its Subsidiaries be required to pay prior to the Effective Time any fee, penalty or other consideration to any third party for any consent or approval required for or triggered by the consummation of the Contemplated Transactions under any contract or agreement or otherwise.",
+        "reference_section": "Section 6.7"
+      },
+      "remedy_action_limitations_exists": {
+        "answer": true,
+        "clause_text": "Notwithstanding anything herein to the contrary, while the Company may pursue both a grant of specific performance to the extent expressly permitted by this Section 9.5 and the payment of, subject to Section 8.2 and Section 8.3, other monetary damages, under no circumstances shall Parent or Merger Sub be obligated to both specifically perform the terms of this Agreement and pay other monetary damages.",
+        "reference_section": "Section 9.5"
+      },
+      "remedy_action_limitations_text": {
+        "answer": "Yes",
+        "clause_text": "provided, that neither the Company nor any of its Affiliates shall be required to become subject to, or consent or agree to or otherwise take any action with respect to, any requirement, condition, understanding, agreement or order to sell, divest, license, hold separate or otherwise dispose of, or to conduct, restrict, operate, invest or otherwise change the assets, operations or business of the Company or any of its Affiliates, unless such requirement, condition, understanding, agreement or order is binding on or otherwise applicable to the Company or its Affiliates only from and after the Effective Time in the event that the Closing occurs. ... provided, further, that neither Parent nor any of its Affiliates shall be required to become subject to, or consent or agree to or otherwise take any action with respect to any Remedial Action, unless such Remedial Action is binding on or otherwise applicable to Parent or its Affiliates only from and after the Effective Time in the event that the Closing occurs.",
+        "reference_section": "Section 6.7 (b)"
+      }
+    },
+    "transaction_interference": {
+      "restriction_on_other_transactions": {
+        "answer": true,
+        "clause_text": "The Company agrees that it shall not, and shall cause its Subsidiaries not to, and shall use its reasonable best efforts to cause their respective Representatives not to, directly or indirectly, (i) solicit, initiate, induce, knowingly facilitate or knowingly encourage the making or submission of, any proposal, offer, inquiry or request that constitutes, or would reasonably be expected to result in or lead to, any Alternative Proposal.",
+        "reference_section": "Section 6.4 (a)"
+      },
+      "interference_clause_text": {
+        "answer": "Remedial Action",
+        "clause_text": "each such action in the foregoing clauses (ii), (iii) and (iv), individually or collectively, a 'Remedial Action'",
+        "reference_section": "Section 6.7 (c)"
+      }
+    },
+    "second_request_certification": {
+      "second_request_certification_deadline_specified": {
+        "answer": false,
+        "clause_text": "The document does not contain any specific number of days or exact date tied to Second Request compliance.",
+        "reference_section": "Section 6.7"
+      },
+      "second_request_certification_certification_timeline_notes": {
+        "answer": "as promptly as practicable",
+        "clause_text": "Parent and the Company (and their respective Subsidiaries and controlled Affiliates) shall take, or cause to be taken, all other actions and do, or cause to be done, all other things necessary, proper or advisable to consummate and make effective the Merger and the other Contemplated Transactions, by taking all such further action as may be necessary to resolve such objections, and to avoid or eliminate each and every impediment, in each case, under any Foreign Investment Law or Antitrust Law that may be asserted by the United States Federal Trade Commission (\"FTC\"), the Antitrust Division of the United States Department of Justice (\"DOJ,\" and together with the FTC, the \"U.S. Antitrust Agencies\"), state antitrust enforcement authorities, or any other Governmental Entity or Person with respect to the Merger and the other Contemplated Transactions so as to enable the Closing to occur as promptly as practicable after the date hereof (and in any event no later than the End Date), including (i) supplying or causing to be supplied to any Governmental Entity as promptly as practicable any and all additional information or documentary material that may be requested, and certifying compliance with such request (as applicable), under any Law or by such Governmental Entity, including pursuant to a Request for Additional Information and Documentary Material by the U.S. Antitrust Agencies (a \"Second Request\")",
+        "reference_section": "Section 6.7 (c)"
+      },
+      "second_request_certification_responsibility_party": {
+        "answer": "Both",
+        "clause_text": "Parent and the Company (and their respective Subsidiaries and controlled Affiliates) shall take, or cause to be taken, all other actions and do, or cause to be done, all other things necessary, proper or advisable to consummate and make effective the Merger and the other Contemplated Transactions, by taking all such further action as may be necessary to resolve such objections, and to avoid or eliminate each and every impediment, in each case, under any Foreign Investment Law or Antitrust Law that may be asserted by the United States Federal Trade Commission (\"FTC\"), the Antitrust Division of the United States Department of Justice (\"DOJ,\" and together with the FTC, the \"U.S. Antitrust Agencies\"), state antitrust enforcement authorities, or any other Governmental Entity or Person with respect to the Merger and the other Contemplated Transactions so as to enable the Closing to occur as promptly as practicable after the date hereof (and in any event no later than the End Date), including (i) supplying or causing to be supplied to any Governmental Entity as promptly as practicable any and all additional information or documentary material that may be requested, and certifying compliance with such request (as applicable), under any Law or by such Governmental Entity, including pursuant to a Request for Additional Information and Documentary Material by the U.S. Antitrust Agencies (a \"Second Request\")",
+        "reference_section": "Section 6.7 (c)"
+      }
+    },
+    "ftc_warning_letter_handling": {
+      "ftc_warning_letter_handling_addressed": {
+        "answer": false,
+        "clause_text": "The document does not contain any clause discussing FTC warning letters or similar communications.",
+        "reference_section": "Not applicable as no relevant section is found."
+      },
+      "ftc_warning_letter_handling_notes": {
+        "answer": "Not addressed",
+        "clause_text": "",
+        "reference_section": ""
+      },
+      "ftc_warning_letter_handling_effect_on_closing_condition": {
+        "answer": "Silent",
+        "clause_text": "",
+        "reference_section": ""
+      },
+      "ftc_warning_letter_handling_addressed_notes": {
+        "answer": "Not found",
+        "clause_text": "",
+        "reference_section": ""
+      }
+    },
+    "other_timing_controls": {
+      "other_timing_controls_deadlines_specified": {
+        "answer": [
+          "Company to file preliminary Proxy Statement with SEC within 25 Business Days after the date hereof.",
+          "Definitive Proxy Statement to be mailed to stockholders within 10 Business Days after clearance by SEC.",
+          "Company Stockholders' Meeting to be held no later than 45 days following the mailing of the Proxy Statement.",
+          "Adjournments, recesses, or postponements of the Company Stockholders' Meeting shall be for periods of no more than 10 Business Days each, not to exceed 20 Business Days in the aggregate without Parent's written consent."
+        ],
+        "clause_text": "As promptly as reasonably practicable after the date hereof (but in any event within twenty-five (25) Business Days after the date hereof), the Company shall prepare and file with the SEC the preliminary Proxy Statement... and shall cause the definitive Proxy Statement to be mailed to the Company's stockholders as promptly as practicable following the time the Proxy Statement is cleared by the SEC for mailing to the Company's (and in any event within ten Business Days after such time)... the Company shall (i) take all action required by the NYSE, the CSE and the SEC rules and as required by the DGCL and its certificate of incorporation and bylaws to duly call, give notice of, convene and hold a meeting of its stockholders promptly (but in no event later than forty-five (45) days following the mailing of the Proxy Statement)... provided, that, unless agreed in writing by the Company and Parent, all such adjournments, recesses or postponements shall be for periods of no more than ten (10) Business Days each (not to exceed twenty (20) Business Days in the aggregate without Parent's written consent)...",
+        "reference_section": "Section 6.5 (a) (b)"
+      }
+    },
+    "novel_or_unstructured_regulatory_clauses": {
+      "novel_or_unstructured_regulatory_clauses_items": {
+        "answer": [
+          {
+            "summary": "Parent may not commit to or agree with any Governmental Entity to voluntarily stay, toll or extend any applicable HSR Act waiting period or review period, enter into any timing agreement, or pull and refile any filing under the HSR Act or any other applicable Antitrust Law or Foreign Investment Law, without the Company's prior written consent.",
+            "section": "ARTICLE Article 6 COVENANTS AND AGREEMENTS > Section 6.7 Efforts > (b)",
+            "review_required": true
+          },
+          {
+            "summary": "The Company shall not be permitted to offer or agree to or effectuate any Remedial Action without the prior written consent of Parent.",
+            "section": "ARTICLE Article 6 COVENANTS AND AGREEMENTS > Section 6.7 Efforts > (c)",
+            "review_required": true
+          }
+        ],
+        "clause_text": "",
+        "reference_section": ""
+      }
+    },
+    "prior_approval_commitment": {
+      "prior_approval_commitment_addressed": {
+        "answer": false,
+        "clause_text": "The respective obligations of each Party to effect the Merger and the other Contemplated Transactions shall be subject to the satisfaction (or waiver by each of Parent and the Company to the extent permitted by applicable Law) at or prior to the Effective Time of the following conditions: (a) Stockholder Approval. The Required Company Stockholder Vote shall have been obtained.",
+        "reference_section": "Section 7.1"
+      },
+      "prior_approval_commitment_obligations_summary": {
+        "answer": "Not found",
+        "clause_text": "",
+        "reference_section": ""
+      }
+    },
+    "regulatory_process_control_discretion": {
+      "regulatory_process_control_discretion": {
+        "answer": "Parent",
+        "clause_text": "Parent shall, in consultation with the Company, control the (i) strategy for obtaining all necessary actions or nonactions, waivers, consents, clearances, approvals and expirations or terminations of waiting periods, including the Required Approvals (including CFIUS Approval), (ii) response to any request from, inquiry by, or investigation by (including the timing, nature and substance of all such responses) any Governmental Entity with respect to the Merger and the other Contemplated Transactions and (iii) strategy for the defense and settlement of any action brought by or before any Governmental Entity that has authority to enforce the applicable Antitrust Laws.",
+        "reference_section": "Section 6.7 (e)"
+      },
+      "parent_has_sole_discretion_excluding_remedies": {
+        "answer": false,
+        "clause_text": "Parent may not (x) commit to or agree with any Governmental Entity to voluntarily stay, toll or extend any applicable HSR Act waiting period or review period, (y) enter into any timing agreement with any Governmental Entity, or (z) pull and refile any filing under the HSR Act or any other applicable Antitrust Law or Foreign Investment Law, without the Company's prior written consent.",
+        "reference_section": "Section 6.7 (b)"
+      }
+    },
+    "no_limitations_on_buyer_remedies": {
+      "no_limitations_on_buyer_remedies_value": {
+        "answer": false,
+        "clause_text": "provided, further, that neither Parent nor any of its Affiliates shall be required to become subject to, or consent or agree to or otherwise take any action with respect to any Remedial Action, unless such Remedial Action is binding on or otherwise applicable to Parent or its Affiliates only from and after the Effective Time in the event that the Closing occurs.",
+        "reference_section": "Section 6.7 (c)"
+      },
+      "no_limitations_on_buyer_remedies_inferred_hohw": {
+        "answer": false,
+        "clause_text": "provided, further, that neither Parent nor any of its Affiliates shall be required to become subject to, or consent or agree to or otherwise take any action with respect to any Remedial Action, unless such Remedial Action is binding on or otherwise applicable to Parent or its Affiliates only from and after the Effective Time in the event that the Closing occurs.",
+        "reference_section": "Section 6.7 (c)"
+      },
+      "no_limitations_on_buyer_remedies_explanation": {
+        "answer": "Buyer must take all actions without limitation",
+        "clause_text": "Parent and the Company (and their respective Subsidiaries and controlled Affiliates) shall take, or cause to be taken, all other actions and do, or cause to be done, all other things necessary, proper or advisable to consummate and make effective the Merger and the other Contemplated Transactions, by taking all such further action as may be necessary to resolve such objections, and to avoid or eliminate each and every impediment, in each case, under any Foreign Investment Law or Antitrust Law.",
+        "reference_section": "Section 6.7 (c)"
+      },
+      "no_limitations_on_buyer_remedies_notes": {
+        "answer": "Not Found",
+        "clause_text": "",
+        "reference_section": ""
+      },
+      "no_limitations_on_buyer_remedies_inferred_hohw_notes": {
+        "answer": "Not found",
+        "clause_text": "",
+        "reference_section": ""
+      },
+      "no_limitations_on_buyer_remedies_materiality_basis": {
+        "answer": "Not found",
+        "clause_text": "",
+        "reference_section": ""
+      },
+      "materiality_definition_text": {
+        "answer": "Not found",
+        "clause_text": "",
+        "reference_section": ""
+      }
+    },
+    "refiling_commitment": {
+      "refiling_commitment_required": {
+        "answer": true,
+        "clause_text": "Parent may not (x) commit to or agree with any Governmental Entity to voluntarily stay, toll or extend any applicable HSR Act waiting period or review period, (y) enter into any timing agreement with any Governmental Entity, or (z) pull and refile any filing under the HSR Act or any other applicable Antitrust Law or Foreign Investment Law, without the Company's prior written consent.",
+        "reference_section": "Section 6.7 (b)"
+      },
+      "refiling_commitment_required_notes": {
+        "answer": "Parent may not (x) commit to or agree with any Governmental Entity to voluntarily stay, toll or extend any applicable HSR Act waiting period or review period, (y) enter into any timing agreement with any Governmental Entity, or (z) pull and refile any filing under the HSR Act or any other applicable Antitrust Law or Foreign Investment Law, without the Company's prior written consent.",
+        "clause_text": "Parent may not (x) commit to or agree with any Governmental Entity to voluntarily stay, toll or extend any applicable HSR Act waiting period or review period, (y) enter into any timing agreement with any Governmental Entity, or (z) pull and refile any filing under the HSR Act or any other applicable Antitrust Law or Foreign Investment Law, without the Company's prior written consent.",
+        "reference_section": "Section 6.7 (b)"
+      },
+      "refiling_commitment_max_refiles": {
+        "answer": "Not found",
+        "clause_text": "",
+        "reference_section": ""
+      },
+      "refiling_commitment_max_refiles_notes": {
+        "answer": "Not found",
+        "clause_text": "",
+        "reference_section": ""
+      },
+      "refiling_commitment_max_refiles_specification_status": {
+        "answer": "Not Specified",
+        "clause_text": "Parent may not (x) commit to or agree with any Governmental Entity to voluntarily stay, toll or extend any applicable HSR Act waiting period or review period, (y) enter into any timing agreement with any Governmental Entity, or (z) pull and refile any filing under the HSR Act or any other applicable Antitrust Law or Foreign Investment Law, without the Company's prior written consent.",
+        "reference_section": "Section 6.7 (b)"
+      }
+    },
+    "union_item": {
+      "union_efforts_required": {
+        "answer": true,
+        "clause_text": "The Company shall (and shall cause each of its Subsidiaries and controlled Affiliates to) cooperate with Parent and use its reasonable best efforts to facilitate meetings between Parent and its representatives and the USW for purposes of, among other things, satisfying the last sentence of Section 5.9.",
+        "reference_section": "Section 6.6 (e)"
+      },
+      "union_consultation_timeframe": {
+        "answer": "Not found",
+        "clause_text": "",
+        "reference_section": ""
+      },
+      "union_agreement_obligation_summary": {
+        "answer": "Parent shall take all necessary action to assume all USW Agreements with respect to the Acquired Companies.",
+        "clause_text": "Parent shall take all necessary action to assume all USW Agreements with respect to the Acquired Companies.",
+        "reference_section": "Section 5.9"
+      }
+    },
+    "regulatory_strategy_control_rights": {
+      "regulatory_strategy_control_rights": {
+        "answer": "Parent",
+        "clause_text": "Parent shall, in consultation with the Company, control the (i) strategy for obtaining all necessary actions or nonactions, waivers, consents, clearances, approvals and expirations or terminations of waiting periods, including the Required Approvals (including CFIUS Approval), (ii) response to any request from, inquiry by, or investigation by (including the timing, nature and substance of all such responses) any Governmental Entity with respect to the Merger and the other Contemplated Transactions and (iii) strategy for the defense and settlement of any action brought by or before any Governmental Entity that has authority to enforce the applicable Antitrust Laws.",
+        "reference_section": "Section 6.7 (e)"
+      }
+    },
+    "regulatory_delay_control_rights": {
+      "regulatory_delay_control_rights": {
+        "answer": "Parent may not commit to or agree with any Governmental Entity to voluntarily stay, toll or extend any applicable HSR Act waiting period or review period, enter into any timing agreement with any Governmental Entity, or pull and refile any filing under the HSR Act or any other applicable Antitrust Law or Foreign Investment Law, without the Company's prior written consent.",
+        "clause_text": "Parent may not (x) commit to or agree with any Governmental Entity to voluntarily stay, toll or extend any applicable HSR Act waiting period or review period, (y) enter into any timing agreement with any Governmental Entity, or (z) pull and refile any filing under the HSR Act or any other applicable Antitrust Law or Foreign Investment Law, without the Company's prior written consent.",
+        "reference_section": "Section 6.7 (b)"
+      }
+    },
+    "remedy_consent_required_by_target": {
+      "remedy_consent_required_by_target": {
+        "answer": "The agreement requires the target to obtain written consent from the acquirer before proposing, agreeing to, or taking any regulatory remedial actions.",
+        "clause_text": "provided, that the Company (and its Subsidiaries) shall not be permitted to offer or agree to or effectuate any Remedial Action without the prior written consent of Parent;",
+        "reference_section": "Section 6.7 (c)"
+      }
+    },
+    "regulatory_review_discretion_rights": {
+      "regulatory_review_discretion_rights": {
+        "answer": "Parent has discretion authority",
+        "clause_text": "Parent shall, in consultation with the Company, control the (i) strategy for obtaining all necessary actions or nonactions, waivers, consents, clearances, approvals and expirations or terminations of waiting periods, including the Required Approvals (including CFIUS Approval), (ii) response to any request from, inquiry by, or investigation by (including the timing, nature and substance of all such responses) any Governmental Entity with respect to the Merger and the other Contemplated Transactions and (iii) strategy for the defense and settlement of any action brought by or before any Governmental Entity that has authority to enforce the applicable Antitrust Laws.",
+        "reference_section": "Section 6.7 (e)"
+      }
+    }
+  },
+  "termination": {
+    "outside_date": {
+      "primary_date": {
+        "answer": "September 18, 2024",
+        "clause_text": "by either the Company or Parent if (i) the Effective Time shall not have occurred on or before 11:59 p.m. Eastern time on September 18, 2024 (the \"End Date\")",
+        "reference_section": "Section 8.1"
+      }
+    },
+    "extension": {
+      "extension_list": {
+        "answer": [
+          {
+            "Extension Length": "6 months",
+            "Who Grants the Extension": "automatic",
+            "Conditions to Extend": "all conditions set forth in Section 7.1, Section 7.2 and Section 7.3 shall have been satisfied or waived (other than those conditions that by their nature are to be satisfied by action taken at the Closing and other than the conditions set forth in Section 7.1(b) or Section 7.1(c) (but only to the extent the applicable Legal Restraint relates to the Required Approvals))",
+            "Termination Restrictions Due to Breach": "Yes, the Party seeking to terminate shall not have breached in any material respect its obligations under this Agreement in any manner that shall have proximately caused the failure to consummate the Merger on or before such date."
+          },
+          {
+            "Extension Length": "3 months",
+            "Who Grants the Extension": "automatic",
+            "Conditions to Extend": "all conditions set forth in Section 7.1, Section 7.2 and Section 7.3 shall have been satisfied or waived (other than those conditions that by their nature are to be satisfied by action taken at the Closing and other than the conditions set forth in Section 7.1(b) or Section 7.1(c) (but only to the extent the applicable Legal Restraint relates to the Required Approvals))",
+            "Termination Restrictions Due to Breach": "Yes, the Party seeking to terminate shall not have breached in any material respect its obligations under this Agreement in any manner that shall have proximately caused the failure to consummate the Merger on or before such date."
+          }
+        ],
+        "clause_text": "provided, that if, as of such time and date all conditions set forth in Section 7.1, Section 7.2 and Section 7.3 shall have been satisfied or waived (other than those conditions that by their nature are to be satisfied by action taken at the Closing and other than the conditions set forth in Section 7.1(b) or Section 7.1(c) (but only to the extent the applicable Legal Restraint relates to the Required Approvals)), then such date shall, automatically without the action of any Person, be extended to 11:59 p.m. Eastern time on March 18, 2025, and references to the 'End Date' shall instead refer to such extended date, and provided, further, that if, as of such time and date all conditions set forth in Section 7.1, Section 7.2 and Section 7.3 shall have been satisfied or waived (other than those conditions that by their nature are to be satisfied by action taken at the Closing and other than the conditions set forth in Section 7.1(b) or Section 7.1(c) (but only to the extent the applicable Legal Restraint relates to the Required Approvals)), then such date shall, automatically without the action of any Person, be extended to 11:59 p.m. Eastern time on June 18, 2025, and references to the 'End Date' shall instead refer to such extended date) and (ii) the Party seeking to terminate this Agreement pursuant to this Section 8.1(b) shall not have breached in any material respect its obligations under this Agreement in any manner that shall have proximately caused the failure to consummate the Merger on or before such date;",
+        "reference_section": "Section 8.1"
+      }
+    },
+    "termination_fee": {
+      "termination_fee": {
+        "answer": 565000000,
+        "clause_text": "Company Termination Fee means an amount equal to $565,000,000.",
+        "reference_section": "Section 1.1"
+      }
+    },
+    "reverse_termination_fee": {
+      "reverse_termination_fee": {
+        "answer": 565000000,
+        "clause_text": "Parent Termination Fee means an amount in cash equal to $565,000,000.",
+        "reference_section": "Section 1.1"
+      }
+    },
+    "reverse_termination_fee_exist": {
+      "reverse_termination_fee_exist": {
+        "answer": true,
+        "clause_text": "then, in each case, Parent shall pay the Parent Termination Fee to the Company as promptly as practicable (and, in any event, within three (3) Business Days following the date of the Company Election, which shall, for the avoidance of doubt, occur after the date of termination) by wire transfer of immediately available funds to an account designated by the Company.",
+        "reference_section": "Section 8.3 (b)"
+      }
+    },
+    "termination_fee_superior_proposal": {
+      "termination_fee_superior_proposal_exists": {
+        "answer": true,
+        "clause_text": "if (i) the Company shall have terminated this Agreement pursuant to Section 8.1(g)(i)... then the Company shall pay the Company Termination Fee to Parent (or its designee(s)) by wire transfer of immediately available funds to an account designated by Parent (or its designee(s)), such payment to be made prior to or concurrently with, and as a condition to the effectiveness of, termination in the case of clause (i) above...",
+        "reference_section": "Section 8.3 (a)"
+      },
+      "termination_fee_superior_proposal": {
+        "answer": "$565,000,000",
+        "clause_text": "Company Termination Fee means an amount equal to $565,000,000.",
+        "reference_section": "Section 1.1"
+      }
+    },
+    "termination_fee_company_shareholder_approval": {
+      "termination_fee_company_shareholder_approval_failure_exists": {
+        "answer": true,
+        "clause_text": "if (i) the Company shall have terminated this Agreement pursuant to Section 8.1(g)(i), (ii) Parent shall have terminated this Agreement pursuant to Section 8.1(g)(ii), or (iii) (A) after the date of this Agreement and prior to the Company Stockholders' Meeting, an Alternative Proposal has been publicly proposed or publicly disclosed, and not withdrawn at least two (2) Business Days prior to, the Company Stockholders' Meeting, (B) this Agreement is subsequently terminated by Parent or the Company pursuant to Section 8.1(d) and (C) concurrently with or within nine (9) months after such termination...",
+        "reference_section": "Section 8.3 (a)"
+      },
+      "termination_fee_company_shareholder_approval_failure": {
+        "answer": "565000000",
+        "clause_text": "Company Termination Fee means an amount equal to $565,000,000.",
+        "reference_section": "Section 1.1"
+      }
+    },
+    "reverse_termination_fee_shareholder_approval": {
+      "reverse_termination_fee_shareholder_approval_failure_exists": {
+        "answer": false,
+        "clause_text": "Notwithstanding any provision in this Agreement to the contrary, in the event that: (i) this Agreement is terminated by Parent or the Company pursuant to Section 8.1(b)...",
+        "reference_section": "Section 8.3 (b)"
+      },
+      "reverse_termination_fee_shareholder_approval_failure": {
+        "answer": 565000000,
+        "clause_text": "Parent Termination Fee means an amount in cash equal to $565,000,000.",
+        "reference_section": "Section 1.1"
+      }
+    },
+    "termination_rights": {
+      "mutual_termination_rights": {
+        "answer": [
+          "by either the Company or Parent if the Effective Time shall not have occurred on or before 11:59 p.m. Eastern time on September 18, 2024",
+          "by either the Company or Parent if any Governmental Entity with competent jurisdiction over any Party in the U.S. or any other jurisdiction specified in Section 7.1(c) of the Company Disclosure Letter shall have issued or enacted a Legal Restraint, and such Legal Restraint shall have become final and nonappealable",
+          "by either the Company or Parent if the Company Stockholders' Meeting (including any adjournments or postponements thereof) shall have been held and concluded and the Required Company Stockholder Vote contemplated by this Agreement shall not have been obtained"
+        ],
+        "clause_text": "by either the Company or Parent if (i) the Effective Time shall not have occurred on or before 11:59 p.m. Eastern time on September 18, 2024...; (c) by either the Company or Parent if any Governmental Entity...shall have issued or enacted a Legal Restraint, and such Legal Restraint shall have become final and nonappealable;...; (d) by either the Company or Parent if the Company Stockholders' Meeting...shall have been held and concluded and the Required Company Stockholder Vote...shall not have been obtained;",
+        "reference_section": "Section 8.1"
+      },
+      "parent_termination_rights": {
+        "answer": [
+          "by Parent, if the Company shall have breached or failed to perform in any material respect any of its representations, warranties, covenants or other agreements contained in this Agreement, which breach or failure to perform (i) would result in a failure of a condition set forth in Section 7.3(a) or Section 7.3(b) and (ii) cannot be cured by the End Date or, if curable, is not cured within thirty (30) Business Days following Parent's delivery of written notice to the Company stating Parent's intention to terminate this Agreement pursuant to this Section 8.1(f) and the basis for such termination; provided, that neither Parent or Merger Sub is then in material breach of any representation, warranty, agreement or covenant contained in this Agreement",
+          "by Parent prior to obtaining the Required Company Stockholder Vote, if a Change of Recommendation shall have occurred"
+        ],
+        "clause_text": "by Parent, if the Company shall have breached or failed to perform in any material respect any of its representations, warranties, covenants or other agreements contained in this Agreement, which breach or failure to perform (i) would result in a failure of a condition set forth in Section 7.3(a) or Section 7.3(b) and (ii) cannot be cured by the End Date or, if curable, is not cured within thirty (30) Business Days following Parent's delivery of written notice to the Company stating Parent's intention to terminate this Agreement pursuant to this Section 8.1(f) and the basis for such termination; provided, that neither Parent or Merger Sub is then in material breach of any representation, warranty, agreement or covenant contained in this Agreement; or (g) (ii) by Parent prior to obtaining the Required Company Stockholder Vote, if a Change of Recommendation shall have occurred.",
+        "reference_section": "Section 8.1"
+      },
+      "company_termination_rights": {
+        "answer": [
+          "by the Company, if Parent or Merger Sub shall have breached or failed to perform in any material respect any of their representations, warranties, covenants or other agreements contained in this Agreement, which breach or failure to perform (i) would result in a failure of a condition set forth in Section 7.2(a) or Section 7.2(b) and (ii) cannot be cured by the End Date or, if curable, is not cured within thirty (30) Business Days following the Company's delivery of written notice to Parent stating the Company's intention to terminate this Agreement pursuant to this Section 8.1(e) and the basis for such termination; provided, that the Company is not then in material breach of any representation, warranty, agreement or covenant contained in this Agreement;",
+          "by the Company, in order to enter into a definitive agreement with respect to a Superior Proposal prior to obtaining the Required Company Stockholder Vote (it being agreed that no such termination shall be effective unless (A) the Company has complied in all material respects with Section 6.4(e), (B) the Company pays the Company Termination Fee due to Parent in accordance with Section 8.3(a) prior to or at the time of such termination and (C) promptly after such termination, the Company enters into such definitive agreement with respect to such Superior Proposal)"
+        ],
+        "clause_text": "by the Company, if Parent or Merger Sub shall have breached or failed to perform in any material respect any of their representations, warranties, covenants or other agreements contained in this Agreement, which breach or failure to perform (i) would result in a failure of a condition set forth in Section 7.2(a) or Section 7.2(b) and (ii) cannot be cured by the End Date or, if curable, is not cured within thirty (30) Business Days following the Company's delivery of written notice to Parent stating the Company's intention to terminate this Agreement pursuant to this Section 8.1(e) and the basis for such termination; provided, that the Company is not then in material breach of any representation, warranty, agreement or covenant contained in this Agreement; by the Company, in order to enter into a definitive agreement with respect to a Superior Proposal prior to obtaining the Required Company Stockholder Vote (it being agreed that no such termination shall be effective unless (A) the Company has complied in all material respects with Section 6.4(e), (B) the Company pays the Company Termination Fee due to Parent in accordance with Section 8.3(a) prior to or at the time of such termination and (C) promptly after such termination, the Company enters into such definitive agreement with respect to such Superior Proposal)",
+        "reference_section": "Section 8.1"
+      }
+    },
+    "termination_fee_events": {
+      "company_termination_fee_events": {
+        "answer": [
+          "The Company shall have terminated this Agreement pursuant to Section 8.1(g)(i).",
+          "Parent shall have terminated this Agreement pursuant to Section 8.1(g)(ii).",
+          "An Alternative Proposal has been publicly proposed or disclosed and not withdrawn at least two Business Days prior to the Company Stockholders' Meeting, the Agreement is terminated pursuant to Section 8.1(d), and within nine months after such termination, the Company enters into or completes a transaction that constitutes an Alternative Proposal."
+        ],
+        "clause_text": "if (i) the Company shall have terminated this Agreement pursuant to Section 8.1(g)(i), (ii) Parent shall have terminated this Agreement pursuant to Section 8.1(g)(ii), or (iii) (A) after the date of this Agreement and prior to the Company Stockholders' Meeting, an Alternative Proposal has been publicly proposed or publicly disclosed, and not withdrawn at least two (2) Business Days prior to, the Company Stockholders' Meeting, (B) this Agreement is subsequently terminated by Parent or the Company pursuant to Section 8.1(d) and (C) concurrently with or within nine (9) months after such termination, (x) the Company shall have entered into a definitive agreement providing for a transaction that constitutes an Alternative Proposal (which transaction is subsequently consummated, whether during or following such nine (9) month period) or (y) the Company shall have completed a transaction that constitutes an Alternative Proposal",
+        "reference_section": "Section 8.3 (a)"
+      },
+      "parent_reverse_termination_fee_events": {
+        "answer": [
+          "This Agreement is terminated by Parent or the Company pursuant to Section 8.1(b) due to unsatisfied conditions in Section 7.1(b) or Section 7.1(c) related to Legal Restraints.",
+          "This Agreement is terminated by Parent or the Company pursuant to Section 8.1(c) due to a Legal Restraint issued or granted in respect of the Contemplated Transactions."
+        ],
+        "clause_text": "Notwithstanding any provision in this Agreement to the contrary, in the event that: (i) this Agreement is terminated by Parent or the Company pursuant to Section 8.1(b) and, at the time of such termination, (A) one or more of the conditions set forth in Section 7.1(b) or Section 7.1(c) ... have not been satisfied or waived...; or (ii) this Agreement is terminated by Parent or the Company pursuant to Section 8.1(c), only as the result of a Legal Restraint issued or granted in respect of the Contemplated Transactions...",
+        "reference_section": "Section 8.3 (b)"
+      }
+    },
+    "reimbursement_obligations": {
+      "target_reimbursement_obligations": {
+        "answer": "Not found",
+        "clause_text": "",
+        "reference_section": ""
+      },
+      "parent_reimbursement_obligations": {
+        "answer": "Not found",
+        "clause_text": "",
+        "reference_section": ""
+      }
+    },
+    "regulatory_termination_fee": {
+      "regulatory_termination_fee": {
+        "answer": "Not found",
+        "clause_text": "",
+        "reference_section": ""
+      }
+    },
+    "failure_to_close_fee": {
+      "failure_to_close_fee": {
+        "answer": "Not found",
+        "clause_text": "",
+        "reference_section": ""
+      }
+    },
+    "reverse_termination_fee_regulatory": {
+      "reverse_termination_fee_regulatory": {
+        "answer": "$565,000,000",
+        "clause_text": "Parent Termination Fee means an amount in cash equal to $565,000,000.",
+        "reference_section": "Section 1.1"
+      }
+    },
+    "extend_or_terminate_limitation_due_to_breach": {
+      "extend_or_terminate_limitation_due_to_breach": {
+        "answer": "No Party may rely, either as a basis for not consummating the Merger or terminating this Agreement and abandoning the Merger, on the failure of any condition set forth in Section 7.1, Section 7.2 or Section 7.3, as the case may be, to be satisfied if such failure was caused by such Party's breach of any covenant or agreement of this Agreement.",
+        "clause_text": "No Party may rely, either as a basis for not consummating the Merger or terminating this Agreement and abandoning the Merger, on the failure of any condition set forth in Section 7.1, Section 7.2 or Section 7.3, as the case may be, to be satisfied if such failure was caused by such Party's breach of any covenant or agreement of this Agreement.",
+        "reference_section": "Section 7.4"
+      }
+    }
+  },
+  "ordinary_course": {
+    "company_ordinary_course_covenant": {
+      "company_conduct_covenant_summary": {
+        "answer": "The target company is required to conduct its business in all material respects in the ordinary course of business and use commercially reasonable efforts to maintain existing relationships, preserve its business organization, keep key employees, and maintain insurance coverage. Exceptions to this requirement include actions required by law, agreed upon by the Parent, permitted by the Agreement, specified in the Company Disclosure Letter, or necessary due to COVID-19 measures or emergencies. Parent's consent is required for deviations, which shall not be unreasonably withheld.",
+        "clause_text": "(a) From and after the date hereof and prior to the earlier of the Effective Time and the date, if any, on which this Agreement is earlier terminated pursuant to Section 8.1 (the \"Termination Date\"), except (i) as may be required by applicable Law, any Governmental Entity of competent jurisdiction or the rules or regulations of the NYSE or the CSE, (ii) as may be agreed in writing in advance by Parent, which consent shall not be unreasonably withheld, delayed or conditioned, (iii) as may be required or expressly permitted by this Agreement, (iv) as set forth in Section 6.1 of the Company Disclosure Letter or (v) for any action reasonably taken, or reasonably omitted to be taken, pursuant to any COVID-19 Measures, as otherwise necessary or appropriate to protect the health and safety of employees or others having business dealings with the Company, or in response to any bona fide Emergency, the Company shall, shall cause its Subsidiaries to, and shall use commercially reasonable efforts to cause the Specified Joint Ventures to, conduct its business in all material respects in the ordinary course of business and use commercially reasonable efforts to (w) maintain existing relationships with Governmental Entities and material business relationships, (x) preserve intact its business organization, material assets, properties and Governmental Authorizations, (y) keep available the services of its key employees and (z) maintain its insurance coverage with regard to any material assets or properties; provided, that this sentence shall in no event prohibit allowing any Company Contracts with employees, service providers, suppliers, customers, distributors, and other Persons having business relationships with the Acquired Companies (or the Specified Joint Ventures, as applicable) to expire in accordance with their terms; provided, further, that no action by the Company or its Subsidiaries with respect to matters specifically addressed by any provision of Section 6.1(b) shall be deemed a breach of this sentence unless such action would constitute a breach of such provision of Section 6.1(b).",
+        "reference_section": "Section 6.1 (a)"
+      }
+    },
+    "parent_ordinary_course_covenant": {
+      "parent_conduct_covenant_summary": {
+        "answer": "Not found",
+        "clause_text": "",
+        "reference_section": ""
+      }
+    }
+  },
+  "board_approval": {
+    "board_approval": {
+      "target_board_approval": {
+        "answer": true,
+        "clause_text": "WHEREAS, the Board of Directors of the Company (the 'Company Board') has unanimously (a) determined that it is fair to and in the best interests of the Company and its stockholders, and declared it advisable, to enter into this Agreement, (b) approved the execution, delivery and performance of this Agreement and the consummation of the Contemplated Transactions, including the Merger, and (c) resolved to recommend that the stockholders of the Company adopt this Agreement...",
+        "reference_section": "ARTICLE Preamble"
+      },
+      "target_board_unanimous": {
+        "answer": true,
+        "clause_text": "WHEREAS, the Board of Directors of the Company (the \"Company Board\") has unanimously (a) determined that it is fair to and in the best interests of the Company and its stockholders, and declared it advisable, to enter into this Agreement, (b) approved the execution, delivery and performance of this Agreement and the consummation of the Contemplated Transactions, including the Merger, and (c) resolved to recommend that the stockholders of the Company adopt this Agreement and directed that such matter be submitted for consideration of the stockholders of the Company at the Company Stockholders' Meeting;",
+        "reference_section": "ARTICLE Preamble"
+      },
+      "acquirer_board_approval": {
+        "answer": true,
+        "clause_text": "WHEREAS, the boards of directors of Parent and Merger Sub have approved the execution, delivery and performance of this Agreement and the consummation of the Contemplated Transactions, including the Merger, and declared it in the best interests of and advisable for Parent and Merger Sub, respectively, to enter into this Agreement;",
+        "reference_section": "ARTICLE Preamble"
+      },
+      "acquirer_board_unanimous": {
+        "answer": false,
+        "clause_text": "WHEREAS, the boards of directors of Parent and Merger Sub have approved the execution, delivery and performance of this Agreement and the consummation of the Contemplated Transactions, including the Merger, and declared it in the best interests of and advisable for Parent and Merger Sub, respectively, to enter into this Agreement;",
+        "reference_section": "ARTICLE Preamble"
+      }
+    }
+  },
+  "party_details": {
+    "acquirer": {
+      "acquirer": {
+        "answer": "Nippon Steel North America, Inc.",
+        "clause_text": "This AGREEMENT AND PLAN OF MERGER, dated as of December 18, 2023 (this \"Agreement\"), is entered into by and among Nippon Steel North America, Inc., a New York corporation (\"Parent\"), 2023 Merger Subsidiary, Inc., a Delaware corporation and a wholly owned subsidiary of Parent (\"Merger Sub\"), solely as provided in Section 9.13, Nippon Steel Corporation, a Japanese corporation (\"Guarantor\"), and United States Steel Corporation, a Delaware corporation (the \"Company\").",
+        "reference_section": "ARTICLE Preamble"
+      },
+      "parent_entity_details": {
+        "answer": "Nippon Steel Corporation",
+        "clause_text": "Parent, a wholly owned subsidiary of Guarantor, desires to acquire the Company on the terms and subject to the conditions set forth in this Agreement;",
+        "reference_section": "ARTICLE Preamble"
+      }
+    },
+    "target": {
+      "target": {
+        "answer": "United States Steel Corporation",
+        "clause_text": "This AGREEMENT AND PLAN OF MERGER, dated as of December 18, 2023 (this \"Agreement\"), is entered into by and among Nippon Steel North America, Inc., a New York corporation (\"Parent\"), 2023 Merger Subsidiary, Inc., a Delaware corporation and a wholly owned subsidiary of Parent (\"Merger Sub\"), solely as provided in Section 9.13, Nippon Steel Corporation, a Japanese corporation (\"Guarantor\"), and United States Steel Corporation, a Delaware corporation (the \"Company\").",
+        "reference_section": "ARTICLE Preamble"
+      }
+    },
+    "guarantor": {
+      "guarantor_present": {
+        "answer": true,
+        "clause_text": "Guarantor hereby absolutely, unconditionally and irrevocably guarantees, as principal and not as surety, to the Company, the Surviving Corporation and their successors and assigns the due and punctual payment and performance of each of the covenants, obligations and Liabilities of Parent and Merger Sub, as applicable (the 'Guaranteed Obligations').",
+        "reference_section": "Section 9.13 (a)"
+      },
+      "guarantor_details": {
+        "answer": "Nippon Steel Corporation",
+        "clause_text": "To induce the Company to enter into this Agreement, Guarantor hereby absolutely, unconditionally and irrevocably guarantees, as principal and not as surety, to the Company, the Surviving Corporation and their successors and assigns the due and punctual payment and performance of each of the covenants, obligations and Liabilities of Parent and Merger Sub, as applicable (the \"Guaranteed Obligations\").",
+        "reference_section": "Section 9.13 (a)"
+      }
+    },
+    "subsidiaries": {
+      "target_subsidiaries_present": {
+        "answer": false,
+        "clause_text": "The Company shall cause each of its Subsidiaries to comply with, duly perform, satisfy and discharge on a timely basis, all of their respective covenants, obligations and liabilities under this Agreement, and the Company shall be jointly and severally liable with the Subsidiaries for the due and timely performance, satisfaction and discharge of each of the said covenants, obligations and liabilities.",
+        "reference_section": "Section 6.14 (b)"
+      },
+      "target_subsidiaries": {
+        "answer": "No target subsidiaries explicitly involved in the merger structure are mentioned.",
+        "clause_text": "",
+        "reference_section": ""
+      },
+      "acquirer_subsidiaries_present": {
+        "answer": true,
+        "clause_text": "Parent shall cause Merger Sub, each of Parent's other Subsidiaries, and the Surviving Corporation, to comply with, duly perform, satisfy and discharge on a timely basis, all of their respective covenants, obligations and liabilities under this Agreement.",
+        "reference_section": "Section 6.14 (a)"
+      },
+      "acquirer_subsidiaries": {
+        "answer": "[{ \"name\": \"2023 Merger Subsidiary, Inc.\", \"clause_reference\": \"ARTICLE Article 2 THE MERGER > Section 2.1 The Merger\", \"role\": \"Wholly owned merger vehicle used to merge with the target\" }]",
+        "clause_text": "On the terms and subject to the conditions set forth in this Agreement, and in accordance with the DGCL, at the Effective Time, Merger Sub shall merge with and into the Company, the separate corporate existence of Merger Sub shall cease and the Company shall continue its corporate existence under the laws of the State of Delaware as the surviving corporation in the Merger (the \"Surviving Corporation\") and a wholly owned Subsidiary of Parent.",
+        "reference_section": "Section 2.1"
+      }
+    },
+    "transaction": {
+      "transaction_type": {
+        "answer": "Reverse Triangular Merger",
+        "clause_text": "Merger Sub shall merge with and into the Company, the separate corporate existence of Merger Sub shall cease and the Company shall continue its corporate existence under the laws of the State of Delaware as the surviving corporation in the Merger (the 'Surviving Corporation') and a wholly owned Subsidiary of Parent.",
+        "reference_section": "Section 2.1"
+      },
+      "transaction_structure_notes": {
+        "answer": "Merger Sub shall merge with and into the Company, with the Company continuing as the surviving corporation and becoming a wholly owned subsidiary of Parent.",
+        "clause_text": "On the terms and subject to the conditions set forth in this Agreement, and in accordance with the DGCL, at the Effective Time, Merger Sub shall merge with and into the Company, the separate corporate existence of Merger Sub shall cease and the Company shall continue its corporate existence under the laws of the State of Delaware as the surviving corporation in the Merger (the \"Surviving Corporation\") and a wholly owned Subsidiary of Parent.",
+        "reference_section": "Section 2.1"
+      }
+    },
+    "merger_sub_details": {
+      "merger_sub_details": {
+        "answer": "2023 Merger Subsidiary, Inc., a Delaware corporation and a wholly owned subsidiary of Parent",
+        "clause_text": "2023 Merger Subsidiary, Inc., a Delaware corporation and a wholly owned subsidiary of Parent",
+        "reference_section": "ARTICLE Preamble"
+      }
+    }
+  },
+  "closing_mechanics": {
+    "target_date": {
+      "target_date": {
+        "answer": "3rd Business Day after satisfaction or waiver of conditions in Article 7",
+        "clause_text": "The closing of the Merger (the 'Closing') shall take place ... on the third (3rd) Business Day after the satisfaction or waiver (to the extent permitted by applicable Law) of the conditions set forth in Article 7 ...",
+        "reference_section": "Section 2.2"
+      }
+    },
+    "marketing_period": {
+      "has_marketing_period": {
+        "answer": false,
+        "clause_text": "The provided excerpts do not contain any reference to a 'Marketing Period'.",
+        "reference_section": "No specific section references 'Marketing Period' in the provided excerpts."
+      },
+      "marketing_period_details": {
+        "answer": "Not found",
+        "clause_text": "",
+        "reference_section": ""
+      }
+    },
+    "inside_date": {
+      "has_inside_date": {
+        "answer": false,
+        "clause_text": "Anything contained in this Agreement to the contrary notwithstanding, this Agreement may be terminated and abandoned at any time prior to the Effective Time, whether before or after any approval by the stockholders of the Company of the matters presented in connection with the Merger: (a) by the mutual written consent of the Company and Parent; (b) by either the Company or Parent if (i) the Effective Time shall not have occurred on or before 11:59 p.m. Eastern time on September 18, 2024 (the 'End Date')...",
+        "reference_section": "Section 8.1"
+      },
+      "inside_date_details": {
+        "answer": "Not found",
+        "clause_text": "",
+        "reference_section": ""
+      }
+    }
+  },
+  "specific_performance": {
+    "specific_performance": {
+      "specific_performance_available": {
+        "answer": true,
+        "clause_text": "Each Party agrees that, in the event of any breach or threatened breach by any other Party of any covenant or obligation contained in this Agreement, the non-breaching Party shall be entitled (in addition to any other remedy that may be available to it whether in law or equity, including monetary damages) to obtain (a) a decree or order of specific performance to enforce the observance and performance of such covenant or obligation.",
+        "reference_section": "Section 9.5"
+      },
+      "specific_performance_parties": {
+        "answer": "Company, Parent, Merger Sub",
+        "clause_text": "Each of the Company, on the one hand, and Parent and Merger Sub, on the other hand, hereby agrees not to raise any objection to the availability of the equitable remedy of specific performance in accordance with and subject to the limitations set forth in this Agreement or to specifically enforce the terms and provisions of this Agreement...",
+        "reference_section": "Section 9.5"
+      },
+      "specific_performance_limitations": {
+        "answer": "The right to seek specific performance is subject to certain limitations, including that Parent and Merger Sub are not obligated to both specifically perform the terms of the Agreement and pay other monetary damages. Additionally, no Party is required to obtain, furnish, or post any bond or similar instrument as a condition to obtaining specific performance.",
+        "clause_text": "Notwithstanding anything herein to the contrary, while the Company may pursue both a grant of specific performance to the extent expressly permitted by this Section 9.5 and the payment of, subject to Section 8.2 and Section 8.3, other monetary damages, under no circumstances shall Parent or Merger Sub be obligated to both specifically perform the terms of this Agreement and pay other monetary damages.",
+        "reference_section": "Section 9.5"
+      },
+      "specific_performance_financing_condition": {
+        "answer": false,
+        "clause_text": "Notwithstanding anything contained in this Agreement to the contrary, Parent and Merger Sub acknowledge and agree that their respective obligations hereunder are not conditioned in any manner whatsoever upon obtaining the Funds to satisfy the Funding Obligations.",
+        "reference_section": "Section 5.11"
+      },
+      "specific_performance_financing_details": {
+        "answer": "The availability, terms, or obtaining of the Debt Financing or any Alternative Financing is not a condition to the Merger, the Closing, or the obligations of Parent and Merger Sub to consummate the Contemplated Transactions.",
+        "clause_text": "In no event shall Parent or Merger Sub or any of their Affiliates directly or indirectly... the availability, the terms nor the obtaining of the Debt Financing or any Alternative Financing, nor the completion of any issuance of securities contemplated by the Debt Financing or any Alternative Financing, is in any manner a condition to the Merger, the Closing or the obligations of Parent and Merger Sub to consummate the Contemplated Transactions...",
+        "reference_section": "Section 6.17 (e)"
+      }
+    }
+  },
+  "confidentiality_and_clean_room": {
+    "confidentiality": {
+      "confidentiality_exists": {
+        "answer": true,
+        "clause_text": "Parent agrees that all information provided to it or any of its Representatives in connection with this Agreement and the consummation of the Contemplated Transactions shall be deemed to be Confidential Information and/or Transaction Information, as applicable, as such terms are used in, and shall be treated in accordance with, the confidentiality agreement, dated as of August 29, 2023, between the Company and Parent.",
+        "reference_section": "Section 6.3 (b)"
+      },
+      "confidentiality_agreement_date": {
+        "answer": "August 29, 2023",
+        "clause_text": "Parent agrees that all information provided to it or any of its Representatives in connection with this Agreement and the consummation of the Contemplated Transactions shall be deemed to be Confidential Information and/or Transaction Information, as applicable, as such terms are used in, and shall be treated in accordance with, the confidentiality agreement, dated as of August 29, 2023, between the Company and Parent.",
+        "reference_section": "Section 6.3 (b)"
+      },
+      "confidentiality_obligation_termination_date": {
+        "answer": "The confidentiality obligations continue in full force and effect until the Closing Date. If the Agreement is terminated prior to the Closing Date, the Confidentiality Agreement shall continue in full force and effect in accordance with its terms.",
+        "clause_text": "Parent agrees that all information provided to it or any of its Representatives in connection with this Agreement and the consummation of the Contemplated Transactions shall be deemed to be Confidential Information and/or Transaction Information, as applicable, as such terms are used in, and shall be treated in accordance with, the confidentiality agreement, dated as of August 29, 2023, between the Company and Parent, as supplemented by the Clean Team Agreement by and between the Company and Parent, dated as of October 11, 2023 (together, the \"Confidentiality Agreement\"), which, notwithstanding anything to the contrary set forth therein, shall continue in full force and effect until the Closing Date. If for any reason this Agreement is terminated prior to the Closing Date, the Confidentiality Agreement shall nonetheless continue in full force and effect in accordance with its terms.",
+        "reference_section": "Section 6.3 (b)"
+      },
+      "confidentiality_amendment_exists": {
+        "answer": false,
+        "clause_text": "This Agreement (including the Company Disclosure Letter and Parent Disclosure Letter) and the Confidentiality Agreement constitute the entire agreement, and supersede all other prior agreements and understandings, both written and oral, between the Parties, or any of them, with respect to the subject matter hereof and thereof.",
+        "reference_section": "Section 9.9"
+      },
+      "confidentiality_amendment_date": {
+        "answer": "Not found",
+        "clause_text": "",
+        "reference_section": ""
+      }
+    },
+    "clean_room": {
+      "clean_room_exists": {
+        "answer": true,
+        "clause_text": "Parent agrees that all information provided to it or any of its Representatives in connection with this Agreement and the consummation of the Contemplated Transactions shall be deemed to be Confidential Information and/or Transaction Information, as applicable, as such terms are used in, and shall be treated in accordance with, the confidentiality agreement, dated as of August 29, 2023, between the Company and Parent, as supplemented by the Clean Team Agreement by and between the Company and Parent, dated as of October 11, 2023 (together, the 'Confidentiality Agreement').",
+        "reference_section": "Section 6.3 (b)"
+      },
+      "clean_room_signing_date": {
+        "answer": "October 11, 2023",
+        "clause_text": "Parent agrees that all information provided to it or any of its Representatives in connection with this Agreement and the consummation of the Contemplated Transactions shall be deemed to be Confidential Information and/or Transaction Information, as applicable, as such terms are used in, and shall be treated in accordance with, the confidentiality agreement, dated as of August 29, 2023, between the Company and Parent, as supplemented by the Clean Team Agreement by and between the Company and Parent, dated as of October 11, 2023 (together, the 'Confidentiality Agreement').",
+        "reference_section": "Section 6.3 (b)"
+      },
+      "clean_room_start_date": {
+        "answer": "October 11, 2023",
+        "clause_text": "Parent agrees that all information provided to it or any of its Representatives in connection with this Agreement and the consummation of the Contemplated Transactions shall be deemed to be Confidential Information and/or Transaction Information, as applicable, as such terms are used in, and shall be treated in accordance with, the confidentiality agreement, dated as of August 29, 2023, between the Company and Parent, as supplemented by the Clean Team Agreement by and between the Company and Parent, dated as of October 11, 2023 (together, the 'Confidentiality Agreement').",
+        "reference_section": "Section 6.3 (b)"
+      },
+      "clean_room_end_date": {
+        "answer": "Closing Date",
+        "clause_text": "Parent agrees that all information provided to it or any of its Representatives in connection with this Agreement and the consummation of the Contemplated Transactions shall be deemed to be Confidential Information and/or Transaction Information, as applicable, as such terms are used in, and shall be treated in accordance with, the confidentiality agreement, dated as of August 29, 2023, between the Company and Parent, as supplemented by the Clean Team Agreement by and between the Company and Parent, dated as of October 11, 2023 (together, the \"Confidentiality Agreement\"), which, notwithstanding anything to the contrary set forth therein, shall continue in full force and effect until the Closing Date.",
+        "reference_section": "Section 6.3 (b)"
+      },
+      "clean_room_scope_restrictions": {
+        "answer": "The Clean Room use is subject to several restrictions, including access limitations to prevent disruption of operations, protection of health and safety, and compliance with legal privileges and laws. Access is also restricted to prevent disclosure of valuation and competitively sensitive information.",
+        "clause_text": "The Company shall not be required to afford such access (i) if such access would, in the Company's good-faith discretion, (x) unreasonably disrupt the operations of the Company or any of its Subsidiaries, (y) jeopardize the health and safety of any officer or employee of the Company or any of its Subsidiaries, or any attorney-client or other legal privilege or trade secret protection or (z) contravene any applicable Law, fiduciary duty or binding agreement entered into prior to the date of this Agreement...",
+        "reference_section": "Section 6.3 (a)"
+      },
+      "clean_room_protection_clause_present": {
+        "answer": true,
+        "clause_text": "The Company agrees that it shall, and shall cause its Subsidiaries to, and shall use reasonable best efforts to cause their respective Representatives to, (ii) terminate access to the Dataroom (or any other physical or electronic data room maintained by the Company relating to the Company's exploration of strategic alternatives) by any Person (other than (x) Guarantor, Parent, Merger Sub and their respective Representatives and (y) the Company, its Subsidiaries and their respective Representatives).",
+        "reference_section": "Section 6.4 (b)"
+      },
+      "clean_room_protection_clause_summary": {
+        "answer": "Not found",
+        "clause_text": "Subject to compliance with applicable Laws, the Company shall afford to Parent and to its officers, directors, employees, accountants, consultants, legal counsel, financial advisors and agents and other representatives (collectively, \"Representatives\") reasonable access during normal business hours, upon reasonable advance notice, throughout the period prior to the earlier of the Effective Time and the Termination Date, to the Company's and its Subsidiaries' employees, officers, properties, contracts, commitments, books and records, other than any such matters that relate to the negotiation and execution of this Agreement, including with respect to the consideration or valuation of the Merger or any financial or strategic alternatives thereto, or that relate to any Alternative Proposal or Superior Proposal, in each case, solely for purposes of consummating the Merger (including for integration planning) (but without limiting the Company's obligations under Section 6.4 in respect of an Alternative Proposal or Superior Proposal).",
+        "reference_section": "Section 6.3 (a)"
+      }
+    }
+  },
+  "complex_consideration_and_dividends": {
+    "deal_consideration": {
+      "deal_consideration_overview": {
+        "answer": "$55.00 per Share in cash",
+        "clause_text": "Each share of common stock, par value $1.00 per share, of the Company...shall be converted automatically into the right to receive $55.00 per Share in cash (the 'Merger Consideration').",
+        "reference_section": "Section 3.1 (a) (i)"
+      },
+      "deal_consideration_details": {
+        "answer": "$55.00 per Share in cash",
+        "clause_text": "Each share of common stock, par value $1.00 per share, of the Company (such shares, collectively, the \"Common Stock,\" and each, a \"Share\") that is outstanding immediately prior to the Effective Time, but excluding Cancelled Shares and Dissenting Shares, shall be converted automatically into the right to receive $55.00 per Share in cash (the \"Merger Consideration\").",
+        "reference_section": "Section 3.1 (a) (i)"
+      },
+      "is_all_cash_deal": {
+        "answer": true,
+        "clause_text": "Each share of common stock, par value $1.00 per share, of the Company (such shares, collectively, the 'Common Stock,' and each, a 'Share') that is outstanding immediately prior to the Effective Time, but excluding Cancelled Shares and Dissenting Shares, shall be converted automatically into the right to receive $55.00 per Share in cash (the 'Merger Consideration').",
+        "reference_section": "Section 3.1 (a) (i)"
+      }
+    },
+    "proration": {
+      "proration_exists": {
+        "answer": false,
+        "clause_text": "Each share of common stock, par value $1.00 per share, of the Company (such shares, collectively, the 'Common Stock,' and each, a 'Share') that is outstanding immediately prior to the Effective Time, but excluding Cancelled Shares and Dissenting Shares, shall be converted automatically into the right to receive $55.00 per Share in cash (the 'Merger Consideration').",
+        "reference_section": "Section 3.1 (a) (i)"
+      },
+      "proration_details": {
+        "answer": "Not found",
+        "clause_text": "",
+        "reference_section": ""
+      }
+    },
+    "election": {
+      "election_exists": {
+        "answer": false,
+        "clause_text": "Each share of common stock, par value $1.00 per share, of the Company... shall be converted automatically into the right to receive $55.00 per Share in cash (the 'Merger Consideration').",
+        "reference_section": "Section 3.1 (a) (i)"
+      },
+      "election_details": {
+        "answer": "No election is permitted and consideration is fixed.",
+        "clause_text": "Each share of common stock, par value $1.00 per share, of the Company... shall be converted automatically into the right to receive $55.00 per Share in cash (the 'Merger Consideration').",
+        "reference_section": "Section 3.1 (a) (i)"
+      }
+    },
+    "cvr": {
+      "cvr_exists": {
+        "answer": false,
+        "clause_text": "The provided excerpts do not contain any reference to a Contingent Value Right (CVR) as part of the merger consideration.",
+        "reference_section": "Multiple sections reviewed, including ARTICLE Article 3 CONVERSION OF SHARES; EXCHANGE OF CERTIFICATES and ARTICLE Article 4 REPRESENTATIONS AND WARRANTIES OF THE COMPANY"
+      },
+      "cvr_details": {
+        "answer": "NA",
+        "clause_text": "",
+        "reference_section": ""
+      }
+    },
+    "ticking_fees": {
+      "ticking_fees_exists": {
+        "answer": false,
+        "clause_text": "The document sections provided discuss termination fees and financing but do not mention any ticking fees or similar provisions.",
+        "reference_section": "Section 8.3"
+      },
+      "ticking_fees_details": {
+        "answer": "Not found",
+        "clause_text": "",
+        "reference_section": ""
+      }
+    },
+    "contingent_payments": {
+      "contingent_payments_exists": {
+        "answer": false,
+        "clause_text": "The provided document excerpts do not mention any contingent payments beyond CVRs.",
+        "reference_section": "NA"
+      },
+      "contingent_payments_details": {
+        "answer": "Not found",
+        "clause_text": "",
+        "reference_section": ""
+      }
+    },
+    "company_dividends": {
+      "company_dividends_can_pay": {
+        "answer": false,
+        "clause_text": "From and after the date hereof and prior to the earlier of the Effective Time and the Termination Date, ... the Company shall not, and shall not permit any of its Subsidiaries to ... (i) authorize or pay any dividends on or make any distribution with respect to its outstanding shares of capital stock ... except for (A) the authorization and payment by the Company of its regular quarterly dividend in cash, consistent with past practice, at a rate not to exceed the amount set forth in Section 6.1(b)(i) of the Company Disclosure Letter...",
+        "reference_section": "Section 6.1 (b) (i)"
+      },
+      "company_dividends_details": {
+        "answer": "No Dividends Allowed",
+        "clause_text": "The Company Board has adopted resolutions to suspend the Company DRIP.",
+        "reference_section": "Section 4.2"
+      }
+    },
+    "parent_dividends": {
+      "parent_dividends_can_pay": {
+        "answer": false,
+        "clause_text": "The obligation of the Company to effect the Merger and the other Contemplated Transactions is further subject to the satisfaction (or waiver by the Company to the extent permitted by applicable Law) of the following conditions: (a) The representations and warranties of Parent and Merger Sub set forth in Article 5...",
+        "reference_section": "Section 7.2"
+      },
+      "parent_dividends_details": {
+        "answer": "No Dividends Allowed",
+        "clause_text": "From and after the date hereof and prior to the earlier of the Effective Time and the Termination Date, the Company shall not, and shall not permit any of its Subsidiaries to: (i) authorize or pay any dividends on or make any distribution with respect to its outstanding shares of capital stock (whether in cash, assets, stock or other securities of the Company or its Subsidiaries), except for (A) the authorization and payment by the Company of its regular quarterly dividend in cash, consistent with past practice, at a rate not to exceed the amount set forth in Section 6.1(b)(i) of the Company Disclosure Letter and with record and payment dates consistent with past practice of the Company during the prior 12 months, (B) dividends and distributions, in each case, paid in cash by wholly owned Subsidiaries of the Company to the Company or to any of its other wholly owned Subsidiaries, or (C) dividends and distributions, in each case, paid in cash by wholly owned Subsidiaries on a pro rata basis to its direct equityholders;",
+        "reference_section": "Section 6.1 (b) (i)"
+      }
+    },
+    "collar": {
+      "collar_exists": {
+        "answer": false,
+        "clause_text": "Each share of common stock, par value $1.00 per share, of the Company (such shares, collectively, the 'Common Stock,' and each, a 'Share') that is outstanding immediately prior to the Effective Time, but excluding Cancelled Shares and Dissenting Shares, shall be converted automatically into the right to receive $55.00 per Share in cash (the 'Merger Consideration').",
+        "reference_section": "Section 3.1 (a) (i)"
+      },
+      "collar_details": {
+        "answer": "Not found",
+        "clause_text": "",
+        "reference_section": ""
+      }
+    },
+    "exchange_ratio": {
+      "exchange_ratio_exists": {
+        "answer": false,
+        "clause_text": "Each share of common stock, par value $1.00 per share, of the Company...shall be converted automatically into the right to receive $55.00 per Share in cash (the 'Merger Consideration').",
+        "reference_section": "Section 3.1 (a) (i)"
+      },
+      "exchange_ratio_summary": {
+        "answer": "Not found",
+        "clause_text": "",
+        "reference_section": ""
+      }
+    },
+    "exchange_ratio_adjustment": {
+      "exchange_ratio_adjustment_exists": {
+        "answer": true,
+        "clause_text": "If, between the date of this Agreement and the Effective Time, the outstanding Shares shall have been changed into a different number of shares or a different class of shares by reason of any stock dividend, subdivision, reorganization, reclassification, recapitalization, stock split, reverse stock split, combination or exchange of shares, the Merger Consideration shall be equitably adjusted, without duplication, to proportionally reflect such change;",
+        "reference_section": "Section 3.1 (c)"
+      },
+      "exchange_ratio_adjustment": {
+        "answer": "$55.00 per Share in cash",
+        "clause_text": "Each share of common stock, par value $1.00 per share, of the Company ... shall be converted automatically into the right to receive $55.00 per Share in cash (the 'Merger Consideration').",
+        "reference_section": "Section 3.1 (a) (i)"
+      }
+    },
+    "dividend_adjustment_mechanism": {
+      "dividend_adjustment_mechanism_exists": {
+        "answer": false,
+        "clause_text": "If, between the date of this Agreement and the Effective Time, the outstanding Shares shall have been changed into a different number of shares or a different class of shares by reason of any stock dividend, subdivision, reorganization, reclassification, recapitalization, stock split, reverse stock split, combination or exchange of shares, the Merger Consideration shall be equitably adjusted, without duplication, to proportionally reflect such change.",
+        "reference_section": "Section 3.1 (c)"
+      },
+      "dividend_adjustment_mechanism": {
+        "answer": "Not found",
+        "clause_text": "",
+        "reference_section": ""
+      }
+    }
+  },
+  "law_and_jurisdiction": {
+    "governing_law": {
+      "governing_law_exists": {
+        "answer": true,
+        "clause_text": "This Agreement, and any Action or other Legal Proceeding arising out of or relating to this Agreement... shall be governed by, and construed and interpreted in accordance with, the laws of the State of Delaware, regardless of the choice of laws principles of the State of Delaware...",
+        "reference_section": "Section 9.4 (a)"
+      },
+      "governing_law_jurisdiction": {
+        "answer": "Delaware",
+        "clause_text": "This Agreement, and any Action or other Legal Proceeding arising out of or relating to this Agreement...shall be governed by, and construed and interpreted in accordance with, the laws of the State of Delaware, regardless of the choice of laws principles of the State of Delaware...",
+        "reference_section": "Section 9.4 (a)"
+      }
+    },
+    "incorporation_details": {
+      "parent_incorporation_details": {
+        "answer": "a New York corporation",
+        "clause_text": "AGREEMENT AND PLAN OF MERGER This AGREEMENT AND PLAN OF MERGER, dated as of December 18, 2023 (this \"Agreement\"), is entered into by and among Nippon Steel North America, Inc., a New York corporation (\"Parent\"), 2023 Merger Subsidiary, Inc., a Delaware corporation and a wholly owned subsidiary of Parent (\"Merger Sub\"), solely as provided in Section 9.13, Nippon Steel Corporation, a Japanese corporation (\"Guarantor\"), and United States Steel Corporation, a Delaware corporation (the \"Company\").",
+        "reference_section": "ARTICLE Preamble"
+      },
+      "company_incorporation_details": {
+        "answer": "a Delaware corporation",
+        "clause_text": "United States Steel Corporation, a Delaware corporation (the \"Company\").",
+        "reference_section": "ARTICLE Preamble"
+      }
+    },
+    "mae_interpretation_jurisdiction": {
+      "mae_interpretation_jurisdiction_exists": {
+        "answer": false,
+        "clause_text": "Company Material Adverse Effect means an event, change, occurrence, effect, condition or development that, individually or in the aggregate with all other events, changes, occurrences, effects, conditions or developments...",
+        "reference_section": "Section 1.1"
+      },
+      "mae_interpretation_jurisdiction": {
+        "answer": "Not found",
+        "clause_text": "",
+        "reference_section": ""
+      }
+    },
+    "financing_jurisdiction": {
+      "financing_jurisdiction_exists": {
+        "answer": true,
+        "clause_text": "any claim, suit, action or proceeding of any kind or description (whether at law, in equity, in contract, in tort or otherwise) involving any Debt Financing Source arising out of or relating to the transactions contemplated pursuant to this Agreement, the Debt Financing, the Debt Commitment Letters, the Fee Letters or the performance of services thereunder shall be subject to the exclusive jurisdiction of any New York State court or Federal Court of the United States of America sitting in the Borough of Manhattan in the City of New York or the Tokyo District Court, as applicable and as specified in the Debt Commitment Letters",
+        "reference_section": "Section 9.14"
+      },
+      "financing_jurisdiction": {
+        "answer": "New York",
+        "clause_text": "any claim, suit, action or proceeding of any kind or description (whether at law, in equity, in contract, in tort or otherwise) involving any Debt Financing Source arising out of or relating to the transactions contemplated pursuant to this Agreement, the Debt Financing, the Debt Commitment Letters, the Fee Letters or the performance of services thereunder shall be subject to the exclusive jurisdiction of any New York State court or Federal Court of the United States of America sitting in the Borough of Manhattan in the City of New York",
+        "reference_section": "Section 9.14"
+      }
+    },
+    "arbitration_clause": {
+      "arbitration_clause_exists": {
+        "answer": false,
+        "clause_text": "In any action between any of the Parties arising out of or relating to this Agreement, each of the Parties: (i) irrevocably and unconditionally consents and submits to the exclusive jurisdiction and venue of the Court of Chancery of the State of Delaware.",
+        "reference_section": "Section 9.4"
+      },
+      "arbitration_clause": {
+        "answer": "Not found",
+        "clause_text": "",
+        "reference_section": ""
+      }
+    }
+  },
+  "financing": {
+    "committed_financing": {
+      "committed_financing_present": {
+        "answer": true,
+        "clause_text": "Parent has delivered to the Company a true, correct and complete copy of the executed debt commitment letters, dated as of the date hereof, from the Debt Financing Sources party thereto, together with true, correct and complete copies of any related executed side letters...",
+        "reference_section": "Section 5.11 (a)"
+      },
+      "committed_financing_summary": {
+        "answer": "The committed financing arrangements involve debt financing, with the Debt Financing Sources having committed to lend the aggregate amount of debt financing set forth in the Debt Commitment Letters to Guarantor. The proceeds will be available to Parent and Merger Sub for funding the Contemplated Transactions.",
+        "clause_text": "Parent has delivered to the Company a true, correct and complete copy of the executed debt commitment letters, dated as of the date hereof, from the Debt Financing Sources party thereto...the Debt Financing Sources party thereto have committed to lend the aggregate amount of debt financing set forth therein to Guarantor, the proceeds of which will be directly or indirectly available to Parent and Merger Sub for the purpose of funding the Contemplated Transactions.",
+        "reference_section": "Section 5.11 (a)"
+      }
+    },
+    "financing_efforts_summary": {
+      "financing_efforts_summary": {
+        "answer": "The acquirer is obligated to use reasonable best efforts to consummate the Debt Financing as contemplated by the Debt Commitment Letters, including negotiating definitive agreements, satisfying conditions, and enforcing rights under the Debt Commitment Letters.",
+        "clause_text": "Each of Parent and Merger Sub shall, and shall cause Guarantor and their respective Subsidiaries and each of their respective Representatives and controlled Affiliates to, use reasonable best efforts to take, or cause to be taken, all actions, and to do, or cause to be done, all things necessary, proper or advisable to consummate the Debt Financing as contemplated by the Debt Commitment Letters.",
+        "reference_section": "Section 6.17 (a)"
+      }
+    },
+    "substitute_financing_notice_and_efforts": {
+      "substitute_financing_notice_and_efforts": {
+        "answer": "The acquirer is required to notify the company if financing becomes unavailable and must use reasonable best efforts to seek substitute financing promptly.",
+        "clause_text": "In the event that all or any portion of the Debt Financing becomes unavailable on the terms and conditions contemplated in the Debt Commitment Letters, Parent and Merger Sub shall, and shall cause Guarantor and their respective controlled Affiliates to, promptly after the occurrence of such event, notify the Company in writing thereof and promptly after the occurrence of such event, (A) use their respective reasonable best efforts to arrange and obtain alternative debt financing...",
+        "reference_section": "Section 6.17 (d)"
+      }
+    }
+  },
+  "proxy_statement": {
+    "proxy_statement_filing_timing": {
+      "proxy_statement_filing_timing": {
+        "answer": "As promptly as reasonably practicable after the date hereof (but in any event within twenty-five (25) Business Days after the date hereof), the Company shall prepare and file with the SEC the preliminary Proxy Statement.",
+        "clause_text": "As promptly as reasonably practicable after the date hereof (but in any event within twenty-five (25) Business Days after the date hereof), the Company shall prepare and file with the SEC the preliminary Proxy Statement, which shall, subject to Section 6.4, include the Recommendation, and shall use reasonable best efforts to respond to any comments by the SEC staff in respect of the preliminary Proxy Statement as promptly as reasonably practicable after the receipt thereof, and shall cause the definitive Proxy Statement to be mailed to the Company's stockholders as promptly as practicable following the time the Proxy Statement is cleared by the SEC for mailing to the Company's (and in any event within ten Business Days after such time).",
+        "reference_section": "Section 6.5 (a)"
+      }
+    },
+    "f4_effectiveness": {
+      "f4_effectiveness_efforts": {
+        "answer": "reasonable best efforts",
+        "clause_text": "As promptly as reasonably practicable after the date hereof (but in any event within twenty-five (25) Business Days after the date hereof), the Company shall prepare and file with the SEC the preliminary Proxy Statement, which shall, subject to Section 6.4, include the Recommendation, and shall use reasonable best efforts to respond to any comments by the SEC staff in respect of the preliminary Proxy Statement as promptly as reasonably practicable after the receipt thereof.",
+        "reference_section": "Section 6.5 (a)"
+      },
+      "f4_effectiveness_target_date": {
+        "answer": "Not found",
+        "clause_text": "",
+        "reference_section": ""
+      }
+    },
+    "shareholder_meeting": {
+      "shareholder_meeting_timing": {
+        "answer": "The Company shall convene a meeting of its stockholders promptly, but in no event later than forty-five (45) days following the mailing of the Proxy Statement.",
+        "clause_text": "Subject to the other provisions of this Agreement, the Company shall (i) take all action required by the NYSE, the CSE and the SEC rules and as required by the DGCL and its certificate of incorporation and bylaws to duly call, give notice of, convene and hold a meeting of its stockholders promptly (but in no event later than forty-five (45) days following the mailing of the Proxy Statement) for the purpose of obtaining (A) the Required Company Stockholder Vote...",
+        "reference_section": "Section 6.5 (b)"
+      },
+      "shareholder_meeting_deadline": {
+        "answer": "45 days following the mailing of the Proxy Statement",
+        "clause_text": "Subject to the other provisions of this Agreement, the Company shall (i) take all action required by the NYSE, the CSE and the SEC rules and as required by the DGCL and its certificate of incorporation and bylaws to duly call, give notice of, convene and hold a meeting of its stockholders promptly (but in no event later than forty-five (45) days following the mailing of the Proxy Statement) for the purpose of obtaining (A) the Required Company Stockholder Vote...",
+        "reference_section": "Section 6.5 (b)"
+      },
+      "shareholder_vote_efforts": {
+        "answer": "reasonable best efforts",
+        "clause_text": "Subject to the other provisions of this Agreement, the Company shall ... (ii) use reasonable best efforts to solicit from its stockholders proxies in favor of the adoption of this Agreement ...",
+        "reference_section": "Section 6.5 (b)"
+      },
+      "shareholder_meeting_postponment": {
+        "answer": "The Company may adjourn, recess, or postpone the Company Stockholders' Meeting for a reasonable period to solicit additional proxies if there are insufficient Shares represented to constitute a quorum or to obtain the Required Company Stockholder Vote. All such adjournments, recesses, or postponements shall be for periods of no more than ten (10) Business Days each, not to exceed twenty (20) Business Days in the aggregate without Parent's written consent.",
+        "clause_text": "Notwithstanding anything to the contrary in this Agreement, (x) the Company may adjourn, recess, or postpone, and at the request of Parent it shall adjourn, recess or postpone, the Company Stockholders' Meeting for a reasonable period to solicit additional proxies, if the Company or Parent, respectively, reasonably believes there will be insufficient Shares represented (either in person or by proxy) to constitute a quorum necessary to conduct the business of the Company Stockholders' Meeting or to obtain the Required Company Stockholder Vote (provided, that, unless agreed in writing by the Company and Parent, all such adjournments, recesses or postponements shall be for periods of no more than ten (10) Business Days each (not to exceed twenty (20) Business Days in the aggregate without Parent's written consent)) and (y) the Company may adjourn, recess, or postpone the Company Stockholders' Meeting to the extent necessary to ensure that any required supplement or amendment to the Proxy Statement is provided to the stockholders of the Company within a reasonable amount of time in advance of the Company Stockholders' Meeting.",
+        "reference_section": "Section 6.5 (b)"
+      }
+    },
+    "parent_shareholder_meeting": {
+      "parent_shareholder_meeting_timing": {
+        "answer": "Not found",
+        "clause_text": "",
+        "reference_section": ""
+      },
+      "parent_shareholder_meeting_deadline": {
+        "answer": "Not found",
+        "clause_text": "",
+        "reference_section": ""
+      },
+      "parent_shareholder_vote_efforts": {
+        "answer": "Not Found",
+        "clause_text": "",
+        "reference_section": ""
+      },
+      "parent_shareholder_meeting_postponment": {
+        "answer": "The Company may adjourn, recess, or postpone the Company Stockholders' Meeting for a reasonable period to solicit additional proxies if there are insufficient Shares represented to constitute a quorum or to obtain the Required Company Stockholder Vote, with each adjournment, recess, or postponement not exceeding ten Business Days each, and not to exceed twenty Business Days in the aggregate without Parent's written consent.",
+        "clause_text": "Notwithstanding anything to the contrary in this Agreement, (x) the Company may adjourn, recess, or postpone, and at the request of Parent it shall adjourn, recess or postpone, the Company Stockholders' Meeting for a reasonable period to solicit additional proxies, if the Company or Parent, respectively, reasonably believes there will be insufficient Shares represented (either in person or by proxy) to constitute a quorum necessary to conduct the business of the Company Stockholders' Meeting or to obtain the Required Company Stockholder Vote (provided, that, unless agreed in writing by the Company and Parent, all such adjournments, recesses or postponements shall be for periods of no more than ten (10) Business Days each (not to exceed twenty (20) Business Days in the aggregate without Parent's written consent))",
+        "reference_section": "Section 6.5 (b)"
+      }
+    },
+    "proxy_summary_notes": {
+      "proxy_summary_notes": {
+        "answer": "The proxy statement must be filed with the SEC within 25 business days, and the stockholders' meeting must occur within 45 days after mailing the proxy statement.",
+        "clause_text": "As promptly as reasonably practicable after the date hereof (but in any event within twenty-five (25) Business Days after the date hereof), the Company shall prepare and file with the SEC the preliminary Proxy Statement... the Company shall (i) take all action required... to duly call, give notice of, convene and hold a meeting of its stockholders promptly (but in no event later than forty-five (45) days following the mailing of the Proxy Statement) for the purpose of obtaining (A) the Required Company Stockholder Vote...",
+        "reference_section": "Section 6.5 (a) (b)"
+      }
+    },
+    "dissenting_shares_cap": {
+      "dissenting_shares_cap": {
+        "answer": "Not found",
+        "clause_text": "",
+        "reference_section": ""
+      }
+    }
+  },
+  "timeline": {
+    "agreement_signing_date": {
+      "agreement_signing_date": {
+        "answer": "December 18, 2023",
+        "clause_text": "This AGREEMENT AND PLAN OF MERGER, dated as of December 18, 2023 (this \"Agreement\"), is entered into by and among Nippon Steel North America, Inc., a New York corporation (\"Parent\"), 2023 Merger Subsidiary, Inc., a Delaware corporation and a wholly owned subsidiary of Parent (\"Merger Sub\"), solely as provided in Section 9.13, Nippon Steel Corporation, a Japanese corporation (\"Guarantor\"), and United States Steel Corporation, a Delaware corporation (the \"Company\").",
+        "reference_section": "ARTICLE Preamble"
+      }
+    },
+    "confidentiality_agreement_signing_date": {
+      "confidentiality_agreement_signing_date": {
+        "answer": "August 29, 2023",
+        "clause_text": "Parent agrees that all information provided to it or any of its Representatives in connection with this Agreement and the consummation of the Contemplated Transactions shall be deemed to be Confidential Information and/or Transaction Information, as applicable, as such terms are used in, and shall be treated in accordance with, the confidentiality agreement, dated as of August 29, 2023, between the Company and Parent.",
+        "reference_section": "Section 6.3 (b)"
+      }
+    },
+    "announcement_date": {
+      "announcement_date": {
+        "answer": "December 18, 2023",
+        "clause_text": "This AGREEMENT AND PLAN OF MERGER, dated as of December 18, 2023 (this \"Agreement\"), is entered into by and among Nippon Steel North America, Inc., a New York corporation (\"Parent\"), 2023 Merger Subsidiary, Inc., a Delaware corporation and a wholly owned subsidiary of Parent (\"Merger Sub\"), solely as provided in Section 9.13, Nippon Steel Corporation, a Japanese corporation (\"Guarantor\"), and United States Steel Corporation, a Delaware corporation (the \"Company\").",
+        "reference_section": "ARTICLE Preamble"
+      }
+    },
+    "proxy_filing_deadline": {
+      "proxy_filing_deadline": {
+        "answer": "As promptly as reasonably practicable after the date hereof (but in any event within twenty-five (25) Business Days after the date hereof)",
+        "clause_text": "As promptly as reasonably practicable after the date hereof (but in any event within twenty-five (25) Business Days after the date hereof), the Company shall prepare and file with the SEC the preliminary Proxy Statement.",
+        "reference_section": "Section 6.5 (a)"
+      }
+    },
+    "shareholder_vote_deadline": {
+      "shareholder_vote_deadline": {
+        "answer": "45 days following the mailing of the Proxy Statement",
+        "clause_text": "Subject to the other provisions of this Agreement, the Company shall (i) take all action required by the NYSE, the CSE and the SEC rules and as required by the DGCL and its certificate of incorporation and bylaws to duly call, give notice of, convene and hold a meeting of its stockholders promptly (but in no event later than forty-five (45) days following the mailing of the Proxy Statement) for the purpose of obtaining (A) the Required Company Stockholder Vote...",
+        "reference_section": "Section 6.5 (b)"
+      }
+    },
+    "outside_date": {
+      "outside_date": {
+        "answer": "September 18, 2024",
+        "clause_text": "by either the Company or Parent if (i) the Effective Time shall not have occurred on or before 11:59 p.m. Eastern time on September 18, 2024 (the 'End Date')",
+        "reference_section": "Section 8.1"
+      },
+      "outside_date_extension_list": {
+        "answer": [
+          {
+            "Extension Length": "6 months",
+            "Who Grants the Extension": "automatic",
+            "Conditions to Extend": "All conditions in Sections 7.1, 7.2, and 7.3 satisfied or waived, except those to be satisfied at Closing and certain Legal Restraints related to Required Approvals.",
+            "Termination Restrictions Due to Breach": "Yes, the party seeking termination must not have materially breached its obligations causing the failure to consummate the Merger."
+          },
+          {
+            "Extension Length": "3 months",
+            "Who Grants the Extension": "automatic",
+            "Conditions to Extend": "All conditions in Sections 7.1, 7.2, and 7.3 satisfied or waived, except those to be satisfied at Closing and certain Legal Restraints related to Required Approvals.",
+            "Termination Restrictions Due to Breach": "Yes, the party seeking termination must not have materially breached its obligations causing the failure to consummate the Merger."
+          }
+        ],
+        "clause_text": "provided, that if, as of such time and date all conditions set forth in Section 7.1, Section 7.2 and Section 7.3 shall have been satisfied or waived (other than those conditions that by their nature are to be satisfied by action taken at the Closing and other than the conditions set forth in Section 7.1(b) or Section 7.1(c) (but only to the extent the applicable Legal Restraint relates to the Required Approvals)), then such date shall, automatically without the action of any Person, be extended to 11:59 p.m. Eastern time on March 18, 2025, and references to the 'End Date' shall instead refer to such extended date, and provided, further, that if, as of such time and date all conditions set forth in Section 7.1, Section 7.2 and Section 7.3 shall have been satisfied or waived (other than those conditions that by their nature are to be satisfied by action taken at the Closing and other than the conditions set forth in Section 7.1(b) or Section 7.1(c) (but only to the extent the applicable Legal Restraint relates to the Required Approvals)), then such date shall, automatically without the action of any Person, be extended to 11:59 p.m. Eastern time on June 18, 2025, and references to the 'End Date' shall instead refer to such extended date) and (ii) the Party seeking to terminate this Agreement pursuant to this Section 8.1(b) shall not have breached in any material respect its obligations under this Agreement in any manner that shall have proximately caused the failure to consummate the Merger on or before such date;",
+        "reference_section": "Section 8.1"
+      }
+    },
+    "hsr_filing_deadline": {
+      "hsr_filing_deadline": {
+        "answer": "twenty-five (25) Business Days after the date hereof",
+        "clause_text": "Subject to the terms and conditions in this Agreement and without limiting the foregoing, the Company and Parent shall (and shall cause their respective Subsidiaries and controlled Affiliates to) (i) promptly, but in no event later than twenty-five (25) Business Days after the date hereof, file or cause to be filed any and all required notification and report forms under the HSR Act with respect to the Merger and the other Contemplated Transactions",
+        "reference_section": "Section 6.7 (b)"
+      }
+    },
+    "second_request_deadline": {
+      "second_request_deadline": {
+        "answer": "Not found",
+        "clause_text": "",
+        "reference_section": ""
+      }
+    },
+    "cfius_filing_deadline": {
+      "cfius_filing_deadline": {
+        "answer": "Not found",
+        "clause_text": "",
+        "reference_section": ""
+      }
+    },
+    "marketing_period_dates": {
+      "marketing_period_dates": {
+        "answer": "Not found",
+        "clause_text": "",
+        "reference_section": ""
+      }
+    },
+    "inside_date": {
+      "inside_date": {
+        "answer": "Not found",
+        "clause_text": "",
+        "reference_section": ""
+      }
+    },
+    "closing_date": {
+      "closing_date": {
+        "answer": "third Business Day after the satisfaction or waiver of the conditions set forth in Article 7",
+        "clause_text": "The closing of the Merger (the \"Closing\") shall take place ... on the third (3rd) Business Day after the satisfaction or waiver (to the extent permitted by applicable Law) of the conditions set forth in Article 7 ...",
+        "reference_section": "Section 2.2"
+      }
+    },
+    "conditions_satisfaction_end_date": {
+      "conditions_satisfaction_end_date": {
+        "answer": "September 18, 2024",
+        "clause_text": "by either the Company or Parent if (i) the Effective Time shall not have occurred on or before 11:59 p.m. Eastern time on September 18, 2024 (the \"End Date\") (provided, that if, as of such time and date all conditions set forth in Section 7.1, Section 7.2 and Section 7.3 shall have been satisfied or waived (other than those conditions that by their nature are to be satisfied by action taken at the Closing and other than the conditions set forth in Section 7.1(b) or Section 7.1(c) (but only to the extent the applicable Legal Restraint relates to the Required Approvals)), then such date shall, automatically without the action of any Person, be extended to 11:59 p.m. Eastern time on March 18, 2025, and references to the \"End Date\" shall instead refer to such extended date, and provided, further, that if, as of such time and date all conditions set forth in Section 7.1, Section 7.2 and Section 7.3 shall have been satisfied or waived (other than those conditions that by their nature are to be satisfied by action taken at the Closing and other than the conditions set forth in Section 7.1(b) or Section 7.1(c) (but only to the extent the applicable Legal Restraint relates to the Required Approvals)), then such date shall, automatically without the action of any Person, be extended to 11:59 p.m. Eastern time on June 18, 2025, and references to the \"End Date\" shall instead refer to such extended date)",
+        "reference_section": "Section 8.1"
+      }
+    }
+  }
+}

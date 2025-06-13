@@ -33,6 +33,8 @@ class ProcessingJob(Document):
     pdf_url = URLField(max_length=1000, required=True)
     parsed_json_url = URLField(max_length=1000, required=False, null=True)
     flattened_json_url = URLField(max_length=1000, required=False, null=True)
+    summary_docx_url = URLField(max_length=1000, required=False, null=True)
+    sec_url = URLField(max_length=1000, required=False, null=True)
 
     # Schema parsing results
     # schema_results = DictField(null=True)

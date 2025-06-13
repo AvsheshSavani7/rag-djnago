@@ -1,0 +1,1586 @@
+{
+  "conditions_to_closing": {
+    "mutual_conditions_list": {
+      "answer": [
+        "The Company Stockholder Approval shall have been obtained.",
+        "The Sodium Shares to be issued in the Merger as Equity Consideration shall have been approved for listing on the NYSE, subject to official notice of issuance.",
+        "No Law shall have been entered, issued, enforced, promulgated, adopted or become effective that enjoins, prohibits, prevents or makes illegal the consummation of the Transactions.",
+        "All waiting periods applicable to the Transactions under the HSR Act shall have expired or been terminated, and all clearances, consents and approvals under the Regulatory Laws shall have been obtained and shall remain in full force and effect.",
+        "If determined required or warranted by Sodium, the CFIUS Approval shall have been obtained.",
+        "The Registration Statement shall have been declared effective by the SEC under the Securities Act and no stop order suspending the effectiveness of the Registration Statement shall have been issued by the SEC."
+      ],
+      "clause_text": "The respective obligations of each party to effect the Merger shall be subject to the fulfillment (or waiver by all parties, to the extent permissible under applicable Law) at or prior to the Effective Time of the following conditions: (a) The Company Stockholder Approval shall have been obtained. (b) The Sodium Shares to be issued in the Merger as Equity Consideration shall have been approved for listing on the NYSE, subject to official notice of issuance. (c) No Law shall have been entered, issued, enforced, promulgated, adopted or become effective, in each case, that enjoins, prohibits, prevents or makes illegal the consummation of the Transactions... (f) The Registration Statement shall have been declared effective by the SEC under the Securities Act and no stop order suspending the effectiveness of the Registration Statement shall have been issued by the SEC and no proceedings for that purpose shall have been initiated or threatened by the SEC.",
+      "reference_section": "Section 7.1"
+    },
+    "parent_closing_conditions": {
+      "answer": [
+        "The representations and warranties of the Company set forth in Article III (excluding certain sections) must be true and correct as of the date of the Agreement and the Closing Date, except for immaterial inaccuracies.",
+        "The Company must have performed all obligations and complied with all covenants required by the Agreement prior to the Effective Time.",
+        "The Company must deliver a certificate, dated the Closing Date and signed by its Chief Executive Officer or another senior officer, certifying that the conditions in Section 7.3(a) and Section 7.3(b) have been satisfied.",
+        "No Specified Regulatory Law shall be in effect that enjoins, prohibits, prevents, or makes illegal the consummation of the Transactions.",
+        "No investigation of the Transactions under any Specified Regulatory Law shall have been commenced and be continuing.",
+        "All waiting periods applicable following Sodium's determination to submit a registration, notification, or filing with respect to the Transactions under any Specified Regulatory Law shall have expired or been terminated.",
+        "All clearances, consents, and approvals required under the Specified Filings shall have been obtained and remain in full force and effect.",
+        "No Regulatory Law shall have been entered, issued, enforced, promulgated, adopted, or become effective after the date of this Agreement that enjoins, prohibits, prevents, or makes illegal the consummation of the Transactions."
+      ],
+      "clause_text": "The obligation of Sodium, Sodium US and Merger Sub to effect the Merger is further subject to the fulfillment (or the waiver by Sodium, to the extent permitted under applicable Law) at or prior to the Effective Time of the following conditions: (a) The representations and warranties of the Company set forth in (i) Article III of this Agreement (other than in Section 3.2(a), Section 3.2(f), and Section 3.12(b)) shall be true and correct both as of the date of this Agreement and as of the Closing Date as though made as of the Closing Date, except where such failures to be so true and correct (without regard to \"materiality,\" Company Material Adverse Effect and similar qualifiers contained in such representations and warranties) would not, in the aggregate, reasonably be expected to have a Company Material Adverse Effect, (ii) Section 3.2(a) and Section 3.2(f) shall be true and correct as of the date of this Agreement and as of the Closing Date as though made as of the Closing Date, except for immaterial inaccuracies, and (iii) Section 3.12(b) shall be true and correct both as of the date of this Agreement and as of the Closing Date as though made as of the Closing Date; provided, however, that representations and warranties that are made as of a particular date or period shall be true and correct (in the manner set forth in clauses (i), (ii) and (iii), as applicable) only as of such date or period. (b) The Company shall have in all material respects performed all obligations and complied with all covenants required by this Agreement to be performed or complied with by it prior to the Effective Time. (c) The Company shall have delivered to Sodium a certificate, dated the Closing Date and signed by its Chief Executive Officer or another senior officer, certifying to the effect that the conditions set forth in Section 7.3(a) and Section 7.3(b) have been satisfied. (d) (i) No Regulatory Law set forth on Section 7.3(d) of the Company Disclosure Schedules (collectively, the \"Specified Regulatory Laws\") shall be in effect that enjoins, prohibits, prevents or makes illegal the consummation of the Transactions (any such Law, a \"Specified Legal Restraint\"); (ii) No investigation of the Transactions under any Specified Regulatory Law shall have been commenced and be continuing; (iii) All waiting periods (and any extensions thereof) applicable following Sodium's determination to submit a registration, notification or filing with respect to the Transactions under any Specified Regulatory Law (the \"Specified Filings\") and any commitment to, or agreement with, any Governmental Entity under or in connection with the Specified Filings to delay the consummation of, or not to consummate before a certain date, the Transactions, shall have expired or been terminated; (iv) All clearances, consents and approvals required under the Specified Filings shall have been obtained and shall remain in full force and effect; and (v) No Regulatory Law shall have been entered, issued, enforced, promulgated, adopted or become effective after the date of this Agreement: (1) That enjoins, prohibits, prevents or makes illegal the consummation of the Transactions; (2) Pursuant to which an investigation of the Transactions shall have been commenced and be continuing; (3) Under which an applicable waiting period (or extensions thereof) with respect to the Transactions or any commitment to, or agreement with, any Governmental Entity to delay the consummation of, or not to consummate before a certain date, the Transactions, shall be continuing; or (4) Under which any required clearance, consent or approval required shall not have been obtained or fail to remain in full force and effect.",
+      "reference_section": "Section 7.3"
+    },
+    "company_closing_conditions": {
+      "answer": [
+        "The representations and warranties of Sodium, Sodium US and Merger Sub set forth in Article IV and Article V (excluding certain sections) must be true and correct as of the date of the Agreement and the Closing Date, except for immaterial inaccuracies.",
+        "Sodium, Sodium US and Merger Sub must have performed all obligations and complied with all covenants required by the Agreement prior to the Effective Time.",
+        "Sodium, Sodium US and Merger Sub must deliver a certificate, dated the Closing Date, certifying that the conditions in Section 7.2(a) and Section 7.2(b) have been satisfied."
+      ],
+      "clause_text": "The obligation of the Company to effect the Merger is further subject to the fulfillment (or waiver by the Company, to the extent permitted under applicable Law) at or prior to the Effective Time of the following conditions: (a) The representations and warranties of Sodium, Sodium US and Merger Sub set forth in (i) Article IV and Article V of this Agreement (other than in Section 4.2(a), Section 4.7, Section 5.2(a) and Section 5.10) shall be true and correct both as of the date of this Agreement and as of the Closing Date as though made as of the Closing Date, except where such failures to be so true and correct (without regard to \"materiality,\" Sodium Material Adverse Effect and similar qualifiers contained in such representations and warranties) would not, in the aggregate, reasonably be expected to have a Sodium Material Adverse Effect, (ii) Section 4.2(a) and Section 5.2(a) shall be true and correct both as of the date of this Agreement and as of the Closing Date as though made as of the Closing Date, except for any immaterial inaccuracies, and (iii) Section 4.7 and Section 5.10 shall be true and correct both as of the date of this Agreement and as of the Closing Date as though made as of the Closing Date; provided, however, that representations and warranties that are made as of a particular date or period shall be true and correct (in the manner set forth in clauses (i), (ii) or (iii), as applicable) only as of such date or period. (b) Sodium, Sodium US and Merger Sub shall have in all material respects performed all obligations and complied with all covenants required by this Agreement to be performed or complied with by each of them prior to the Effective Time. (c) Sodium, Sodium US and Merger Sub shall have delivered to the Company a certificate, dated the Closing Date and signed by the Chief Executive Officer or another senior officer of Sodium, certifying to the effect that the conditions set forth in Section 7.2(a) and Section 7.2(b) have been satisfied.",
+      "reference_section": "Section 7.2"
+    },
+    "target_shareholder_approval_required": {
+      "answer": true,
+      "clause_text": "The respective obligations of each party to effect the Merger shall be subject to the fulfillment (or waiver by all parties, to the extent permissible under applicable Law) at or prior to the Effective Time of the following conditions: (a) The Company Stockholder Approval shall have been obtained.",
+      "reference_section": "Section 7.1 (a)"
+    },
+    "target_shareholder_approval_threshold": {
+      "answer": "Not found",
+      "clause_text": "",
+      "reference_section": ""
+    },
+    "parent_shareholder_approval_required": {
+      "answer": false,
+      "clause_text": "The respective obligations of each party to effect the Merger shall be subject to the fulfillment (or waiver by all parties, to the extent permissible under applicable Law) at or prior to the Effective Time of the following conditions: (a) The Company Stockholder Approval shall have been obtained.",
+      "reference_section": "Section 7.1"
+    },
+    "parent_shareholder_approval_threshold": {
+      "answer": "Not found",
+      "clause_text": "",
+      "reference_section": ""
+    },
+    "hsr_clearance_required": {
+      "answer": true,
+      "clause_text": "All waiting periods (and any extensions thereof) applicable to the Transactions under the HSR Act, and any commitment to, or agreement with, any Governmental Entity under or in connection with the Regulatory Laws set forth on Section 7.1(d) of the Company Disclosure Schedules to delay the consummation of, or not to consummate before a certain date, the Transactions, shall have expired or been terminated, and all clearances, consents and approvals under the Regulatory Laws set forth on Section 7.1(d) of the Company Disclosure Schedules shall have been obtained and shall remain in full force and effect.",
+      "reference_section": "Section 7.1 (d)"
+    },
+    "other_customary_conditions": {
+      "answer": [
+        "The Company Stockholder Approval shall have been obtained.",
+        "The Sodium Shares to be issued in the Merger as Equity Consideration shall have been approved for listing on the NYSE, subject to official notice of issuance.",
+        "No Law shall have been entered, issued, enforced, promulgated, adopted or become effective, in each case, that enjoins, prohibits, prevents or makes illegal the consummation of the Transactions.",
+        "All waiting periods (and any extensions thereof) applicable to the Transactions under the HSR Act shall have expired or been terminated.",
+        "All clearances, consents and approvals under the Regulatory Laws set forth on Section 7.1(d) of the Company Disclosure Schedules shall have been obtained and shall remain in full force and effect.",
+        "The Registration Statement shall have been declared effective by the SEC under the Securities Act and no stop order suspending the effectiveness of the Registration Statement shall have been issued by the SEC and no proceedings for that purpose shall have been initiated or threatened by the SEC."
+      ],
+      "clause_text": "The respective obligations of each party to effect the Merger shall be subject to the fulfillment (or waiver by all parties, to the extent permissible under applicable Law) at or prior to the Effective Time of the following conditions: (a) The Company Stockholder Approval shall have been obtained. (b) The Sodium Shares to be issued in the Merger as Equity Consideration shall have been approved for listing on the NYSE, subject to official notice of issuance. (c) No Law shall have been entered, issued, enforced, promulgated, adopted or become effective, in each case, that enjoins, prohibits, prevents or makes illegal the consummation of the Transactions...",
+      "reference_section": "Section 7.1"
+    },
+    "financial_conditions_minimum_cash_threshold": {
+      "answer": "Not found",
+      "clause_text": "",
+      "reference_section": ""
+    },
+    "financial_conditions_maximum_net_debt": {
+      "answer": "Not found",
+      "clause_text": "",
+      "reference_section": ""
+    },
+    "financial_conditions_minimum_any_condition": {
+      "answer": "Not found",
+      "clause_text": "",
+      "reference_section": ""
+    },
+    "tax_conditions_tax_opinion_required": {
+      "answer": "NA",
+      "clause_text": "",
+      "reference_section": ""
+    },
+    "required_regulatory_clearances": {
+      "answer": "HSR, CFIUS",
+      "clause_text": "All waiting periods (and any extensions thereof) applicable to the Transactions under the HSR Act, and any commitment to, or agreement with, any Governmental Entity under or in connection with the Regulatory Laws set forth on Section 7.1(d) of the Company Disclosure Schedules to delay the consummation of, or not to consummate before a certain date, the Transactions, shall have expired or been terminated, and all clearances, consents and approvals under the Regulatory Laws set forth on Section 7.1(d) of the Company Disclosure Schedules shall have been obtained and shall remain in full force and effect. (e) If determined required or warranted by Sodium pursuant to and in accordance with Section 6.8, the CFIUS Approval shall have been obtained.",
+      "reference_section": "Section 7.1"
+    }
+  },
+  "material_adverse_effect": {
+    "mae_carveout": {
+      "mae_carveout_general_economic_conditions_included": {
+        "answer": true,
+        "clause_text": "any taking of any action or failure to take any action, in either case, as required by this Agreement or taken (or omitted to be taken) at the written request of Sodium, Sodium US or Merger Sub",
+        "reference_section": "Section 9.16"
+      },
+      "mae_carveout_general_economic_conditions_explanation": {
+        "answer": "Adverse effects resulting from general economic conditions are excluded from the definition of Material Adverse Effect.",
+        "clause_text": "Company Material Adverse Effect means any event, change, effect, development or occurrence that has had, or would be reasonably expected to have, either individually or in the aggregate, a material adverse effect on the business, property, assets, financial condition or results of operations of the Company and its Subsidiaries, taken as a whole, other than any event, change, effect, development, circumstance, condition or occurrence resulting from, relating to or arising out of ... (G) changes in or generally affecting the economy, the financial, credit or securities markets, or political, legislative or regulatory conditions, in each case in the United States or elsewhere in the world, including any changes in currency exchange rate, interest rates, monetary policy or inflation ...",
+        "reference_section": "Section 9.16"
+      },
+      "mae_carveout_industry_conditions_included": {
+        "answer": true,
+        "clause_text": "Company Material Adverse Effect means any event, change, effect, development or occurrence that has had, or would be reasonably expected to have, either individually or in the aggregate, a material adverse effect on the business, property, assets, financial condition or results of operations of the Company and its Subsidiaries, taken as a whole, other than any event, change, effect, development, circumstance, condition or occurrence resulting from, relating to or arising out of (A) any changes or developments in the natural gas gathering, compressing, treating, processing and transportation industry generally...",
+        "reference_section": "Section 9.16"
+      },
+      "mae_carveout_industry_conditions_explanation": {
+        "answer": "any changes or developments in the natural gas gathering, compressing, treating, processing and transportation industry generally",
+        "clause_text": "Company Material Adverse Effect means any event, change, effect, development or occurrence that has had, or would be reasonably expected to have, either individually or in the aggregate, a material adverse effect on the business, property, assets, financial condition or results of operations of the Company and its Subsidiaries, taken as a whole, other than any event, change, effect, development, circumstance, condition or occurrence resulting from, relating to or arising out of (A) any changes or developments in the natural gas gathering, compressing, treating, processing and transportation industry generally...",
+        "reference_section": "Section 9.16"
+      },
+      "mae_carveout_stock_price_changes_included": {
+        "answer": true,
+        "clause_text": "any changes in the share price or trading volume of the Company Common Stock or in the credit rating of the Company or any of its Subsidiaries (provided, that the exception in this clause (K) shall not prevent or otherwise affect a determination that any event, change, effect, development or occurrence underlying such change has resulted in, or contributed to, a Company Material Adverse Effect)",
+        "reference_section": "Section 9.16"
+      },
+      "mae_carveout_stock_price_changes_explanation": {
+        "answer": "Changes in the share price or trading volume of the Company Common Stock are excluded from the definition of Company Material Adverse Effect.",
+        "clause_text": "Company Material Adverse Effect means any event, change, effect, development or occurrence that has had, or would be reasonably expected to have, either individually or in the aggregate, a material adverse effect on the business, property, assets, financial condition or results of operations of the Company and its Subsidiaries, taken as a whole, other than any event, change, effect, development, circumstance, condition or occurrence resulting from, relating to or arising out of ... (K) any changes in the share price or trading volume of the Company Common Stock or in the credit rating of the Company or any of its Subsidiaries (provided, that the exception in this clause (K) shall not prevent or otherwise affect a determination that any event, change, effect, development or occurrence underlying such change has resulted in, or contributed to, a Company Material Adverse Effect).",
+        "reference_section": "Section 9.16"
+      },
+      "mae_carveout_credit_rating_changes_included": {
+        "answer": true,
+        "clause_text": "any changes in the share price or trading volume of the Company Common Stock or in the credit rating of the Company or any of its Subsidiaries (provided, that the exception in this clause (K) shall not prevent or otherwise affect a determination that any event, change, effect, development or occurrence underlying such change has resulted in, or contributed to, a Company Material Adverse Effect)",
+        "reference_section": "Section 9.16"
+      },
+      "mae_carveout_credit_rating_changes_explanation": {
+        "answer": "Changes in the credit rating of the Company or any of its Subsidiaries are excluded from the definition of Company Material Adverse Effect.",
+        "clause_text": "Company Material Adverse Effect means any event, change, effect, development or occurrence that has had, or would be reasonably expected to have, either individually or in the aggregate, a material adverse effect on the business, property, assets, financial condition or results of operations of the Company and its Subsidiaries, taken as a whole, other than ... (K) any changes in the share price or trading volume of the Company Common Stock or in the credit rating of the Company or any of its Subsidiaries ...",
+        "reference_section": "Section 9.16"
+      },
+      "mae_carveout_legal_or_regulatory_changes_included": {
+        "answer": true,
+        "clause_text": "Company Material Adverse Effect means any event, change, effect, development or occurrence that has had, or would be reasonably expected to have, either individually or in the aggregate, a material adverse effect on the business, property, assets, financial condition or results of operations of the Company and its Subsidiaries, taken as a whole, other than any event, change, effect, development, circumstance, condition or occurrence resulting from, relating to or arising out of ... (E) changes or proposed changes in laws, rules or regulations of general applicability to companies in the industries in which the Company and any of its Subsidiaries operate, or interpretations thereof by courts or Governmental Entities, (F) any changes in GAAP or accounting standards or interpretations thereof ...",
+        "reference_section": "Section 9.16"
+      },
+      "mae_carveout_legal_or_regulatory_changes_explanation": {
+        "answer": "changes or proposed changes in laws, rules or regulations of general applicability to companies in the industries in which the Company and any of its Subsidiaries operate, or interpretations thereof by courts or Governmental Entities",
+        "clause_text": "changes or proposed changes in laws, rules or regulations of general applicability to companies in the industries in which the Company and any of its Subsidiaries operate, or interpretations thereof by courts or Governmental Entities",
+        "reference_section": "Section 9.16"
+      },
+      "mae_carveout_force_majeure_events_included": {
+        "answer": true,
+        "clause_text": "Company Material Adverse Effect means any event, change, effect, development or occurrence that has had, or would be reasonably expected to have, either individually or in the aggregate, a material adverse effect... other than any event, change, effect, development, circumstance, condition or occurrence resulting from, relating to or arising out of... (I) any hurricane, cyclone, tornado, earthquake, flood, tsunami, natural disaster, act of God, weather-related events or other comparable events...",
+        "reference_section": "Section 9.16"
+      },
+      "mae_carveout_force_majeure_events_explanation": {
+        "answer": "The definition of Material Adverse Effect excludes acts of God, natural disasters, or weather-related events.",
+        "clause_text": "any hurricane, cyclone, tornado, earthquake, flood, tsunami, natural disaster, act of God, weather-related events or other comparable events, including any natural or man-made disasters or from any outbreak of any disease, pandemic, any quarantine or similar applicable Laws, directives, guidelines or recommendations promulgated by any industry group or any Governmental Entity or other public health events or outbreak or escalation of hostilities or war (whether or not declared), geopolitical conditions, military actions or any act of sabotage or terrorism, or national or international political or social conditions",
+        "reference_section": "Section 9.16"
+      },
+      "mae_carveout_political_events_or_war_included": {
+        "answer": true,
+        "clause_text": "Company Material Adverse Effect means any event, change, effect, development or occurrence that has had, or would be reasonably expected to have, either individually or in the aggregate, a material adverse effect on the business, property, assets, financial condition or results of operations of the Company and its Subsidiaries, taken as a whole, other than any event, change, effect, development, circumstance, condition or occurrence resulting from, relating to or arising out of ... outbreak or escalation of hostilities or war (whether or not declared), geopolitical conditions, military actions or any act of sabotage or terrorism, or national or international political or social conditions...",
+        "reference_section": "Section 9.16"
+      },
+      "mae_carveout_political_events_or_war_explanation": {
+        "answer": "Not found",
+        "clause_text": "",
+        "reference_section": ""
+      },
+      "mae_carveout_pandemic_health_events_included": {
+        "answer": true,
+        "clause_text": "Company Material Adverse Effect means any event, change, effect, development or occurrence that has had, or would be reasonably expected to have, either individually or in the aggregate, a material adverse effect...other than any event, change, effect, development, circumstance, condition or occurrence resulting from...any outbreak of any disease, pandemic, any quarantine or similar applicable Laws, directives, guidelines or recommendations promulgated by any industry group or any Governmental Entity or other public health events...",
+        "reference_section": "Section 9.16"
+      },
+      "mae_carveout_pandemic_health_events_explanation": {
+        "answer": "Not found",
+        "clause_text": "",
+        "reference_section": ""
+      },
+      "mae_carveout_agreement_compliance_effects_included": {
+        "answer": true,
+        "clause_text": "Company Material Adverse Effect means any event, change, effect, development or occurrence that has had, or would be reasonably expected to have, either individually or in the aggregate, a material adverse effect on the business, property, assets, financial condition or results of operations of the Company and its Subsidiaries, taken as a whole, other than any event, change, effect, development, circumstance, condition or occurrence resulting from, relating to or arising out of ... (C) the announcement or the existence of, compliance with or performance under, this Agreement or the Transactions...",
+        "reference_section": "Section 9.16"
+      },
+      "mae_carveout_agreement_compliance_effects_explanation": {
+        "answer": "The clause excludes effects resulting from the negotiation, execution, or announcement of the merger agreement from the MAE definition.",
+        "clause_text": "Company Material Adverse Effect means any event, change, effect, development or occurrence that has had, or would be reasonably expected to have, either individually or in the aggregate, a material adverse effect on the business, property, assets, financial condition or results of operations of the Company and its Subsidiaries, taken as a whole, other than any event, change, effect, development, circumstance, condition or occurrence resulting from, relating to or arising out of ... (C) the announcement or the existence of, compliance with or performance under, this Agreement or the Transactions...",
+        "reference_section": "Section 9.16"
+      },
+      "mae_carveout_parent_actions_included": {
+        "answer": true,
+        "clause_text": "any taking of any action or failure to take any action, in either case, as required by this Agreement or taken (or omitted to be taken) at the written request of Sodium, Sodium US or Merger Sub",
+        "reference_section": "Section 9.16"
+      },
+      "mae_carveout_parent_actions_explanation": {
+        "answer": "Adverse effects resulting from actions taken by the Company at the written request of Sodium, Sodium US, or Merger Sub are excluded from the definition of Material Adverse Effect.",
+        "clause_text": "any taking of any action or failure to take any action, in either case, as required by this Agreement or taken (or omitted to be taken) at the written request of Sodium, Sodium US or Merger Sub",
+        "reference_section": "Section 9.16"
+      },
+      "mae_carveout_projections_miss_included": {
+        "answer": true,
+        "clause_text": "any failure by the Company to meet any internal or external financial projections or forecasts or estimates of revenues, earnings or other financial metrics for any period (provided, that the exception in this clause (J) shall not prevent or otherwise affect a determination that any event, change, effect, circumstance, condition, development or occurrence underlying such failure has resulted in, or contributed to, a Company Material Adverse Effect)",
+        "reference_section": "Section 9.16"
+      },
+      "mae_carveout_projections_miss_explanation": {
+        "answer": "Failures to meet projections, forecasts, estimates, or internal budgets are excluded from the MAE definition.",
+        "clause_text": "any failure by the Company to meet any internal or external financial projections or forecasts or estimates of revenues, earnings or other financial metrics for any period (provided, that the exception in this clause (J) shall not prevent or otherwise affect a determination that any event, change, effect, circumstance, condition, development or occurrence underlying such failure has resulted in, or contributed to, a Company Material Adverse Effect)",
+        "reference_section": "Section 9.16"
+      },
+      "mae_carveout_other_custom_items_present": {
+        "answer": false,
+        "clause_text": "Company Material Adverse Effect means any event, change, effect, development or occurrence that has had, or would be reasonably expected to have, either individually or in the aggregate, a material adverse effect on the business, property, assets, financial condition or results of operations of the Company and its Subsidiaries, taken as a whole, other than any event, change, effect, development, circumstance, condition or occurrence resulting from, relating to or arising out of (A) any changes or developments in the natural gas gathering, compressing, treating, processing and transportation industry generally...",
+        "reference_section": "Section 9.16"
+      },
+      "mae_carveout_other_custom_items": {
+        "answer": [
+          {
+            "label": "Failure to obtain approvals or consents",
+            "excerpt": "the failure to obtain any approvals or consents from any Governmental Entity or other person in connection with the Transactions"
+          }
+        ],
+        "clause_text": "",
+        "reference_section": ""
+      },
+      "standard_mae_carveouts_list": {
+        "answer": "(A) any changes or developments in the natural gas gathering, compressing, treating, processing and transportation industry generally, (B) any changes or developments in prices for oil, natural gas, condensate or natural gas liquids or other commodities or for the Company or any of its Subsidiaries' raw material inputs and end products, (C) the announcement or the existence of, compliance with or performance under, this Agreement or the Transactions (including the identity of Sodium and its Affiliates, the impact of the Transactions on the relationships, contractual or otherwise, of the Company or any of its Subsidiaries with employees, labor unions, customers, suppliers or partners, and any lawsuit, action or other proceeding with respect to the Transactions) (provided that the exceptions set forth in this clause (C) shall not apply in connection with any breach or inaccuracy of a representation or warranty set forth in this Agreement expressly addressing the consequences of the announcement or existence of, compliance with or performance under, this Agreement), (D) any taking of any action or failure to take any action, in either case, as required by this Agreement or taken (or omitted to be taken) at the written request of Sodium, Sodium US or Merger Sub, (E) changes or proposed changes in laws, rules or regulations of general applicability to companies in the industries in which the Company and any of its Subsidiaries operate, or interpretations thereof by courts or Governmental Entities, (F) any changes in GAAP or accounting standards or interpretations thereof, (G) changes in or generally affecting the economy, the financial, credit or securities markets, or political, legislative or regulatory conditions, in each case in the United States or elsewhere in the world, including any changes in currency exchange rate, interest rates, monetary policy or inflation, (H) any changes or developments in or affecting the industries in which the Company or any of its Subsidiaries operate, (I) any hurricane, cyclone, tornado, earthquake, flood, tsunami, natural disaster, act of God, weather-related events or other comparable events, including any natural or man-made disasters or from any outbreak of any disease, pandemic, any quarantine or similar applicable Laws, directives, guidelines or recommendations promulgated by any industry group or any Governmental Entity or other public health events or outbreak or escalation of hostilities or war (whether or not declared), geopolitical conditions, military actions or any act of sabotage or terrorism, or national or international political or social conditions (including the conflict between the Russian Federation and Ukraine and the conflict in Israel and the surrounding region) and any sanctions or similar actions relating thereto, (J) any failure by the Company to meet any internal or external financial projections or forecasts or estimates of revenues, earnings or other financial metrics for any period (provided, that the exception in this clause (J) shall not prevent or otherwise affect a determination that any event, change, effect, circumstance, condition, development or occurrence underlying such failure has resulted in, or contributed to, a Company Material Adverse Effect), (K) any changes in the share price or trading volume of the Company Common Stock or in the credit rating of the Company or any of its Subsidiaries (provided, that the exception in this clause (K) shall not prevent or otherwise affect a determination that any event, change, effect, development or occurrence underlying such change has resulted in, or contributed to, a Company Material Adverse Effect) and (L) the failure to obtain any approvals or consents from any Governmental Entity or other person in connection with the Transactions; except, in each case with respect to subclauses (A)-(B) and (E)-(I), solely to the extent disproportionately affecting the Company and its Subsidiaries, taken as a whole, relative to other similarly situated companies in the industries in which the Company and its Subsidiaries operate, in which case only such disproportionate effect shall be taken into account in determining whether there has been, or would be reasonably likely to be, a “Company Material Adverse Effect”.",
+        "clause_text": "Company Material Adverse Effect means any event, change, effect, development or occurrence that has had, or would be reasonably expected to have, either individually or in the aggregate, a material adverse effect on the business, property, assets, financial condition or results of operations of the Company and its Subsidiaries, taken as a whole, other than any event, change, effect, development, circumstance, condition or occurrence resulting from, relating to or arising out of (A) any changes or developments in the natural gas gathering, compressing, treating, processing and transportation industry generally, (B) any changes or developments in prices for oil, natural gas, condensate or natural gas liquids or other commodities or for the Company or any of its Subsidiaries' raw material inputs and end products, (C) the announcement or the existence of, compliance with or performance under, this Agreement or the Transactions (including the identity of Sodium and its Affiliates, the impact of the Transactions on the relationships, contractual or otherwise, of the Company or any of its Subsidiaries with employees, labor unions, customers, suppliers or partners, and any lawsuit, action or other proceeding with respect to the Transactions) (provided that the exceptions set forth in this clause (C) shall not apply in connection with any breach or inaccuracy of a representation or warranty set forth in this Agreement expressly addressing the consequences of the announcement or existence of, compliance with or performance under, this Agreement), (D) any taking of any action or failure to take any action, in either case, as required by this Agreement or taken (or omitted to be taken) at the written request of Sodium, Sodium US or Merger Sub, (E) changes or proposed changes in laws, rules or regulations of general applicability to companies in the industries in which the Company and any of its Subsidiaries operate, or interpretations thereof by courts or Governmental Entities, (F) any changes in GAAP or accounting standards or interpretations thereof, (G) changes in or generally affecting the economy, the financial, credit or securities markets, or political, legislative or regulatory conditions, in each case in the United States or elsewhere in the world, including any changes in currency exchange rate, interest rates, monetary policy or inflation, (H) any changes or developments in or affecting the industries in which the Company or any of its Subsidiaries operate, (I) any hurricane, cyclone, tornado, earthquake, flood, tsunami, natural disaster, act of God, weather-related events or other comparable events, including any natural or man-made disasters or from any outbreak of any disease, pandemic, any quarantine or similar applicable Laws, directives, guidelines or recommendations promulgated by any industry group or any Governmental Entity or other public health events or outbreak or escalation of hostilities or war (whether or not declared), geopolitical conditions, military actions or any act of sabotage or terrorism, or national or international political or social conditions (including the conflict between the Russian Federation and Ukraine and the conflict in Israel and the surrounding region) and any sanctions or similar actions relating thereto, (J) any failure by the Company to meet any internal or external financial projections or forecasts or estimates of revenues, earnings or other financial metrics for any period (provided, that the exception in this clause (J) shall not prevent or otherwise affect a determination that any event, change, effect, circumstance, condition, development or occurrence underlying such failure has resulted in, or contributed to, a Company Material Adverse Effect), (K) any changes in the share price or trading volume of the Company Common Stock or in the credit rating of the Company or any of its Subsidiaries (provided, that the exception in this clause (K) shall not prevent or otherwise affect a determination that any event, change, effect, development or occurrence underlying such change has resulted in, or contributed to, a Company Material Adverse Effect) and (L) the failure to obtain any approvals or consents from any Governmental Entity or other person in connection with the Transactions; except, in each case with respect to subclauses (A)-(B) and (E)-(I), solely to the extent disproportionately affecting the Company and its Subsidiaries, taken as a whole, relative to other similarly situated companies in the industries in which the Company and its Subsidiaries operate, in which case only such disproportionate effect shall be taken into account in determining whether there has been, or would be reasonably likely to be, a “Company Material Adverse Effect”.",
+        "reference_section": "Section 9.16"
+      }
+    },
+    "mae_carveback": {
+      "mae_carveback_disproportionate_effects_included": {
+        "answer": true,
+        "clause_text": "except, in each case with respect to subclauses (A)-(B) and (E)-(I), solely to the extent disproportionately affecting the Company and its Subsidiaries, taken as a whole, relative to other similarly situated companies in the industries in which the Company and its Subsidiaries operate, in which case only such disproportionate effect shall be taken into account in determining whether there has been, or would be reasonably likely to be, a 'Company Material Adverse Effect'.",
+        "reference_section": "Section 9.16"
+      },
+      "mae_carveback_disproportionate_effects_explanation": {
+        "answer": "Yes",
+        "clause_text": "except, in each case with respect to subclauses (A)-(B) and (E)-(I), solely to the extent disproportionately affecting the Company and its Subsidiaries, taken as a whole, relative to other similarly situated companies in the industries in which the Company and its Subsidiaries operate, in which case only such disproportionate effect shall be taken into account in determining whether there has been, or would be reasonably likely to be, a 'Company Material Adverse Effect'.",
+        "reference_section": "Section 9.16"
+      },
+      "mae_carveback_additional_exceptions_included": {
+        "answer": true,
+        "clause_text": "except, in each case with respect to subclauses (A)-(B) and (E)-(I), solely to the extent disproportionately affecting the Company and its Subsidiaries, taken as a whole, relative to other similarly situated companies in the industries in which the Company and its Subsidiaries operate, in which case only such disproportionate effect shall be taken into account in determining whether there has been, or would be reasonably likely to be, a 'Company Material Adverse Effect'.",
+        "reference_section": "Section 9.16"
+      },
+      "mae_carveback_additional_exceptions_explanation": {
+        "answer": [
+          "The exceptions in subclauses (A)-(B) and (E)-(I) are subject to a carve-back if they disproportionately affect the Company and its Subsidiaries relative to other similarly situated companies in the industries in which they operate. In such cases, only the disproportionate effect will be considered in determining a Company Material Adverse Effect.",
+          "The exception in subclause (J) regarding the failure to meet financial projections does not prevent a determination that the underlying event has resulted in a Company Material Adverse Effect.",
+          "The exception in subclause (K) regarding changes in share price or credit rating does not prevent a determination that the underlying event has resulted in a Company Material Adverse Effect."
+        ],
+        "clause_text": "",
+        "reference_section": ""
+      },
+      "mae_carveback_causation_based_analysis_included": {
+        "answer": true,
+        "clause_text": "provided, that the exception in this clause (J) shall not prevent or otherwise affect a determination that any event, change, effect, circumstance, condition, development or occurrence underlying such failure has resulted in, or contributed to, a Company Material Adverse Effect",
+        "reference_section": "Section 9.16"
+      },
+      "mae_carveback_causation_based_analysis_explanation": {
+        "answer": "The facts or occurrences giving rise to an excluded event may still be taken into account in determining whether a Material Adverse Effect has occurred, specifically for clauses (J) and (K).",
+        "clause_text": "provided, that the exception in this clause (J) shall not prevent or otherwise affect a determination that any event, change, effect, circumstance, condition, development or occurrence underlying such failure has resulted in, or contributed to, a Company Material Adverse Effect... provided, that the exception in this clause (K) shall not prevent or otherwise affect a determination that any event, change, effect, development or occurrence underlying such change has resulted in, or contributed to, a Company Material Adverse Effect.",
+        "reference_section": "Section 9.16"
+      }
+    }
+  },
+  "non_solicitation": {
+    "no_shop_clause": {
+      "no_shop_clause_included": {
+        "answer": true,
+        "clause_text": "Except as permitted by this Section 6.4, from the date hereof and prior to the earlier of the Effective Time and the Termination Date, the Company shall not, and shall cause its Subsidiaries and its and their respective directors, officers, employees not to, and shall direct its and their other Representatives acting on its and their behalf not to, directly or indirectly: (i) solicit, initiate, seek or knowingly encourage or knowingly facilitate (including by way of furnishing non-public information) any proposal or offer or any inquiries regarding the making or submission of any proposal or offer...",
+        "reference_section": "Section 6.4 (a)"
+      },
+      "no_shop_claus_explanation": {
+        "answer": "The Company is restricted from soliciting, initiating, or encouraging any acquisition proposals and from engaging in discussions or negotiations with third parties regarding such proposals, except under specific conditions outlined in Section 6.4.",
+        "clause_text": "Except as permitted by this Section 6.4, from the date hereof and prior to the earlier of the Effective Time and the Termination Date, the Company shall not, and shall cause its Subsidiaries and its and their respective directors, officers, employees not to, and shall direct its and their other Representatives acting on its and their behalf not to, directly or indirectly: (i) solicit, initiate, seek or knowingly encourage or knowingly facilitate (including by way of furnishing non-public information) any proposal or offer or any inquiries regarding the making or submission of any proposal or offer, including any proposal or offer to the Company's stockholders, that constitutes, or would reasonably be expected to lead to, a Company Acquisition Proposal; (ii) furnish any non-public information regarding the Company or any of its Subsidiaries or afford access to the business, properties, books or records of the Company or any of its Subsidiaries, to any person (other than Sodium, Sodium US, Merger Sub or their respective directors, officers, employees, Affiliates or Representatives) in furtherance of or in response to a Company Acquisition Proposal or any inquiries regarding a Company Acquisition Proposal; (iii) engage or participate in or otherwise knowingly facilitate any discussions or negotiations with any person (other than Sodium, Sodium US, Merger Sub or their respective directors, officers, employees, Affiliates or Representatives) regarding a Company Acquisition Proposal; (iv) approve, endorse or recommend (or publicly propose to approve, endorse or recommend) any inquiry, proposal or offer that constitutes, or would reasonably be expected to lead to, a Company Acquisition Proposal; (v) enter into any letter of intent, term sheet, memorandum of understanding, merger agreement, acquisition agreement, exchange agreement or duly execute any other agreement (whether binding or not) with respect to any inquiry, proposal or offer that (A) constitutes, or would reasonably be expected to lead to, a Company Acquisition Proposal, except for an Acceptable Confidentiality Agreement or (B) requires the Company to abandon, terminate or fail to consummate the Merger; (vi) unless the Company Board, or any committee thereof, concludes in good faith, after consultation with its outside legal counsel, that the failure to take such action would constitute a breach of its fiduciary duties under applicable Law, the Company Certificate of Incorporation or the Company Bylaws, amend or grant any waiver, release or modification under, or fail to enforce, any Takeover Law or any standstill or similar agreement with respect to any class of equity securities of the company or any of its Subsidiaries or (vii) resolve or agree to do any of the foregoing.",
+        "reference_section": "Section 6.4 (a)"
+      }
+    },
+    "notice_of_competing_offer": {
+      "notice_of_competing_offer_included": {
+        "answer": true,
+        "clause_text": "The Company shall promptly, and in no event later than twenty-four (24) hours after its or any of its Representatives' (acting on its behalf) receipt of any Company Acquisition Proposal or any inquiry or request for discussions or negotiations regarding a Company Acquisition Proposal or non-public information relating to the Company or any of its Subsidiaries regarding a Company Acquisition Proposal, advise Sodium (orally and in writing) of such Company Acquisition Proposal, inquiry or request...",
+        "reference_section": "Section 6.4 (d)"
+      },
+      "notice_of_competing_offer_explanation": {
+        "answer": "The Company is required to promptly, and in no event later than twenty-four (24) hours after receipt, advise Sodium of any Company Acquisition Proposal, inquiry, or request, including providing the identity of the person making or submitting such proposal, and if it is in writing, a copy of such proposal, inquiry, or request and any related draft agreements, or if oral, a reasonably detailed summary of the material terms thereof.",
+        "clause_text": "The Company shall promptly, and in no event later than twenty-four (24) hours after its or any of its Representatives' (acting on its behalf) receipt of any Company Acquisition Proposal or any inquiry or request for discussions or negotiations regarding a Company Acquisition Proposal or non-public information relating to the Company or any of its Subsidiaries regarding a Company Acquisition Proposal, advise Sodium (orally and in writing) of such Company Acquisition Proposal, inquiry or request (including providing the identity of the person making or submitting such Company Acquisition Proposal, and, (i) if it is in writing, a copy of such Company Acquisition Proposal, inquiry or request and any related draft agreements and (ii) if oral, a reasonably detailed summary of the material terms thereof), in each case including any modifications to the material terms thereof.",
+        "reference_section": "Section 6.4 (d)"
+      }
+    },
+    "ongoing_update": {
+      "ongoing_update_included": {
+        "answer": true,
+        "clause_text": "The Company shall keep Sodium informed in all material respects on a reasonably prompt basis with respect to any change to the material terms of any such Company Acquisition Proposal, including providing a copy of all documentation (including drafts) or material correspondence with respect thereof (and in no event later than twenty-four (24) hours following any such change, documentation or correspondence).",
+        "reference_section": "Section 6.4 (d)"
+      },
+      "ongoing_update_explanation": {
+        "answer": "The Company is obligated to promptly inform Sodium of any Company Acquisition Proposal or related inquiries, including any changes to the material terms, within twenty-four (24) hours.",
+        "clause_text": "The Company shall promptly, and in no event later than twenty-four (24) hours after its or any of its Representatives' (acting on its behalf) receipt of any Company Acquisition Proposal or any inquiry or request for discussions or negotiations regarding a Company Acquisition Proposal or non-public information relating to the Company or any of its Subsidiaries regarding a Company Acquisition Proposal, advise Sodium (orally and in writing) of such Company Acquisition Proposal, inquiry or request (including providing the identity of the person making or submitting such Company Acquisition Proposal, and, (i) if it is in writing, a copy of such Company Acquisition Proposal, inquiry or request and any related draft agreements and (ii) if oral, a reasonably detailed summary of the material terms thereof), in each case including any modifications to the material terms thereof.",
+        "reference_section": "Section 6.4 (d)"
+      }
+    },
+    "superior_proposal_engagement": {
+      "superior_proposal_engagement_included": {
+        "answer": true,
+        "clause_text": "Notwithstanding anything to the contrary contained in this Section 6.4, at any time prior to obtaining the Company Stockholder Approval, the Company Board, directly or indirectly through any officer, employee or Representative, may (i) furnish non-public information regarding the Company or any of its Subsidiaries to, and afford access to the business, properties, books or records of the Company and any of its Subsidiaries to, any person and (ii) engage and participate in discussions and negotiations with any person, in each case in response to an unsolicited, written and bona fide Company Acquisition Proposal if (x) the Company Board, or any committee thereof, prior to taking any such particular action, concludes in good faith, after consultation with its financial advisors and outside legal counsel, that such unsolicited, written and bona fide Company Acquisition Proposal constitutes or could reasonably be expected to result in a Company Superior Offer...",
+        "reference_section": "Section 6.4 (b)"
+      },
+      "superior_proposal_engagement_explanation": {
+        "answer": "The Company is authorized to engage with third parties if a Superior Proposal is received, provided that the Company Board concludes in good faith, after consultation with its financial advisors and outside legal counsel, that such proposal constitutes or could reasonably be expected to result in a Company Superior Offer.",
+        "clause_text": "Notwithstanding anything to the contrary contained in this Section 6.4, at any time prior to obtaining the Company Stockholder Approval, the Company Board, directly or indirectly through any officer, employee or Representative, may (i) furnish non-public information regarding the Company or any of its Subsidiaries to, and afford access to the business, properties, books or records of the Company and any of its Subsidiaries to, any person and (ii) engage and participate in discussions and negotiations with any person, in each case in response to an unsolicited, written and bona fide Company Acquisition Proposal if (x) the Company Board, or any committee thereof, prior to taking any such particular action, concludes in good faith, after consultation with its financial advisors and outside legal counsel, that such unsolicited, written and bona fide Company Acquisition Proposal constitutes or could reasonably be expected to result in a Company Superior Offer...",
+        "reference_section": "Section 6.4 (b)"
+      }
+    },
+    "match_right": {
+      "match_right_initial_included": {
+        "answer": true,
+        "clause_text": "the Company shall negotiate in good faith with Sodium during such four (4) business day period (to the extent that Sodium desires to negotiate) to make such revisions to the terms of this Agreement, such that the Company Acquisition Proposal ceases to constitute a Company Superior Offer",
+        "reference_section": "Section 6.4 (g) (ii)"
+      },
+      "match_right_initial_explanation": {
+        "answer": "The Company provides Sodium four (4) business days prior written notice of its intention to take such action, which notice shall include the information with respect to such Company Superior Offer that is specified in Section 6.4(b), after providing such notice and prior to making such Company Change of Recommendation in connection with a Company Superior Offer, the Company shall negotiate in good faith with Sodium during such four (4) business day period (to the extent that Sodium desires to negotiate) to make such revisions to the terms of this Agreement, such that the Company Acquisition Proposal ceases to constitute a Company Superior Offer.",
+        "clause_text": "The Company provides Sodium four (4) business days prior written notice of its intention to take such action, which notice shall include the information with respect to such Company Superior Offer that is specified in Section 6.4(b), after providing such notice and prior to making such Company Change of Recommendation in connection with a Company Superior Offer, the Company shall negotiate in good faith with Sodium during such four (4) business day period (to the extent that Sodium desires to negotiate) to make such revisions to the terms of this Agreement, such that the Company Acquisition Proposal ceases to constitute a Company Superior Offer.",
+        "reference_section": "Section 6.4 (g)"
+      },
+      "match_right_amended_included": {
+        "answer": true,
+        "clause_text": "provided that, in the event that the Company Acquisition Proposal is thereafter modified by the party making such Company Acquisition Proposal, the Company shall provide written notice of such modified Company Acquisition Proposal and shall again comply with this Section 6.4(g), except that the required four (4) business day period for notice, negotiation and consideration in clauses (A), (B) and (C) of this Section 6.4(g) shall be shortened to a two (2) business day period in each instance.",
+        "reference_section": "Section 6.4 (g)"
+      },
+      "match_right_amended_explanation": {
+        "answer": "The agreement permits the Buyer to respond to a modified or revised Superior Proposal by providing a written notice of such modified Company Acquisition Proposal and complying with a shortened two (2) business day period for notice, negotiation, and consideration.",
+        "clause_text": "provided that, in the event that the Company Acquisition Proposal is thereafter modified by the party making such Company Acquisition Proposal, the Company shall provide written notice of such modified Company Acquisition Proposal and shall again comply with this Section 6.4(g), except that the required four (4) business day period for notice, negotiation and consideration in clauses (A), (B) and (C) of this Section 6.4(g) shall be shortened to a two (2) business day period in each instance.",
+        "reference_section": "Section 6.4 (g)"
+      }
+    },
+    "adverse_recommendation_change": {
+      "adverse_recommendation_change_superior_proposal_included": {
+        "answer": true,
+        "clause_text": "Notwithstanding anything in this Agreement to the contrary, with respect to a Company Acquisition Proposal, the Company Board may at any time prior to receipt of the Company Stockholder Approval, make a Company Change of Recommendation, if (and only if): (i) (A) a written Company Acquisition Proposal that did not result from a material breach of Section 6.4(a) is made by a third party after the entry hereof, and such Company Acquisition Proposal is not withdrawn, (B) the Company Board determines in good faith after consultation with its financial advisors and outside legal counsel that such Company Acquisition Proposal constitutes a Company Superior Offer...",
+        "reference_section": "Section 6.4 (g)"
+      },
+      "adverse_recommendation_change_superior_proposal_explanation": {
+        "answer": "The Company Board is permitted to change its recommendation in response to a Superior Proposal.",
+        "clause_text": "Notwithstanding anything in this Agreement to the contrary, with respect to a Company Acquisition Proposal, the Company Board may at any time prior to receipt of the Company Stockholder Approval, make a Company Change of Recommendation, if (and only if): (i) (A) a written Company Acquisition Proposal that did not result from a material breach of Section 6.4(a) is made by a third party after the entry hereof, and such Company Acquisition Proposal is not withdrawn, (B) the Company Board determines in good faith after consultation with its financial advisors and outside legal counsel that such Company Acquisition Proposal constitutes a Company Superior Offer and (C) following consultation with outside legal counsel, the Company Board determines that the failure to make a Company Change of Recommendation would constitute a breach of its fiduciary duties under applicable Law, the Company Certificate of Incorporation or the Company Bylaws;",
+        "reference_section": "Section 6.4 (g)"
+      },
+      "adverse_recommendation_change_intervening_event_included": {
+        "answer": true,
+        "clause_text": "Other than in connection with a Company Superior Offer (which shall be subject to Section 6.4(g) and shall not be subject to this Section 6.4(h)), nothing in this Agreement shall prohibit or restrict the Company Board from making a Company Change of Recommendation in response to an Intervening Event...",
+        "reference_section": "Section 6.4 (h)"
+      },
+      "adverse_recommendation_change_intervening_event_explanation": {
+        "answer": "The Company Board may make a Company Change of Recommendation in response to an Intervening Event if it determines in good faith, after consultation with outside legal counsel, that failing to do so would breach its fiduciary duties, provided it gives Sodium four business days' notice and negotiates in good faith to revise the agreement.",
+        "clause_text": "Other than in connection with a Company Superior Offer (which shall be subject to Section 6.4(g) and shall not be subject to this Section 6.4(h)), nothing in this Agreement shall prohibit or restrict the Company Board from making a Company Change of Recommendation in response to an Intervening Event to the extent that: (i) the Company Board, or any committee thereof, determines in good faith, after consultation with the Company's outside legal counsel, that the failure of the Company Board to effect a Company Change of Recommendation in response to such Intervening Event would constitute a breach of its fiduciary duties under applicable Law, the Company Certificate of Incorporation or the Company Bylaws, and (ii) (A) the Company provides Sodium four (4) business days prior written notice of its intention to take such action, which notice shall specify the reasons therefor, (B) after providing such notice and prior to making such Company Change of Recommendation, the Company shall negotiate in good faith with Sodium during such four (4) business days' period (to the extent that Sodium desires to negotiate) to make such revisions to the terms of this Agreement as to obviate the need for the Company Board to make a Company Change of Recommendation pursuant to this Section 6.4(h), and (C) the Company Board, or any committee thereof, shall have considered in good faith any changes to the terms of this Agreement committed to in writing by Sodium, and following such four (4) business day period, shall have determined in good faith, after consultation with its outside legal counsel and financial advisors, that the failure to effect a Company Change of Recommendation in response to such Intervening Event would constitute a breach of its fiduciary duties under applicable Law, the Company Certificate of Incorporation, or the Company Bylaws.",
+        "reference_section": "Section 6.4 (h)"
+      },
+      "adverse_recommendation_change_timing": {
+        "answer": "The Company provides Sodium four (4) business days prior written notice of its intention to take such action, which notice shall include the information with respect to such Company Superior Offer that is specified in Section 6.4(b), (B) after providing such notice and prior to making such Company Change of Recommendation in connection with a Company Superior Offer, the Company shall negotiate in good faith with Sodium during such four (4) business day period (to the extent that Sodium desires to negotiate) to make such revisions to the terms of this Agreement, such that the Company Acquisition Proposal ceases to constitute a Company Superior Offer, and (C) the Company Board shall have considered in good faith any changes to the terms of this Agreement committed to in writing by Sodium, and following such four (4) business days period, shall have determined in good faith, after consultation with its outside legal counsel and financial advisors, that the Company Acquisition Proposal would continue to constitute a Company Superior Offer if such changes of this Agreement proposed in writing by Sodium were to be given effect; provided that, in the event that the Company Acquisition Proposal is thereafter modified by the party making such Company Acquisition Proposal, the Company shall provide written notice of such modified Company Acquisition Proposal and shall again comply with this Section 6.4(g), except that the required four (4) business day period for notice, negotiation and consideration in clauses (A), (B) and (C) of this Section 6.4(g) shall be shortened to a two (2) business day period in each instance.",
+        "clause_text": "The Company provides Sodium four (4) business days prior written notice of its intention to take such action, which notice shall include the information with respect to such Company Superior Offer that is specified in Section 6.4(b), (B) after providing such notice and prior to making such Company Change of Recommendation in connection with a Company Superior Offer, the Company shall negotiate in good faith with Sodium during such four (4) business day period (to the extent that Sodium desires to negotiate) to make such revisions to the terms of this Agreement, such that the Company Acquisition Proposal ceases to constitute a Company Superior Offer, and (C) the Company Board shall have considered in good faith any changes to the terms of this Agreement committed to in writing by Sodium, and following such four (4) business days period, shall have determined in good faith, after consultation with its outside legal counsel and financial advisors, that the Company Acquisition Proposal would continue to constitute a Company Superior Offer if such changes of this Agreement proposed in writing by Sodium were to be given effect; provided that, in the event that the Company Acquisition Proposal is thereafter modified by the party making such Company Acquisition Proposal, the Company shall provide written notice of such modified Company Acquisition Proposal and shall again comply with this Section 6.4(g), except that the required four (4) business day period for notice, negotiation and consideration in clauses (A), (B) and (C) of this Section 6.4(g) shall be shortened to a two (2) business day period in each instance.",
+        "reference_section": "Section 6.4 (g)"
+      }
+    },
+    "go_shop": {
+      "go_shop_included": {
+        "answer": false,
+        "clause_text": "Except as permitted by this Section 6.4, from the date hereof and prior to the earlier of the Effective Time and the Termination Date, the Company shall not, and shall cause its Subsidiaries and its and their respective directors, officers, employees not to, and shall direct its and their other Representatives acting on its and their behalf not to, directly or indirectly: (i) solicit, initiate, seek or knowingly encourage or knowingly facilitate (including by way of furnishing non-public information) any proposal or offer or any inquiries regarding the making or submission of any proposal or offer...",
+        "reference_section": "Section 6.4 (a)"
+      },
+      "go_shop_explanation": {
+        "answer": "Not found",
+        "clause_text": "",
+        "reference_section": ""
+      }
+    },
+    "buyer_diligence_access": {
+      "buyer_diligence_access_included": {
+        "answer": true,
+        "clause_text": "to the extent such non-public information has not been made available to Sodium or Sodium US, the Company provides or makes available such non-public information to Sodium substantially concurrent with the time that it is provided to such other person.",
+        "reference_section": "Section 6.4 (b)"
+      },
+      "buyer_diligence_access_explanation": {
+        "answer": "The Company must provide or make available to Sodium any non-public information that has not been made available to Sodium or Sodium US, substantially concurrent with the time that it is provided to another person.",
+        "clause_text": "to the extent such non-public information has not been made available to Sodium or Sodium US, the Company provides or makes available such non-public information to Sodium substantially concurrent with the time that it is provided to such other person.",
+        "reference_section": "Section 6.4 (b)"
+      }
+    },
+    "recommendation_change_restriction": {
+      "recommendation_change_restriction_included": {
+        "answer": true,
+        "clause_text": "The Company provides Sodium four (4) business days prior written notice of its intention to take such action, which notice shall include the information with respect to such Company Superior Offer that is specified in Section 6.4(b).",
+        "reference_section": "Section 6.4 (g)"
+      },
+      "recommendation_change_restriction_explanation": {
+        "answer": "The agreement imposes procedural and timing-based restrictions on how the Company may change its recommendation.",
+        "clause_text": "The Company provides Sodium four (4) business days prior written notice of its intention to take such action, which notice shall include the information with respect to such Company Superior Offer that is specified in Section 6.4(b), (B) after providing such notice and prior to making such Company Change of Recommendation in connection with a Company Superior Offer, the Company shall negotiate in good faith with Sodium during such four (4) business day period (to the extent that Sodium desires to negotiate) to make such revisions to the terms of this Agreement.",
+        "reference_section": "Section 6.4 (g)"
+      }
+    }
+  },
+  "best_efforts": {
+    "regulatory_efforts": {
+      "effort_standard": {
+        "answer": "Reasonable Best Efforts",
+        "clause_text": "each of Sodium and the Company shall, and shall cause their respective Subsidiaries to, use reasonable best efforts to obtain the CFIUS Approval; provided, however, that the determination as to whether CFIUS Approval is required under the DPA or is otherwise warranted shall be made within ten (10) business days following the date on which Sodium receives such information from the Company as is reasonably necessary to make such determination.",
+        "reference_section": "Section 6.8 (a)"
+      },
+      "effort_scope": {
+        "answer": "RBE for HSR, CFIUS, and EU filings",
+        "clause_text": "Subject to the terms and conditions herein provided and without limiting the foregoing, the Company and Sodium shall (i) promptly, but in no event later than fifteen (15) business days after the date hereof (unless a later date is mutually agreed by the parties in writing), make their respective filings under the HSR Act, and (ii) as promptly as practicable, prepare and file all filings, requests, registrations and notices necessary under each other Regulatory Law with respect to the Merger and the other Transactions.",
+        "reference_section": "Section 6.7 (b)"
+      }
+    },
+    "regulatory_fillings_hsr": {
+      "hsr_required": {
+        "answer": true,
+        "clause_text": "Subject to the terms and conditions herein provided and without limiting the foregoing, the Company and Sodium shall (i) promptly, but in no event later than fifteen (15) business days after the date hereof (unless a later date is mutually agreed by the parties in writing), make their respective filings under the HSR Act.",
+        "reference_section": "Section 6.7 (b)"
+      },
+      "hsr_filing_deadline_days": {
+        "answer": 15,
+        "clause_text": "Subject to the terms and conditions herein provided and without limiting the foregoing, the Company and Sodium shall (i) promptly, but in no event later than fifteen (15) business days after the date hereof (unless a later date is mutually agreed by the parties in writing), make their respective filings under the HSR Act.",
+        "reference_section": "Section 6.7 (b)"
+      },
+      "hsr_notes": {
+        "answer": "Must file within 15 business days of signing; filing required under HSR Act as a condition to closing.",
+        "clause_text": "Subject to the terms and conditions herein provided and without limiting the foregoing, the Company and Sodium shall (i) promptly, but in no event later than fifteen (15) business days after the date hereof (unless a later date is mutually agreed by the parties in writing), make their respective filings under the HSR Act.",
+        "reference_section": "Section 6.7 (b)"
+      }
+    },
+    "regulatory_fillings_cfius": {
+      "cfius_required": {
+        "answer": false,
+        "clause_text": "If Sodium determines in its sole and absolute discretion that the CFIUS Approval is required under the DPA or otherwise warranted, each of Sodium and the Company shall, and shall cause their respective Subsidiaries to, use reasonable best efforts to obtain the CFIUS Approval;",
+        "reference_section": "Section 6.8 (a)"
+      },
+      "cfius_filing_deadline_days": {
+        "answer": 10,
+        "clause_text": "Such reasonable best efforts shall include, (i) as promptly as practicable, but in no event later than ten (10) business days after the date on which Sodium conveys to the Company, Sodium's determination that CFIUS Approval is required under the DPA or is otherwise warranted (unless a later date is mutually agreed by the parties in writing), jointly filing with CFIUS, either a CFIUS Declaration or a draft CFIUS Notice regarding the Transactions in accordance with the DPA;",
+        "reference_section": "Section 6.8 (a)"
+      },
+      "cfius_notes": {
+        "answer": "If Sodium determines in its sole and absolute discretion that the CFIUS Approval is required under the DPA or otherwise warranted, each of Sodium and the Company shall, and shall cause their respective Subsidiaries to, use reasonable best efforts to obtain the CFIUS Approval; provided, however, that the determination as to whether CFIUS Approval is required under the DPA or is otherwise warranted shall be made within ten (10) business days following the date on which Sodium receives such information from the Company as is reasonably necessary to make such determination.",
+        "clause_text": "If Sodium determines in its sole and absolute discretion that the CFIUS Approval is required under the DPA or otherwise warranted, each of Sodium and the Company shall, and shall cause their respective Subsidiaries to, use reasonable best efforts to obtain the CFIUS Approval; provided, however, that the determination as to whether CFIUS Approval is required under the DPA or is otherwise warranted shall be made within ten (10) business days following the date on which Sodium receives such information from the Company as is reasonably necessary to make such determination.",
+        "reference_section": "Section 6.8 (a)"
+      }
+    },
+    "regulatory_fillings_foreign": {
+      "foreign_filling_notes": {
+        "answer": "Foreign filings may be required under applicable non-U.S. laws",
+        "clause_text": "Regulatory Law means the HSR Act, the Sherman Act of 1890, as amended, the Clayton Antitrust Act of 1914, as amended, the Federal Trade Commission Act, CFIUS, and all other Laws that are designed or intended to (A) prohibit, restrict or regulate actions having the purpose or effect of monopolization, restraint of trade or lessening competition through merger or acquisition (including all antitrust, competition, merger control and trade regulation Laws) or (B) protect the national security or the national economy of any nation, or prohibit, restrict or regulate foreign investment.",
+        "reference_section": "Section 9.16"
+      },
+      "foreign_filling_required": {
+        "answer": true,
+        "clause_text": "Subject to the terms and conditions herein provided and without limiting the foregoing, the Company and Sodium shall (i) promptly, but in no event later than fifteen (15) business days after the date hereof (unless a later date is mutually agreed by the parties in writing), make their respective filings under the HSR Act, and (ii) as promptly as practicable, prepare and file all filings, requests, registrations and notices necessary under each other Regulatory Law with respect to the Merger and the other Transactions.",
+        "reference_section": "Section 6.7 (b)"
+      },
+      "foreign_filling_deadline_days": {
+        "answer": "Not found",
+        "clause_text": "",
+        "reference_section": ""
+      }
+    },
+    "divestiture_commitments": {
+      "divestiture_required": {
+        "answer": false,
+        "clause_text": "Notwithstanding anything to the contrary contained in this Agreement, nothing contained in this Agreement shall obligate Sodium or its Affiliates, for purposes of resolving any objection that a Governmental Entity may assert under Regulatory Laws with respect to the Transactions, or avoiding or eliminating any impediment under Regulatory Laws that may be asserted by any Governmental Entity with respect to the Transactions, to propose, offer, negotiate, commit to, agree to or effect, by consent decree, hold separate order, or otherwise, (i) the sale, divestiture, license, transfer or other disposition of any businesses, assets, equity interests, product lines or properties of Sodium, the Company or any of their respective Affiliates...",
+        "reference_section": "Section 6.7 (e)"
+      },
+      "divestiture_cap_target_notes": {
+        "answer": "Not found",
+        "clause_text": "",
+        "reference_section": ""
+      },
+      "divestiture_cap_buyer_notes": {
+        "answer": "Parent is not required to divest any of its businesses.",
+        "clause_text": "Notwithstanding anything to the contrary contained in this Agreement, nothing contained in this Agreement shall obligate Sodium or its Affiliates, for purposes of resolving any objection that a Governmental Entity may assert under Regulatory Laws with respect to the Transactions, or avoiding or eliminating any impediment under Regulatory Laws that may be asserted by any Governmental Entity with respect to the Transactions, to propose, offer, negotiate, commit to, agree to or effect, by consent decree, hold separate order, or otherwise, (i) the sale, divestiture, license, transfer or other disposition of any businesses, assets, equity interests, product lines or properties of Sodium, the Company or any of their respective Affiliates...",
+        "reference_section": "Section 6.7 (e)"
+      }
+    },
+    "litigation_commitments": {
+      "litigation_requirement_status": {
+        "answer": "Explicit Exclusion",
+        "clause_text": "Sodium shall retain sole discretion in deciding whether to litigate, defend against, or otherwise contest any Action by any Governmental Entity relating to the Transaction pursuant to or under the antitrust laws of the United States.",
+        "reference_section": "Section 6.7 (f)"
+      },
+      "litigation_clause_scope": {
+        "answer": "Not found",
+        "clause_text": "",
+        "reference_section": ""
+      },
+      "required_to_litigate_notes": {
+        "answer": "Not found",
+        "clause_text": "",
+        "reference_section": ""
+      }
+    },
+    "withdrawal_and_timing_controls_withdrawal": {
+      "withdrawal_control_type": {
+        "answer": "buyer_only",
+        "clause_text": "Notwithstanding anything to the contrary in any other provision of this Agreement and other than with respect to obtaining CFIUS Approval (which shall be governed by Section 6.8), Sodium shall retain sole discretion in deciding whether to litigate, defend against, or otherwise contest any Action by any Governmental Entity relating to the Transaction pursuant to or under the antitrust laws of the United States.",
+        "reference_section": "Section 6.7 (f)"
+      },
+      "withdrawal_control_type_notes": {
+        "answer": "Not found",
+        "clause_text": "",
+        "reference_section": ""
+      }
+    },
+    "withdrawal_and_timing_controls_timing": {
+      "timing_agreement_restriction": {
+        "answer": false,
+        "clause_text": "Sodium, the Company and their respective Affiliates shall not enter into any timing agreement or similar agreement with any Governmental Entity, or extend any waiting period under any Regulatory Law, if such action would reasonably be expected to delay the consummation of the Transactions beyond the End Date.",
+        "reference_section": "Section 6.7 (f)"
+      },
+      "timing_agreement_restriction_notes": {
+        "answer": "Sodium, the Company, and their respective Affiliates shall not enter into any timing agreement or similar agreement with any Governmental Entity, or extend any waiting period under any Regulatory Law, if such action would reasonably be expected to delay the consummation of the Transactions beyond the End Date.",
+        "clause_text": "Sodium, the Company and their respective Affiliates shall not enter into any timing agreement or similar agreement with any Governmental Entity, or extend any waiting period under any Regulatory Law, if such action would reasonably be expected to delay the consummation of the Transactions beyond the End Date.",
+        "reference_section": "Section 6.7 (f)"
+      }
+    },
+    "remedy_actions_other": {
+      "remedy_definitions_provided": {
+        "answer": true,
+        "clause_text": "If Sodium determines in its sole and absolute discretion that the CFIUS Approval is required under the DPA or otherwise warranted, each of Sodium and the Company shall, and shall cause their respective Subsidiaries to, use reasonable best efforts to obtain the CFIUS Approval... nothing contained in this Agreement shall obligate Sodium or its Affiliates, for purposes of resolving any objection, if any, that CFIUS may assert with respect to the Transactions, or avoiding or eliminating any impediment that may be asserted by CFIUS with respect to the Transactions, to propose, offer, negotiate, commit to, agree to or effect, by consent decree, hold separate order, or otherwise any Remedy Action...",
+        "reference_section": "Section 6.8 (a) (b)"
+      },
+      "remedy_definition_text": {
+        "answer": "Sodium and the Company are required to use reasonable best efforts to obtain CFIUS Approval if Sodium determines it is necessary, but they are not obligated to propose or agree to any Remedy Action to resolve objections from CFIUS or other Governmental Entities.",
+        "clause_text": "If Sodium determines in its sole and absolute discretion that the CFIUS Approval is required under the DPA or otherwise warranted, each of Sodium and the Company shall, and shall cause their respective Subsidiaries to, use reasonable best efforts to obtain the CFIUS Approval... nothing contained in this Agreement shall obligate Sodium or its Affiliates, for purposes of resolving any objection, if any, that CFIUS may assert with respect to the Transactions, or avoiding or eliminating any impediment that may be asserted by CFIUS with respect to the Transactions, to propose, offer, negotiate, commit to, agree to or effect, by consent decree, hold separate order, or otherwise any Remedy Action...",
+        "reference_section": "Section 6.8 (a) (b)"
+      },
+      "remedy_action_limitations_exists": {
+        "answer": true,
+        "clause_text": "Notwithstanding anything to the contrary contained in this Agreement, nothing contained in this Agreement shall obligate Sodium or its Affiliates, for purposes of resolving any objection that a Governmental Entity may assert under Regulatory Laws with respect to the Transactions, or avoiding or eliminating any impediment under Regulatory Laws that may be asserted by any Governmental Entity with respect to the Transactions, to propose, offer, negotiate, commit to, agree to or effect, by consent decree, hold separate order, or otherwise, (i) the sale, divestiture, license, transfer or other disposition of any businesses, assets, equity interests, product lines or properties of Sodium, the Company or any of their respective Affiliates, (ii) the creation, termination, amendment, modification or divestment of any contracts, agreements, commercial arrangements, relationships, ventures, rights or obligations of Sodium, the Company or any of their respective Affiliates, (iii) any restrictions, impairments, agreements or actions that would limit Sodium's, the Company's or their respective Affiliates' freedom of action with respect to, or their ability to own, manage, operate, conduct and retain, any of their businesses, assets, equity interests, product lines or properties or (iv) any other remedy, commitment, undertaking or condition of any kind (any of the actions described in the foregoing clauses (i) through (iv), a 'Remedy Action').",
+        "reference_section": "Section 6.7 (e)"
+      },
+      "remedy_action_limitations_text": {
+        "answer": "Yes",
+        "clause_text": "Notwithstanding anything to the contrary contained in this Agreement, nothing contained in this Agreement shall obligate Sodium or its Affiliates, for purposes of resolving any objection that a Governmental Entity may assert under Regulatory Laws with respect to the Transactions, or avoiding or eliminating any impediment under Regulatory Laws that may be asserted by any Governmental Entity with respect to the Transactions, to propose, offer, negotiate, commit to, agree to or effect, by consent decree, hold separate order, or otherwise, (i) the sale, divestiture, license, transfer or other disposition of any businesses, assets, equity interests, product lines or properties of Sodium, the Company or any of their respective Affiliates, (ii) the creation, termination, amendment, modification or divestment of any contracts, agreements, commercial arrangements, relationships, ventures, rights or obligations of Sodium, the Company or any of their respective Affiliates, (iii) any restrictions, impairments, agreements or actions that would limit Sodium's, the Company's or their respective Affiliates' freedom of action with respect to, or their ability to own, manage, operate, conduct and retain, any of their businesses, assets, equity interests, product lines or properties or (iv) any other remedy, commitment, undertaking or condition of any kind (any of the actions described in the foregoing clauses (i) through (iv), a \"Remedy Action\"), except to the extent that such Remedy Action (A) does not involve any businesses, assets, equity interests, product lines, properties, contracts, agreements, commercial arrangements, relationships, ventures, rights or obligations (x) of Sodium or its Affiliates or (y) of the Chemical Technologies business of the Company and its Subsidiaries, which consists of solutions and services providing chemistry, technology, engineering support and onsite expertise for upstream and midstream oil and gas operations, including any related assets derived from the merger between the Company and Apergy Corporation (the \"Chemical Technologies Business\") (provided that. with respect to contracts, agreements, commercial arrangements, ventures or other assets (the \"Shared Assets\") that relate to both the Chemical Technologies Business, on the one hand, any other business of the Company and its Subsidiaries, on the other hand (the \"Other Businesses\"), the Company and its Subsidiaries shall use their reasonable best efforts to separate such Shared Assets into separate arrangements that relate solely to the Chemical Technologies Business, on the one hand, and the Other Businesses, on the other hand, and any such Shared Assets so separated that relate solely to the Other Businesses may be subject to Remedy Actions pursuant to clause (B)) and (B) would not, and would not reasonably be expected to, individually or in the aggregate, result in a loss of more than eight percent (8%) of the aggregate annual revenues of the Company and its Subsidiaries, taken as a whole, as measured by the twelve (12) months ended December 31, 2023.",
+        "reference_section": "Section 6.7 (e)"
+      }
+    },
+    "transaction_interference": {
+      "restriction_on_other_transactions": {
+        "answer": true,
+        "clause_text": "Except as permitted by this Section 6.4, from the date hereof and prior to the earlier of the Effective Time and the Termination Date, the Company shall not, and shall cause its Subsidiaries and its and their respective directors, officers, employees not to, and shall direct its and their other Representatives acting on its and their behalf not to, directly or indirectly: (i) solicit, initiate, seek or knowingly encourage or knowingly facilitate (including by way of furnishing non-public information) any proposal or offer or any inquiries regarding the making or submission of any proposal or offer, including any proposal or offer to the Company's stockholders, that constitutes, or would reasonably be expected to lead to, a Company Acquisition Proposal;",
+        "reference_section": "Section 6.4 (a)"
+      },
+      "interference_clause_text": {
+        "answer": "sale, divestiture, license, transfer or other disposition of any businesses, assets, equity interests, product lines or properties",
+        "clause_text": "Notwithstanding anything to the contrary contained in this Agreement, nothing contained in this Agreement shall obligate Sodium or its Affiliates, for purposes of resolving any objection that a Governmental Entity may assert under Regulatory Laws with respect to the Transactions, or avoiding or eliminating any impediment under Regulatory Laws that may be asserted by any Governmental Entity with respect to the Transactions, to propose, offer, negotiate, commit to, agree to or effect, by consent decree, hold separate order, or otherwise, (i) the sale, divestiture, license, transfer or other disposition of any businesses, assets, equity interests, product lines or properties of Sodium, the Company or any of their respective Affiliates...",
+        "reference_section": "Section 6.7 (e)"
+      }
+    },
+    "second_request_certification": {
+      "second_request_certification_deadline_specified": {
+        "answer": false,
+        "clause_text": "The excerpts provided do not contain any specific number of days or exact date tied to Second Request compliance.",
+        "reference_section": "Section 6.7"
+      },
+      "second_request_certification_certification_timeline_notes": {
+        "answer": "as promptly as practicable",
+        "clause_text": "Subject to the terms and conditions set forth in this Agreement, each of the parties hereto shall use (and shall cause each of its controlled Affiliates to use) its reasonable best efforts to take, or cause to be taken, promptly all actions, and to do, or cause to be done, promptly and to assist and cooperate with the other parties in doing, all things necessary, proper and advisable under applicable Laws to consummate and make effective the Merger and the other Transactions, including using reasonable best efforts to obtain all necessary actions or nonactions, waivers, clearances, expiration or termination of applicable waiting periods, consents and approvals, from Governmental Entities...",
+        "reference_section": "Section 6.7 (a)"
+      },
+      "second_request_certification_responsibility_party": {
+        "answer": "Both",
+        "clause_text": "Subject to the terms and conditions set forth in this Agreement, each of the parties hereto shall use (and shall cause each of its controlled Affiliates to use) its reasonable best efforts to take, or cause to be taken, promptly all actions, and to do, or cause to be done, promptly and to assist and cooperate with the other parties in doing, all things necessary, proper and advisable under applicable Laws to consummate and make effective the Merger and the other Transactions, including using reasonable best efforts to obtain all necessary actions or nonactions, waivers, clearances, expiration or termination of applicable waiting periods, consents and approvals, from Governmental Entities.",
+        "reference_section": "Section 6.7 (a)"
+      }
+    },
+    "ftc_warning_letter_handling": {
+      "ftc_warning_letter_handling_addressed": {
+        "answer": false,
+        "clause_text": "The document sections provided focus on CFIUS Approval, NYSE Listing, Takeover Statutes, Regulatory Approvals, Public Announcements, Company Financing Cooperation, and Filings, without reference to FTC warning letters.",
+        "reference_section": "Section 6.7"
+      },
+      "ftc_warning_letter_handling_notes": {
+        "answer": "Not addressed",
+        "clause_text": "",
+        "reference_section": ""
+      },
+      "ftc_warning_letter_handling_effect_on_closing_condition": {
+        "answer": "Silent",
+        "clause_text": "",
+        "reference_section": ""
+      },
+      "ftc_warning_letter_handling_addressed_notes": {
+        "answer": "Not found",
+        "clause_text": "",
+        "reference_section": ""
+      }
+    },
+    "other_timing_controls": {
+      "other_timing_controls_deadlines_specified": {
+        "answer": [
+          "Company Stockholder Meeting to be held as promptly as practicable after the Registration Statement is declared effective under the Securities Act, but in no event later than sixty (60) days thereafter.",
+          "Proxy Statement/Prospectus to be mailed to each of the Company's stockholders as promptly as reasonably practicable and take such actions to enable such mailing to commence no later than four (4) business days thereafter after the Registration Statement is declared effective under the Securities Act.",
+          "Company Stockholder Meeting shall not be adjourned or postponed to a date on or after ten (10) business days prior to the End Date."
+        ],
+        "clause_text": "The Company shall (ii) cause the Proxy Statement/Prospectus to be mailed to each of the Company's stockholders as promptly as reasonably practicable (and take such actions to enable such mailing to commence no later than four (4) business days thereafter) after the Registration Statement is declared effective under the Securities Act and (iii) take all action necessary in accordance with applicable Laws and the Company Organizational Documents to establish a record date for, duly give notice of, convene and hold the Company Stockholder Meeting, to be held as promptly as practicable after the Registration Statement is declared effective under the Securities Act (but in no event later than sixty (60) days thereafter).",
+        "reference_section": "Section 6.5 (b)"
+      }
+    },
+    "novel_or_unstructured_regulatory_clauses": {
+      "novel_or_unstructured_regulatory_clauses_items": {
+        "answer": [
+          {
+            "summary": "Sodium has sole discretion to determine if CFIUS Approval is required and is not obligated to propose or agree to any Remedy Action to resolve CFIUS objections.",
+            "section": "ARTICLE VI COVENANTS AND AGREEMENTS > Section 6.8 CFIUS Approval",
+            "review_required": true
+          },
+          {
+            "summary": "Sodium is not obligated to propose or agree to any Remedy Action that involves divestiture or other significant changes to its or the Company's business to resolve regulatory objections.",
+            "section": "ARTICLE VI COVENANTS AND AGREEMENTS > Section 6.7 Regulatory Approvals; Efforts",
+            "review_required": true
+          }
+        ],
+        "clause_text": "",
+        "reference_section": ""
+      }
+    },
+    "prior_approval_commitment": {
+      "prior_approval_commitment_addressed": {
+        "answer": false,
+        "clause_text": "The Company shall not, and shall cause its controlled Affiliates not to, propose, offer, negotiate, commit to, agree to, effect or take any Remedy Action without the prior written consent of Sodium, and the Company shall, and shall cause its controlled Affiliates to, propose, offer, negotiate, commit to, agree to, effect or take any Remedy Action if so directed by Sodium; provided, however, that any Remedy Action shall be conditioned upon the Closing.",
+        "reference_section": "Section 6.7 (e)"
+      },
+      "prior_approval_commitment_obligations_summary": {
+        "answer": "Not found",
+        "clause_text": "",
+        "reference_section": ""
+      }
+    },
+    "regulatory_process_control_discretion": {
+      "regulatory_process_control_discretion": {
+        "answer": "Parent",
+        "clause_text": "If Sodium determines in its sole and absolute discretion that the CFIUS Approval is required under the DPA or otherwise warranted, each of Sodium and the Company shall, and shall cause their respective Subsidiaries to, use reasonable best efforts to obtain the CFIUS Approval; provided, however, that the determination as to whether CFIUS Approval is required under the DPA or is otherwise warranted shall be made within ten (10) business days following the date on which Sodium receives such information from the Company as is reasonably necessary to make such determination.",
+        "reference_section": "Section 6.8 (a)"
+      },
+      "parent_has_sole_discretion_excluding_remedies": {
+        "answer": true,
+        "clause_text": "If Sodium determines in its sole and absolute discretion that the CFIUS Approval is required under the DPA or otherwise warranted, each of Sodium and the Company shall, and shall cause their respective Subsidiaries to, use reasonable best efforts to obtain the CFIUS Approval; provided, however, that the determination as to whether CFIUS Approval is required under the DPA or is otherwise warranted shall be made within ten (10) business days following the date on which Sodium receives such information from the Company as is reasonably necessary to make such determination.",
+        "reference_section": "Section 6.8 (a)"
+      }
+    },
+    "no_limitations_on_buyer_remedies": {
+      "no_limitations_on_buyer_remedies_value": {
+        "answer": false,
+        "clause_text": "Notwithstanding anything to the contrary contained in this Agreement, nothing contained in this Agreement shall obligate Sodium or its Affiliates, for purposes of resolving any objection, if any, that CFIUS may assert with respect to the Transactions, or avoiding or eliminating any impediment that may be asserted by CFIUS with respect to the Transactions, to propose, offer, negotiate, commit to, agree to or effect, by consent decree, hold separate order, or otherwise any Remedy Action.",
+        "reference_section": "Section 6.8 (b)"
+      },
+      "no_limitations_on_buyer_remedies_inferred_hohw": {
+        "answer": false,
+        "clause_text": "Notwithstanding anything to the contrary contained in this Agreement, nothing contained in this Agreement shall obligate Sodium or its Affiliates, for purposes of resolving any objection, if any, that CFIUS may assert with respect to the Transactions, or avoiding or eliminating any impediment that may be asserted by CFIUS with respect to the Transactions, to propose, offer, negotiate, commit to, agree to or effect, by consent decree, hold separate order, or otherwise any Remedy Action.",
+        "reference_section": "Section 6.8 (b)"
+      },
+      "no_limitations_on_buyer_remedies_explanation": {
+        "answer": "Not applicable",
+        "clause_text": "",
+        "reference_section": ""
+      },
+      "no_limitations_on_buyer_remedies_notes": {
+        "answer": "Not found",
+        "clause_text": "",
+        "reference_section": ""
+      },
+      "no_limitations_on_buyer_remedies_inferred_hohw_notes": {
+        "answer": "Not found",
+        "clause_text": "",
+        "reference_section": ""
+      },
+      "no_limitations_on_buyer_remedies_materiality_basis": {
+        "answer": "Not found",
+        "clause_text": "",
+        "reference_section": ""
+      },
+      "materiality_definition_text": {
+        "answer": "Not found",
+        "clause_text": "",
+        "reference_section": ""
+      }
+    },
+    "refiling_commitment": {
+      "refiling_commitment_required": {
+        "answer": true,
+        "clause_text": "Subject to the terms and conditions herein provided and without limiting the foregoing, the Company and Sodium shall (i) promptly, but in no event later than fifteen (15) business days after the date hereof (unless a later date is mutually agreed by the parties in writing), make their respective filings under the HSR Act.",
+        "reference_section": "Section 6.7 (b)"
+      },
+      "refiling_commitment_required_notes": {
+        "answer": "Not found",
+        "clause_text": "",
+        "reference_section": ""
+      },
+      "refiling_commitment_max_refiles": {
+        "answer": "Not found",
+        "clause_text": "",
+        "reference_section": ""
+      },
+      "refiling_commitment_max_refiles_notes": {
+        "answer": "Not found",
+        "clause_text": "",
+        "reference_section": ""
+      },
+      "refiling_commitment_max_refiles_specification_status": {
+        "answer": "Not Specified",
+        "clause_text": "Subject to the terms and conditions set forth in this Agreement, each of the parties hereto shall use (and shall cause each of its controlled Affiliates to use) its reasonable best efforts to take, or cause to be taken, promptly all actions, and to do, or cause to be done, promptly and to assist and cooperate with the other parties in doing, all things necessary, proper and advisable under applicable Laws to consummate and make effective the Merger and the other Transactions, including using reasonable best efforts to obtain all necessary actions or nonactions, waivers, clearances, expiration or termination of applicable waiting periods, consents and approvals, from Governmental Entities...",
+        "reference_section": "Section 6.7 (a)"
+      }
+    },
+    "union_item": {
+      "union_efforts_required": {
+        "answer": true,
+        "clause_text": "Prior to the Closing, the Company shall provide any notice, and comply in all material respects, with any applicable information, consultation and bargaining obligations, and shall use reasonable best efforts to satisfy any applicable consent requirements owed to any labor union, works council, labor organization or employee representative, which is representing any employee of the Company and its Subsidiaries, or any applicable labor tribunal, in connection with the Transactions;",
+        "reference_section": "Section 6.6 (e)"
+      },
+      "union_consultation_timeframe": {
+        "answer": "Not found",
+        "clause_text": "",
+        "reference_section": ""
+      },
+      "union_agreement_obligation_summary": {
+        "answer": "The Company is required to provide any notice, comply with applicable information, consultation, and bargaining obligations, and use reasonable best efforts to satisfy any applicable consent requirements owed to any labor union, works council, labor organization, or employee representative in connection with the Transactions.",
+        "clause_text": "Prior to the Closing, the Company shall provide any notice, and comply in all material respects, with any applicable information, consultation and bargaining obligations, and shall use reasonable best efforts to satisfy any applicable consent requirements owed to any labor union, works council, labor organization or employee representative, which is representing any employee of the Company and its Subsidiaries, or any applicable labor tribunal, in connection with the Transactions;",
+        "reference_section": "Section 6.6 (e)"
+      }
+    },
+    "regulatory_strategy_control_rights": {
+      "regulatory_strategy_control_rights": {
+        "answer": "Sodium has the right to control the regulatory strategy.",
+        "clause_text": "Sodium shall, upon reasonable consultation with the Company, control, lead and direct all actions, decision and strategy for, and make all final determinations as to the timing and appropriate course of action with respect to, (i) obtaining clearances, expirations or terminations of waiting periods, consents and approvals from Governmental Entities, and all other matters related to Regulatory Laws and related inquiries, negotiations and Actions, in connection with the Transactions, and (ii) responding to and defending any Action by or with any Governmental Entity in connection with the Transactions.",
+        "reference_section": "Section 6.7 (f)"
+      }
+    },
+    "regulatory_delay_control_rights": {
+      "regulatory_delay_control_rights": {
+        "answer": "Sodium has the right to control decisions that could delay or extend the regulatory review process.",
+        "clause_text": "Sodium shall retain sole discretion in deciding whether to litigate, defend against, or otherwise contest any Action by any Governmental Entity relating to the Transaction pursuant to or under the antitrust laws of the United States.",
+        "reference_section": "Section 6.7 (f)"
+      }
+    },
+    "remedy_consent_required_by_target": {
+      "remedy_consent_required_by_target": {
+        "answer": "The Company shall not, and shall cause its controlled Affiliates not to, propose, offer, negotiate, commit to, agree to, effect or take any Remedy Action without the prior written consent of Sodium, and the Company shall, and shall cause its controlled Affiliates to, propose, offer, negotiate, commit to, agree to, effect or take any Remedy Action if so directed by Sodium; provided, however, that any Remedy Action shall be conditioned upon the Closing.",
+        "clause_text": "The Company shall not, and shall cause its controlled Affiliates not to, propose, offer, negotiate, commit to, agree to, effect or take any Remedy Action without the prior written consent of Sodium, and the Company shall, and shall cause its controlled Affiliates to, propose, offer, negotiate, commit to, agree to, effect or take any Remedy Action if so directed by Sodium; provided, however, that any Remedy Action shall be conditioned upon the Closing.",
+        "reference_section": "Section 6.7 (e)"
+      }
+    },
+    "regulatory_review_discretion_rights": {
+      "regulatory_review_discretion_rights": {
+        "answer": "Sodium has discretion authority over CFIUS Approval and other regulatory filings.",
+        "clause_text": "If Sodium determines in its sole and absolute discretion that the CFIUS Approval is required under the DPA or otherwise warranted, each of Sodium and the Company shall, and shall cause their respective Subsidiaries to, use reasonable best efforts to obtain the CFIUS Approval.",
+        "reference_section": "Section 6.8 (a)"
+      }
+    }
+  },
+  "termination": {
+    "outside_date": {
+      "primary_date": {
+        "answer": "April 2, 2025",
+        "clause_text": "by either the Company or Sodium, if the Merger shall not have been consummated on or prior to April 2, 2025 (the \"End Date\");",
+        "reference_section": "Section 8.1"
+      }
+    },
+    "extension": {
+      "extension_list": {
+        "answer": [
+          {
+            "Extension Length": "6 months",
+            "Who Grants the Extension": "automatic",
+            "Conditions to Extend": "All conditions to Closing, other than those in Section 7.1(c), Section 7.1(d), or Section 7.3(d) at Sodium's election, must be satisfied or capable of being satisfied.",
+            "Termination Restrictions Due to Breach": "Yes, the right to terminate is not available to a party if their material breach caused the failure to close by the outside date."
+          }
+        ],
+        "clause_text": "provided, however, that if all of the conditions to Closing, other than any of the conditions set forth in Section 7.1(c), Section 7.1(d) or, at the election of Sodium, Section 7.3(d) (such election, an \"Extension Election\"), shall have been satisfied or shall be capable of being satisfied at such time (other than those conditions that by their nature are to be satisfied at the Closing), the End Date shall automatically be extended to October 2, 2025, which date shall thereafter be deemed to be the End Date; provided, further, that the right to terminate this Agreement pursuant to this Section 8.1(b) shall not be available to a party if the failure of the Closing to occur by such date shall be due to the material breach by such party of any representation, warranty, covenant or other agreement of such party set forth in this Agreement;",
+        "reference_section": "Section 8.1"
+      }
+    },
+    "termination_fee": {
+      "termination_fee": {
+        "answer": "$265,400,000",
+        "clause_text": "Company Termination Fee means $265,400,000.",
+        "reference_section": "Section 9.16"
+      }
+    },
+    "reverse_termination_fee": {
+      "reverse_termination_fee": {
+        "answer": 326600000,
+        "clause_text": "If this Agreement is terminated...then, in the case of clause (i), (ii) or (iii) Sodium shall pay to the Company, within three (3) business days after the date of termination, the Sodium Termination Fee, by wire transfer of same day federal funds to the account specified by the Company.",
+        "reference_section": "Section 8.3 (d)"
+      }
+    },
+    "reverse_termination_fee_exist": {
+      "reverse_termination_fee_exist": {
+        "answer": true,
+        "clause_text": "If this Agreement is terminated (i) by Sodium or the Company pursuant to Section 8.1(b) [End Date] ... then, in the case of clause (i), (ii) or (iii) Sodium shall pay to the Company, within three (3) business days after the date of termination, the Sodium Termination Fee.",
+        "reference_section": "Section 8.3 (d)"
+      }
+    },
+    "termination_fee_superior_proposal": {
+      "termination_fee_superior_proposal_exists": {
+        "answer": true,
+        "clause_text": "If this Agreement is terminated by Sodium pursuant to Section 8.1(g) [Company Change of Recommendation], then the Company shall pay to Sodium, within three (3) business days after the date of termination, the Company Termination Fee, by wire transfer of same day federal funds to the account specified by Sodium.",
+        "reference_section": "Section 8.3 (b)"
+      },
+      "termination_fee_superior_proposal": {
+        "answer": "265400000",
+        "clause_text": "Company Termination Fee means $265,400,000.",
+        "reference_section": "Section 9.16"
+      }
+    },
+    "termination_fee_company_shareholder_approval": {
+      "termination_fee_company_shareholder_approval_failure_exists": {
+        "answer": false,
+        "clause_text": "If (i) prior to the Company Stockholder Meeting, a Company Acquisition Proposal is publicly disclosed after the date of this Agreement, (ii) this Agreement is terminated by the Company or Sodium, as applicable, pursuant to Section 8.1(b) [End Date], Section 8.1(d) [No Company Stockholder Approval] or Section 8.1(f). [Company Breach of Representation or Failure to Perform Covenant] and the breach giving rise to the right to terminate this Agreement pursuant to Section 8.1(f) [Company Breach of Representation or Failure to Perform Covenant] was the Company's failure to convene and hold the Company Stockholder Meeting in violation of Section 6.5(c) or a breach of the Company's obligations under Section 6.4, (iii) such Company Acquisition Proposal shall not have been withdrawn prior to such termination and (iv) within twelve (12) months after any such termination described in clause (ii), the Company shall have consummated, or shall have entered into an agreement to consummate any Company Acquisition Transaction, which is subsequently consummated (whether before or after such twelve (12)-month period), then the Company shall pay to Sodium an amount equal to the Company Termination Fee, by wire transfer of same day federal funds to the account specified by Sodium, within three (3) business days after the consummation of any such Company Acquisition Transaction.",
+        "reference_section": "Section 8.3 (a)"
+      },
+      "termination_fee_company_shareholder_approval_failure": {
+        "answer": "Not specified",
+        "clause_text": "If this Agreement is terminated by Sodium pursuant to Section 8.1(g) [Company Change of Recommendation], then the Company shall pay to Sodium, within three (3) business days after the date of termination, the Company Termination Fee, by wire transfer of same day federal funds to the account specified by Sodium.",
+        "reference_section": "Section 8.3 (b)"
+      }
+    },
+    "reverse_termination_fee_shareholder_approval": {
+      "reverse_termination_fee_shareholder_approval_failure_exists": {
+        "answer": false,
+        "clause_text": "The payment of the Company Termination Fee to Sodium pursuant to this Section 8.3 shall be the sole and exclusive monetary remedy available to Sodium, Sodium US or Merger Sub or any of their Affiliates in connection with this Agreement and the Transactions in any circumstance in which the Company Termination Fee is payable hereunder.",
+        "reference_section": "Section 8.3"
+      },
+      "reverse_termination_fee_shareholder_approval_failure": {
+        "answer": "Not specified",
+        "clause_text": "If this Agreement is terminated (i) by Sodium or the Company pursuant to Section 8.1(b) [End Date] and at the time of, or prior to, such termination, each of the conditions set forth in Article VII shall have been satisfied (other than the conditions set forth in Section 7.1(c) [Absence of Mutual Legal Restraint] (excluding any Mutual Legal Restraint relating to CFIUS) or Section 7.1(d) [HSR Act and Regulatory Approvals]), (ii) by Sodium or the Company pursuant to Section 8.1(c) [Termination for Mutual Legal Restraint] and at the time of, or prior to, such termination, each of the conditions set forth in Article VII shall have been satisfied (other than the conditions set forth in Section 7.1(c) [Absence of Mutual Legal Restraint] (excluding any Mutual Legal Restraint relating to CFIUS) or Section 7.1(d) [HSR Act and Regulatory Approvals]) or (iii) by Sodium pursuant to Section 8.1(b) if it does not exercise its right to an Extension Election or pursuant to Section 8.1(h), then, in the case of clause (i), (ii) or (iii) Sodium shall pay to the Company, within three (3) business days after the date of termination, the Sodium Termination Fee, by wire transfer of same day federal funds to the account specified by the Company.",
+        "reference_section": "Section 8.3 (d)"
+      }
+    },
+    "termination_rights": {
+      "mutual_termination_rights": {
+        "answer": [
+          "by either the Company or Sodium, if the Merger shall not have been consummated on or prior to April 2, 2025 (the 'End Date'); provided, however, that if all of the conditions to Closing, other than any of the conditions set forth in Section 7.1(c), Section 7.1(d) or, at the election of Sodium, Section 7.3(d) (such election, an 'Extension Election'), shall have been satisfied or shall be capable of being satisfied at such time (other than those conditions that by their nature are to be satisfied at the Closing), the End Date shall automatically be extended to October 2, 2025, which date shall thereafter be deemed to be the End Date; provided, further, that the right to terminate this Agreement pursuant to this Section 8.1(b) shall not be available to a party if the failure of the Closing to occur by such date shall be due to the material breach by such party of any representation, warranty, covenant or other agreement of such party set forth in this Agreement",
+          "by either the Company or Sodium, if the Closing would violate any final and non-appealable Mutual Legal Restraint; provided, however, that the right to terminate this Agreement under this Section 8.1(c) shall not be available to a party if the failure of such party to perform any of its obligations under this Agreement contributed, in any material respect, to the issuance or continued existence of such Mutual Legal Restraint",
+          "by either the Company or Sodium, if the Company Stockholder Meeting (including any adjournments or postponements thereof) shall have concluded, at which a vote upon the adoption of this Agreement was taken and the Company Stockholder Approval was not obtained"
+        ],
+        "clause_text": "Notwithstanding anything in this Agreement to the contrary, this Agreement may be terminated and abandoned at any time prior to the Effective Time, whether before or after Company Stockholder Approval has been obtained: (a) by the mutual written consent of the Company and Sodium; (b) by either the Company or Sodium, if the Merger shall not have been consummated on or prior to April 2, 2025 (the 'End Date'); provided, however, that if all of the conditions to Closing, other than any of the conditions set forth in Section 7.1(c), Section 7.1(d) or, at the election of Sodium, Section 7.3(d) (such election, an 'Extension Election'), shall have been satisfied or shall be capable of being satisfied at such time (other than those conditions that by their nature are to be satisfied at the Closing), the End Date shall automatically be extended to October 2, 2025, which date shall thereafter be deemed to be the End Date; provided, further, that the right to terminate this Agreement pursuant to this Section 8.1(b) shall not be available to a party if the failure of the Closing to occur by such date shall be due to the material breach by such party of any representation, warranty, covenant or other agreement of such party set forth in this Agreement; (c) by either the Company or Sodium, if the Closing would violate any final and non-appealable Mutual Legal Restraint; provided, however, that the right to terminate this Agreement under this Section 8.1(c) shall not be available to a party if the failure of such party to perform any of its obligations under this Agreement contributed, in any material respect, to the issuance or continued existence of such Mutual Legal Restraint; (d) by either the Company or Sodium, if the Company Stockholder Meeting (including any adjournments or postponements thereof) shall have concluded, at which a vote upon the adoption of this Agreement was taken and the Company Stockholder Approval was not obtained",
+        "reference_section": "Section 8.1"
+      },
+      "parent_termination_rights": {
+        "answer": [
+          "by Sodium, if the Company shall have breached its representations or warranties or failed to perform its covenants or other agreements contained in this Agreement, which breach or failure to perform (i) if it occurred or was continuing to occur on the Closing Date, would result in a failure of a condition set forth in Section 7.3(a) or Section 7.3(b) and (ii) by its nature, cannot be cured prior to the End Date or, if such breach or failure is capable of being cured by the End Date, is not cured within thirty (30) days following written notice thereof to the Company or by its nature or timing cannot be cured during such period (or, in each case, such fewer days as remain prior to the End Date)",
+          "by Sodium, prior to receipt of the Company Stockholder Approval in the event of a Company Change of Recommendation",
+          "by Sodium, if the Closing would violate any final and non-appealable Specified Legal Restraint; provided, however, that the right to terminate this Agreement under this Section 8.1(h) shall not be available to Sodium if its failure to perform any of its obligations under this Agreement contributed, in any material respect, to the issuance or continued existence of such Specified Legal Restraint"
+        ],
+        "clause_text": "by Sodium, if the Company shall have breached its representations or warranties or failed to perform its covenants or other agreements contained in this Agreement, which breach or failure to perform (i) if it occurred or was continuing to occur on the Closing Date, would result in a failure of a condition set forth in Section 7.3(a) or Section 7.3(b) and (ii) by its nature, cannot be cured prior to the End Date or, if such breach or failure is capable of being cured by the End Date, is not cured within thirty (30) days following written notice thereof to the Company or by its nature or timing cannot be cured during such period (or, in each case, such fewer days as remain prior to the End Date); by Sodium, prior to receipt of the Company Stockholder Approval in the event of a Company Change of Recommendation; and by Sodium, if the Closing would violate any final and non-appealable Specified Legal Restraint; provided, however, that the right to terminate this Agreement under this Section 8.1(h) shall not be available to Sodium if its failure to perform any of its obligations under this Agreement contributed, in any material respect, to the issuance or continued existence of such Specified Legal Restraint.",
+        "reference_section": "Section 8.1"
+      },
+      "company_termination_rights": {
+        "answer": [
+          "by the Company, if Sodium, Sodium US or Merger Sub shall have breached its representations or warranties or failed to perform its covenants or other agreements contained in this Agreement, which breach or failure to perform (i) if it occurred or was continuing to occur on the Closing Date, would result in a failure of a condition set forth in Section 7.2(a) or Section 7.2(b) and (ii) by its nature, cannot be cured prior to the End Date or, if such breach or failure is capable of being cured by the End Date, is not cured within thirty (30) days following written notice thereof to Sodium or by its nature or timing cannot be cured during such period (or, in each case, such fewer days as remain prior to the End Date)"
+        ],
+        "clause_text": "by the Company, if Sodium, Sodium US or Merger Sub shall have breached its representations or warranties or failed to perform its covenants or other agreements contained in this Agreement, which breach or failure to perform (i) if it occurred or was continuing to occur on the Closing Date, would result in a failure of a condition set forth in Section 7.2(a) or Section 7.2(b) and (ii) by its nature, cannot be cured prior to the End Date or, if such breach or failure is capable of being cured by the End Date, is not cured within thirty (30) days following written notice thereof to Sodium or by its nature or timing cannot be cured during such period (or, in each case, such fewer days as remain prior to the End Date)",
+        "reference_section": "Section 8.1 (e)"
+      }
+    },
+    "termination_fee_events": {
+      "company_termination_fee_events": {
+        "answer": [
+          "Termination of the Agreement by the Company or Sodium pursuant to Section 8.1(b) [End Date], Section 8.1(d) [No Company Stockholder Approval], or Section 8.1(f) [Company Breach of Representation or Failure to Perform Covenant] if a Company Acquisition Proposal is publicly disclosed and not withdrawn prior to termination, and a Company Acquisition Transaction is consummated within twelve months after termination.",
+          "Termination by Sodium pursuant to Section 8.1(g) [Company Change of Recommendation]."
+        ],
+        "clause_text": "If (i) prior to the Company Stockholder Meeting, a Company Acquisition Proposal is publicly disclosed after the date of this Agreement, (ii) this Agreement is terminated by the Company or Sodium, as applicable, pursuant to Section 8.1(b) [End Date], Section 8.1(d) [No Company Stockholder Approval] or Section 8.1(f). [Company Breach of Representation or Failure to Perform Covenant] and the breach giving rise to the right to terminate this Agreement pursuant to Section 8.1(f) [Company Breach of Representation or Failure to Perform Covenant] was the Company's failure to convene and hold the Company Stockholder Meeting in violation of Section 6.5(c) or a breach of the Company's obligations under Section 6.4, (iii) such Company Acquisition Proposal shall not have been withdrawn prior to such termination and (iv) within twelve (12) months after any such termination described in clause (ii), the Company shall have consummated, or shall have entered into an agreement to consummate any Company Acquisition Transaction, which is subsequently consummated (whether before or after such twelve (12)-month period), then the Company shall pay to Sodium an amount equal to the Company Termination Fee, by wire transfer of same day federal funds to the account specified by Sodium, within three (3) business days after the consummation of any such Company Acquisition Transaction. (b) If this Agreement is terminated by Sodium pursuant to Section 8.1(g) [Company Change of Recommendation], then the Company shall pay to Sodium, within three (3) business days after the date of termination, the Company Termination Fee, by wire transfer of same day federal funds to the account specified by Sodium.",
+        "reference_section": "Section 8.3 (a) (b)"
+      },
+      "parent_reverse_termination_fee_events": {
+        "answer": "Not found",
+        "clause_text": "",
+        "reference_section": ""
+      }
+    },
+    "reimbursement_obligations": {
+      "target_reimbursement_obligations": {
+        "answer": "Not found",
+        "clause_text": "",
+        "reference_section": ""
+      },
+      "parent_reimbursement_obligations": {
+        "answer": "Not found",
+        "clause_text": "",
+        "reference_section": ""
+      }
+    },
+    "regulatory_termination_fee": {
+      "regulatory_termination_fee": {
+        "answer": "Not found",
+        "clause_text": "",
+        "reference_section": ""
+      }
+    },
+    "failure_to_close_fee": {
+      "failure_to_close_fee": {
+        "answer": "Not found",
+        "clause_text": "",
+        "reference_section": ""
+      }
+    },
+    "reverse_termination_fee_regulatory": {
+      "reverse_termination_fee_regulatory": {
+        "answer": "Not found",
+        "clause_text": "",
+        "reference_section": ""
+      }
+    },
+    "extend_or_terminate_limitation_due_to_breach": {
+      "extend_or_terminate_limitation_due_to_breach": {
+        "answer": "Neither the Company nor Sodium may rely, either as a basis for not consummating the Transactions or terminating this Agreement and abandoning the Transactions, on the failure of any condition set forth in Section 7.1, Section 7.2 or Section 7.3, as the case may be, to be satisfied if such failure was caused by such party's Willful Breach of any material provision of this Agreement.",
+        "clause_text": "Neither the Company nor Sodium may rely, either as a basis for not consummating the Transactions or terminating this Agreement and abandoning the Transactions, on the failure of any condition set forth in Section 7.1, Section 7.2 or Section 7.3, as the case may be, to be satisfied if such failure was caused by such party's Willful Breach of any material provision of this Agreement.",
+        "reference_section": "Section 7.4"
+      }
+    }
+  },
+  "ordinary_course": {
+    "company_ordinary_course_covenant": {
+      "company_conduct_covenant_summary": {
+        "answer": "The Company is required to conduct its business in the ordinary course and preserve its relationships with significant business partners during the interim period. Exceptions to this requirement include actions required by law, those consented to by Sodium, actions contemplated by the agreement, or as set forth in the Company Disclosure Schedule. Sodium's consent for deviations shall not be unreasonably withheld, delayed, or conditioned.",
+        "clause_text": "From and after the date hereof until the earlier of the Effective Time and the date, if any, on which this Agreement is terminated pursuant to Section 8.1 (the \"Termination Date\"), and except (i) as may be required by applicable Law, (ii) as may be consented to in writing by Sodium (which consent shall not be unreasonably withheld, delayed or conditioned), (iii) as contemplated or required by this Agreement or (iv) as set forth in Section 6.1(a) of the Company Disclosure Schedule, the Company shall (A) conduct its business, and cause its Subsidiaries to conduct their business, in each case, in the ordinary course of business, and (B) preserve, and cause its Subsidiaries to preserve, their relationships with clients, customers, suppliers, distributors and creditors and other persons with which such entity has significant business relations, in the case of this clause (B), in all material respects.",
+        "reference_section": "Section 6.1 (a)"
+      }
+    },
+    "parent_ordinary_course_covenant": {
+      "parent_conduct_covenant_summary": {
+        "answer": "Sodium, Sodium US and Merger Sub shall conduct their business in the ordinary course of business and preserve their relationships with significant business partners, except as required by applicable Law, as consented to in writing by the Company, as contemplated or required by the Agreement, or as set forth in Section 6.2(a) of the Sodium Disclosure Schedule.",
+        "clause_text": "From and after the date hereof until the earlier of the Effective Time and the Termination Date, and except (i) as may be required by applicable Law, (ii) as expressly consented to in writing by the Company (which consent shall not be unreasonably withheld, delayed or conditioned), (iii) as may be contemplated or required by this Agreement or (iv) as set forth in Section 6.2(a) of the Sodium Disclosure Schedule, Sodium, Sodium US and Merger Sub shall (A) conduct their business, and cause their Subsidiaries to conduct their business, in each case, in the ordinary course of business, and (B) preserve, and cause its Subsidiaries to preserve, their relationships with clients, customers, suppliers, distributors and creditors and other persons with which such entity has significant business relations, in the case of this clause (B), in all material respects.",
+        "reference_section": "Section 6.2 (a)"
+      }
+    }
+  },
+  "board_approval": {
+    "board_approval": {
+      "target_board_approval": {
+        "answer": true,
+        "clause_text": "WHEREAS, the Board of Directors of the Company (the 'Company Board'), at a meeting duly called and held on or prior to the date of this Agreement, has unanimously (a) determined that this Agreement and the consummation of the Merger and the transactions contemplated hereby (collectively, the 'Transactions'), to be fair to and in the best interests of the Company and its stockholders, (b) declared this Agreement and the consummation of the Transactions, including the Merger, to be advisable, (c) authorized and approved this Agreement, including the execution, delivery and performance thereof...",
+        "reference_section": "ARTICLE Preamble"
+      },
+      "target_board_unanimous": {
+        "answer": true,
+        "clause_text": "WHEREAS, the Board of Directors of the Company (the \"Company Board\"), at a meeting duly called and held on or prior to the date of this Agreement, has unanimously (a) determined that this Agreement and the consummation of the Merger and the transactions contemplated hereby (collectively, the \"Transactions\"), to be fair to and in the best interests of the Company and its stockholders...",
+        "reference_section": "ARTICLE Preamble"
+      },
+      "acquirer_board_approval": {
+        "answer": true,
+        "clause_text": "The Sodium Board has unanimously (a) determined that it is in the best interests of Sodium and its stockholders, and declared it advisable, to enter into this Agreement, and (b) approved the execution, delivery and performance by Sodium of this Agreement and the Transactions, including the Merger.",
+        "reference_section": "Section 5.3"
+      },
+      "acquirer_board_unanimous": {
+        "answer": false,
+        "clause_text": "WHEREAS, the Board of Directors of Sodium (the \"Sodium Board\"), at a meeting duly called and held on or prior to the date of this Agreement, has unanimously (a) determined that the Transactions are advisable and in the best interests of Sodium and its stockholders and (b) approved and declared advisable this Agreement and the Transactions, including the Merger;",
+        "reference_section": "ARTICLE Preamble"
+      }
+    }
+  },
+  "party_details": {
+    "acquirer": {
+      "acquirer": {
+        "answer": "Schlumberger Limited",
+        "clause_text": "This AGREEMENT AND PLAN OF MERGER (this \"Agreement\"), dated as of April 2, 2024, is by and among Schlumberger Limited, a Curaçao corporation (\"Sodium\"), Sodium Holdco, Inc., a Delaware corporation and indirect wholly owned Subsidiary of Sodium, (\"Sodium US\"), Sodium Merger Sub, Inc., a Delaware corporation and direct wholly owned Subsidiary of Sodium US (\"Merger Sub\"), and ChampionX Corporation, a Delaware corporation (the \"Company\").",
+        "reference_section": "ARTICLE Preamble"
+      },
+      "parent_entity_details": {
+        "answer": "Schlumberger Limited",
+        "clause_text": "This AGREEMENT AND PLAN OF MERGER (this \"Agreement\"), dated as of April 2, 2024, is by and among Schlumberger Limited, a Curaçao corporation (\"Sodium\"), Sodium Holdco, Inc., a Delaware corporation and indirect wholly owned Subsidiary of Sodium, (\"Sodium US\"), Sodium Merger Sub, Inc., a Delaware corporation and direct wholly owned Subsidiary of Sodium US (\"Merger Sub\"), and ChampionX Corporation, a Delaware corporation (the \"Company\").",
+        "reference_section": "ARTICLE Preamble"
+      }
+    },
+    "target": {
+      "target": {
+        "answer": "ChampionX Corporation",
+        "clause_text": "This AGREEMENT AND PLAN OF MERGER (this \"Agreement\"), dated as of April 2, 2024, is by and among Schlumberger Limited, a Curaçao corporation (\"Sodium\"), Sodium Holdco, Inc., a Delaware corporation and indirect wholly owned Subsidiary of Sodium, (\"Sodium US\"), Sodium Merger Sub, Inc., a Delaware corporation and direct wholly owned Subsidiary of Sodium US (\"Merger Sub\"), and ChampionX Corporation, a Delaware corporation (the \"Company\").",
+        "reference_section": "ARTICLE Preamble"
+      }
+    },
+    "guarantor": {
+      "guarantor_present": {
+        "answer": false,
+        "clause_text": "The provided excerpts do not contain any mention of a separate guarantor or related terms.",
+        "reference_section": "NA"
+      },
+      "guarantor_details": {
+        "answer": "Not found",
+        "clause_text": "",
+        "reference_section": ""
+      }
+    },
+    "subsidiaries": {
+      "target_subsidiaries_present": {
+        "answer": false,
+        "clause_text": "The obligation of Sodium, Sodium US and Merger Sub to effect the Merger is further subject to the fulfillment (or the waiver by Sodium, to the extent permitted under applicable Law) at or prior to the Effective Time of the following conditions: (a) The representations and warranties of the Company set forth in (i) Article III of this Agreement...",
+        "reference_section": "Section 7.3"
+      },
+      "target_subsidiaries": {
+        "answer": "No target subsidiaries explicitly involved in the merger structure are mentioned.",
+        "clause_text": "Upon the terms and subject to the conditions set forth in this Agreement, at the Effective Time (as defined below), Merger Sub shall be merged with and into the Company in accordance with the requirements of the DGCL, whereupon the separate existence of Merger Sub shall cease, and the Company shall be the surviving corporation in the Merger (the 'Surviving Corporation').",
+        "reference_section": "Section 1.1"
+      },
+      "acquirer_subsidiaries_present": {
+        "answer": true,
+        "clause_text": "The obligation of Sodium, Sodium US and Merger Sub to effect the Merger is further subject to the fulfillment (or the waiver by Sodium, to the extent permitted under applicable Law) at or prior to the Effective Time of the following conditions:",
+        "reference_section": "Section 7.3"
+      },
+      "acquirer_subsidiaries": {
+        "answer": "No parent subsidiaries explicitly involved in the merger structure are mentioned.",
+        "clause_text": "",
+        "reference_section": ""
+      }
+    },
+    "transaction": {
+      "transaction_type": {
+        "answer": "Reverse Triangular Merger",
+        "clause_text": "Upon the terms and subject to the conditions set forth in this Agreement, at the Effective Time (as defined below), Merger Sub shall be merged with and into the Company in accordance with the requirements of the DGCL, whereupon the separate existence of Merger Sub shall cease, and the Company shall be the surviving corporation in the Merger (the 'Surviving Corporation').",
+        "reference_section": "Section 1.1"
+      },
+      "transaction_structure_notes": {
+        "answer": "Merger Sub shall be merged with and into the Company, with the Company as the surviving corporation. The separate existence of Merger Sub shall cease, and all property, rights, and liabilities of both entities will vest in the Surviving Corporation.",
+        "clause_text": "Upon the terms and subject to the conditions set forth in this Agreement, at the Effective Time (as defined below), Merger Sub shall be merged with and into the Company in accordance with the requirements of the DGCL, whereupon the separate existence of Merger Sub shall cease, and the Company shall be the surviving corporation in the Merger (the 'Surviving Corporation').",
+        "reference_section": "Section 1.1"
+      }
+    },
+    "merger_sub_details": {
+      "merger_sub_details": {
+        "answer": "Sodium Merger Sub, Inc., a Delaware corporation and direct wholly owned Subsidiary of Sodium US",
+        "clause_text": "Sodium Merger Sub, Inc., a Delaware corporation and direct wholly owned Subsidiary of Sodium US",
+        "reference_section": "ARTICLE Preamble"
+      }
+    }
+  },
+  "closing_mechanics": {
+    "target_date": {
+      "target_date": {
+        "answer": "2 business days after the satisfaction or waiver of the conditions set forth in Article VII",
+        "clause_text": "The closing of the Merger (the \"Closing\") shall take place at the offices of Latham & Watkins LLP, 811 Main Street, Suite 3700, Houston, Texas, 77002, at 10:00 a.m., local time, on the second (2nd) business day after the satisfaction or waiver (to the extent permitted by applicable Law) of the conditions set forth in Article VII...",
+        "reference_section": "Section 1.2"
+      }
+    },
+    "marketing_period": {
+      "has_marketing_period": {
+        "answer": false,
+        "clause_text": "The provided excerpts do not contain any reference to a 'Marketing Period'.",
+        "reference_section": "No specific section references 'Marketing Period' in the provided excerpts."
+      },
+      "marketing_period_details": {
+        "answer": "Not found",
+        "clause_text": "",
+        "reference_section": ""
+      }
+    },
+    "inside_date": {
+      "has_inside_date": {
+        "answer": false,
+        "clause_text": "The excerpts provided do not contain any mention of an 'Inside Date'.",
+        "reference_section": "Not applicable as there is no relevant section mentioning 'Inside Date'."
+      },
+      "inside_date_details": {
+        "answer": "Not found",
+        "clause_text": "",
+        "reference_section": ""
+      }
+    }
+  },
+  "specific_performance": {
+    "specific_performance": {
+      "specific_performance_available": {
+        "answer": true,
+        "clause_text": "It is accordingly agreed that, in addition to any other remedy that may be available to it at law or in equity, each of the parties shall be entitled to an injunction or injunctions or equitable relief to prevent breaches of this Agreement and to enforce specifically the terms and provisions of this Agreement exclusively in the Delaware Court of Chancery...",
+        "reference_section": "Section 9.5 (a)"
+      },
+      "specific_performance_parties": {
+        "answer": "Company",
+        "clause_text": "Notwithstanding the foregoing, in the event of Sodium, Sodium US or Merger Sub's Willful Breach of this Agreement or Fraud, then the stockholders of the Company, acting solely through the Company Agent (as defined below), shall be entitled to pursue specific performance as set forth in Section 9.5.",
+        "reference_section": "Section 9.13 (a)"
+      },
+      "specific_performance_limitations": {
+        "answer": "The right to seek specific performance is subject to limitations related to Willful Breach or Fraud by Sodium, Sodium US, or Merger Sub. In such cases, the stockholders of the Company, through the Company Agent, may pursue specific performance or damages.",
+        "clause_text": "Notwithstanding the foregoing, in the event of Sodium, Sodium US or Merger Sub's Willful Breach of this Agreement or Fraud, then the stockholders of the Company, acting solely through the Company Agent (as defined below), shall be entitled to pursue specific performance as set forth in Section 9.5, or, if specific performance is not sought or granted as a remedy, damages...",
+        "reference_section": "Section 9.13 (a)"
+      },
+      "specific_performance_financing_condition": {
+        "answer": false,
+        "clause_text": "The parties agree that irreparable damage, for which monetary damages would not be an adequate remedy, would occur in the event that any of the provisions of this Agreement were not performed, or were threatened to be not performed, in accordance with their specific terms or were otherwise breached.",
+        "reference_section": "Section 9.5"
+      },
+      "specific_performance_financing_details": {
+        "answer": "Not found",
+        "clause_text": "",
+        "reference_section": ""
+      }
+    }
+  },
+  "confidentiality_and_clean_room": {
+    "confidentiality": {
+      "confidentiality_exists": {
+        "answer": true,
+        "clause_text": "This Agreement together with the exhibits hereto, schedules hereto, and the Confidentiality Agreement constitute the entire agreement, and supersede all other prior agreements and understandings, both written and oral, between the parties, or any of them, with respect to the subject matter hereof and thereof.",
+        "reference_section": "Section 9.10"
+      },
+      "confidentiality_agreement_date": {
+        "answer": "March 8, 2024",
+        "clause_text": "The parties hereto hereby agree that all information provided to them or their respective officers, directors, employees or Representatives in connection with this Agreement and the consummation of the Transactions shall be governed in accordance with the confidentiality agreement, dated as of March 8, 2024, between the Company and Sodium (the 'Confidentiality Agreement').",
+        "reference_section": "Section 6.3 (b)"
+      },
+      "confidentiality_obligation_termination_date": {
+        "answer": "Not found",
+        "clause_text": "",
+        "reference_section": ""
+      },
+      "confidentiality_amendment_exists": {
+        "answer": false,
+        "clause_text": "The Company Disclosure Schedule and Sodium Disclosure Schedule shall each be delivered as of the entry into this Agreement, and no amendments or modifications thereto shall be made without the written consent of Sodium (in the case of an amendment or modification to the Company Disclosure Schedule) or the Company (in the case of an amendment or modification to the Sodium Disclosure Schedule).",
+        "reference_section": "Section 9.11"
+      },
+      "confidentiality_amendment_date": {
+        "answer": "March 8, 2024",
+        "clause_text": "The parties hereto hereby agree that all information provided to them or their respective officers, directors, employees or Representatives in connection with this Agreement and the consummation of the Transactions shall be governed in accordance with the confidentiality agreement, dated as of March 8, 2024, between the Company and Sodium (the 'Confidentiality Agreement').",
+        "reference_section": "Section 6.3"
+      }
+    },
+    "clean_room": {
+      "clean_room_exists": {
+        "answer": false,
+        "clause_text": "The provided excerpts do not mention a Clean Room or Clean Team arrangement.",
+        "reference_section": "Various sections provided, none mention Clean Room or Clean Team."
+      },
+      "clean_room_signing_date": {
+        "answer": "Not found",
+        "clause_text": "",
+        "reference_section": ""
+      },
+      "clean_room_start_date": {
+        "answer": "Not found",
+        "clause_text": "",
+        "reference_section": ""
+      },
+      "clean_room_end_date": {
+        "answer": "Not found",
+        "clause_text": "",
+        "reference_section": ""
+      },
+      "clean_room_scope_restrictions": {
+        "answer": "The Clean Room use is subject to several restrictions, including access limitations to prevent unreasonable disruption, violation of agreements, or loss of trade secret protection. Access is also restricted to avoid disclosure of information pertinent to litigation or in violation of applicable laws.",
+        "clause_text": "Notwithstanding the foregoing, neither the Company nor Sodium shall be required to afford such access if it would, in such party's reasonable judgment, reasonably be expected to (1) unreasonably disrupt the operations of such party or any of its Subsidiaries, (2) cause a violation of any agreement to which such party or any of its Subsidiaries is a party, (3) waive or jeopardize any attorney-client or other applicable privilege to such party or any of its Subsidiaries, (4) result in the disclosure of any trade secrets in a manner that would result in any such trade secrets no longer being protected as such under applicable Law following such disclosure, (5) result in the disclosure of information or access that is reasonably pertinent or likely to be reasonably pertinent to a litigation where the Company or any of its Affiliates, on the one hand, and Sodium or any of its Affiliates, on the other hand, are adverse parties or reasonably likely to become adverse parties or (6) constitute a violation of any applicable Law; provided, that in such instances, the party withholding access shall provide written notice to the other party stating that it is withholding such access or such information and stating the justification therefor, and shall use commercially reasonable efforts to provide the applicable information in a way that would not have such effects or otherwise be restricted by this Section 6.3(a).",
+        "reference_section": "Section 6.3 (a)"
+      },
+      "clean_room_protection_clause_present": {
+        "answer": true,
+        "clause_text": "Within one (1) business day following the execution of this Agreement, the Company shall...promptly terminate all physical and electronic data room access previously granted to any such person with respect to any Company Acquisition Proposal.",
+        "reference_section": "Section 6.4 (e)"
+      },
+      "clean_room_protection_clause_summary": {
+        "answer": "The agreement contains a provision that requires the Company to request the prompt return or destruction of all non-public information or data previously furnished to any person with respect to any Company Acquisition Proposal, and to terminate all physical and electronic data room access previously granted to such persons.",
+        "clause_text": "Within one (1) business day following the execution of this Agreement, the Company shall, and shall cause its Subsidiaries and its and their respective officers, directors, and employees to, use its and their reasonable best efforts to cause its and their Representatives acting on its and their behalf to, (i) immediately cease and terminate any discussions existing as of the date of this Agreement between the Company or any of its Subsidiaries or any of its and their respective officers, directors, employees or Representatives acting on its and their behalf and any person (other than Sodium, Merger Sub or any of their respective officers, directors, employees or Representatives) that relate to any Company Acquisition Proposal and (ii) request the prompt return or destruction, to the extent permitted by any confidentiality agreement, of all non-public information or data previously furnished to any such person with respect to any Company Acquisition Proposal and promptly terminate all physical and electronic data room access previously granted to any such person with respect to any Company Acquisition Proposal.",
+        "reference_section": "Section 6.4 (e)"
+      }
+    }
+  },
+  "complex_consideration_and_dividends": {
+    "deal_consideration": {
+      "deal_consideration_overview": {
+        "answer": "Each share of Company Common Stock will be converted into the right to receive 0.735 Sodium Shares, with cash provided in lieu of any fractional Sodium Shares.",
+        "clause_text": "Each share of Company Common Stock issued and outstanding immediately prior to the Effective Time (other than the Company Excluded Stock) will be converted, without any action on the part of the holder thereof, into the right to receive 0.735 Sodium Shares (such ratio, the \"Exchange Ratio\"), which Sodium Shares will be duly authorized and validly issued in accordance with applicable Laws (the \"Equity Consideration\").",
+        "reference_section": "Section 2.1"
+      },
+      "deal_consideration_details": {
+        "answer": "0.735 Sodium Shares per share of Company Common Stock and cash in lieu of fractional Sodium Shares",
+        "clause_text": "Each share of Company Common Stock issued and outstanding immediately prior to the Effective Time (other than the Company Excluded Stock) will be converted, without any action on the part of the holder thereof, into the right to receive 0.735 Sodium Shares (such ratio, the \"Exchange Ratio\"), which Sodium Shares will be duly authorized and validly issued in accordance with applicable Laws (the \"Equity Consideration\").",
+        "reference_section": "Section 2.1"
+      },
+      "is_all_cash_deal": {
+        "answer": false,
+        "clause_text": "Each share of Company Common Stock issued and outstanding immediately prior to the Effective Time (other than the Company Excluded Stock) will be converted, without any action on the part of the holder thereof, into the right to receive 0.735 Sodium Shares (such ratio, the 'Exchange Ratio'), which Sodium Shares will be duly authorized and validly issued in accordance with applicable Laws (the 'Equity Consideration').",
+        "reference_section": "Section 2.1"
+      }
+    },
+    "proration": {
+      "proration_exists": {
+        "answer": false,
+        "clause_text": "Each share of Company Common Stock issued and outstanding immediately prior to the Effective Time (other than the Company Excluded Stock) will be converted, without any action on the part of the holder thereof, into the right to receive 0.735 Sodium Shares (such ratio, the 'Exchange Ratio').",
+        "reference_section": "Section 2.1"
+      },
+      "proration_details": {
+        "answer": "Not found",
+        "clause_text": "",
+        "reference_section": ""
+      }
+    },
+    "election": {
+      "election_exists": {
+        "answer": false,
+        "clause_text": "Each share of Company Common Stock issued and outstanding immediately prior to the Effective Time (other than the Company Excluded Stock) will be converted, without any action on the part of the holder thereof, into the right to receive 0.735 Sodium Shares.",
+        "reference_section": "Section 2.1 (a)"
+      },
+      "election_details": {
+        "answer": "No election is permitted and consideration is fixed.",
+        "clause_text": "Each share of Company Common Stock issued and outstanding immediately prior to the Effective Time (other than the Company Excluded Stock) will be converted, without any action on the part of the holder thereof, into the right to receive 0.735 Sodium Shares (such ratio, the 'Exchange Ratio').",
+        "reference_section": "Section 2.1"
+      }
+    },
+    "cvr": {
+      "cvr_exists": {
+        "answer": false,
+        "clause_text": "The excerpts provided do not contain any reference to a Contingent Value Right (CVR).",
+        "reference_section": "Various sections provided, none mention CVR"
+      },
+      "cvr_details": {
+        "answer": "NA",
+        "clause_text": "",
+        "reference_section": ""
+      }
+    },
+    "ticking_fees": {
+      "ticking_fees_exists": {
+        "answer": false,
+        "clause_text": "The payment of the Company Termination Fee to Sodium pursuant to this Section 8.3 shall be the sole and exclusive monetary remedy available to Sodium, Sodium US or Merger Sub or any of their Affiliates in connection with this Agreement and the Transactions in any circumstance in which the Company Termination Fee is payable hereunder.",
+        "reference_section": "Section 8.3"
+      },
+      "ticking_fees_details": {
+        "answer": "Not found",
+        "clause_text": "",
+        "reference_section": ""
+      }
+    },
+    "contingent_payments": {
+      "contingent_payments_exists": {
+        "answer": false,
+        "clause_text": "The provided document sections do not mention any contingent payments beyond CVRs.",
+        "reference_section": "None of the provided sections explicitly mention contingent payments beyond CVRs."
+      },
+      "contingent_payments_details": {
+        "answer": "Not found",
+        "clause_text": "",
+        "reference_section": ""
+      }
+    },
+    "company_dividends": {
+      "company_dividends_can_pay": {
+        "answer": false,
+        "clause_text": "The Company shall not and shall cause its Subsidiaries not to... (iii) authorize or pay any dividends on or make any distribution with respect to its outstanding equity securities... other than... regular quarterly cash dividends with customary record and payment dates on the shares of Company Common Stock not in excess of $0.095 per share per quarter;",
+        "reference_section": "Section 6.1 (b) (iii)"
+      },
+      "company_dividends_details": {
+        "answer": "Not found",
+        "clause_text": "",
+        "reference_section": ""
+      }
+    },
+    "parent_dividends": {
+      "parent_dividends_can_pay": {
+        "answer": false,
+        "clause_text": "Sodium shall not, and shall cause its Subsidiaries not to: (iii) authorize or pay any dividends on or make any distribution with respect to the outstanding equity securities of Sodium (whether in cash, assets, capital stock or other securities of Sodium), except regular quarterly cash dividends on Sodium Shares consistent with past practice (including any historical increases in such cash dividends);",
+        "reference_section": "Section 6.2 (b) (iii)"
+      },
+      "parent_dividends_details": {
+        "answer": "Regular quarterly cash dividends on Sodium Shares consistent with past practice are allowed.",
+        "clause_text": "Sodium shall not, and shall cause its Subsidiaries not to...authorize or pay any dividends on or make any distribution with respect to the outstanding equity securities of Sodium (whether in cash, assets, capital stock or other securities of Sodium), except regular quarterly cash dividends on Sodium Shares consistent with past practice (including any historical increases in such cash dividends);",
+        "reference_section": "Section 6.2 (b) (iii)"
+      }
+    },
+    "collar": {
+      "collar_exists": {
+        "answer": false,
+        "clause_text": "Each share of Company Common Stock issued and outstanding immediately prior to the Effective Time (other than the Company Excluded Stock) will be converted, without any action on the part of the holder thereof, into the right to receive 0.735 Sodium Shares (such ratio, the 'Exchange Ratio').",
+        "reference_section": "Section 2.1"
+      },
+      "collar_details": {
+        "answer": "Not found",
+        "clause_text": "",
+        "reference_section": ""
+      }
+    },
+    "exchange_ratio": {
+      "exchange_ratio_exists": {
+        "answer": true,
+        "clause_text": "Each share of Company Common Stock issued and outstanding immediately prior to the Effective Time (other than the Company Excluded Stock) will be converted, without any action on the part of the holder thereof, into the right to receive 0.735 Sodium Shares (such ratio, the 'Exchange Ratio').",
+        "reference_section": "Section 2.1"
+      },
+      "exchange_ratio_summary": {
+        "answer": "Each Company share will be exchanged for 0.735 Sodium Shares",
+        "clause_text": "Each share of Company Common Stock issued and outstanding immediately prior to the Effective Time (other than the Company Excluded Stock) will be converted, without any action on the part of the holder thereof, into the right to receive 0.735 Sodium Shares (such ratio, the 'Exchange Ratio').",
+        "reference_section": "Section 2.1"
+      }
+    },
+    "exchange_ratio_adjustment": {
+      "exchange_ratio_adjustment_exists": {
+        "answer": true,
+        "clause_text": "If at any time during the period between the date of this Agreement and the Effective Time, any change in the outstanding shares of Company Common Stock or outstanding Sodium Shares shall occur as a result of any reclassification, stock split (including a reverse stock split) or combination, exchange or readjustment of shares, or any stock dividend or stock distribution with a record date during such period, the Equity Consideration, the Exchange Ratio and any other similarly dependent items shall be equitably adjusted.",
+        "reference_section": "Section 2.1 (c)"
+      },
+      "exchange_ratio_adjustment": {
+        "answer": "The exchange ratio will be adjusted if there are changes in the outstanding shares due to reclassification, stock split, or similar events.",
+        "clause_text": "If at any time during the period between the date of this Agreement and the Effective Time, any change in the outstanding shares of Company Common Stock or outstanding Sodium Shares shall occur as a result of any reclassification, stock split (including a reverse stock split) or combination, exchange or readjustment of shares, or any stock dividend or stock distribution with a record date during such period, the Equity Consideration, the Exchange Ratio and any other similarly dependent items shall be equitably adjusted to provide to Sodium, Sodium US, Merger Sub and the holders of shares of Company Common Stock the same economic effect as contemplated by this Agreement prior to such action...",
+        "reference_section": "Section 2.1 (c)"
+      }
+    },
+    "dividend_adjustment_mechanism": {
+      "dividend_adjustment_mechanism_exists": {
+        "answer": true,
+        "clause_text": "If at any time during the period between the date of this Agreement and the Effective Time, any change in the outstanding shares of Company Common Stock or outstanding Sodium Shares shall occur as a result of any reclassification, stock split (including a reverse stock split) or combination, exchange or readjustment of shares, or any stock dividend or stock distribution with a record date during such period, the Equity Consideration, the Exchange Ratio and any other similarly dependent items shall be equitably adjusted...",
+        "reference_section": "Section 2.1 (c)"
+      },
+      "dividend_adjustment_mechanism": {
+        "answer": "The merger consideration will be equitably adjusted if any stock dividend or stock distribution occurs with a record date during the period between the date of the Agreement and the Effective Time.",
+        "clause_text": "If at any time during the period between the date of this Agreement and the Effective Time, any change in the outstanding shares of Company Common Stock or outstanding Sodium Shares shall occur as a result of any reclassification, stock split (including a reverse stock split) or combination, exchange or readjustment of shares, or any stock dividend or stock distribution with a record date during such period, the Equity Consideration, the Exchange Ratio and any other similarly dependent items shall be equitably adjusted...",
+        "reference_section": "Section 2.1 (c)"
+      }
+    }
+  },
+  "law_and_jurisdiction": {
+    "governing_law": {
+      "governing_law_exists": {
+        "answer": true,
+        "clause_text": "This Agreement, and all claims or causes of action (whether at Law, in contract or in tort or otherwise) that may be based upon, arise out of or relate to this Agreement or the negotiation, execution or performance hereof, shall be governed by and construed in accordance with the laws of the State of Delaware, without giving effect to any choice or conflict of law provision or rule (whether of the State of Delaware or any other jurisdiction) that would cause the application of the laws of any jurisdiction other than the State of Delaware.",
+        "reference_section": "Section 9.4"
+      },
+      "governing_law_jurisdiction": {
+        "answer": "Delaware",
+        "clause_text": "This Agreement, and all claims or causes of action (whether at Law, in contract or in tort or otherwise) that may be based upon, arise out of or relate to this Agreement or the negotiation, execution or performance hereof, shall be governed by and construed in accordance with the laws of the State of Delaware, without giving effect to any choice or conflict of law provision or rule (whether of the State of Delaware or any other jurisdiction) that would cause the application of the laws of any jurisdiction other than the State of Delaware.",
+        "reference_section": "Section 9.4"
+      }
+    },
+    "incorporation_details": {
+      "parent_incorporation_details": {
+        "answer": "a Curaçao corporation",
+        "clause_text": "AGREEMENT AND PLAN OF MERGER (this \"Agreement\"), dated as of April 2, 2024, is by and among Schlumberger Limited, a Curaçao corporation (\"Sodium\"), Sodium Holdco, Inc., a Delaware corporation and indirect wholly owned Subsidiary of Sodium, (\"Sodium US\"), Sodium Merger Sub, Inc., a Delaware corporation and direct wholly owned Subsidiary of Sodium US (\"Merger Sub\"), and ChampionX Corporation, a Delaware corporation (the \"Company\").",
+        "reference_section": "ARTICLE Preamble"
+      },
+      "company_incorporation_details": {
+        "answer": "a Delaware corporation",
+        "clause_text": "ChampionX Corporation, a Delaware corporation (the \"Company\").",
+        "reference_section": "ARTICLE Preamble"
+      }
+    },
+    "mae_interpretation_jurisdiction": {
+      "mae_interpretation_jurisdiction_exists": {
+        "answer": false,
+        "clause_text": "Company Material Adverse Effect means any event, change, effect, development or occurrence that has had, or would be reasonably expected to have, either individually or in the aggregate, a material adverse effect on the business, property, assets, financial condition or results of operations of the Company and its Subsidiaries, taken as a whole...",
+        "reference_section": "Section 9.16"
+      },
+      "mae_interpretation_jurisdiction": {
+        "answer": "Not found",
+        "clause_text": "",
+        "reference_section": ""
+      }
+    },
+    "financing_jurisdiction": {
+      "financing_jurisdiction_exists": {
+        "answer": true,
+        "clause_text": "Each of the parties hereto irrevocably agrees that any legal action or proceeding relating to or arising out of this Agreement and the rights and obligations hereunder... shall be brought and determined exclusively in the Delaware Court of Chancery and any state appellate court therefrom within the State of Delaware...",
+        "reference_section": "Section 9.5 (b)"
+      },
+      "financing_jurisdiction": {
+        "answer": "Not found",
+        "clause_text": "",
+        "reference_section": ""
+      }
+    },
+    "arbitration_clause": {
+      "arbitration_clause_exists": {
+        "answer": false,
+        "clause_text": "Each of the parties hereto irrevocably agrees that any legal action or proceeding relating to or arising out of this Agreement and the rights and obligations hereunder, or for recognition and enforcement of any judgment relating to or arising out of this Agreement and the rights and obligations hereunder brought by the other party hereto or its successors or assigns, shall be brought and determined exclusively in the Delaware Court of Chancery.",
+        "reference_section": "Section 9.5 (b)"
+      },
+      "arbitration_clause": {
+        "answer": "Not found",
+        "clause_text": "",
+        "reference_section": ""
+      }
+    }
+  },
+  "financing": {
+    "committed_financing": {
+      "committed_financing_present": {
+        "answer": false,
+        "clause_text": "Financing means the debt financing incurred or intended to be incurred in connection with the Transactions by Sodium or its Subsidiaries, including the offering or private placement of debt securities.",
+        "reference_section": "Section 9.16"
+      },
+      "committed_financing_summary": {
+        "answer": "Not found",
+        "clause_text": "",
+        "reference_section": ""
+      }
+    },
+    "financing_efforts_summary": {
+      "financing_efforts_summary": {
+        "answer": "Sodium is obligated to use reasonable best efforts to obtain financing, with the Company providing commercially reasonable cooperation.",
+        "clause_text": "Prior to the Closing, the Company shall use commercially reasonable efforts to provide to Sodium cooperation (and to cause its Subsidiaries and its and their respective affiliates, officers, directors, employees or Representatives to use their respective commercially reasonable efforts to provide such cooperation) reasonably requested by Sodium that is reasonably necessary in connection with the Financing...",
+        "reference_section": "Section 6.17 (a)"
+      }
+    },
+    "substitute_financing_notice_and_efforts": {
+      "substitute_financing_notice_and_efforts": {
+        "answer": "Not found",
+        "clause_text": "",
+        "reference_section": ""
+      }
+    }
+  },
+  "proxy_statement": {
+    "proxy_statement_filing_timing": {
+      "proxy_statement_filing_timing": {
+        "answer": "As promptly as reasonably practicable following the date of this Agreement",
+        "clause_text": "As promptly as reasonably practicable following the date of this Agreement, Sodium and the Company shall jointly prepare the Registration Statement, including the Proxy Statement/Prospectus, and Sodium shall file with the SEC the Registration Statement.",
+        "reference_section": "Section 6.5 (a)"
+      }
+    },
+    "f4_effectiveness": {
+      "f4_effectiveness_efforts": {
+        "answer": "reasonable best efforts",
+        "clause_text": "Each of Sodium and the Company shall use reasonable best efforts to have the Registration Statement declared effective under the Securities Act as promptly as reasonably practicable after such filing and to keep the Registration Statement effective until the earlier of the Effective Time and the Termination Date.",
+        "reference_section": "Section 6.5 (a)"
+      },
+      "f4_effectiveness_target_date": {
+        "answer": "Not found",
+        "clause_text": "",
+        "reference_section": ""
+      }
+    },
+    "shareholder_meeting": {
+      "shareholder_meeting_timing": {
+        "answer": "The shareholder meeting is expected to be held as promptly as practicable after the Registration Statement is declared effective under the Securities Act, but in no event later than sixty (60) days thereafter.",
+        "clause_text": "The Company shall ... convene and hold the Company Stockholder Meeting, to be held as promptly as practicable after the Registration Statement is declared effective under the Securities Act (but in no event later than sixty (60) days thereafter).",
+        "reference_section": "Section 6.5 (b)"
+      },
+      "shareholder_meeting_deadline": {
+        "answer": "60 days",
+        "clause_text": "The Company shall ... convene and hold the Company Stockholder Meeting, to be held as promptly as practicable after the Registration Statement is declared effective under the Securities Act (but in no event later than sixty (60) days thereafter).",
+        "reference_section": "Section 6.5 (b)"
+      },
+      "shareholder_vote_efforts": {
+        "answer": "reasonable best efforts",
+        "clause_text": "Subject to a Company Change of Recommendation in accordance with Section 6.4, the Company shall include the Company Recommendation in the Proxy Statement/Prospectus and use reasonable best efforts to solicit from its stockholders proxies in favor of the adoption of this Agreement.",
+        "reference_section": "Section 6.5 (b)"
+      },
+      "shareholder_meeting_postponment": {
+        "answer": "Not Found",
+        "clause_text": "",
+        "reference_section": ""
+      }
+    },
+    "parent_shareholder_meeting": {
+      "parent_shareholder_meeting_timing": {
+        "answer": "Not found",
+        "clause_text": "",
+        "reference_section": ""
+      },
+      "parent_shareholder_meeting_deadline": {
+        "answer": "Not found",
+        "clause_text": "",
+        "reference_section": ""
+      },
+      "parent_shareholder_vote_efforts": {
+        "answer": "Not found",
+        "clause_text": "",
+        "reference_section": ""
+      },
+      "parent_shareholder_meeting_postponment": {
+        "answer": "Not found",
+        "clause_text": "",
+        "reference_section": ""
+      }
+    },
+    "proxy_summary_notes": {
+      "proxy_summary_notes": {
+        "answer": "The agreement contains notable terms related to proxy or shareholder voting, including the requirement for the Company to submit a proposal for the adoption of the agreement at the Company Stockholder Meeting, with no other proposals allowed without Sodium's consent. The Company must also use reasonable best efforts to solicit proxies in favor of the agreement and may adjourn the meeting to ensure sufficient votes or quorum.",
+        "clause_text": "The Company shall (i) submit to its stockholders a proposal for the adoption of this Agreement at the Company Stockholder Meeting and shall not submit any other proposal to the Company's stockholders in connection with the Company Stockholder Meeting (other than a non-binding, advisory vote to approve the compensation that may be received by Company executive officers in connection with the Merger and a customary proposal regarding adjournment of the Company Stockholder Meeting) without the prior written consent of Sodium, which consent shall not be unreasonably withheld, delayed or conditioned, (ii) cause the Proxy Statement/Prospectus to be mailed to each of the Company's stockholders as promptly as reasonably practicable...",
+        "reference_section": "Section 6.5 (b)"
+      }
+    },
+    "dissenting_shares_cap": {
+      "dissenting_shares_cap": {
+        "answer": "NA",
+        "clause_text": "",
+        "reference_section": ""
+      }
+    }
+  },
+  "timeline": {
+    "agreement_signing_date": {
+      "agreement_signing_date": {
+        "answer": "April 2, 2024",
+        "clause_text": "This AGREEMENT AND PLAN OF MERGER (this \"Agreement\"), dated as of April 2, 2024, is by and among Schlumberger Limited, a Curaçao corporation (\"Sodium\"), Sodium Holdco, Inc., a Delaware corporation and indirect wholly owned Subsidiary of Sodium, (\"Sodium US\"), Sodium Merger Sub, Inc., a Delaware corporation and direct wholly owned Subsidiary of Sodium US (\"Merger Sub\"), and ChampionX Corporation, a Delaware corporation (the \"Company\").",
+        "reference_section": "ARTICLE Preamble"
+      }
+    },
+    "confidentiality_agreement_signing_date": {
+      "confidentiality_agreement_signing_date": {
+        "answer": "March 8, 2024",
+        "clause_text": "The parties hereto hereby agree that all information provided to them or their respective officers, directors, employees or Representatives in connection with this Agreement and the consummation of the Transactions shall be governed in accordance with the confidentiality agreement, dated as of March 8, 2024, between the Company and Sodium (the \"Confidentiality Agreement\").",
+        "reference_section": "Section 6.3 (b)"
+      }
+    },
+    "announcement_date": {
+      "announcement_date": {
+        "answer": "Not found",
+        "clause_text": "",
+        "reference_section": ""
+      }
+    },
+    "proxy_filing_deadline": {
+      "proxy_filing_deadline": {
+        "answer": "As promptly as reasonably practicable",
+        "clause_text": "As promptly as reasonably practicable following the date of this Agreement, Sodium and the Company shall jointly prepare the Registration Statement, including the Proxy Statement/Prospectus, and Sodium shall file with the SEC the Registration Statement.",
+        "reference_section": "Section 6.5 (a)"
+      }
+    },
+    "shareholder_vote_deadline": {
+      "shareholder_vote_deadline": {
+        "answer": "sixty (60) days",
+        "clause_text": "The Company shall ... convene and hold the Company Stockholder Meeting, to be held as promptly as practicable after the Registration Statement is declared effective under the Securities Act (but in no event later than sixty (60) days thereafter).",
+        "reference_section": "Section 6.5 (b)"
+      }
+    },
+    "outside_date": {
+      "outside_date": {
+        "answer": "April 2, 2025",
+        "clause_text": "by either the Company or Sodium, if the Merger shall not have been consummated on or prior to April 2, 2025 (the \"End Date\");",
+        "reference_section": "Section 8.1"
+      },
+      "outside_date_extension_list": {
+        "answer": "1. Extension Length – 6 months; Who Grants the Extension – Automatic; Conditions to Extend – All conditions to Closing, other than those in Section 7.1(c), Section 7.1(d), or at Sodium's election, Section 7.3(d), must be satisfied or capable of being satisfied; Termination Restrictions Due to Breach – Yes, the right to terminate is not available if the party's material breach caused the failure to close.",
+        "clause_text": "provided, however, that if all of the conditions to Closing, other than any of the conditions set forth in Section 7.1(c), Section 7.1(d) or, at the election of Sodium, Section 7.3(d) (such election, an \"Extension Election\"), shall have been satisfied or shall be capable of being satisfied at such time (other than those conditions that by their nature are to be satisfied at the Closing), the End Date shall automatically be extended to October 2, 2025, which date shall thereafter be deemed to be the End Date; provided, further, that the right to terminate this Agreement pursuant to this Section 8.1(b) shall not be available to a party if the failure of the Closing to occur by such date shall be due to the material breach by such party of any representation, warranty, covenant or other agreement of such party set forth in this Agreement;",
+        "reference_section": "Section 8.1"
+      }
+    },
+    "hsr_filing_deadline": {
+      "hsr_filing_deadline": {
+        "answer": "15 business days after the date hereof",
+        "clause_text": "Subject to the terms and conditions herein provided and without limiting the foregoing, the Company and Sodium shall (i) promptly, but in no event later than fifteen (15) business days after the date hereof (unless a later date is mutually agreed by the parties in writing), make their respective filings under the HSR Act.",
+        "reference_section": "Section 6.7 (b)"
+      }
+    },
+    "second_request_deadline": {
+      "second_request_deadline": {
+        "answer": "Not found",
+        "clause_text": "",
+        "reference_section": ""
+      }
+    },
+    "cfius_filing_deadline": {
+      "cfius_filing_deadline": {
+        "answer": "Not found",
+        "clause_text": "",
+        "reference_section": ""
+      }
+    },
+    "marketing_period_dates": {
+      "marketing_period_dates": {
+        "answer": "Not found",
+        "clause_text": "",
+        "reference_section": ""
+      }
+    },
+    "inside_date": {
+      "inside_date": {
+        "answer": "Not found",
+        "clause_text": "",
+        "reference_section": ""
+      }
+    },
+    "closing_date": {
+      "closing_date": {
+        "answer": "second business day after the satisfaction or waiver of the conditions set forth in Article VII",
+        "clause_text": "The closing of the Merger (the \"Closing\") shall take place at the offices of Latham & Watkins LLP, 811 Main Street, Suite 3700, Houston, Texas, 77002, at 10:00 a.m., local time, on the second (2nd) business day after the satisfaction or waiver (to the extent permitted by applicable Law) of the conditions set forth in Article VII...",
+        "reference_section": "Section 1.2"
+      }
+    },
+    "conditions_satisfaction_end_date": {
+      "conditions_satisfaction_end_date": {
+        "answer": "April 2, 2025",
+        "clause_text": "by either the Company or Sodium, if the Merger shall not have been consummated on or prior to April 2, 2025 (the \"End Date\"); provided, however, that if all of the conditions to Closing, other than any of the conditions set forth in Section 7.1(c), Section 7.1(d) or, at the election of Sodium, Section 7.3(d) (such election, an \"Extension Election\"), shall have been satisfied or shall be capable of being satisfied at such time (other than those conditions that by their nature are to be satisfied at the Closing), the End Date shall automatically be extended to October 2, 2025, which date shall thereafter be deemed to be the End Date;",
+        "reference_section": "Section 8.1"
+      }
+    }
+  }
+}

@@ -20,6 +20,8 @@ class ProcessingJobSerializer(serializers.Serializer):
     schema_processing_completed = serializers.BooleanField()
     schema_processing_timestamp = serializers.DateTimeField(
         required=False, allow_null=True)
+    summary_docx_url = serializers.URLField(required=False, allow_null=True)
+    sec_url = serializers.URLField(required=False, allow_null=True)
 
 
 class FileProcessRequestSerializer(serializers.Serializer):

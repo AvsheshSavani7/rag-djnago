@@ -21,7 +21,10 @@ import pytz
 from .models import ProcessingJob
 from mongoengine.errors import DoesNotExist
 from .summary_utils.clause_config_util import ClauseConfigUtil
-
+from .transform_json import simplify_json
+from .summary_engine import process_clause_config, write_docx_summary
+from .summary_engine import RUN_CONCISE_SUMMARIES, RUN_FULSOME_SUMMARIES
+import tempfile
 load_dotenv()
 
 logger = logging.getLogger(__name__)
@@ -191,6 +194,14 @@ class DocumentProcessingService:
             # category_results = schema_search.search_all_schema_categories(
             #     deal_id=str(job_id)
             # )
+
+            # For temporary local testing, use Catalent data directly
+            # with open('Azek.json', 'r', encoding='utf-8') as f:
+            #     category_results = json.load(f)
+            # simplified_data = simplify_json(category_results)
+
+            # logger.info(f"Simplified data: {category_results}")
+            # job.save_json_to_db(category_results)
 
             # Update job status to completed
 
@@ -1340,6 +1351,205 @@ class SummaryGenerationService:
             logger.error(f"Error in summary generation service: {str(e)}")
             logger.error(traceback.format_exc())
             return []
+
+    def generate_summary_engine(self, deal_id, temperature=0.7):
+        """
+        Generate document summaries based on schema results for the given deal_id.
+        Uses the same summary generation logic as summary_main.py but with different input/output handling.
+        """
+        try:
+            logger.info(f"Generating summary for deal ID: {deal_id}")
+            try:
+                object_id = ObjectId(deal_id)
+                job = ProcessingJob.objects.get(id=object_id)
+                logger.info(f"Found job in database: {job}")
+
+                schema_results = job.schema_results
+
+                if not schema_results:
+                    logger.info("No schema results found")
+                    return None
+
+                # Parse JSON string to dictionary if needed
+                if isinstance(schema_results, str):
+                    schema_results = json.loads(schema_results)
+
+                # Get all configs from S3
+                s3_client = boto3.client(
+                    's3',
+                    aws_access_key_id=os.getenv('AWS_ACCESS_KEY_ID'),
+                    aws_secret_access_key=os.getenv('AWS_SECRET_ACCESS_KEY'),
+                    region_name=os.getenv('AWS_REGION')
+                )
+                S3_BUCKET = os.getenv('AWS_S3_BUCKET')
+
+                # List and load all configs from S3
+                CLAUSE_CONFIG = {}
+                try:
+                    response = s3_client.list_objects_v2(
+                        Bucket=S3_BUCKET,
+                        Prefix='clause_configs/'
+                    )
+
+                    for obj in response.get('Contents', []):
+                        filename = os.path.basename(obj['Key'])
+                        if filename.endswith('_config.py') and not filename.startswith('__'):
+                            # Get the config file content
+                            config_response = s3_client.get_object(
+                                Bucket=S3_BUCKET,
+                                Key=f"clause_configs/{filename}"
+                            )
+                            content = config_response['Body'].read().decode(
+                                'utf-8')
+
+                            # Create a temporary module namespace and execute
+                            namespace = {}
+                            exec(content, namespace)
+
+                            # Find the first uppercase variable which should be our config dictionary
+                            config_dict = next((val for name, val in namespace.items()
+                                                if name.isupper() and isinstance(val, dict)), {})
+
+                            CLAUSE_CONFIG.update(config_dict)
+
+                except Exception as e:
+                    logger.error(f"Error loading configs from S3: {str(e)}")
+                    return None
+
+                logger.info(
+                    f"Loaded clause configs: {list(CLAUSE_CONFIG.keys())}")
+
+                # Process summaries - exactly matching summary_main.py logic
+                summary_outputs = []
+                for clause_name, clause_config in CLAUSE_CONFIG.items():
+
+                    summary_type = clause_config.get("summary_type", "Concise")
+
+                    # Skip unknown or disabled types - matching summary_main.py logic
+                    # "Fulsome" is commented out
+                    if summary_type not in ("Concise"):
+                        logger.info(
+                            f"Skipping {clause_name} — summary_type '{summary_type}' not recognized.")
+                        continue
+
+                    if summary_type == "Concise" and not RUN_CONCISE_SUMMARIES:
+                        continue
+
+                    if summary_type == "Fulsome" and not RUN_FULSOME_SUMMARIES:
+                        continue
+
+                    logger.info(f"\n→ Evaluating: {clause_name}")
+                    result = process_clause_config(
+                        clause_config, schema_results)
+
+                    if result["output"] and result["output"] != "No output generated.":
+                        # Skip concise summaries where view_prompt is False
+                        if (
+                            result.get("summary_type", "") == "Concise"
+                            and clause_config.get("view_prompt", True) is False
+                        ):
+                            logger.info(
+                                f"Skipping {clause_name} (concise, view_prompt=False)")
+                            continue
+
+                        summary_outputs.append({
+                            "clause_name": clause_name,
+                            **result
+                        })
+
+                        # Log output matching summary_main.py
+                        logger.info("=== CLAUSE SUMMARY OUTPUT ===")
+                        logger.info(f"Clause: {clause_name}")
+                        if result.get("used_prompt"):
+                            logger.info("Used Prompt:\n" +
+                                        result["used_prompt"])
+                        logger.info("Summary:\n" + result["output"])
+                        if result.get("references"):
+                            logger.info("References:")
+                            for r in result["references"]:
+                                logger.info("- " + r)
+                        else:
+                            logger.info("References: [None found or resolved]")
+
+                # Sort summaries by rank - exactly as in summary_main.py
+                def parse_rank(rank):
+                    return [int(part) for part in str(rank).split(".")]
+
+                summary_outputs_sorted = sorted(
+                    summary_outputs, key=lambda x: parse_rank(x['summary_rank']))
+
+                # Get company name from job
+                company_name = job.target_name or "UNKNOWN"
+
+                # Create timestamp
+                current_time = datetime.now().strftime("%m-%d-%Y_%I-%M%p")
+
+                # Create temporary file with .docx extension
+                temp_docx = None
+                try:
+                    # Create temp file with .docx extension that will be deleted when closed
+                    with tempfile.NamedTemporaryFile(suffix='.docx', delete=False) as temp_file:
+                        temp_docx = temp_file.name
+
+                        # Write to DOCX - using same function as summary_main.py
+                        write_docx_summary(
+                            summary_outputs_sorted,
+                            temp_docx,
+                            RUN_CONCISE_SUMMARIES,
+                            RUN_FULSOME_SUMMARIES
+                        )
+                        logger.info("\n✅ DOCX summary written.")
+
+                    # Upload DOCX to S3
+
+                    # Get the filename from the parsed_file_url
+                    parsed_json_url = job.parsed_json_url
+                    filename = parsed_json_url.split("/")[-1]
+                    remove_extension = filename.split(".")[0]
+                    docx_key = f"summaries-engine/{remove_extension}.docx"
+
+                    try:
+                        # Upload the file
+                        s3_client.upload_file(temp_docx, S3_BUCKET, docx_key)
+
+                        # Store HTTPS URL in MongoDB
+                        s3_url = f"https://{S3_BUCKET}.s3.amazonaws.com/{docx_key}"
+                        job.summary_docx_url = s3_url
+                        job.save()
+
+                        # Return the S3 URL
+                        return s3_url
+
+                    except Exception as e:
+                        logger.error(f"Error uploading DOCX to S3: {str(e)}")
+                        return None
+
+                    finally:
+                        # Cleanup temporary file
+                        if temp_docx and os.path.exists(temp_docx):
+                            try:
+                                os.unlink(temp_docx)
+                            except Exception as cleanup_error:
+                                logger.warning(
+                                    f"Could not delete temporary file {temp_docx}: {str(cleanup_error)}")
+
+                except Exception as e:
+                    logger.error(f"Error in summary generation: {str(e)}")
+                    if temp_docx and os.path.exists(temp_docx):
+                        try:
+                            os.unlink(temp_docx)
+                        except Exception:
+                            pass
+                    return None
+
+            except DoesNotExist:
+                logger.error(f"No processing job found for deal_id {deal_id}")
+                return None
+
+        except Exception as e:
+            logger.error(f"Error in summary generation service: {str(e)}")
+            logger.error(traceback.format_exc())
+            return None
 
     def generate_summary(self, deal_id, temperature=0.7):
         """

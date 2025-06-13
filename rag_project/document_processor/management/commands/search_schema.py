@@ -17,7 +17,7 @@ class Command(BaseCommand):
 
 
     example command:
-    python manage.py search_schema 682f00def21b9fca8e1d04fe
+    python manage.py search_schema 682f252ef21b9fca8e1d0530
 
     """
     help = 'Search all schema categories for a given deal ID using schema_by_summary_sections.json'

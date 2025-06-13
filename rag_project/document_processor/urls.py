@@ -7,7 +7,8 @@ from .views import (
     PineconeVectorListView,
     UpdatePineconeVectorView,
     ChatWithAIView,
-    SummaryGenerationView
+    SummaryGenerationView,
+    SummaryEngineView
 )
 
 urlpatterns = [
@@ -21,7 +22,9 @@ urlpatterns = [
     path('vectors/update/<str:vector_id>/',
          UpdatePineconeVectorView.as_view(), name='update_vector'),
     path('chat/', ChatWithAIView.as_view(), name='chat_with_ai'),
-    path('summary/', SummaryGenerationView.as_view(), name='generate_summary')
+    path('summary/', SummaryGenerationView.as_view(), name='generate_summary'),
+    path('summary/engine/', SummaryEngineView.as_view(),
+         name='generate_summary_engine')
 ]
 
 

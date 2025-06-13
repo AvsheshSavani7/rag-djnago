@@ -478,3 +478,39 @@ class SummaryGenerationView(APIView):
             return Response({
                 'error': str(e)
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class SummaryEngineView(APIView):
+    """
+    API endpoint for generating document summaries using AI
+    """
+
+    def post(self, request, format=None):
+        # Get request parameters
+        deal_id = request.data.get('deal_id')
+        temperature = float(request.data.get('temperature', 0.7))
+
+        # Validate parameters
+        if not deal_id:
+            return Response({"error": "deal_id is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Initialize the summary service
+        try:
+            summary_service = SummaryGenerationService()
+
+            result = summary_service.generate_summary_engine(
+                deal_id=deal_id,
+                temperature=temperature
+            )
+
+            # Return the result
+            return Response(result, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            logger.error(f"Error in SummaryGenerationView: {str(e)}")
+            logger.error(traceback.format_exc())
+
+            # Return error response
+            return Response({
+                'error': str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
