@@ -484,6 +484,41 @@ class SummaryEngineView(APIView):
     """
     API endpoint for generating document summaries using AI
     """
+    # Create a ThreadPoolExecutor for background tasks
+    executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
+
+    def _generate_summary_background(self, deal_id, temperature):
+        """Background task to generate summary"""
+        try:
+            summary_service = SummaryGenerationService()
+            result = summary_service.generate_summary_engine(
+                deal_id=deal_id,
+                temperature=temperature
+            )
+
+            # Update the job with the summary URL
+            try:
+                object_id = ObjectId(deal_id)
+                job = ProcessingJob.objects.get(id=object_id)
+                job.summary_docx_url = result
+                job.summary_status = 'COMPLETED'
+                job.save()
+            except Exception as e:
+                logger.error(f"Error updating job with summary URL: {str(e)}")
+
+        except Exception as e:
+            logger.error(f"Error in background summary generation: {str(e)}")
+            logger.error(traceback.format_exc())
+
+            # Update job status to failed
+            try:
+                object_id = ObjectId(deal_id)
+                job = ProcessingJob.objects.get(id=object_id)
+                job.summary_status = 'FAILED'
+                job.error_message = str(e)
+                job.save()
+            except Exception as inner_e:
+                logger.error(f"Error updating job status: {str(inner_e)}")
 
     def post(self, request, format=None):
         # Get request parameters
@@ -494,23 +529,67 @@ class SummaryEngineView(APIView):
         if not deal_id:
             return Response({"error": "deal_id is required"}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Initialize the summary service
         try:
-            summary_service = SummaryGenerationService()
+            # Get the job and update status
+            object_id = ObjectId(deal_id)
+            job = ProcessingJob.objects.get(id=object_id)
+            job.summary_status = 'PROCESSING'
+            job.save()
 
-            result = summary_service.generate_summary_engine(
-                deal_id=deal_id,
-                temperature=temperature
-            )
+            # Start summary generation in background
+            self.executor.submit(
+                self._generate_summary_background, deal_id, temperature)
 
-            # Return the result
-            return Response(result, status=status.HTTP_200_OK)
+            # Return immediate response
+            return Response({
+                'id': str(deal_id),
+                'summary_status': 'PROCESSING',
+                'message': 'Summary generation started in background.'
+            }, status=status.HTTP_200_OK)
 
+        except DoesNotExist:
+            return Response({"error": f"No processing job found for deal_id {deal_id}"},
+                            status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
-            logger.error(f"Error in SummaryGenerationView: {str(e)}")
+            logger.error(f"Error in SummaryEngineView: {str(e)}")
             logger.error(traceback.format_exc())
-
-            # Return error response
             return Response({
                 'error': str(e)
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class JobStatusView(APIView):
+    """
+    API endpoint to check the status of a processing job
+    """
+
+    def get(self, request, job_id, format=None):
+        try:
+            # Convert string ID to ObjectId
+            object_id = ObjectId(job_id)
+            job = ProcessingJob.objects.get(id=object_id)
+
+            # Convert schema_results from a JSON string to a dictionary if needed
+            if isinstance(job.schema_results, str):
+                try:
+                    job.schema_results = json.loads(job.schema_results)
+                except json.JSONDecodeError:
+                    job.schema_results = {}
+
+            # Serialize the job data
+            serializer = ProcessingJobSerializer(job)
+
+            return Response(serializer.data, status=status.HTTP_200_OK)
+
+        except DoesNotExist:
+            return Response(
+                {"error": f"No processing job found for job_id {job_id}"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        except Exception as e:
+            logger.error(f"Error checking job status: {str(e)}")
+            logger.error(traceback.format_exc())
+            return Response(
+                {"error": str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )

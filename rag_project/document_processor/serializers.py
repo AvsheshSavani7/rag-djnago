@@ -10,6 +10,7 @@ class ProcessingJobSerializer(serializers.Serializer):
     announce_date = serializers.DateTimeField(
         format="%Y-%m-%d", required=False, allow_null=True)
     embedding_status = serializers.CharField()
+    summary_status = serializers.CharField()
     file_url = serializers.URLField()
     parsed_json_url = serializers.URLField(required=False, allow_null=True)
     flattened_json_url = serializers.URLField(required=False, allow_null=True)

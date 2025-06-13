@@ -16,6 +16,7 @@ class ProcessingJob(Document):
     """Model to track document processing jobs"""
 
     EMBEDDING_STATUS_CHOICES = ('PENDING', 'PROCESSING', 'COMPLETED', 'FAILED')
+    SUMMARY_STATUS_CHOICES = ('PENDING', 'PROCESSING', 'COMPLETED', 'FAILED')
 
     # Deal information
     cik = StringField(max_length=20, required=False, null=True)
@@ -25,6 +26,11 @@ class ProcessingJob(Document):
     embedding_status = StringField(
         max_length=20,
         choices=EMBEDDING_STATUS_CHOICES,
+        default='PENDING'
+    )
+    summary_status = StringField(
+        max_length=20,
+        choices=SUMMARY_STATUS_CHOICES,
         default='PENDING'
     )
 
