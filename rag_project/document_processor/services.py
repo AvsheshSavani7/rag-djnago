@@ -175,33 +175,33 @@ class DocumentProcessingService:
 
             # Download flattened JSON
             s3_service = S3Service()
-            # logger.info(
-            #     f"Downloading flattened JSON from URL: {flattened_json_url}")
-            # chunks = s3_service.download_from_url(flattened_json_url)
-            # logger.info(f"Downloaded {len(chunks)} chunks")
+            logger.info(
+                f"Downloading flattened JSON from URL: {flattened_json_url}")
+            chunks = s3_service.download_from_url(flattened_json_url)
+            logger.info(f"Downloaded {len(chunks)} chunks")
 
             # Process embeddings
-            # logger.info("Initializing embedding service")
-            # embedding_service = EmbeddingService()
-            # logger.info(
-            #     f"Starting embedding creation for {len(chunks)} chunks")
-            # result = embedding_service.process_chunks(chunks, str(job_id))
-            # logger.info(f"Embedding completed with result: {result}")
+            logger.info("Initializing embedding service")
+            embedding_service = EmbeddingService()
+            logger.info(
+                f"Starting embedding creation for {len(chunks)} chunks")
+            result = embedding_service.process_chunks(chunks, str(job_id))
+            logger.info(f"Embedding completed with result: {result}")
 
             # Create an instance of the class
             schema_search = SchemaCategorySearch()
 
-            # category_results = schema_search.search_all_schema_categories(
-            #     deal_id=str(job_id)
-            # )
+            category_results = schema_search.search_all_schema_categories(
+                deal_id=str(job_id)
+            )
 
             # For temporary local testing, use Catalent data directly
             # with open('Azek.json', 'r', encoding='utf-8') as f:
             #     category_results = json.load(f)
-            # simplified_data = simplify_json(category_results)
+            simplified_data = simplify_json(category_results)
 
-            # logger.info(f"Simplified data: {category_results}")
-            # job.save_json_to_db(category_results)
+            logger.info(f"Simplified data: {category_results}")
+            job.save_json_to_db(simplified_data)
 
             # Update job status to completed
 
@@ -1427,7 +1427,7 @@ class SummaryGenerationService:
 
                     # Skip unknown or disabled types - matching summary_main.py logic
                     # "Fulsome" is commented out
-                    if summary_type not in ("Concise"):
+                    if summary_type not in ("Concise", "Fulsome"):
                         logger.info(
                             f"Skipping {clause_name} — summary_type '{summary_type}' not recognized.")
                         continue
