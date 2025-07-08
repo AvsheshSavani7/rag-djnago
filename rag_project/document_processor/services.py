@@ -198,6 +198,7 @@ class DocumentProcessingService:
             # For temporary local testing, use Catalent data directly
             # with open('Azek.json', 'r', encoding='utf-8') as f:
             #     category_results = json.load(f)
+
             simplified_data = simplify_json(category_results)
 
             logger.info(f"Simplified data: {category_results}")
@@ -975,7 +976,7 @@ class FlattenProcessor:
             path = []
 
         outputs = []
-        if article.get("article") == "Definitions":
+        if article.get("article", "").lower() == "definitions":
 
             outputs = []
 
@@ -999,6 +1000,18 @@ class FlattenProcessor:
 
             article_text = self.clean_unicode_quotes(
                 article.get("text", "")).strip()
+
+            if article.get("title", "").lower() == "definitions":
+                for item in article.get("definitions"):
+                    outputs.append(
+                        {
+                            "label": f"Definition > {item['term']}",
+                            "original_text": f"{item['term']} {item['definition']}",
+                            "combined_text": f"{item['term']} {item['definition']}",
+                            "deal_name": self.deal_name,
+                        }
+                    )
+                return outputs
 
             if not article.get("sections"):
                 if article_text:

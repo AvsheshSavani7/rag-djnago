@@ -503,6 +503,7 @@ class AnnouncementWithUrlView(APIView):
                 process_result = doc_processor.process_document(
                     file_url=response['data']['jsonUrl'],
                     # file_url="https://rag-mna.s3.eu-north-1.amazonaws.com/parsed_jsons/spirit_airlines__inc__2022-07-28_original.json",
+                    # file_url="https://rag-embedding.s3.eu-north-1.amazonaws.com/parsed_jsons/spirit_airlines__inc__2022-07-28_original.json",
                     deal_id=response['data']['deal_id']
                 )
 
