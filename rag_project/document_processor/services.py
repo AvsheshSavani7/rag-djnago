@@ -1002,16 +1002,17 @@ class FlattenProcessor:
                 article.get("text", "")).strip()
 
             if article.get("title", "").lower() == "definitions":
-                for item in article.get("definitions"):
-                    outputs.append(
-                        {
-                            "label": f"Definition > {item['term']}",
-                            "original_text": f"{item['term']} {item['definition']}",
-                            "combined_text": f"{item['term']} {item['definition']}",
-                            "deal_name": self.deal_name,
-                        }
-                    )
-                return outputs
+                if article.get("definitions"):
+                    for item in article.get("definitions"):
+                        outputs.append(
+                            {
+                                "label": f"Definition > {item['term']}",
+                                "original_text": f"{item['term']} {item['definition']}",
+                                "combined_text": f"{item['term']} {item['definition']}",
+                                "deal_name": self.deal_name,
+                            }
+                        )
+                    return outputs
 
             if not article.get("sections"):
                 if article_text:
