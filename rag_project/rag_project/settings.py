@@ -54,6 +54,7 @@ INSTALLED_APPS = [
     "document_processor",
     "user_auth",
     "gpt_chat",
+    "rss_feeds",
 ]
 
 MIDDLEWARE = [
@@ -128,7 +129,7 @@ if MONGODB_URI:
     )
 else:
     print("❌ No MongoDB connection string found in environment.")
-    
+
 # Dummy database setup required by Django to run management commands
 DATABASES = {
     'default': {

@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RSS Feed WebSocket Example</title>
+    <script src="https://cdn.socket.io/4.7.4/socket.io.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+        .connected { background-color: #d4edda; color: #155724; }
+        .disconnected { background-color: #f8d7da; color: #721c24; }
+        .notification {
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+        .feed-item {
+            border: 1px solid #ddd;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+        }
+        .feed-item h3 {
+            margin: 0 0 10px 0;
+            color: #333;
+        }
+        .feed-item p {
+            margin: 5px 0;
+            color: #666;
+        }
+        .feed-item a {
+            color: #007bff;
+            text-decoration: none;
+        }
+        .feed-item a:hover {
+            text-decoration: underline;
+        }
+        .controls {
+            margin: 20px 0;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+        }
+        button {
+            padding: 8px 16px;
+            margin: 5px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .btn-primary { background-color: #007bff; color: white; }
+        .btn-secondary { background-color: #6c757d; color: white; }
+        .btn-success { background-color: #28a745; color: white; }
+        .btn-danger { background-color: #dc3545; color: white; }
+        #notifications {
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            padding: 10px;
+            background-color: #f8f9fa;
+        }
+    </style>
+</head>
+<body>
+    <h1>RSS Feed WebSocket Example</h1>
+    
+    <div id="status" class="status disconnected">
+        Disconnected
+    </div>
+    
+    <div class="controls">
+        <button id="connectBtn" class="btn-primary" onclick="connect()">Connect</button>
+        <button id="disconnectBtn" class="btn-secondary" onclick="disconnect()" disabled>Disconnect</button>
+        <button id="getRecentBtn" class="btn-success" onclick="getRecentItems()" disabled>Get Recent Items</button>
+        <button id="joinFeedBtn" class="btn-primary" onclick="joinFeed()" disabled>Join Feed</button>
+        <button id="leaveFeedBtn" class="btn-danger" onclick="leaveFeed()" disabled>Leave Feed</button>
+        
+        <div style="margin-top: 10px;">
+            <label for="feedIdInput">Feed ID:</label>
+            <input type="text" id="feedIdInput" placeholder="Enter feed ID">
+            <label for="limitInput">Limit:</label>
+            <input type="number" id="limitInput" value="10" min="1" max="100">
+        </div>
+    </div>
+    
+    <h2>Real-time Notifications</h2>
+    <div id="notifications"></div>
+    
+    <h2>Recent Feed Items</h2>
+    <div id="feedItems"></div>
+
+    <script>
+        let socket;
+        let currentFeedId = null;
+
+        function connect() {
+            // Connect to the WebSocket server
+            socket = io('http://localhost:8000/api/rss/socket.io/', {
+                namespace: '/rss',
+                transports: ['websocket', 'polling']
+            });
+
+            // Connection event handlers
+            socket.on('connect', function() {
+                console.log('Connected to RSS WebSocket');
+                updateStatus('Connected', 'connected');
+                document.getElementById('connectBtn').disabled = true;
+                document.getElementById('disconnectBtn').disabled = false;
+                document.getElementById('getRecentBtn').disabled = false;
+                document.getElementById('joinFeedBtn').disabled = false;
+            });
+
+            socket.on('disconnect', function() {
+                console.log('Disconnected from RSS WebSocket');
+                updateStatus('Disconnected', 'disconnected');
+                document.getElementById('connectBtn').disabled = false;
+                document.getElementById('disconnectBtn').disabled = true;
+                document.getElementById('getRecentBtn').disabled = true;
+                document.getElementById('joinFeedBtn').disabled = true;
+                document.getElementById('leaveFeedBtn').disabled = true;
+            });
+
+            // RSS update event handler
+            socket.on('rss_update', function(data) {
+                console.log('RSS Update received:', data);
+                handleRSSUpdate(data);
+            });
+
+            // Connection confirmation
+            socket.on('connected', function(data) {
+                console.log('Connection confirmed:', data);
+                addNotification('Connected to RSS feed updates', 'success');
+            });
+
+            // Recent items response
+            socket.on('recent_items', function(data) {
+                console.log('Recent items received:', data);
+                displayFeedItems(data.items);
+            });
+
+            // Feed room events
+            socket.on('joined_feed', function(data) {
+                console.log('Joined feed room:', data);
+                addNotification(`Joined feed room: ${data.feed_id}`, 'info');
+                currentFeedId = data.feed_id;
+                document.getElementById('leaveFeedBtn').disabled = false;
+            });
+
+            socket.on('left_feed', function(data) {
+                console.log('Left feed room:', data);
+                addNotification(`Left feed room: ${data.feed_id}`, 'info');
+                currentFeedId = null;
+                document.getElementById('leaveFeedBtn').disabled = true;
+            });
+
+            // Error handling
+            socket.on('error', function(data) {
+                console.error('WebSocket error:', data);
+                addNotification(`Error: ${data.message}`, 'error');
+            });
+        }
+
+        function disconnect() {
+            if (socket) {
+                socket.disconnect();
+            }
+        }
+
+        function getRecentItems() {
+            if (!socket) return;
+            
+            const limit = document.getElementById('limitInput').value;
+            const feedId = document.getElementById('feedIdInput').value;
+            
+            const data = { limit: parseInt(limit) };
+            if (feedId) {
+                data.feed_id = feedId;
+            }
+            
+            socket.emit('get_recent_items', data);
+        }
+
+        function joinFeed() {
+            if (!socket) return;
+            
+            const feedId = document.getElementById('feedIdInput').value;
+            if (!feedId) {
+                alert('Please enter a feed ID');
+                return;
+            }
+            
+            socket.emit('join_feed', { feed_id: feedId });
+        }
+
+        function leaveFeed() {
+            if (!socket || !currentFeedId) return;
+            
+            socket.emit('leave_feed', { feed_id: currentFeedId });
+        }
+
+        function handleRSSUpdate(data) {
+            switch (data.type) {
+                case 'new_feed_items':
+                    addNotification(`New ${data.count} items from ${data.feed.title}`, 'success');
+                    displayFeedItems(data.items);
+                    break;
+                    
+                case 'feed_update':
+                    addNotification(`Feed ${data.action}: ${data.feed.title}`, 'info');
+                    break;
+                    
+                case 'error':
+                    addNotification(`Error: ${data.message}`, 'error');
+                    break;
+                    
+                default:
+                    addNotification(`Unknown update type: ${data.type}`, 'warning');
+            }
+        }
+
+        function addNotification(message, type) {
+            const notifications = document.getElementById('notifications');
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.innerHTML = `
+                <strong>${new Date().toLocaleTimeString()}</strong>: ${message}
+            `;
+            notifications.appendChild(notification);
+            
+            // Auto-scroll to bottom
+            notifications.scrollTop = notifications.scrollHeight;
+            
+            // Remove old notifications (keep last 20)
+            while (notifications.children.length > 20) {
+                notifications.removeChild(notifications.firstChild);
+            }
+        }
+
+        function displayFeedItems(items) {
+            const container = document.getElementById('feedItems');
+            container.innerHTML = '';
+            
+            if (items.length === 0) {
+                container.innerHTML = '<p>No feed items found.</p>';
+                return;
+            }
+            
+            items.forEach(item => {
+                const itemDiv = document.createElement('div');
+                itemDiv.className = 'feed-item';
+                itemDiv.innerHTML = `
+                    <h3><a href="${item.url}" target="_blank">${item.title}</a></h3>
+                    <p><strong>Published:</strong> ${new Date(item.date_published).toLocaleString()}</p>
+                    <p><strong>Description:</strong> ${item.description_text || 'No description'}</p>
+                    ${item.thumbnail ? `<img src="${item.thumbnail}" alt="Thumbnail" style="max-width: 200px; max-height: 150px;">` : ''}
+                    ${item.authors && item.authors.length > 0 ? `<p><strong>Authors:</strong> ${item.authors.map(a => a.name).join(', ')}</p>` : ''}
+                `;
+                container.appendChild(itemDiv);
+            });
+        }
+
+        function updateStatus(message, className) {
+            const status = document.getElementById('status');
+            status.textContent = message;
+            status.className = `status ${className}`;
+        }
+
+        // Auto-connect on page load
+        window.onload = function() {
+            // Uncomment the line below to auto-connect
+            // connect();
+        };
+    </script>
+</body>
+</html>

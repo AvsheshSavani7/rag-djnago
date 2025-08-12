@@ -24,10 +24,11 @@ from .example import ExampleAPIView
 urlpatterns = [
     # Admin path removed
     path("", lambda request: JsonResponse({"status": "API is live ✅"})),
-    path("api/example/", ExampleAPIView.as_view()),  
+    path("api/example/", ExampleAPIView.as_view()),
     path("api/", include("node_proxy.urls")),
     path("api/files/", include("document_processor.urls")),
     path("api/auth/", include("user_auth.urls")),
     path('api/gpt/', include('gpt_chat.urls')),
+    path('api/rss/', include('rss_feeds.urls')),
     # path("docs/", include_docs_urls(title="RAG API")),
 ]
