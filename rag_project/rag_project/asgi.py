@@ -14,13 +14,12 @@ from rss_feeds.websocket_service import sio
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "rag_project.settings")
 
-# application = get_asgi_application()
+# Get Django ASGI application
 django_asgi_app = get_asgi_application()
 
-
-# Mount Socket.IO at the DEFAULT path "/socket.io"
+# Create Socket.IO ASGI application that handles both WebSocket and HTTP
 application = socketio.ASGIApp(
     sio,
     other_asgi_app=django_asgi_app,
-    # socketio_path="socket.io",  # default; keep it default to match clients
+    socketio_path="socket.io"
 )

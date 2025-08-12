@@ -11,7 +11,8 @@ logger = logging.getLogger(__name__)
 # Create Socket.IO server instance
 sio = socketio.AsyncServer(
     async_mode='asgi',
-    cors_allowed_origins='*',
+    cors_allowed_origins=['http://localhost:8080',
+                          'https://rag-summary-fe.onrender.com'],
     logger=True,
     engineio_logger=True
 )

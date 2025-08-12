@@ -7,7 +7,6 @@ from .views import (
     RecentFeedItemsView,
     FeedItemDetailView
 )
-from .websocket_service import socket_app
 
 app_name = 'rss_feeds'
 
@@ -24,7 +23,4 @@ urlpatterns = [
     # Feed items endpoints
     path('items/', RecentFeedItemsView.as_view(), name='recent-items'),
     path('items/<str:item_id>/', FeedItemDetailView.as_view(), name='item-detail'),
-
-    # WebSocket endpoint
-    path('socket.io/', socket_app, name='socketio'),
 ]
