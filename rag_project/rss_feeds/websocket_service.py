@@ -8,11 +8,19 @@ from .serializers import FeedItemSerializer
 
 logger = logging.getLogger(__name__)
 
-# Create Socket.IO server instance
+# Create Socket.IO server instance with proper CORS configuration
 sio = socketio.AsyncServer(
     async_mode='asgi',
-    cors_allowed_origins=['http://localhost:8080',
-                          'https://rag-summary-fe.onrender.com'],
+    cors_allowed_origins=[
+        '*',  # Allow all origins for development
+        'http://localhost:3000',
+        'http://localhost:5500',
+        'http://127.0.0.1:3000',
+        'http://127.0.0.1:5500',
+        'http://localhost:8000',
+        'http://127.0.0.1:8000',
+        'https://rag-django-sq2f.onrender.com'
+    ],
     logger=True,
     engineio_logger=True
 )
@@ -53,7 +61,7 @@ class RSSWebSocketService:
             await sio.emit('rss_update', notification, namespace='/rss')
 
             logger.info(
-                f"Emitted {len(feed_items)} new feed items to {len(sio.rooms)} connected clients")
+                f"Emitted {len(feed_items)} new feed items to connected clients")
 
         except Exception as e:
             logger.error(f"Error emitting feed items: {str(e)}")
