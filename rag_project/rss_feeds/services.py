@@ -43,17 +43,22 @@ class RSSFeedService:
 
                 # Emit WebSocket notification for feed update
                 import asyncio
-                try:
-                    loop = asyncio.get_event_loop()
-                    if loop.is_running():
-                        asyncio.create_task(
+                import threading
+
+                def emit_websocket():
+                    try:
+                        loop = asyncio.new_event_loop()
+                        asyncio.set_event_loop(loop)
+                        loop.run_until_complete(
                             RSSWebSocketService.emit_feed_update(existing_feed, 'updated'))
-                    else:
-                        asyncio.run(RSSWebSocketService.emit_feed_update(
-                            existing_feed, 'updated'))
-                except Exception as e:
-                    logger.warning(
-                        f"Could not emit WebSocket notification: {str(e)}")
+                        loop.close()
+                    except Exception as e:
+                        logger.warning(
+                            f"Could not emit WebSocket notification: {str(e)}")
+
+                thread = threading.Thread(target=emit_websocket)
+                thread.daemon = True
+                thread.start()
 
                 return existing_feed
             else:
@@ -71,17 +76,22 @@ class RSSFeedService:
 
                 # Emit WebSocket notification for new feed
                 import asyncio
-                try:
-                    loop = asyncio.get_event_loop()
-                    if loop.is_running():
-                        asyncio.create_task(
+                import threading
+
+                def emit_websocket():
+                    try:
+                        loop = asyncio.new_event_loop()
+                        asyncio.set_event_loop(loop)
+                        loop.run_until_complete(
                             RSSWebSocketService.emit_feed_update(feed, 'created'))
-                    else:
-                        asyncio.run(
-                            RSSWebSocketService.emit_feed_update(feed, 'created'))
-                except Exception as e:
-                    logger.warning(
-                        f"Could not emit WebSocket notification: {str(e)}")
+                        loop.close()
+                    except Exception as e:
+                        logger.warning(
+                            f"Could not emit WebSocket notification: {str(e)}")
+
+                thread = threading.Thread(target=emit_websocket)
+                thread.daemon = True
+                thread.start()
 
                 return feed
 
@@ -176,19 +186,24 @@ class RSSFeedService:
             if created_items:
                 # Use background task for WebSocket emission
                 import asyncio
-                try:
-                    loop = asyncio.get_event_loop()
-                    if loop.is_running():
-                        # Schedule the emit in the background
-                        asyncio.create_task(
+                import threading
+
+                def emit_websocket():
+                    try:
+                        # Create new event loop for this thread
+                        loop = asyncio.new_event_loop()
+                        asyncio.set_event_loop(loop)
+                        loop.run_until_complete(
                             RSSWebSocketService.emit_new_feed_items(created_items, feed))
-                    else:
-                        # Run in new event loop
-                        asyncio.run(RSSWebSocketService.emit_new_feed_items(
-                            created_items, feed))
-                except Exception as e:
-                    logger.warning(
-                        f"Could not emit WebSocket notification: {str(e)}")
+                        loop.close()
+                    except Exception as e:
+                        logger.warning(
+                            f"Could not emit WebSocket notification: {str(e)}")
+
+                # Run in background thread
+                thread = threading.Thread(target=emit_websocket)
+                thread.daemon = True
+                thread.start()
 
             return {
                 'success': True,

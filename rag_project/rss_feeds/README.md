@@ -236,6 +236,26 @@ http://localhost:8000/api/rss/static/rss_websocket_example.html
 
 3. Connect to WebSocket and test real-time updates
 
+### Live Deployment
+
+The RSS feed system is deployed at:
+- **Webhook URL**: `https://rag-django-sq2f.onrender.com/api/rss/webhook/`
+- **API Base URL**: `https://rag-django-sq2f.onrender.com/api/rss/`
+- **WebSocket URL**: `https://rag-django-sq2f.onrender.com/api/rss/socket.io/`
+
+### Testing Live Deployment
+
+```bash
+# Test webhook
+curl -X POST https://rag-django-sq2f.onrender.com/api/rss/webhook/ \
+  -H "Content-Type: application/json" \
+  -d '{"id":"test","type":"feed_update","feed":{"id":"test","title":"Test","source_url":"https://example.com","rss_feed_url":"https://rss.app/feeds/test.xml","description":"Test","icon":"https://example.com/icon.png"},"data":{"items_new":[],"items_changed":[]}}'
+
+# Test API
+curl https://rag-django-sq2f.onrender.com/api/rss/feeds/
+curl https://rag-django-sq2f.onrender.com/api/rss/items/
+```
+
 ## Admin Interface
 
 Access the Django admin interface to manage feeds and items:
