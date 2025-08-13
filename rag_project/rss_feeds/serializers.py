@@ -30,11 +30,11 @@ class FeedSerializer(serializers.Serializer):
     source_url = serializers.URLField(max_length=1000)
     rss_feed_url = serializers.URLField(max_length=1000)
     description = serializers.CharField(
-        max_length=500, required=False, allow_blank=True)
+        max_length=500, required=False, allow_blank=True, allow_null=True)
     icon = serializers.URLField(
-        max_length=1000, required=False, allow_blank=True)
+        max_length=1000, required=False, allow_blank=True, allow_null=True)
     source = serializers.CharField(
-        max_length=100, required=False, allow_blank=True)
+        max_length=100, required=False, allow_blank=True, allow_null=True)
     created_at = serializers.DateTimeField(read_only=True)
     updated_at = serializers.DateTimeField(read_only=True)
 
