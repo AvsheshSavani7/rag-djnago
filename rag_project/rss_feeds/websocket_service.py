@@ -26,9 +26,6 @@ sio = socketio.AsyncServer(
     engineio_logger=True
 )
 
-# Create Socket.IO application
-socket_app = socketio.ASGIApp(sio)
-
 
 class RSSWebSocketService:
     """Service for handling WebSocket connections and real-time RSS feed updates"""
@@ -59,7 +56,7 @@ class RSSWebSocketService:
             }
 
             # Emit to all connected clients
-            await sio.emit('rss_update', notification, namespace='/rss')
+            await sio.emit('rss_update', notification)
 
             logger.info(
                 f"Emitted {len(feed_items)} new feed items to connected clients")
@@ -88,7 +85,7 @@ class RSSWebSocketService:
                 }
             }
 
-            await sio.emit('rss_update', notification, namespace='/rss')
+            await sio.emit('rss_update', notification)
             logger.info(
                 f"Emitted feed {action} notification for feed: {feed.title}")
 
@@ -112,7 +109,7 @@ class RSSWebSocketService:
                 'timestamp': str(datetime.utcnow())
             }
 
-            await sio.emit('rss_update', notification, namespace='/rss')
+            await sio.emit('rss_update', notification)
             logger.error(f"Emitted error notification: {error_message}")
 
         except Exception as e:
@@ -124,24 +121,17 @@ class RSSWebSocketService:
 async def connect(sid, environ, auth=None):
     """Handle client connection"""
     logger.info(f"Client connected: {sid}")
-
-    # Join the RSS namespace room
-    await sio.enter_room(sid, '/rss')
-
     # Send welcome message
     await sio.emit('connected', {
         'message': 'Connected to RSS feed updates',
         'sid': sid
-    }, room=sid, namespace='/rss')
+    }, room=sid)
 
 
 @sio.event
 async def disconnect(sid):
     """Handle client disconnection"""
     logger.info(f"Client disconnected: {sid}")
-
-    # Leave the RSS namespace room
-    await sio.leave_room(sid, '/rss')
 
 
 @sio.event
@@ -151,23 +141,23 @@ async def join_feed(sid, data):
         feed_id = data.get('feed_id')
         if feed_id:
             room_name = f'feed_{feed_id}'
-            await sio.enter_room(sid, room_name, namespace='/rss')
+            await sio.enter_room(sid, room_name)
             logger.info(f"Client {sid} joined feed room: {room_name}")
 
             await sio.emit('joined_feed', {
                 'feed_id': feed_id,
                 'message': f'Joined feed room: {feed_id}'
-            }, room=sid, namespace='/rss')
+            }, room=sid)
         else:
             await sio.emit('error', {
                 'message': 'feed_id is required'
-            }, room=sid, namespace='/rss')
+            }, room=sid)
 
     except Exception as e:
         logger.error(f"Error joining feed room: {str(e)}")
         await sio.emit('error', {
             'message': f'Error joining feed room: {str(e)}'
-        }, room=sid, namespace='/rss')
+        }, room=sid)
 
 
 @sio.event
@@ -177,23 +167,23 @@ async def leave_feed(sid, data):
         feed_id = data.get('feed_id')
         if feed_id:
             room_name = f'feed_{feed_id}'
-            await sio.leave_room(sid, room_name, namespace='/rss')
+            await sio.leave_room(sid, room_name)
             logger.info(f"Client {sid} left feed room: {room_name}")
 
             await sio.emit('left_feed', {
                 'feed_id': feed_id,
                 'message': f'Left feed room: {feed_id}'
-            }, room=sid, namespace='/rss')
+            }, room=sid)
         else:
             await sio.emit('error', {
                 'message': 'feed_id is required'
-            }, room=sid, namespace='/rss')
+            }, room=sid)
 
     except Exception as e:
         logger.error(f"Error leaving feed room: {str(e)}")
         await sio.emit('error', {
             'message': f'Error leaving feed room: {str(e)}'
-        }, room=sid, namespace='/rss')
+        }, room=sid)
 
 
 @sio.event
@@ -217,7 +207,7 @@ async def get_recent_items(sid, data):
             'items': items_data,
             'count': len(items_data),
             'feed_id': feed_id
-        }, room=sid, namespace='/rss')
+        }, room=sid)
 
         logger.info(f"Sent {len(items_data)} recent items to client {sid}")
 
@@ -225,7 +215,4 @@ async def get_recent_items(sid, data):
         logger.error(f"Error getting recent items: {str(e)}")
         await sio.emit('error', {
             'message': f'Error getting recent items: {str(e)}'
-        }, room=sid, namespace='/rss')
-
-
-# Import datetime for error notifications
+        }, room=sid)
