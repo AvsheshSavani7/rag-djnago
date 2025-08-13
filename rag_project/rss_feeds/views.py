@@ -6,6 +6,7 @@ from django.http import JsonResponse
 from .serializers import (
     FeedSerializer,
     FeedItemSerializer,
+    FeedItemWithSourceSerializer,
     FeedWithItemsSerializer,
     WebhookPayloadSerializer
 )
@@ -113,10 +114,11 @@ class FeedDetailView(APIView):
                 'include_items', 'false').lower() == 'true'
 
             if include_items:
-                feed_items = RSSFeedService.get_feed_items(feed_id)
+                feed_items_with_source = RSSFeedService.get_feed_items_with_source(
+                    feed_id)
                 feed_data = FeedSerializer(feed).data
-                feed_data['feed_items'] = FeedItemSerializer(
-                    feed_items, many=True).data
+                feed_data['feed_items'] = FeedItemWithSourceSerializer(
+                    feed_items_with_source, many=True).data
                 return Response({
                     'success': True,
                     'feed': feed_data
@@ -171,13 +173,15 @@ class FeedItemsView(APIView):
         """
         try:
             limit = int(request.query_params.get('limit', 50))
-            feed_items = RSSFeedService.get_feed_items(feed_id, limit=limit)
+            feed_items_with_source = RSSFeedService.get_feed_items_with_source(
+                feed_id, limit=limit)
 
-            serializer = FeedItemSerializer(feed_items, many=True)
+            serializer = FeedItemWithSourceSerializer(
+                feed_items_with_source, many=True)
             return Response({
                 'success': True,
                 'feed_id': feed_id,
-                'count': len(feed_items),
+                'count': len(feed_items_with_source),
                 'feed_items': serializer.data
             }, status=status.HTTP_200_OK)
 
@@ -201,12 +205,14 @@ class RecentFeedItemsView(APIView):
         """
         try:
             limit = int(request.query_params.get('limit', 100))
-            feed_items = RSSFeedService.get_recent_feed_items(limit=limit)
+            feed_items_with_source = RSSFeedService.get_recent_feed_items_with_source(
+                limit=limit)
 
-            serializer = FeedItemSerializer(feed_items, many=True)
+            serializer = FeedItemWithSourceSerializer(
+                feed_items_with_source, many=True)
             return Response({
                 'success': True,
-                'count': len(feed_items),
+                'count': len(feed_items_with_source),
                 'feed_items': serializer.data
             }, status=status.HTTP_200_OK)
 

@@ -248,6 +248,80 @@ class RSSFeedService:
             return []
 
     @staticmethod
+    def get_recent_feed_items_with_source(limit: int = 100) -> List[Dict]:
+        """Get recent feed items across all feeds with source field from parent feeds"""
+        try:
+            # Get recent feed items
+            feed_items = FeedItem.objects.all().order_by('-date_published').limit(limit)
+
+            # Get all unique feed IDs to fetch feed information efficiently
+            feed_ids = set(item.rss_feed_id for item in feed_items)
+            feeds = {str(feed.id): feed for feed in Feed.objects(
+                id__in=feed_ids)}
+
+            # Convert to list of dictionaries and add source field
+            items_with_source = []
+            for item in feed_items:
+                feed = feeds.get(item.rss_feed_id)
+                item_dict = {
+                    'id': str(item.id),
+                    'url': item.url,
+                    'title': item.title,
+                    'description_text': item.description_text,
+                    'thumbnail': item.thumbnail,
+                    'date_published': item.date_published,
+                    'authors': [{'name': author.name} for author in item.authors] if item.authors else [],
+                    'rss_feed_id': item.rss_feed_id,
+                    'created_at': item.created_at,
+                    'updated_at': item.updated_at,
+                    'source': feed.source if feed else None
+                }
+                items_with_source.append(item_dict)
+
+            return items_with_source
+        except Exception as e:
+            logger.error(
+                f"Error getting recent feed items with source: {str(e)}")
+            return []
+
+    @staticmethod
+    def get_feed_items_with_source(feed_id: str, limit: int = 50) -> List[Dict]:
+        """Get feed items for a specific feed with source field from parent feed"""
+        try:
+            # Get the feed to extract source information
+            feed = Feed.objects(id=feed_id).first()
+            if not feed:
+                logger.warning(f"Feed not found: {feed_id}")
+                return []
+
+            # Get feed items
+            feed_items = FeedItem.objects(rss_feed_id=feed_id).order_by(
+                '-date_published').limit(limit)
+
+            # Convert to list of dictionaries and add source field
+            items_with_source = []
+            for item in feed_items:
+                item_dict = {
+                    'id': str(item.id),
+                    'url': item.url,
+                    'title': item.title,
+                    'description_text': item.description_text,
+                    'thumbnail': item.thumbnail,
+                    'date_published': item.date_published,
+                    'authors': [{'name': author.name} for author in item.authors] if item.authors else [],
+                    'rss_feed_id': item.rss_feed_id,
+                    'created_at': item.created_at,
+                    'updated_at': item.updated_at,
+                    'source': feed.source
+                }
+                items_with_source.append(item_dict)
+
+            return items_with_source
+        except Exception as e:
+            logger.error(f"Error getting feed items with source: {str(e)}")
+            return []
+
+    @staticmethod
     def get_recent_feed_items(limit: int = 100) -> List[FeedItem]:
         """Get recent feed items across all feeds"""
         try:

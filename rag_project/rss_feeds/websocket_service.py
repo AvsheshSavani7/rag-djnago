@@ -40,8 +40,23 @@ class RSSWebSocketService:
             feed: The parent feed
         """
         try:
-            # Serialize feed items
-            items_data = FeedItemSerializer(feed_items, many=True).data
+            # Serialize feed items and add source field
+            items_data = []
+            for item in feed_items:
+                item_dict = {
+                    'id': str(item.id),
+                    'url': item.url,
+                    'title': item.title,
+                    'description_text': item.description_text,
+                    'thumbnail': item.thumbnail,
+                    'date_published': item.date_published,
+                    'authors': [{'name': author.name} for author in item.authors] if item.authors else [],
+                    'rss_feed_id': item.rss_feed_id,
+                    'created_at': item.created_at,
+                    'updated_at': item.updated_at,
+                    'source': feed.source
+                }
+                items_data.append(item_dict)
 
             # Prepare notification payload
             notification = {
@@ -194,14 +209,15 @@ async def get_recent_items(sid, data):
         feed_id = data.get('feed_id')
 
         if feed_id:
-            # Get items for specific feed
-            feed_items = FeedItem.objects(rss_feed_id=feed_id).order_by(
-                '-date_published').limit(limit)
+            # Get items for specific feed with source
+            from .services import RSSFeedService
+            items_data = RSSFeedService.get_feed_items_with_source(
+                feed_id, limit)
         else:
-            # Get recent items from all feeds
-            feed_items = FeedItem.objects.all().order_by('-date_published').limit(limit)
-
-        items_data = FeedItemSerializer(feed_items, many=True).data
+            # Get recent items from all feeds with source
+            from .services import RSSFeedService
+            items_data = RSSFeedService.get_recent_feed_items_with_source(
+                limit)
 
         await sio.emit('recent_items', {
             'items': items_data,

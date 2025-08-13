@@ -23,6 +23,12 @@ class FeedItemSerializer(serializers.Serializer):
     updated_at = serializers.DateTimeField(read_only=True)
 
 
+class FeedItemWithSourceSerializer(FeedItemSerializer):
+    """Serializer for FeedItem model with source field from parent feed"""
+    source = serializers.CharField(
+        max_length=100, required=False, allow_blank=True, allow_null=True)
+
+
 class FeedSerializer(serializers.Serializer):
     """Serializer for Feed model"""
     id = serializers.CharField(read_only=True)
