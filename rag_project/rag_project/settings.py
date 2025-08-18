@@ -13,8 +13,13 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 from datetime import timedelta
 from pathlib import Path
 import os
+import warnings
 from dotenv import load_dotenv
 from mongoengine import connect
+
+# Suppress timezone warnings from dateutil
+warnings.filterwarnings("ignore", category=UserWarning,
+                        module="dateutil.parser")
 
 # Load environment variables from .env file
 load_dotenv()
@@ -55,6 +60,7 @@ INSTALLED_APPS = [
     "user_auth",
     "gpt_chat",
     "rss_feeds",
+    "sec_rss_parser",
 ]
 
 MIDDLEWARE = [

@@ -181,6 +181,7 @@ class RSSFeedService:
             # Create feed items
             created_items = RSSFeedService.create_feed_items(
                 str(feed.id), items_new)
+            print("created_items", created_items)
 
             # Emit WebSocket notification for new feed items
             if created_items:

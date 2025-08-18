@@ -245,3 +245,9 @@ python manage.py runserver 0.0.0.0:8000
 
 #for socket.io connection 
 uvicorn rag_project.asgi:application --host 0.0.0.0 --port 8000 --reload
+
+
+curl http://localhost:8000/api/sec/filings/
+curl http://localhost:8000/api/sec/8k-filings/
+curl http://localhost:8000/api/sec/stats/
+

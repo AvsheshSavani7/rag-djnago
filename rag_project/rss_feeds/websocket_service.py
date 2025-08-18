@@ -49,11 +49,11 @@ class RSSWebSocketService:
                     'title': item.title,
                     'description_text': item.description_text,
                     'thumbnail': item.thumbnail,
-                    'date_published': item.date_published,
                     'authors': [{'name': author.name} for author in item.authors] if item.authors else [],
                     'rss_feed_id': item.rss_feed_id,
-                    'created_at': item.created_at,
-                    'updated_at': item.updated_at,
+                    'date_published': item.date_published.isoformat() if hasattr(item.date_published, 'isoformat') else item.date_published,
+                    'created_at': item.created_at.isoformat() if hasattr(item.created_at, 'isoformat') else item.created_at,
+                    'updated_at': item.updated_at.isoformat() if hasattr(item.updated_at, 'isoformat') else item.updated_at,
                     'source': feed.source
                 }
                 items_data.append(item_dict)

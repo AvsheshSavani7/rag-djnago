@@ -30,5 +30,6 @@ urlpatterns = [
     path("api/auth/", include("user_auth.urls")),
     path('api/gpt/', include('gpt_chat.urls')),
     path('api/rss/', include('rss_feeds.urls')),
+    path('api/sec/', include('sec_rss_parser.urls')),
     # path("docs/", include_docs_urls(title="RAG API")),
 ]
