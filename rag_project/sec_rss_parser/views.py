@@ -5,6 +5,7 @@ from rest_framework.permissions import AllowAny
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 import logging
+import threading
 from datetime import datetime
 from .services import SECFeedProcessor
 from .models import SECFiling, SECFeedStatus
@@ -22,20 +23,41 @@ class ProcessSECFeedView(APIView):
     """API endpoint to manually trigger SEC RSS feed processing"""
     permission_classes = [AllowAny]
 
-    def post(self, request, format=None):
-        try:
-            processor = SECFeedProcessor()
-            result = processor.process_feed()
+    def get(self, request, format=None):
+        """Handle GET requests (for cron jobs)"""
+        return self.process_feed_request()
 
-            if result['success']:
-                return Response(result, status=status.HTTP_200_OK)
-            else:
-                return Response(result, status=status.HTTP_400_BAD_REQUEST)
+    def post(self, request, format=None):
+        """Handle POST requests"""
+        return self.process_feed_request()
+
+    def process_feed_request(self):
+        """Common method to process SEC feed in background"""
+        try:
+            # Start processing in background thread
+            def process_in_background():
+                try:
+                    processor = SECFeedProcessor()
+                    result = processor.process_feed()
+                    logger.info(
+                        f"Background SEC processing completed: {result}")
+                except Exception as e:
+                    logger.error(f"Error in background SEC processing: {e}")
+
+            thread = threading.Thread(target=process_in_background)
+            thread.daemon = True
+            thread.start()
+
+            return Response({
+                'success': True,
+                'message': 'SEC feed processing started in background',
+                'status': 'processing'
+            }, status=status.HTTP_200_OK)
 
         except Exception as e:
-            logger.error(f"Error in ProcessSECFeedView: {e}")
+            logger.error(f"Error starting SEC processing: {e}")
             return Response(
-                {'error': 'Internal server error'},
+                {'error': 'Failed to start processing'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
