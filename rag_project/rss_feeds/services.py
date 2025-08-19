@@ -231,10 +231,10 @@ class RSSFeedService:
             return None
 
     @staticmethod
-    def get_all_feeds(limit: int = 100) -> List[Feed]:
+    def get_all_feeds(limit: int = 1000) -> List[Feed]:
         """Get all feeds with optional limit"""
         try:
-            return list(Feed.objects.all().limit(limit))
+            return list(Feed.objects.all())
         except Exception as e:
             logger.error(f"Error getting all feeds: {str(e)}")
             return []
@@ -243,7 +243,7 @@ class RSSFeedService:
     def get_feed_items(feed_id: str, limit: int = 50) -> List[FeedItem]:
         """Get feed items for a specific feed"""
         try:
-            return list(FeedItem.objects(rss_feed_id=feed_id).order_by('-date_published').limit(limit))
+            return list(FeedItem.objects(rss_feed_id=feed_id).order_by('-date_published'))
         except Exception as e:
             logger.error(f"Error getting feed items: {str(e)}")
             return []
@@ -253,7 +253,7 @@ class RSSFeedService:
         """Get recent feed items across all feeds with source field from parent feeds"""
         try:
             # Get recent feed items
-            feed_items = FeedItem.objects.all().order_by('-date_published').limit(limit)
+            feed_items = FeedItem.objects.all().order_by('-date_published')
 
             # Get all unique feed IDs to fetch feed information efficiently
             feed_ids = set(item.rss_feed_id for item in feed_items)
@@ -297,7 +297,7 @@ class RSSFeedService:
 
             # Get feed items
             feed_items = FeedItem.objects(rss_feed_id=feed_id).order_by(
-                '-date_published').limit(limit)
+                '-date_published')
 
             # Convert to list of dictionaries and add source field
             items_with_source = []
@@ -326,7 +326,7 @@ class RSSFeedService:
     def get_recent_feed_items(limit: int = 100) -> List[FeedItem]:
         """Get recent feed items across all feeds"""
         try:
-            return list(FeedItem.objects.all().order_by('-date_published').limit(limit))
+            return list(FeedItem.objects.all().order_by('-date_published'))
         except Exception as e:
             logger.error(f"Error getting recent feed items: {str(e)}")
             return []
