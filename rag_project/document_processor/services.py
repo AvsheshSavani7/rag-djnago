@@ -258,7 +258,7 @@ class DocumentProcessingService:
             job = ProcessingJob.objects.get(id=object_id)
             logger.info(f"Found job in database: {job}")
 
-            time.sleep(30)
+            # time.sleep(30)
 
             # Update job status to processing
             job.update_embedding_status("PROCESSING")
