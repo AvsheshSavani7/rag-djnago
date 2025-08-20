@@ -33,6 +33,7 @@ class ProcessingJob(Document):
         choices=SUMMARY_STATUS_CHOICES,
         default='PENDING'
     )
+    sec_filing_id = StringField(max_length=100, required=False, null=True)
 
     # Processing fields
     file_url = URLField(max_length=1000, required=True)

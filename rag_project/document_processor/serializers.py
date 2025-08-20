@@ -23,6 +23,7 @@ class ProcessingJobSerializer(serializers.Serializer):
         required=False, allow_null=True)
     summary_docx_url = serializers.URLField(required=False, allow_null=True)
     sec_url = serializers.URLField(required=False, allow_null=True)
+    sec_filing_id = serializers.CharField(required=False, allow_null=True)
 
 
 class FileProcessRequestSerializer(serializers.Serializer):

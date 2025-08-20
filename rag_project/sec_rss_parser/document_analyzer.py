@@ -97,6 +97,7 @@ class SECDocumentAnalyzer:
                 logger.error("OpenAI API key not configured")
                 return {
                     'is_new_deal': None,
+                    'document_kind': None,
                     'confidence': 0,
                     'reasoning': 'OpenAI API key not configured',
                     'error': 'API key missing'
@@ -106,21 +107,36 @@ class SECDocumentAnalyzer:
 You are an expert in analyzing SEC filings and merger & acquisition documents. 
 
 Please analyze the following document excerpt from a Form 8-K filing by {company_name} and determine if this represents:
-1. A NEW DEAL/MERGER/ACQUISITION AGREEMENT
-2. An AMENDMENT to an existing deal/agreement
+1. Is this a NEW DEAL/MERGER/ACQUISITION AGREEMENT or an AMENDMENT to an existing deal/agreement?
+2. Is the agreement an INITIAL Agreement (preliminary, non-binding, like LOI, MOU, Term Sheet, or press release) or a DEFINITIVE Agreement (executed, binding agreement like "Agreement and Plan of Merger")?
 
 Document excerpt:
 {document_text}
 
 Please respond with a JSON object containing:
 - "classification": either "new_deal" or "amendment"
+- "document_kind": either "initial" or "definitive"
 - "confidence": a number from 0-100 indicating your confidence level
 - "reasoning": a brief explanation of your decision
 - "key_indicators": list of key phrases or sections that led to your conclusion
 
 Key indicators to look for:
-- NEW DEAL: "enters into", "execution of", "agreement dated", "new agreement", "definitive agreement", "merger agreement", "purchase agreement"
-- AMENDMENT: "amendment", "amended and restated", "modification", "waiver", "supplement", "first amendment", "second amendment"
+
+1. **Deal Classification**
+   - "new_deal" → if it is a new agreement (merger, acquisition, sale, reorganization).
+   - "amendment" → if it modifies, amends, or restates a prior agreement.
+
+2. **Document Kind**
+   Choose the most precise one:
+   - "mna_definitive" → complete third-party M&A agreement (purchase price, covenants, indemnities, etc.)
+   - "mna_initial" → preliminary non-binding agreement (LOI, MOU, Term Sheet, press release).
+   - "amendment" → amendment or modification to an existing agreement.
+   - "reincorporation_merger" → parent-subsidiary merger, reincorporation, change of domicile, short-form merger.
+   - "internal_reorganization" → intra-group reorganization or simplification agreement.
+   - "other_corporate_agreement" → corporate agreement that doesn’t fit the above.
+
+
+
 
 Respond only with valid JSON.
 """
@@ -149,6 +165,7 @@ Respond only with valid JSON.
 
             analysis_result = {
                 'is_new_deal': is_new_deal,
+                'document_kind': result.get('document_kind', ''),
                 'confidence': result.get('confidence', 0),
                 'reasoning': result.get('reasoning', ''),
                 'key_indicators': result.get('key_indicators', []),
@@ -163,6 +180,7 @@ Respond only with valid JSON.
             logger.error(f"Error parsing GPT JSON response: {e}")
             return {
                 'is_new_deal': None,
+                'document_kind': None,
                 'confidence': 0,
                 'reasoning': 'Failed to parse GPT response',
                 'error': str(e)
@@ -171,6 +189,7 @@ Respond only with valid JSON.
             logger.error(f"Error analyzing document with GPT: {e}")
             return {
                 'is_new_deal': None,
+                'document_kind': None,
                 'confidence': 0,
                 'reasoning': 'GPT analysis failed',
                 'error': str(e)
@@ -231,11 +250,15 @@ Respond only with valid JSON.
                 # New deal
                 filing_data['is_new_deal'] = True
                 filing_data['following'] = False
+                filing_data['document_kind'] = analysis.get(
+                    'document_kind', '')
                 logger.info(
                     f"✅ Classified as NEW DEAL: {filing_data.get('company_name')}")
             elif analysis.get('is_new_deal') is False:
                 # Amendment
                 filing_data['is_new_deal'] = False
+                filing_data['document_kind'] = analysis.get(
+                    'document_kind', '')
                 # You can modify this logic if needed
                 filing_data['following'] = False
                 logger.info(
@@ -244,6 +267,8 @@ Respond only with valid JSON.
                 # Analysis failed
                 filing_data['is_new_deal'] = None
                 filing_data['following'] = False
+                filing_data['document_kind'] = None
+
                 logger.warning(
                     f"❓ Analysis inconclusive: {filing_data.get('company_name')}")
 

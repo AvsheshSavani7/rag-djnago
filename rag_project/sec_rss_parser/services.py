@@ -6,7 +6,7 @@ from datetime import datetime
 import time
 import logging
 import asyncio
-from .models import SECFiling, SECFeedStatus
+from .models import SECFiling, SECFeedStatus, LastCronJob
 from .document_analyzer import SECDocumentAnalyzer
 from .websocket_service import SECWebSocketService
 
@@ -48,7 +48,7 @@ class SECRSSParser:
                 response = self.session.get(
                     self.feed_url, headers=self.headers, timeout=30)
                 response.raise_for_status()
-                print("response.text[:1000]", response.text[:1200])
+                # print("response.text[:1000]", response.text[:1200])
                 return response.text
             except Exception as e:
                 logger.error(
@@ -61,8 +61,36 @@ class SECRSSParser:
     def parse_rss_content(self, rss_content):
         try:
             root = ET.fromstring(rss_content)
-            print("rss_content", rss_content[:1500])
-            print("root", root)
+
+            # print("root", root)
+            last_build_date = root.findall('.//lastBuildDate')
+            if last_build_date:
+                last_build_date = last_build_date[0].text
+            else:
+                last_build_date = None
+            print("last_build_date", last_build_date)
+
+            # Check if this RSS content has already been processed
+            if last_build_date:
+                job_name = "sec_rss_feed"
+                try:
+                    # Try to get existing cron job record
+                    existing_job = LastCronJob.objects(
+                        job_name=job_name).first()
+
+                    if existing_job and existing_job.last_build_date == last_build_date:
+                        print(
+                            f"RSS content already processed. Last build date: {last_build_date}")
+                        return []
+
+                    # Process items if last_build_date is different or doesn't exist
+                    print(
+                        f"Processing RSS content with new last_build_date: {last_build_date}")
+
+                except Exception as db_error:
+                    logger.error(f"Error checking LastCronJob: {db_error}")
+                    print(
+                        f"Error checking database, proceeding with processing: {db_error}")
 
             # Find all item elements
             items = []
@@ -70,13 +98,38 @@ class SECRSSParser:
             print(f"Found {len(item_elements)} item elements")
 
             for i, item in enumerate(item_elements):
-                print(f"\n--- Processing item {i+1} ---")
+                # print(f"\n--- Processing item {i+1} ---")
                 item_data = self.parse_item(item, i+1)
                 if item_data:
                     items.append(item_data)
-                    print(f"Successfully parsed item {i+1}")
+                    # print(f"Successfully parsed item {i+1}")
                 else:
                     print(f"Failed to parse item {i+1}")
+
+            # Update the last_build_date in database after successful processing
+            if last_build_date and items:
+                try:
+                    job_name = "sec_rss_feed"
+                    existing_job = LastCronJob.objects(
+                        job_name=job_name).first()
+
+                    if existing_job:
+                        existing_job.last_build_date = last_build_date
+                        existing_job.save()
+                        print(
+                            f"Updated existing LastCronJob with new last_build_date: {last_build_date}")
+                    else:
+                        new_job = LastCronJob(
+                            job_name=job_name,
+                            last_build_date=last_build_date
+                        )
+                        new_job.save()
+                        print(
+                            f"Created new LastCronJob with last_build_date: {last_build_date}")
+
+                except Exception as db_error:
+                    logger.error(f"Error updating LastCronJob: {db_error}")
+                    print(f"Error updating database: {db_error}")
 
             print(f"Total items parsed: {len(items)}")
             return items
@@ -87,14 +140,14 @@ class SECRSSParser:
 
     def parse_item(self, item_elem, item_number):
         try:
-            print("item_elem", item_elem, item_number)
+            # print("item_elem", item_elem, item_number)
             title = self.get_text(item_elem, 'title')
             link = self.get_text(item_elem, 'link')
             guid = self.get_text(item_elem, 'guid')
             description = self.get_text(item_elem, 'description')
             pubDate = self.get_text(item_elem, 'pubDate')
 
-            print(f"Parsing item: {title} - {description}")
+            # print(f"Parsing item: {title} - {description}")
 
             # Try different ways to find the edgar element
             edgar_elem = item_elem.find(
@@ -108,20 +161,20 @@ class SECRSSParser:
                 edgar_elem = item_elem.find('.//xbrlFiling')
 
             if edgar_elem is None:
-                print(f"No edgar element found for: {title}")
+                # print(f"No edgar element found for: {title}")
                 # Try to find any element with 'xbrlFiling' in the name
                 all_elems = item_elem.findall('.//*')
                 xbrl_elems = [
                     elem for elem in all_elems if 'xbrlFiling' in elem.tag]
-                print(
-                    f"Found {len(xbrl_elems)} elements with 'xbrlFiling' in tag: {[elem.tag for elem in xbrl_elems]}")
+                # print(
+                #     f"Found {len(xbrl_elems)} elements with 'xbrlFiling' in tag: {[elem.tag for elem in xbrl_elems]}")
                 if xbrl_elems:
                     edgar_elem = xbrl_elems[0]
-                    print(f"Using first xbrlFiling element: {edgar_elem.tag}")
+                    # print(f"Using first xbrlFiling element: {edgar_elem.tag}")
                 else:
                     return None
 
-            print(f"Found edgar element for: {title}")
+            # print(f"Found edgar element for: {title}")
 
             company_name = self.get_text(
                 edgar_elem, '{https://www.sec.gov/Archives/edgar}companyName')
@@ -136,11 +189,11 @@ class SECRSSParser:
                 edgar_elem, '{https://www.sec.gov/Archives/edgar}filingDate')
             if not filing_date:
                 filing_date = self.get_text(edgar_elem, 'filingDate')
-                print("filing_date1", filing_date)
+                # print("filing_date1", filing_date)
 
             file_number = self.get_text(
                 edgar_elem, '{https://www.sec.gov/Archives/edgar}fileNumber')
-            print("file_number1", file_number)
+            # print("file_number1", file_number)
             if not file_number:
                 file_number = self.get_text(edgar_elem, 'fileNumber')
 
@@ -186,17 +239,17 @@ class SECRSSParser:
                         tzinfo=ZoneInfo("America/New_York"))
                     dt_utc_iso = dt_et.astimezone(ZoneInfo("UTC")).isoformat()
                     acceptance_datetime_utc = dt_utc_iso
-                    print(
-                        f"Converted acceptance datetime: {acceptance_datetime_utc}")
+                    # print(
+                    #     f"Converted acceptance datetime: {acceptance_datetime_utc}")
                 except Exception as e:
                     print(f"Error converting acceptance datetime: {e}")
                     acceptance_datetime_utc = None
 
-            print(f"Extracted: {company_name} - {form_type} - {cik_number}")
+            # print(f"Extracted: {company_name} - {form_type} - {cik_number}")
 
             xbrl_files = self.parse_xbrl_files(edgar_elem)
 
-            print("xbrl_files1", xbrl_files)
+            # print("xbrl_files1", xbrl_files)
 
             # Check if this is an 8-K filing with EX-2.1 file that ends with .htm
             has_ex21_htm = (
@@ -207,11 +260,11 @@ class SECRSSParser:
                     for file in xbrl_files
                 )
             )
-            print("has_ex21_htm", has_ex21_htm)
+            # print("has_ex21_htm", has_ex21_htm)
 
             if has_ex21_htm:
-                print(
-                    f"✅ Found 8-K filing with EX-2.1 HTM file: {company_name}")
+                # print(
+                #     f"✅ Found 8-K filing with EX-2.1 HTM file: {company_name}")
                 return {
                     'title': title,
                     'link': link,
@@ -246,7 +299,7 @@ class SECRSSParser:
 
     def parse_xbrl_files(self, edgar_elem):
         xbrl_files = []
-        print("edgar_elem1", edgar_elem)
+        # print("edgar_elem1", edgar_elem)
 
         # Try different ways to find xbrlFiles element
         xbrl_files_elem = edgar_elem.find(
@@ -258,7 +311,7 @@ class SECRSSParser:
             # Try different ways to find xbrlFile elements
             file_elems = xbrl_files_elem.findall(
                 './/{https://www.sec.gov/Archives/edgar}xbrlFile')
-            print("file_elems1", file_elems)
+            # print("file_elems1", file_elems)
             if not file_elems:
                 file_elems = xbrl_files_elem.findall('.//xbrlFile')
 
@@ -287,10 +340,10 @@ class SECRSSParser:
                 }
                 if file_type == "EX-2.1" and file_url.endswith(".htm"):
                     xbrl_files.append(file_data)
-                    print(
-                        f"Found XBRL file: {file_data['file']} - {file_data['type']} - {file_data['url']}")
+                    # print(
+                    #     f"Found XBRL file: {file_data['file']} - {file_data['type']} - {file_data['url']}")
 
-        print(f"Total XBRL files found: {len(xbrl_files)}")
+        # print(f"Total XBRL files found: {len(xbrl_files)}")
         return xbrl_files
 
     def get_text(self, elem, tag):
@@ -306,13 +359,13 @@ class SECFeedProcessor:
     def process_feed(self):
         try:
             rss_content = self.parser.fetch_rss_feed()
-            print("rss_content")
+            print("rss_content1", rss_content[:1000])
 
             if not rss_content:
                 return {'success': False, 'error': 'Failed to fetch RSS feed'}
 
             items = self.parser.parse_rss_content(rss_content)
-            print("items", items)
+            # print("items", items)
             new_items_count = 0
 
             for item_data in items:
@@ -426,9 +479,11 @@ class SECFeedProcessor:
                 'has_htm_files': filing.has_htm_files,
                 'is_new_deal': filing.is_new_deal,
                 'following': filing.following,
+                'following_status': filing.following_status,
                 'xbrl_files': filing.xbrl_files,
                 'created_at': safe_isoformat(filing.created_at),
-                'updated_at': safe_isoformat(filing.updated_at)
+                'updated_at': safe_isoformat(filing.updated_at),
+                'document_kind': filing.document_kind
             }
 
             # Emit WebSocket event for new SEC filing

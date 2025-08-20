@@ -135,7 +135,8 @@ class SECWebSocketService:
                     'form_type': filing_data.get('form_type'),
                     'accession_number': filing_data.get('accession_number'),
                     'is_new_deal': filing_data.get('is_new_deal'),
-                    'following': filing_data.get('following', False)
+                    'following': filing_data.get('following', False),
+                    'following_status': filing_data.get('following_status', 'Not Started')
                 },
                 'analysis_result': analysis_result,
                 'timestamp': datetime.utcnow().isoformat()

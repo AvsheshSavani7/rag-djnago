@@ -332,6 +332,8 @@ class AnnouncementWithUrlView(APIView):
             if not missing_fields:
                 return existing_data
 
+            logger.info(f"Extracting missing fields: {missing_fields}")
+
             # Get document content directly from URL
             try:
                 headers = {
@@ -352,12 +354,27 @@ class AnnouncementWithUrlView(APIView):
                 document_content = ""
 
             fields_prompt = ", ".join(missing_fields)
+
+            # Create field-specific instructions based on what's missing
+            field_instructions = []
+            if 'announce_data' in missing_fields:
+                field_instructions.append(
+                    "For `announce_data`: Look for the date the deal was publicly announced, usually in the first paragraph or preamble (e.g., 'dated as of...'). Format: YYYY-MM-DD")
+            if 'target_cik' in missing_fields:
+                field_instructions.append(
+                    "For `target_cik`: Look for the CIK of the company being **acquired** (often labeled 'Company' or 'Target').")
+            if 'target_name' in missing_fields:
+                field_instructions.append(
+                    "For `target_name`: The legal name of the company being **acquired** (often labeled 'Company').")
+            if 'acquired_name' in missing_fields:
+                field_instructions.append(
+                    "For `acquired_name`: The legal name of the **acquiring company** (often labeled 'Parent', 'Acquirer', or 'Buyer').")
+
+            instructions_text = "\n".join(field_instructions)
+
             prompt = f"""Extract the following information from the merger agreement document: {fields_prompt}
             
-            For `announce_data`: Look for the date the deal was publicly announced, usually in the first paragraph or preamble (e.g., "dated as of...").
-            For `target_cik`: Look for the CIK of the company being **acquired** (often labeled "Company" or "Target").
-            For `target_name`: The legal name of the company being **acquired** (often labeled "Company").
-            For `acquired_name`: The legal name of the **acquiring company** (often labeled "Parent", "Acquirer", or "Buyer").
+            {instructions_text}
 
             Document url: {url}
             
@@ -367,7 +384,7 @@ class AnnouncementWithUrlView(APIView):
             Return ONLY a JSON object with the extracted fields. Example:
             {{
                 "target_cik": "{{target_cik}}",
-                "announce_data": "{{announce_data}}",#format: YYYY-MM-DD
+                "announce_data": "{{announce_data}}",
                 "target_name": "{{target_name}}",
                 "acquired_name": "{{acquired_name}}"
             }}
@@ -426,6 +443,7 @@ class AnnouncementWithUrlView(APIView):
 
             # Extract data from request
             url = request.data.get('url')
+            sec_filing_id = request.data.get('sec_filing_id')
             print(f"url:1 {url}")
             if not url:
                 return Response({
@@ -438,7 +456,8 @@ class AnnouncementWithUrlView(APIView):
                 "announce_data": request.data.get('announce_data'),
                 "target_name": request.data.get('target_name'),
                 "acquired_name": request.data.get('acquired_name'),
-                "url": url
+                "url": url,
+                "sec_filing_id": request.data.get('sec_filing_id') if request.data.get('sec_filing_id') else None
             }
 
             # Check if we have all required fields
@@ -450,13 +469,26 @@ class AnnouncementWithUrlView(APIView):
 
             ])
 
+            doc_processor = DocumentProcessingService()
+            doc_processor._send_sec_filing_event(sec_filing_id, "In Progress")
+
             # If not all fields are present, try to extract them using OpenAI
             if not has_all_fields:
                 logger.info(
                     "Not all fields present, attempting to extract using OpenAI")
                 try:
-                    data = self.extract_missing_fields_with_openai(url, data)
-                    print(f"data: {data}")
+                    extracted_data = self.extract_missing_fields_with_openai(
+                        url, data)
+                    print(f"extracted_data: {extracted_data}")
+
+                    # Merge extracted data with existing data (only add missing fields)
+                    for key, value in extracted_data.items():
+                        # Only add if field is missing and has a value
+                        if not data.get(key) and value:
+                            data[key] = value
+                            logger.info(f"Added missing field {key}: {value}")
+
+                    print(f"merged data: {data}")
                 except Exception as e:
                     logger.error(f"Error extracting missing fields: {e}")
                     return Response({
@@ -475,6 +507,8 @@ class AnnouncementWithUrlView(APIView):
                 missing_fields.append('acquired_name')
 
             if missing_fields:
+                doc_processor._send_sec_filing_event(
+                    sec_filing_id, "Fail", f"Could not obtain all required fields: {', '.join(missing_fields)}")
                 return Response({
                     "error": f"Could not obtain all required fields: {', '.join(missing_fields)}"
                 }, status=status.HTTP_400_BAD_REQUEST)
@@ -490,7 +524,8 @@ class AnnouncementWithUrlView(APIView):
                     "target_cik": data.get('target_cik'),
                     "announce_data": data.get('announce_data'),
                     "target_name": data.get('target_name'),
-                    "acquired_name": data.get('acquired_name')
+                    "acquired_name": data.get('acquired_name'),
+                    "sec_filing_id": data.get('sec_filing_id') if data.get('sec_filing_id') else None
                 }
             )
 
@@ -498,13 +533,15 @@ class AnnouncementWithUrlView(APIView):
             if response.get('status') and response.get('data', {}).get('jsonUrl'):
                 # Initialize document processing service
                 doc_processor = DocumentProcessingService()
+                print(f"response: {response}")
 
                 # Process the document using the JSON URL
                 process_result = doc_processor.process_document(
                     file_url=response['data']['jsonUrl'],
                     # file_url="https://rag-mna.s3.eu-north-1.amazonaws.com/parsed_jsons/spirit_airlines__inc__2022-07-28_original.json",
                     # file_url="https://rag-embedding.s3.eu-north-1.amazonaws.com/parsed_jsons/spirit_airlines__inc__2022-07-28_original.json",
-                    deal_id=response['data']['deal_id']
+                    deal_id=response['data']['deal_id'],
+                    sec_filing_id=data.get('sec_filing_id')
                 )
 
                 # Add processing result to response

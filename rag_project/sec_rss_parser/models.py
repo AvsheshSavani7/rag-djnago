@@ -62,8 +62,11 @@ class SECFiling(Document):
     # GPT Analysis fields
     # True=new deal, False=amendment, None=not analyzed
     is_new_deal = BooleanField(required=False, null=True)
+    document_kind = StringField(required=False, null=True)
     # Always False for new deals, can be True for amendments
     following = BooleanField(default=False)
+    # Processing status: "Not Started", "In Progress", "Fail", "Completed"
+    following_status = StringField(default="Not Started", max_length=20)
 
     # Timestamps
     created_at = DateTimeField(default=datetime.utcnow)
@@ -121,3 +124,30 @@ class SECFeedStatus(Document):
 
     def __str__(self):
         return f"SEC Feed Status - {self.last_fetch_time}"
+
+
+class LastCronJob(Document):
+    """Model to store last cron job execution information"""
+    _id = StringField(primary_key=True, default=generate_object_id)
+
+    job_name = StringField(required=True, max_length=100)
+    last_build_date = StringField(required=True, max_length=255)
+
+    # Timestamps
+    created_at = DateTimeField(default=datetime.utcnow)
+    updated_at = DateTimeField(default=datetime.utcnow)
+
+    # MongoDB-specific field
+    v_version = IntField(default=0, db_field="__v")
+
+    meta = {
+        'collection': 'last-cron-job',
+        'indexes': ['job_name']
+    }
+
+    def save(self, *args, **kwargs):
+        self.updated_at = datetime.utcnow()
+        return super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"LastCronJob - {self.job_name} - {self.last_build_date}"

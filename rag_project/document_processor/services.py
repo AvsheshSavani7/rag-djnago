@@ -25,6 +25,7 @@ from .transform_json import simplify_json
 from .summary_engine import process_clause_config, write_docx_summary
 from .summary_engine import RUN_CONCISE_SUMMARIES, RUN_FULSOME_SUMMARIES
 import tempfile
+import time
 load_dotenv()
 
 logger = logging.getLogger(__name__)
@@ -40,7 +41,71 @@ class DocumentProcessingService:
         # Set up executor for background tasks
         self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=5)
 
-    def process_document(self, file_url, deal_id, embed_data=True):
+    def _send_sec_filing_event(self, sec_filing_id, following_status, error_message=None):
+        """
+        Send WebSocket event for SEC filing status update
+
+        Args:
+            sec_filing_id (str): ID of the SEC filing
+            following_status (str): Status to send ('Not Started', 'In Progress', 'Fail', 'Completed')
+            error_message (str, optional): Error message if any
+        """
+        try:
+            from sec_rss_parser.models import SECFiling
+            from sec_rss_parser.websocket_service import SECWebSocketService
+
+            # Find the SEC filing
+            sec_filing = SECFiling.objects(_id=sec_filing_id).first()
+            if not sec_filing:
+                logger.warning(
+                    f"SEC filing {sec_filing_id} not found for event")
+                return
+
+            # Update the following_status field
+            sec_filing.following_status = following_status
+
+            # Update the following boolean field based on status
+            if following_status == "Completed":
+                sec_filing.following = True
+            else:
+                sec_filing.following = False
+
+            sec_filing.save()
+
+            # Prepare filing data for WebSocket
+            filing_data = {
+                '_id': str(sec_filing._id),
+                'company_name': sec_filing.company_name,
+                'form_type': sec_filing.form_type,
+                'accession_number': sec_filing.accession_number,
+                'is_new_deal': sec_filing.is_new_deal,
+                'following': sec_filing.following,
+                'following_status': sec_filing.following_status,
+                'created_at': sec_filing.created_at.isoformat() if sec_filing.created_at else None,
+                'updated_at': sec_filing.updated_at.isoformat() if sec_filing.updated_at else None
+            }
+
+            # Determine event type based on status
+            if following_status == "In Progress":
+                event_type = "processing_started"
+            elif following_status == "Completed":
+                event_type = "processing_completed"
+            elif following_status == "Fail":
+                event_type = "processing_failed"
+            else:
+                event_type = "status_updated"
+
+            # Send WebSocket event
+            SECWebSocketService.emit_sec_analysis_complete(
+                filing_data, event_type)
+
+            logger.info(
+                f"Sent SEC filing event: {sec_filing_id} → {event_type}")
+
+        except Exception as e:
+            logger.error(f"Error sending SEC filing event: {e}")
+
+    def process_document(self, file_url, deal_id, embed_data=True, sec_filing_id=None):
         """
         Process a document file from a URL
 
@@ -48,6 +113,7 @@ class DocumentProcessingService:
             file_url (str): URL of the file to process
             deal_id (str): ID of the deal/job
             embed_data (bool): Whether to also generate embeddings
+            sec_filing_id (str, optional): ID of the SEC filing to update when processing completes
 
         Returns:
             dict: Result of the operation with status and details
@@ -76,6 +142,12 @@ class DocumentProcessingService:
                 object_id = ObjectId(deal_id)
                 job = ProcessingJob.objects.get(id=object_id)
                 logger.info(f"Found job in database: {job}")
+
+                # Send processing started event if sec_filing_id exists
+                if job.sec_filing_id:
+                    self._send_sec_filing_event(
+                        job.sec_filing_id, "In Progress")
+
             except DoesNotExist:
                 error_msg = f"No processing job found for deal_id {deal_id}"
                 logger.error(error_msg)
@@ -96,10 +168,22 @@ class DocumentProcessingService:
             except Exception as proc_e:
                 error_msg = f"Error processing file: {str(proc_e)}"
                 logger.error(error_msg)
+
+                # Send failure event if sec_filing_id exists
+                if job.sec_filing_id:
+                    self._send_sec_filing_event(
+                        job.sec_filing_id, "Fail", error_msg)
+
                 return {"error": error_msg, "status": "failed"}
 
             # Update the job with results
             job.flattened_json_url = result.get("flattened_json_url")
+
+            # Store SEC filing ID if provided
+            if sec_filing_id:
+                job.sec_filing_id = sec_filing_id
+                logger.info(
+                    f"Stored SEC filing ID {sec_filing_id} in job {job.id}")
 
             if job.schema_results is not None and not isinstance(
                 job.schema_results, dict
@@ -145,6 +229,11 @@ class DocumentProcessingService:
                 job.error_message = str(e)
                 job.save()
 
+                # Send failure event if sec_filing_id exists
+                if job.sec_filing_id:
+                    self._send_sec_filing_event(
+                        job.sec_filing_id, "Fail", str(e))
+
             # Return error response
             return {
                 "error": str(e),
@@ -168,6 +257,8 @@ class DocumentProcessingService:
             object_id = ObjectId(job_id)
             job = ProcessingJob.objects.get(id=object_id)
             logger.info(f"Found job in database: {job}")
+
+            time.sleep(30)
 
             # Update job status to processing
             job.update_embedding_status("PROCESSING")
@@ -210,6 +301,10 @@ class DocumentProcessingService:
             job.update_embedding_status("COMPLETED")
             logger.info(f"Updated job status to COMPLETED")
 
+            # Send completion event if sec_filing_id exists
+            if job.sec_filing_id:
+                self._send_sec_filing_event(job.sec_filing_id, "Completed")
+
         except Exception as e:
             logger.error(f"Error processing embeddings: {str(e)}")
 
@@ -219,6 +314,12 @@ class DocumentProcessingService:
                 job = ProcessingJob.objects.get(id=object_id)
                 job.update_embedding_status("FAILED", str(e))
                 logger.error(f"Updated job status to FAILED: {str(e)}")
+
+                # Send failure event if sec_filing_id exists
+                if job.sec_filing_id:
+                    self._send_sec_filing_event(
+                        job.sec_filing_id, "Fail", str(e))
+
             except Exception as inner_e:
                 logger.error(f"Error updating job status: {str(inner_e)}")
 
