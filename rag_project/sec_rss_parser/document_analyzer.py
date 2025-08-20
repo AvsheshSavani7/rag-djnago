@@ -133,9 +133,17 @@ Please respond with a JSON object containing:
 Choose the most precise one:
 
 - "mna_definitive" → ONLY for **Agreement and Plan of Merger** (true third-party merger agreements with purchase price/consideration, reps & warranties, covenants, indemnities, disclosure schedules, etc.).  
-  ⚠️ Do NOT use this for Stock Purchase Agreements or Asset Purchase Agreements.
+  ⚠️ Do NOT use this for Stock Purchase Agreements or Asset Purchase Agreements or Transaction Agreement.
 
 - "purchase_agreement" → for Stock Purchase Agreements, Asset Purchase Agreements, Equity Purchase Agreements, Membership Interest Purchase Agreements, etc.
+
+- "transaction_agreement" → labeled explicitly as "Transaction Agreement" (broader than merger or purchase agreement).
+
+- "joint_venture_agreement" → agreements establishing a joint venture or strategic alliance.
+
+- "support_or_voting_agreement" → shareholder support, tender support, or voting agreements.
+
+- "tender_offer_agreement" → tender offer or acquisition offer agreements.
 
 - "mna_initial" → preliminary non-binding agreements (LOI, MOU, Term Sheet, Expression of Interest, press release).
 
