@@ -106,37 +106,48 @@ class SECDocumentAnalyzer:
             prompt = f"""
 You are an expert in analyzing SEC filings and merger & acquisition documents. 
 
-Please analyze the following document excerpt from a Form 8-K filing by {company_name} and determine if this represents:
+Please analyze the following document excerpt from a Form 8-K filing by {company_name} and determine:
+
 1. Is this a NEW DEAL/MERGER/ACQUISITION AGREEMENT or an AMENDMENT to an existing deal/agreement?
-2. Is the agreement an INITIAL Agreement (preliminary, non-binding, like LOI, MOU, Term Sheet, or press release) or a DEFINITIVE Agreement (executed, binding agreement like "Agreement and Plan of Merger")?
+2. Classify the **document kind** precisely.
 
 Document excerpt:
 {document_text}
 
 Please respond with a JSON object containing:
 - "classification": either "new_deal" or "amendment"
-- "document_kind": either "initial" or "definitive"
-- "confidence": a number from 0-100 indicating your confidence level
-- "reasoning": a brief explanation of your decision
+- "document_kind": one of the categories below
+- "confidence": a number from 0-100
+- "reasoning": brief explanation
 - "key_indicators": list of key phrases or sections that led to your conclusion
 
-Key indicators to look for:
+---
 
-1. **Deal Classification**
-   - "new_deal" → if it is a new agreement (merger, acquisition, sale, reorganization).
-   - "amendment" → if it modifies, amends, or restates a prior agreement.
+### Classification Rules
 
-2. **Document Kind**
-   Choose the most precise one:
-   - "mna_definitive" → complete third-party M&A agreement (purchase price, covenants, indemnities, etc.)
-   - "mna_initial" → preliminary non-binding agreement (LOI, MOU, Term Sheet, press release).
-   - "amendment" → amendment or modification to an existing agreement.
-   - "reincorporation_merger" → parent-subsidiary merger, reincorporation, change of domicile, short-form merger.
-   - "internal_reorganization" → intra-group reorganization or simplification agreement.
-   - "other_corporate_agreement" → corporate agreement that doesn’t fit the above.
+**Deal Classification**
+- "new_deal" → if it is a new agreement (merger, acquisition, sale, or reorganization).
+- "amendment" → if it modifies, amends, or restates a prior agreement.
 
+**Document Kind**
+Choose the most precise one:
 
+- "mna_definitive" → ONLY for **Agreement and Plan of Merger** (true third-party merger agreements with purchase price/consideration, reps & warranties, covenants, indemnities, disclosure schedules, etc.).  
+  ⚠️ Do NOT use this for Stock Purchase Agreements or Asset Purchase Agreements.
 
+- "purchase_agreement" → for Stock Purchase Agreements, Asset Purchase Agreements, Equity Purchase Agreements, Membership Interest Purchase Agreements, etc.
+
+- "mna_initial" → preliminary non-binding agreements (LOI, MOU, Term Sheet, Expression of Interest, press release).
+
+- "amendment" → amendment or modification to an existing agreement.
+
+- "reincorporation_merger" → parent-subsidiary merger, reincorporation, change of domicile, short-form merger.
+
+- "internal_reorganization" → intra-group reorganization, simplification agreement.
+
+- "other_corporate_agreement" → fallback if none of the above fit.
+
+---
 
 Respond only with valid JSON.
 """

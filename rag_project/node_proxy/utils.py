@@ -1,6 +1,8 @@
 import requests
 from django.conf import settings
 import logging
+
+from rag_project.document_processor.services import DocumentProcessingService
 from .models import ApiRequestLog
 
 logger = logging.getLogger(__name__)
@@ -78,6 +80,11 @@ def call_node_api(endpoint, method='GET', data=None, params=None):
         if hasattr(e, 'response') and e.response is not None:
             logger.error(f"Response status code: {e.response.status_code}")
             logger.error(f"Response content: {e.response.content}")
+        if data.get('sec_filing_id'):
+            logger.error(f"sec_filing_id: {data.get('sec_filing_id')}")
+            doc_processor = DocumentProcessingService()
+            doc_processor._send_sec_filing_event(
+                data.get('sec_filing_id'), "Fail", str(e))
 
         # Log error only if no previous log was created
         if not log_entry_created:
