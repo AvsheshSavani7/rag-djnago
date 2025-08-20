@@ -2,7 +2,7 @@ import requests
 from django.conf import settings
 import logging
 
-from rag_project.document_processor.services import DocumentProcessingService
+from document_processor.services import DocumentProcessingService
 from .models import ApiRequestLog
 
 logger = logging.getLogger(__name__)
