@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import ProcessingJob
+from .models import ProcessingJob, SearchQuery, Tweet, CompanyProducts, CompetitiveAnalysis
 
 
 class ProcessingJobSerializer(serializers.Serializer):
@@ -21,9 +21,72 @@ class ProcessingJobSerializer(serializers.Serializer):
     schema_processing_completed = serializers.BooleanField()
     schema_processing_timestamp = serializers.DateTimeField(
         required=False, allow_null=True)
+    RF1_approach_done = serializers.BooleanField()
+    RF2_approach_done = serializers.BooleanField()
+    RF3_approach_done = serializers.BooleanField()
+    twitter_details = serializers.JSONField(required=False, allow_null=True)
     summary_docx_url = serializers.URLField(required=False, allow_null=True)
     sec_url = serializers.URLField(required=False, allow_null=True)
     sec_filing_id = serializers.CharField(required=False, allow_null=True)
+
+
+class SearchQuerySerializer(serializers.Serializer):
+    """Serializer for SearchQuery model"""
+    id = serializers.CharField(read_only=True)
+    search_query = serializers.CharField()
+    deal_id = serializers.CharField()
+    approach = serializers.CharField()
+    combination = serializers.JSONField()
+    total_tweets = serializers.IntegerField()
+    created_at = serializers.DateTimeField(
+        format="%Y-%m-%d %H:%M:%S", read_only=True)
+    updated_at = serializers.DateTimeField(
+        format="%Y-%m-%d %H:%M:%S", read_only=True)
+
+
+class TweetSerializer(serializers.Serializer):
+    """Serializer for Tweet model"""
+    id = serializers.CharField(read_only=True)
+    search_query_id = serializers.CharField()
+    tweet = serializers.JSONField()
+    created_at = serializers.DateTimeField(
+        format="%Y-%m-%d %H:%M:%S", read_only=True)
+
+
+class CompanyProductsSerializer(serializers.Serializer):
+    """Serializer for CompanyProducts model"""
+    id = serializers.CharField(read_only=True)
+    deal_id = serializers.CharField()
+    company = serializers.CharField()
+    company_type = serializers.ChoiceField(choices=['target', 'acquire'])
+    products = serializers.ListField(child=serializers.CharField())
+    gpt_model_used = serializers.CharField()
+    extraction_timestamp = serializers.DateTimeField(
+        format="%Y-%m-%d %H:%M:%S", read_only=True)
+    processing_status = serializers.ChoiceField(
+        choices=['pending', 'completed', 'failed'])
+    created_at = serializers.DateTimeField(
+        format="%Y-%m-%d %H:%M:%S", read_only=True)
+    updated_at = serializers.DateTimeField(
+        format="%Y-%m-%d %H:%M:%S", read_only=True)
+
+
+class CompetitiveAnalysisSerializer(serializers.Serializer):
+    """Serializer for CompetitiveAnalysis model"""
+    id = serializers.CharField(read_only=True)
+    deal_id = serializers.CharField()
+    target_company_products = serializers.CharField()  # Reference ID
+    acquire_company_products = serializers.CharField()  # Reference ID
+    competitive_pairs = serializers.JSONField()
+    gpt_model_used = serializers.CharField()
+    analysis_timestamp = serializers.DateTimeField(
+        format="%Y-%m-%d %H:%M:%S", read_only=True)
+    processing_status = serializers.ChoiceField(
+        choices=['pending', 'completed', 'failed'])
+    created_at = serializers.DateTimeField(
+        format="%Y-%m-%d %H:%M:%S", read_only=True)
+    updated_at = serializers.DateTimeField(
+        format="%Y-%m-%d %H:%M:%S", read_only=True)
 
 
 class FileProcessRequestSerializer(serializers.Serializer):

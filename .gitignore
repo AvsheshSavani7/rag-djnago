@@ -12,3 +12,5 @@ __pycache__/
 .env
 .venv/
 rag_project/.streamlit/config.toml
+
+rag_project/document_processor/twitter_utils/twitter_search_results/

@@ -26,6 +26,9 @@ from .summary_engine import process_clause_config, write_docx_summary
 from .summary_engine import RUN_CONCISE_SUMMARIES, RUN_FULSOME_SUMMARIES
 import tempfile
 import time
+# Import will be done dynamically when needed to avoid circular imports
+import sys
+
 load_dotenv()
 
 logger = logging.getLogger(__name__)
@@ -304,6 +307,47 @@ class DocumentProcessingService:
             # Send completion event if sec_filing_id exists
             if job.sec_filing_id:
                 self._send_sec_filing_event(job.sec_filing_id, "Completed")
+
+             # After processing embeddings, run Twitter search for all approaches
+
+            # Import all approach modules
+            from document_processor.twitter_utils import riffle_approach_1, riffle_approach_3
+
+            # Run Twitter search approaches (Twitter handles will be found during RF1 processing)
+            # Configuration: You can modify this to run specific approaches only
+            # Set to None to run all approaches, or specify a list like ["RF1", "RF3"]
+            # None = run all, or ["RF1", "RF2", "RF3"] for specific ones
+            RUN_APPROACHES = None
+
+            # Define all available approaches
+            approaches = [
+                ("RF1", riffle_approach_1, "--approach=1"),
+                ("RF3", riffle_approach_3, "--approach=3")
+            ]
+
+            # Filter approaches if specific ones are configured
+            if RUN_APPROACHES is not None:
+                approaches = [
+                    app for app in approaches if app[0] in RUN_APPROACHES]
+
+            logger.info(
+                f"Running {len(approaches)} Twitter search approach(es) for deal_id: {job_id}")
+
+            for approach_name, approach_module, approach_flag in approaches:
+                try:
+                    orig_argv = sys.argv.copy()
+                    sys.argv = [sys.argv[0], str(job_id), approach_flag]
+                    logger.info(
+                        f"Running Twitter search ({approach_name}) for deal_id: {job_id}")
+                    approach_module.main()
+                    sys.argv = orig_argv
+                    logger.info(
+                        f"Completed {approach_name} for deal_id: {job_id}")
+                except Exception as e:
+                    logger.error(
+                        f"Error running {approach_name} for deal_id {job_id}: {str(e)}")
+                    sys.argv = orig_argv
+                    # Continue with next approach even if one fails
 
         except Exception as e:
             logger.error(f"Error processing embeddings: {str(e)}")

@@ -7,6 +7,8 @@ from mongoengine import (
     IntField,
     # DictField,
     DynamicField,
+    ReferenceField,
+    ListField,
 )
 from datetime import datetime
 import json
@@ -48,6 +50,15 @@ class ProcessingJob(Document):
     schema_results = DynamicField(null=True)
     schema_processing_completed = BooleanField(default=False)
     schema_processing_timestamp = DateTimeField(required=False, null=True)
+
+    # Twitter search processing flags
+    RF1_approach_done = BooleanField(default=False)
+    RF2_approach_done = BooleanField(default=False)
+    RF3_approach_done = BooleanField(default=False)
+
+    # Twitter handles information
+    # Store Twitter handles for companies and subsidiaries
+    twitter_details = DynamicField(default=[])
 
     # Error information
     error_message = StringField(required=False, null=True)
@@ -138,3 +149,136 @@ class ProcessingJob(Document):
         self.schema_processing_timestamp = datetime.now()
         self.save()
         return self
+
+
+class SearchQuery(Document):
+    """Model to store Twitter search queries"""
+
+    # Search query information
+    search_query = StringField(max_length=1000, required=True)
+    deal_id = StringField(max_length=50, required=True)
+    approach = StringField(max_length=10, default="RF1")
+    # Stores company combination data
+    combination = DynamicField(required=True)
+    # Total number of tweets found for this search query
+    total_tweets = IntField(default=0)
+
+    # Timestamps
+    created_at = DateTimeField(default=datetime.utcnow)
+    updated_at = DateTimeField(default=datetime.utcnow)
+
+    meta = {
+        'collection': 'search_queries',
+        'ordering': ['-created_at'],
+        'indexes': [
+            'deal_id',
+            'approach',
+            'created_at'
+        ]
+    }
+
+    def __str__(self):
+        return f"SearchQuery: {self.search_query[:50]}... (Deal: {self.deal_id})"
+
+
+class Tweet(Document):
+    """Model to store individual tweets"""
+
+    # Reference to search query
+    search_query_id = ReferenceField(SearchQuery, required=True)
+
+    # Tweet data
+    tweet = DynamicField(required=True)  # Stores the complete tweet object
+
+    # Timestamps
+    created_at = DateTimeField(default=datetime.utcnow)
+
+    meta = {
+        'collection': 'tweets',
+        'ordering': ['-created_at'],
+        'indexes': [
+            'search_query_id',
+            'created_at'
+        ]
+    }
+
+    def __str__(self):
+        tweet_text = ""
+        if isinstance(self.tweet, dict) and 'text' in self.tweet:
+            tweet_text = self.tweet['text'][:50]
+        return f"Tweet: {tweet_text}... (Query: {self.search_query_id.id})"
+
+
+class CompanyProducts(Document):
+    """Model to store company product lists extracted by GPT"""
+
+    # Company and deal information
+    deal_id = StringField(max_length=50, required=True)
+    company = StringField(max_length=255, required=True)
+    company_type = StringField(max_length=20, choices=[
+                               'target', 'acquire'], required=True)
+
+    # Product information
+    # Structured product data with categories and descriptions
+    products = DynamicField()  # Store the complete structured JSON data
+
+    # Processing metadata
+    gpt_model_used = StringField(max_length=50, default="gpt-4.1")
+    extraction_timestamp = DateTimeField(default=datetime.utcnow)
+    processing_status = StringField(
+        max_length=20, choices=['pending', 'completed', 'failed'], default='pending')
+
+    # Timestamps
+    created_at = DateTimeField(default=datetime.utcnow)
+    updated_at = DateTimeField(default=datetime.utcnow)
+
+    meta = {
+        'collection': 'company_products',
+        'ordering': ['-created_at'],
+        'indexes': [
+            'deal_id',
+            'company_type',
+            'company',
+            'created_at'
+        ]
+    }
+
+    def __str__(self):
+        return f"CompanyProducts: {self.company} ({self.company_type}) - {len(self.products)} products (Deal: {self.deal_id})"
+
+
+class CompetitiveAnalysis(Document):
+    """Model to store competitive product analysis results"""
+
+    # Deal and company references
+    deal_id = StringField(max_length=50, required=True)
+    target_company_products = ReferenceField(CompanyProducts, required=True)
+    acquire_company_products = ReferenceField(CompanyProducts, required=True)
+
+    # Competitive analysis results
+    # Array of competitive product pairs
+    competitive_pairs = ListField(DynamicField())
+    # Example structure: [{"target_product": "Product A", "acquire_product": "Product 1", "competition_score": 0.85, "analysis": "..."}]
+
+    # Analysis metadata
+    gpt_model_used = StringField(max_length=50, default="gpt-4.1")
+    analysis_timestamp = DateTimeField(default=datetime.utcnow)
+    processing_status = StringField(
+        max_length=20, choices=['pending', 'completed', 'failed'], default='pending')
+
+    # Timestamps
+    created_at = DateTimeField(default=datetime.utcnow)
+    updated_at = DateTimeField(default=datetime.utcnow)
+
+    meta = {
+        'collection': 'competitive_products',
+        'ordering': ['-created_at'],
+        'indexes': [
+            'deal_id',
+            'created_at',
+            'processing_status'
+        ]
+    }
+
+    def __str__(self):
+        return f"CompetitiveAnalysis: Deal {self.deal_id} - {len(self.competitive_pairs)} pairs"

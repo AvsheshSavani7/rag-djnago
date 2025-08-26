@@ -450,9 +450,23 @@ class AnnouncementWithUrlView(APIView):
                     "error": "URL is required"
                 }, status=status.HTTP_400_BAD_REQUEST)
 
+            # Extract CIK from SEC URL if available
+            extracted_cik = None
+            if url and '/data/' in url:
+                try:
+                    # Extract CIK from URL path after /data/
+                    url_parts = url.split('/data/')
+                    if len(url_parts) > 1:
+                        cik_part = url_parts[1].split('/')[0]
+                        # Pad with leading zeros to make it 10 digits
+                        extracted_cik = cik_part.zfill(10)
+                        logger.info(f"Extracted CIK from URL: {extracted_cik}")
+                except Exception as e:
+                    logger.warning(f"Could not extract CIK from URL: {e}")
+
             # Extract other fields
             data = {
-                "target_cik": request.data.get('target_cik'),
+                "target_cik": request.data.get('target_cik') or extracted_cik,
                 "announce_data": request.data.get('announce_data'),
                 "target_name": request.data.get('target_name'),
                 "acquired_name": request.data.get('acquired_name'),
