@@ -17,13 +17,13 @@ from document_processor.models import ProcessingJob
 class TwitterHandleFinder:
     """Service for finding company Twitter handles using GPT"""
 
-    def __init__(self, api_key: Optional[str] = None, model: str = "gpt-4.1"):
+    def __init__(self, api_key: Optional[str] = None, model: str = "gpt-4.1-mini"):
         """
         Initialize Twitter Handle Finder
 
         Args:
             api_key: OpenAI API key (defaults to environment variable)
-            model: GPT model to use (default: gpt-4.1)
+            model: GPT model to use (default: gpt-4.1-mini)
         """
         self.api_key = api_key or os.getenv('OPENAI_API_KEY')
         if not self.api_key:

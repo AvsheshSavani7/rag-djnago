@@ -6,7 +6,7 @@ Common functionality for cleaning up existing search data
 
 import logging
 from typing import Optional
-from document_processor.models import SearchQuery, Tweet
+from document_processor.models import SearchQuery, Tweet, Followers, FollowersMetadata
 
 
 class TwitterCleanupUtils:
@@ -45,6 +45,23 @@ class TwitterCleanupUtils:
             self.logger.info(
                 f"Cleaned up {total_queries} search queries and {total_tweets_deleted} tweets for deal {deal_id} with approach {approach}")
 
+            # Also clean up followers data if it's a GUNSHOT approach
+            if approach == "GUNSHOT":
+                # Clean up follower chunks
+                existing_followers = Followers.objects.filter(
+                    deal_id=deal_id, approach=approach)
+                followers_count = len(existing_followers)
+                existing_followers.delete()
+
+                # Clean up follower metadata
+                existing_metadata = FollowersMetadata.objects.filter(
+                    deal_id=deal_id, approach=approach)
+                metadata_count = len(existing_metadata)
+                existing_metadata.delete()
+
+                self.logger.info(
+                    f"Cleaned up {followers_count} follower chunks and {metadata_count} metadata records for deal {deal_id} with approach {approach}")
+
         except Exception as e:
             self.logger.error(
                 f"Error cleaning up existing search data for deal {deal_id}: {e}")
@@ -69,12 +86,28 @@ class TwitterCleanupUtils:
                 tweets = Tweet.objects(search_query_id=query)
                 total_tweets += len(tweets)
 
-            return {
+            stats = {
                 'total_queries': len(existing_queries),
                 'total_tweets': total_tweets,
                 'deal_id': deal_id,
                 'approach': approach
             }
+
+            # Add followers stats if it's a GUNSHOT approach
+            if approach == "GUNSHOT":
+                # Get metadata for accurate follower counts
+                existing_metadata = FollowersMetadata.objects.filter(
+                    deal_id=deal_id, approach=approach)
+                total_followers = sum(
+                    f.total_followers for f in existing_metadata)
+                total_chunks = sum(
+                    f.total_chunks for f in existing_metadata)
+
+                stats['total_followers_records'] = len(existing_metadata)
+                stats['total_followers'] = total_followers
+                stats['total_follower_chunks'] = total_chunks
+
+            return stats
 
         except Exception as e:
             self.logger.error(

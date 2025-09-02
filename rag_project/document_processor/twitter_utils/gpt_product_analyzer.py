@@ -17,13 +17,13 @@ from document_processor.models import ProcessingJob, CompanyProducts, Competitiv
 class GPTProductAnalyzer:
     """Service for analyzing company products and competitive relationships using GPT"""
 
-    def __init__(self, api_key: Optional[str] = None, model: str = "gpt-4.1"):
+    def __init__(self, api_key: Optional[str] = None, model: str = "gpt-4.1-mini"):
         """
         Initialize GPT Product Analyzer
 
         Args:
             api_key: OpenAI API key (defaults to environment variable)
-            model: GPT model to use (default: gpt-4.1)
+            model: GPT model to use (default: gpt-4.1-mini)
         """
         self.api_key = api_key or os.getenv('OPENAI_API_KEY')
         if not self.api_key:
@@ -193,7 +193,7 @@ Only return JSON, no additional text.
                 "target_product": "Product A",
                 "acquire_product": "Product 1",
                 "competition_score": 0.85,
-                "analysis": "Both products serve the same market segment with similar core functionality..."
+                "analysis": "Both products serve the same market segment with similar core functionality...(very short analysis)"
               }}
             ]
             
@@ -211,6 +211,8 @@ Only return JSON, no additional text.
             )
 
             content = response.choices[0].message.content.strip()
+
+            self.logger.info(f"GPT competitive analysis response: {content}")
 
             # Parse JSON response
             try:

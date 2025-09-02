@@ -24,6 +24,7 @@ class ProcessingJobSerializer(serializers.Serializer):
     RF1_approach_done = serializers.BooleanField()
     RF2_approach_done = serializers.BooleanField()
     RF3_approach_done = serializers.BooleanField()
+    GUNSHOT_approach_done = serializers.BooleanField()
     twitter_details = serializers.JSONField(required=False, allow_null=True)
     summary_docx_url = serializers.URLField(required=False, allow_null=True)
     sec_url = serializers.URLField(required=False, allow_null=True)
@@ -51,6 +52,8 @@ class TweetSerializer(serializers.Serializer):
     tweet = serializers.JSONField()
     created_at = serializers.DateTimeField(
         format="%Y-%m-%d %H:%M:%S", read_only=True)
+    approach = serializers.CharField()
+    search_query_info = serializers.JSONField()
 
 
 class CompanyProductsSerializer(serializers.Serializer):
@@ -83,6 +86,37 @@ class CompetitiveAnalysisSerializer(serializers.Serializer):
         format="%Y-%m-%d %H:%M:%S", read_only=True)
     processing_status = serializers.ChoiceField(
         choices=['pending', 'completed', 'failed'])
+    created_at = serializers.DateTimeField(
+        format="%Y-%m-%d %H:%M:%S", read_only=True)
+    updated_at = serializers.DateTimeField(
+        format="%Y-%m-%d %H:%M:%S", read_only=True)
+
+
+class HighValueFollowersSerializer(serializers.Serializer):
+    """Serializer for HighValueFollowers model"""
+    id = serializers.CharField(read_only=True)
+    deal_id = serializers.CharField()
+    company_name = serializers.CharField()
+    company_handle = serializers.CharField()
+    follower_id = serializers.CharField()
+    name = serializers.CharField(required=False, allow_null=True)
+    screen_name = serializers.CharField(required=False, allow_null=True)
+    description = serializers.CharField(required=False, allow_null=True)
+    location = serializers.CharField(required=False, allow_null=True)
+    followers_count = serializers.IntegerField()
+    statuses_count = serializers.IntegerField()
+    protected = serializers.BooleanField()
+    verified = serializers.BooleanField()
+    created_at_twitter = serializers.DateTimeField(
+        format="%Y-%m-%d %H:%M:%S", required=False, allow_null=True)
+    overall_score = serializers.IntegerField()
+    reason = serializers.CharField(required=False, allow_null=True)
+    key_indicators = serializers.ListField(child=serializers.CharField())
+    analysis_timestamp = serializers.DateTimeField(
+        format="%Y-%m-%d %H:%M:%S", read_only=True)
+    gpt_model_used = serializers.CharField()
+    processing_status = serializers.CharField()
+    approach = serializers.CharField()
     created_at = serializers.DateTimeField(
         format="%Y-%m-%d %H:%M:%S", read_only=True)
     updated_at = serializers.DateTimeField(

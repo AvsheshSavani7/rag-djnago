@@ -9,10 +9,12 @@ import threading
 import concurrent.futures
 import json
 
-from .models import ProcessingJob
+from .models import ProcessingJob, CompanyProducts, CompetitiveAnalysis, HighValueFollowers, SearchQuery, Tweet
 from .serializers import (
     ProcessingJobSerializer,
-    FileProcessRequestSerializer
+    FileProcessRequestSerializer,
+    HighValueFollowersSerializer,
+    TweetSerializer
 )
 from .services import FlattenProcessor, EmbeddingService, S3Service, ChatWithAIService, SummaryGenerationService
 from mongoengine.errors import DoesNotExist, ValidationError
@@ -172,13 +174,85 @@ class ProcessingJobDetailView(APIView):
                     job.schema_results = {}
 
             serializer = ProcessingJobSerializer(job)
-            return Response(serializer.data, status=status.HTTP_200_OK)
+            job_data = serializer.data
+
+            # Add product information to the job
+            deal_id = job_data['id']
+
+            # Fetch company products for this deal
+            try:
+                # Get products for both target and acquire companies
+                company_products = CompanyProducts.objects(deal_id=deal_id)
+                target_products = []
+                acquire_products = []
+
+                for cp in company_products:
+                    if cp.company_type == 'target':
+                        target_products = self._extract_product_names(
+                            cp.products)
+                    elif cp.company_type == 'acquire':
+                        acquire_products = self._extract_product_names(
+                            cp.products)
+
+                # Get competitive analysis if available
+                competitive_analysis = None
+                try:
+                    comp_analysis = CompetitiveAnalysis.objects(
+                        deal_id=deal_id).first()
+                    if comp_analysis:
+                        competitive_analysis = {
+                            'competitive_pairs': comp_analysis.competitive_pairs,
+                            'analysis_timestamp': comp_analysis.analysis_timestamp.isoformat() if comp_analysis.analysis_timestamp else None,
+                            'processing_status': comp_analysis.processing_status
+                        }
+                except Exception as e:
+                    logger.warning(
+                        f"Could not fetch competitive analysis for deal {deal_id}: {e}")
+
+                # Add product information to the job
+                job_data['products'] = {
+                    'target_company_products': target_products,
+                    'acquire_company_products': acquire_products,
+                    'competitive_analysis': competitive_analysis
+                }
+
+            except Exception as e:
+                logger.warning(
+                    f"Could not fetch products for deal {deal_id}: {e}")
+                job_data['products'] = {
+                    'target_company_products': [],
+                    'acquire_company_products': [],
+                    'competitive_analysis': None
+                }
+
+            return Response(job_data, status=status.HTTP_200_OK)
 
         except (DoesNotExist, ValidationError):
             return Response({"error": "Job not found or invalid ID."}, status=status.HTTP_404_NOT_FOUND)
 
         except Exception as e:
             return Response({"error": f"Unexpected error: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    def _extract_product_names(self, products):
+        """Helper method to extract product names from structured product data"""
+        product_names = []
+        try:
+            if isinstance(products, list):
+                for category in products:
+                    if isinstance(category, dict) and 'products' in category:
+                        for product in category['products']:
+                            if isinstance(product, dict) and 'name' in product:
+                                product_names.append(product['name'])
+                            elif isinstance(product, str):
+                                product_names.append(product)
+                    elif isinstance(category, str):
+                        product_names.append(category)
+            elif isinstance(products, str):
+                product_names.append(products)
+        except Exception as e:
+            logger.warning(f"Error extracting product names: {e}")
+
+        return product_names
 
 
 class ProcessEmbeddingsView(APIView):
@@ -244,11 +318,62 @@ class ListAllDealsView(APIView):
 
             # Serialize the deals
             serializer = ProcessingJobSerializer(jobs, many=True)
+            deals_data = serializer.data
 
-            # Return the serialized data
+            # Add product information to each deal
+            for deal in deals_data:
+                deal_id = deal['id']
+
+                # Fetch company products for this deal
+                try:
+                    # Get products for both target and acquire companies
+                    company_products = CompanyProducts.objects(deal_id=deal_id)
+                    target_products = []
+                    acquire_products = []
+
+                    for cp in company_products:
+                        if cp.company_type == 'target':
+                            target_products = self._extract_product_names(
+                                cp.products)
+                        elif cp.company_type == 'acquire':
+                            acquire_products = self._extract_product_names(
+                                cp.products)
+
+                    # Get competitive analysis if available
+                    competitive_analysis = None
+                    try:
+                        comp_analysis = CompetitiveAnalysis.objects(
+                            deal_id=deal_id).first()
+                        if comp_analysis:
+                            competitive_analysis = {
+                                'competitive_pairs': comp_analysis.competitive_pairs,
+                                'analysis_timestamp': comp_analysis.analysis_timestamp.isoformat() if comp_analysis.analysis_timestamp else None,
+                                'processing_status': comp_analysis.processing_status
+                            }
+                    except Exception as e:
+                        logger.warning(
+                            f"Could not fetch competitive analysis for deal {deal_id}: {e}")
+
+                    # Add product information to the deal
+                    deal['products'] = {
+                        'target_company_products': target_products,
+                        'acquire_company_products': acquire_products,
+                        'competitive_analysis': competitive_analysis
+                    }
+
+                except Exception as e:
+                    logger.warning(
+                        f"Could not fetch products for deal {deal_id}: {e}")
+                    deal['products'] = {
+                        'target_company_products': [],
+                        'acquire_company_products': [],
+                        'competitive_analysis': None
+                    }
+
+            # Return the serialized data with products
             return Response({
-                'deals': serializer.data,
-                'total': len(serializer.data)
+                'deals': deals_data,
+                'total': len(deals_data)
             }, status=status.HTTP_200_OK)
 
         except Exception as e:
@@ -259,6 +384,27 @@ class ListAllDealsView(APIView):
             return Response({
                 'error': str(e)
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    def _extract_product_names(self, products):
+        """Helper method to extract product names from structured product data"""
+        product_names = []
+        try:
+            if isinstance(products, list):
+                for category in products:
+                    if isinstance(category, dict) and 'products' in category:
+                        for product in category['products']:
+                            if isinstance(product, dict) and 'name' in product:
+                                product_names.append(product['name'])
+                            elif isinstance(product, str):
+                                product_names.append(product)
+                    elif isinstance(category, str):
+                        product_names.append(category)
+            elif isinstance(products, str):
+                product_names.append(products)
+        except Exception as e:
+            logger.warning(f"Error extracting product names: {e}")
+
+        return product_names
 
 
 class PineconeVectorListView(APIView):
@@ -593,3 +739,177 @@ class JobStatusView(APIView):
                 {"error": str(e)},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+
+
+class HighValueFollowersView(APIView):
+    """
+    API endpoint to get high value followers for a specific deal with pagination
+    """
+
+    def get(self, request, deal_id, format=None):
+        try:
+            # Get pagination parameters from query string
+            page = int(request.query_params.get('page', 1))
+            limit = int(request.query_params.get('limit', 10))
+
+            # Validate pagination parameters
+            if page < 1:
+                page = 1
+            if limit < 1 or limit > 100:  # Set reasonable limits
+                limit = 10
+
+            # Calculate skip value for pagination
+            skip = (page - 1) * limit
+
+            # Get total count of high value followers for this deal
+            total_count = HighValueFollowers.objects(deal_id=deal_id).count()
+
+            # Fetch high value followers with pagination, ordered by overall score
+            followers = HighValueFollowers.objects(deal_id=deal_id).order_by(
+                '-overall_score', '-created_at').skip(skip).limit(limit)
+
+            # Serialize the followers
+            serializer = HighValueFollowersSerializer(followers, many=True)
+
+            # Calculate pagination metadata
+            total_pages = (total_count + limit -
+                           1) // limit  # Ceiling division
+
+            # Return response with pagination metadata
+            return Response({
+                'followers': serializer.data,
+                'pagination': {
+                    'current_page': page,
+                    'total_pages': total_pages,
+                    'total_count': total_count,
+                    'limit': limit,
+                    'has_next': page < total_pages,
+                    'has_previous': page > 1
+                }
+            }, status=status.HTTP_200_OK)
+
+        except ValueError as e:
+            return Response({
+                'error': f"Invalid pagination parameters: {str(e)}"
+            }, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            logger.error(
+                f"Error fetching high value followers for deal {deal_id}: {str(e)}")
+            logger.error(traceback.format_exc())
+            return Response({
+                'error': str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class TweetsView(APIView):
+    """
+    API endpoint to get tweets for a specific deal with pagination and approach filtering
+    """
+
+    def get(self, request, deal_id, format=None):
+        try:
+            # Get pagination parameters from query string
+            page = int(request.query_params.get('page', 1))
+            limit = int(request.query_params.get('limit', 10))
+
+            # Get approach filter from query string
+            approach = request.query_params.get('approach', '')
+
+            # Validate pagination parameters
+            if page < 1:
+                page = 1
+            if limit < 1 or limit > 100:  # Set reasonable limits
+                limit = 10
+
+            # Calculate skip value for pagination
+            skip = (page - 1) * limit
+
+            # Build query for SearchQuery to get search queries for this deal
+            search_query_filter = {'deal_id': deal_id}
+            if approach and approach.upper() in ['RF1', 'RF2', 'RF3', 'GUNSHOT']:
+                search_query_filter['approach'] = approach.upper()
+
+            # Get search queries for this deal and approach
+            search_queries = SearchQuery.objects(**search_query_filter)
+            search_query_ids = [str(sq.id) for sq in search_queries]
+
+            if not search_query_ids:
+                # Return empty response if no search queries found
+                return Response({
+                    'tweets': [],
+                    'pagination': {
+                        'current_page': page,
+                        'total_pages': 0,
+                        'total_count': 0,
+                        'limit': limit,
+                        'has_next': False,
+                        'has_previous': False
+                    }
+                }, status=status.HTTP_200_OK)
+
+            # Get total count of tweets for this deal and approach
+            total_count = Tweet.objects(
+                search_query_id__in=search_query_ids).count()
+
+            # Fetch tweets with pagination, ordered by creation date
+            tweets = Tweet.objects(search_query_id__in=search_query_ids).order_by(
+                '-created_at').skip(skip).limit(limit)
+
+            # Create a mapping of search query IDs to search query details
+            search_query_map = {}
+            for sq in search_queries:
+                search_query_map[str(sq.id)] = {
+                    'search_query': sq.search_query,
+                    'approach': sq.approach,
+                    'combination': sq.combination,
+                    'total_tweets': sq.total_tweets
+                }
+
+            # Enrich tweet data with search query information
+            enriched_tweets = []
+            for tweet in tweets:
+                tweet_data = {
+                    'id': str(tweet.id),
+                    'search_query_id': str(tweet.search_query_id.id),
+                    'tweet': tweet.tweet,
+                    'created_at': tweet.created_at,
+                    'approach': tweet.approach,
+                    'search_query_info': search_query_map.get(str(tweet.search_query_id.id), {})
+                }
+                enriched_tweets.append(tweet_data)
+
+            # Serialize the enriched tweets
+            serializer = TweetSerializer(enriched_tweets, many=True)
+
+            # Calculate pagination metadata
+            total_pages = (total_count + limit -
+                           1) // limit  # Ceiling division
+
+            # Return response with pagination metadata
+            return Response({
+                'tweets': serializer.data,
+                'pagination': {
+                    'current_page': page,
+                    'total_pages': total_pages,
+                    'total_count': total_count,
+                    'limit': limit,
+                    'has_next': page < total_pages,
+                    'has_previous': page > 1
+                },
+                'filters': {
+                    'deal_id': deal_id,
+                    'approach': approach if approach else 'all'
+                }
+            }, status=status.HTTP_200_OK)
+
+        except ValueError as e:
+            return Response({
+                'error': f"Invalid pagination parameters: {str(e)}"
+            }, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            logger.error(
+                f"Error fetching tweets for deal {deal_id}: {str(e)}")
+            logger.error(traceback.format_exc())
+            return Response({
+                'error': str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

@@ -9,7 +9,9 @@ from .views import (
     ChatWithAIView,
     SummaryGenerationView,
     SummaryEngineView,
-    JobStatusView
+    JobStatusView,
+    HighValueFollowersView,
+    TweetsView
 )
 
 urlpatterns = [
@@ -27,7 +29,11 @@ urlpatterns = [
     path('chat/', ChatWithAIView.as_view(), name='chat_with_ai'),
     path('summary/', SummaryGenerationView.as_view(), name='generate_summary'),
     path('summary/engine/', SummaryEngineView.as_view(),
-         name='generate_summary_engine')
+         name='generate_summary_engine'),
+    path('highvaluefollowers/<str:deal_id>/',
+         HighValueFollowersView.as_view(), name='high_value_followers'),
+    path('tweets/<str:deal_id>/',
+         TweetsView.as_view(), name='tweets')
 ]
 
 
@@ -39,3 +45,5 @@ urlpatterns = [
 # /api/v1/vectors/update/<str:vector_id>/  update vector by id
 # /api/v1/chat/  chat with ai by deal id
 # /api/v1/summary/  generate summary by deal id
+# /api/v1/highvaluefollowers/<str:deal_id>/  get high value followers for a deal
+# /api/v1/tweets/<str:deal_id>/  get tweets for a deal

@@ -55,6 +55,7 @@ class ProcessingJob(Document):
     RF1_approach_done = BooleanField(default=False)
     RF2_approach_done = BooleanField(default=False)
     RF3_approach_done = BooleanField(default=False)
+    GUNSHOT_approach_done = BooleanField(default=False)
 
     # Twitter handles information
     # Store Twitter handles for companies and subsidiaries
@@ -147,6 +148,9 @@ class ProcessingJob(Document):
         # Update processing status
         self.schema_processing_completed = True
         self.schema_processing_timestamp = datetime.now()
+        if error_message:
+            self.error_message = error_message
+        self.updatedAt = datetime.utcnow()
         self.save()
         return self
 
@@ -155,7 +159,8 @@ class SearchQuery(Document):
     """Model to store Twitter search queries"""
 
     # Search query information
-    search_query = StringField(max_length=1000, required=True)
+    # Increased from 1000 to 5000 to handle all products
+    search_query = StringField(max_length=5000, required=True)
     deal_id = StringField(max_length=50, required=True)
     approach = StringField(max_length=10, default="RF1")
     # Stores company combination data
@@ -186,6 +191,7 @@ class Tweet(Document):
 
     # Reference to search query
     search_query_id = ReferenceField(SearchQuery, required=True)
+    approach = StringField(max_length=40, default="")
 
     # Tweet data
     tweet = DynamicField(required=True)  # Stores the complete tweet object
@@ -209,6 +215,77 @@ class Tweet(Document):
         return f"Tweet: {tweet_text}... (Query: {self.search_query_id.id})"
 
 
+class Followers(Document):
+    """Model to store company followers data (chunked to handle large datasets)"""
+
+    # Deal and company information
+    deal_id = StringField(max_length=50, required=True)
+    # Twitter handle without @
+    company_handle = StringField(max_length=100, required=True)
+    company_name = StringField(max_length=255, required=True)
+
+    # Followers data (chunked)
+    followers = ListField(DynamicField())  # Array of follower objects
+    chunk_index = IntField(default=0)  # Which chunk this is (0, 1, 2, etc.)
+    chunk_size = IntField(default=1000)  # Number of followers per chunk
+
+    # Processing metadata
+    approach = StringField(max_length=20, default="GUNSHOT")
+    total_followers = IntField(default=0)
+    processing_status = StringField(
+        max_length=20, choices=['pending', 'completed', 'failed'], default='pending')
+
+    # Timestamps
+    created_at = DateTimeField(default=datetime.utcnow)
+    updated_at = DateTimeField(default=datetime.utcnow)
+
+    meta = {
+        'collection': 'followers',
+        'ordering': ['-created_at'],
+        'indexes': [
+            'deal_id',
+            'company_handle',
+            'company_name',
+            'approach',
+            'created_at',
+            # Compound index for efficient chunking
+            ('deal_id', 'company_handle', 'chunk_index')
+        ]
+    }
+
+    def __str__(self):
+        return f"Followers: {self.company_name} (@{self.company_handle}) - Chunk {self.chunk_index} - {len(self.followers)} followers (Deal: {self.deal_id})"
+
+
+class FollowersMetadata(Document):
+    """Model to store metadata about follower collections"""
+    deal_id = StringField(max_length=50, required=True)
+    company_handle = StringField(max_length=100, required=True)
+    company_name = StringField(max_length=255, required=True)
+
+    # Metadata
+    total_followers = IntField(default=0)
+    total_chunks = IntField(default=0)
+    approach = StringField(max_length=20, default="GUNSHOT")
+    processing_status = StringField(
+        max_length=20, choices=['pending', 'completed', 'failed'], default='pending')
+
+    # Timestamps
+    created_at = DateTimeField(default=datetime.utcnow)
+    updated_at = DateTimeField(default=datetime.utcnow)
+
+    meta = {
+        'collection': 'followers_metadata',
+        'ordering': ['-created_at'],
+        'indexes': [
+            'deal_id', 'company_handle', 'approach', 'created_at'
+        ]
+    }
+
+    def __str__(self):
+        return f"Followers Metadata: {self.company_name} (@{self.company_handle}) - {self.total_followers} followers in {self.total_chunks} chunks (Deal: {self.deal_id})"
+
+
 class CompanyProducts(Document):
     """Model to store company product lists extracted by GPT"""
 
@@ -223,7 +300,7 @@ class CompanyProducts(Document):
     products = DynamicField()  # Store the complete structured JSON data
 
     # Processing metadata
-    gpt_model_used = StringField(max_length=50, default="gpt-4.1")
+    gpt_model_used = StringField(max_length=50, default="gpt-4.1-mini")
     extraction_timestamp = DateTimeField(default=datetime.utcnow)
     processing_status = StringField(
         max_length=20, choices=['pending', 'completed', 'failed'], default='pending')
@@ -261,7 +338,7 @@ class CompetitiveAnalysis(Document):
     # Example structure: [{"target_product": "Product A", "acquire_product": "Product 1", "competition_score": 0.85, "analysis": "..."}]
 
     # Analysis metadata
-    gpt_model_used = StringField(max_length=50, default="gpt-4.1")
+    gpt_model_used = StringField(max_length=50, default="gpt-4.1-mini")
     analysis_timestamp = DateTimeField(default=datetime.utcnow)
     processing_status = StringField(
         max_length=20, choices=['pending', 'completed', 'failed'], default='pending')
@@ -282,3 +359,64 @@ class CompetitiveAnalysis(Document):
 
     def __str__(self):
         return f"CompetitiveAnalysis: Deal {self.deal_id} - {len(self.competitive_pairs)} pairs"
+
+
+class HighValueFollowers(Document):
+    """Model to store high-value followers with GPT analysis scores"""
+
+    # Deal and company information
+    deal_id = StringField(max_length=50, required=True)
+    company_name = StringField(max_length=255, required=True)
+    company_handle = StringField(max_length=100, required=True)
+
+    # Follower information (spread from original follower object)
+    follower_id = StringField(max_length=50, required=True)
+    name = StringField(max_length=255, required=False)
+    screen_name = StringField(max_length=100, required=False)
+    description = StringField(max_length=1000, required=False)
+    location = StringField(max_length=255, required=False)
+    followers_count = IntField(default=0)
+    statuses_count = IntField(default=0)
+    protected = BooleanField(default=False)
+    verified = BooleanField(default=False)
+    created_at_twitter = DateTimeField(required=False, null=True)
+
+    # GPT Analysis results
+    overall_score = IntField(required=True)  # 0-10 score
+    # Explanation for the score
+    reason = StringField(max_length=500, required=False)
+    # List of key indicators from bio
+    key_indicators = ListField(StringField(), default=[])
+    analysis_timestamp = DateTimeField(default=datetime.utcnow)
+    gpt_model_used = StringField(max_length=50, default="gpt-3.5-turbo")
+
+    # Processing metadata
+    processing_status = StringField(
+        max_length=20, choices=['pending', 'completed', 'failed'], default='completed')
+    approach = StringField(max_length=20, default="GUNSHOT")
+
+    # Timestamps
+    created_at = DateTimeField(default=datetime.utcnow)
+    updated_at = DateTimeField(default=datetime.utcnow)
+
+    meta = {
+        'collection': 'high_value_followers',
+        'ordering': ['-overall_score', '-created_at'],
+        'indexes': [
+            'deal_id',
+            'company_handle',
+            'company_name',
+            'overall_score',
+            'follower_id',
+            'screen_name',
+            'approach',
+            'created_at',
+            # Compound indexes for efficient queries
+            ('deal_id', 'company_handle'),
+            ('deal_id', 'overall_score'),
+            ('company_handle', 'overall_score')
+        ]
+    }
+
+    def __str__(self):
+        return f"HighValueFollower: @{self.screen_name} - Score: {self.overall_score} - {self.company_name} (Deal: {self.deal_id})"
