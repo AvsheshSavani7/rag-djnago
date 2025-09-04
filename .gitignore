@@ -9,6 +9,8 @@ __pycache__/
 *.pywz
 *.pyzw  
 
+.DS_Store
+
 .env
 .venv/
 rag_project/.streamlit/config.toml

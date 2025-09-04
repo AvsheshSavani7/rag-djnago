@@ -420,3 +420,83 @@ class HighValueFollowers(Document):
 
     def __str__(self):
         return f"HighValueFollower: @{self.screen_name} - Score: {self.overall_score} - {self.company_name} (Deal: {self.deal_id})"
+
+
+class RedditPost(Document):
+    """Model to store individual Reddit posts with unique constraints per deal"""
+
+    # Deal and Reddit identification
+    deal_id = StringField(max_length=50, required=True)
+    reddit_id = StringField(max_length=50, required=True)
+    search_query = StringField(max_length=1000, required=True)
+
+    # Complete Reddit post data
+    # Stores the complete Reddit post object
+    post = DynamicField(required=True)
+
+    # Processing metadata
+    # e.g., "Product A vs Product B"
+    competition = StringField(max_length=500, required=False)
+    approach = StringField(max_length=20, default="REDDIT_SCRAPER")
+
+    # Timestamps
+    created_at = DateTimeField(default=datetime.utcnow)
+    updated_at = DateTimeField(default=datetime.utcnow)
+
+    meta = {
+        'collection': 'reddit_posts',
+        'ordering': ['-created_at'],
+        'indexes': [
+            'deal_id',
+            'reddit_id',
+            'search_query',
+            'competition',
+            'created_at',
+            # Compound unique index to ensure unique posts per deal
+            ('deal_id', 'reddit_id')
+        ]
+    }
+
+    def __str__(self):
+        post_title = ""
+        if isinstance(self.post, dict) and 'title' in self.post:
+            post_title = self.post['title'][:50]
+        return f"RedditPost: {post_title}... (Deal: {self.deal_id}, Reddit ID: {self.reddit_id})"
+
+    @classmethod
+    def save_unique_post(cls, deal_id: str, reddit_id: str, search_query: str,
+                         post_data: dict, competition: str = None, approach: str = "REDDIT_SCRAPER"):
+        """
+        Save a Reddit post only if it doesn't already exist for this deal.
+
+        Args:
+            deal_id (str): Deal ID
+            reddit_id (str): Reddit post ID
+            search_query (str): Search query used to find this post
+            post_data (dict): Complete Reddit post data
+            competition (str): Competition pair (optional)
+            approach (str): Processing approach (default: "REDDIT_SCRAPER")
+
+        Returns:
+            tuple: (saved_post, is_new) - RedditPost object and boolean indicating if it was newly created
+        """
+        # Check if post already exists for this deal
+        existing_post = cls.objects(
+            deal_id=deal_id, reddit_id=reddit_id).first()
+
+        if existing_post:
+            # Post already exists, return existing post
+            return existing_post, False
+
+        # Create new post
+        new_post = cls(
+            deal_id=deal_id,
+            reddit_id=reddit_id,
+            search_query=search_query,
+            post=post_data,
+            competition=competition,
+            approach=approach
+        )
+        new_post.save()
+
+        return new_post, True
