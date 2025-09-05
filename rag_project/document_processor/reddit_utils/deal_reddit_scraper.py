@@ -7,7 +7,7 @@ import time
 import sys
 from datetime import datetime
 from typing import List, Dict, Any, Optional
-from serpapi.google_search import GoogleSearch
+from serpapi import GoogleSearch
 import praw
 from dotenv import load_dotenv
 
