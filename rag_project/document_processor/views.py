@@ -9,12 +9,13 @@ import threading
 import concurrent.futures
 import json
 
-from .models import ProcessingJob, CompanyProducts, CompetitiveAnalysis, HighValueFollowers, SearchQuery, Tweet
+from .models import ProcessingJob, CompanyProducts, CompetitiveAnalysis, HighValueFollowers, SearchQuery, Tweet, RedditPost
 from .serializers import (
     ProcessingJobSerializer,
     FileProcessRequestSerializer,
     HighValueFollowersSerializer,
-    TweetSerializer
+    TweetSerializer,
+    RedditPostSerializer
 )
 from .services import FlattenProcessor, EmbeddingService, S3Service, ChatWithAIService, SummaryGenerationService
 from mongoengine.errors import DoesNotExist, ValidationError
@@ -751,21 +752,27 @@ class HighValueFollowersView(APIView):
             # Get pagination parameters from query string
             page = int(request.query_params.get('page', 1))
             limit = int(request.query_params.get('limit', 10))
+            company_handle = request.query_params.get('company_handle', '')
 
             # Validate pagination parameters
             if page < 1:
                 page = 1
-            if limit < 1 or limit > 100:  # Set reasonable limits
+            if limit < 1 or limit > 1000:  # Set reasonable limits
                 limit = 10
 
             # Calculate skip value for pagination
             skip = (page - 1) * limit
 
+            # Build query filter
+            query_filter = {'deal_id': deal_id}
+            if company_handle:
+                query_filter['company_handle'] = company_handle
+
             # Get total count of high value followers for this deal
-            total_count = HighValueFollowers.objects(deal_id=deal_id).count()
+            total_count = HighValueFollowers.objects(**query_filter).count()
 
             # Fetch high value followers with pagination, ordered by overall score
-            followers = HighValueFollowers.objects(deal_id=deal_id).order_by(
+            followers = HighValueFollowers.objects(**query_filter).order_by(
                 '-overall_score', '-created_at').skip(skip).limit(limit)
 
             # Serialize the followers
@@ -774,6 +781,10 @@ class HighValueFollowersView(APIView):
             # Calculate pagination metadata
             total_pages = (total_count + limit -
                            1) // limit  # Ceiling division
+
+            # Get unique company handles for this deal
+            unique_company_handles = HighValueFollowers.objects(
+                deal_id=deal_id).distinct('company_handle')
 
             # Return response with pagination metadata
             return Response({
@@ -785,6 +796,11 @@ class HighValueFollowersView(APIView):
                     'limit': limit,
                     'has_next': page < total_pages,
                     'has_previous': page > 1
+                },
+                'filters': {
+                    'deal_id': deal_id,
+                    'company_handle': company_handle if company_handle else 'all',
+                    'available_company_handles': [handle for handle in unique_company_handles if handle]
                 }
             }, status=status.HTTP_200_OK)
 
@@ -818,7 +834,7 @@ class TweetsView(APIView):
             # Validate pagination parameters
             if page < 1:
                 page = 1
-            if limit < 1 or limit > 100:  # Set reasonable limits
+            if limit < 1 or limit > 1000:  # Set reasonable limits
                 limit = 10
 
             # Calculate skip value for pagination
@@ -851,9 +867,9 @@ class TweetsView(APIView):
             total_count = Tweet.objects(
                 search_query_id__in=search_query_ids).count()
 
-            # Fetch tweets with pagination, ordered by creation date
+            # Fetch tweets with pagination, ordered by tweet_created_at (newest first)
             tweets = Tweet.objects(search_query_id__in=search_query_ids).order_by(
-                '-created_at').skip(skip).limit(limit)
+                '-tweet_created_at').skip(skip).limit(limit)
 
             # Create a mapping of search query IDs to search query details
             search_query_map = {}
@@ -909,6 +925,94 @@ class TweetsView(APIView):
         except Exception as e:
             logger.error(
                 f"Error fetching tweets for deal {deal_id}: {str(e)}")
+            logger.error(traceback.format_exc())
+            return Response({
+                'error': str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class RedditPostsView(APIView):
+    """
+    API endpoint to get Reddit posts for a specific deal with pagination and filtering
+    """
+
+    def get(self, request, deal_id, format=None):
+        try:
+            # Get pagination parameters from query string
+            page = int(request.query_params.get('page', 1))
+            limit = int(request.query_params.get('limit', 10))
+
+            # Get filter parameters from query string
+            competition = request.query_params.get('competition', '')
+            approach = request.query_params.get('approach', '')
+
+            # Validate pagination parameters
+            if page < 1:
+                page = 1
+            if limit < 1 or limit > 100:  # Set reasonable limits
+                limit = 10
+
+            # Calculate skip value for pagination
+            skip = (page - 1) * limit
+
+            # Build query filter
+            query_filter = {'deal_id': deal_id}
+
+            # Add competition filter if provided
+            if competition:
+                query_filter['competition'] = competition
+
+            # Add approach filter if provided
+            if approach:
+                query_filter['approach'] = approach
+
+            # Get total count of Reddit posts for this deal
+            total_count = RedditPost.objects(**query_filter).count()
+
+            # Fetch Reddit posts with pagination, ordered by creation date (newest first)
+            reddit_posts = RedditPost.objects(**query_filter).order_by(
+                '-created_at').skip(skip).limit(limit)
+
+            # Serialize the Reddit posts
+            serializer = RedditPostSerializer(reddit_posts, many=True)
+
+            # Calculate pagination metadata
+            total_pages = (total_count + limit -
+                           1) // limit  # Ceiling division
+
+            # Get unique competitions and approaches for filter options
+            unique_competitions = RedditPost.objects(
+                deal_id=deal_id).distinct('competition')
+            unique_approaches = RedditPost.objects(
+                deal_id=deal_id).distinct('approach')
+
+            # Return response with pagination metadata
+            return Response({
+                'reddit_posts': serializer.data,
+                'pagination': {
+                    'current_page': page,
+                    'total_pages': total_pages,
+                    'total_count': total_count,
+                    'limit': limit,
+                    'has_next': page < total_pages,
+                    'has_previous': page > 1
+                },
+                'filters': {
+                    'deal_id': deal_id,
+                    'competition': competition if competition else 'all',
+                    'approach': approach if approach else 'all',
+                    'available_competitions': [c for c in unique_competitions if c],
+                    'available_approaches': [a for a in unique_approaches if a]
+                }
+            }, status=status.HTTP_200_OK)
+
+        except ValueError as e:
+            return Response({
+                'error': f"Invalid pagination parameters: {str(e)}"
+            }, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            logger.error(
+                f"Error fetching Reddit posts for deal {deal_id}: {str(e)}")
             logger.error(traceback.format_exc())
             return Response({
                 'error': str(e)

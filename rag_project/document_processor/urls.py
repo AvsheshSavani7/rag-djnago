@@ -11,7 +11,8 @@ from .views import (
     SummaryEngineView,
     JobStatusView,
     HighValueFollowersView,
-    TweetsView
+    TweetsView,
+    RedditPostsView
 )
 
 urlpatterns = [
@@ -33,7 +34,9 @@ urlpatterns = [
     path('highvaluefollowers/<str:deal_id>/',
          HighValueFollowersView.as_view(), name='high_value_followers'),
     path('tweets/<str:deal_id>/',
-         TweetsView.as_view(), name='tweets')
+         TweetsView.as_view(), name='tweets'),
+    path('redditposts/<str:deal_id>/',
+         RedditPostsView.as_view(), name='reddit_posts')
 ]
 
 
@@ -47,3 +50,4 @@ urlpatterns = [
 # /api/v1/summary/  generate summary by deal id
 # /api/v1/highvaluefollowers/<str:deal_id>/  get high value followers for a deal
 # /api/v1/tweets/<str:deal_id>/  get tweets for a deal
+# /api/v1/redditposts/<str:deal_id>/  get reddit posts for a deal

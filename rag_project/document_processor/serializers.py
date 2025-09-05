@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import ProcessingJob, SearchQuery, Tweet, CompanyProducts, CompetitiveAnalysis
+from .models import ProcessingJob, SearchQuery, Tweet, CompanyProducts, CompetitiveAnalysis, RedditPost
 
 
 class ProcessingJobSerializer(serializers.Serializer):
@@ -50,6 +50,8 @@ class TweetSerializer(serializers.Serializer):
     id = serializers.CharField(read_only=True)
     search_query_id = serializers.CharField()
     tweet = serializers.JSONField()
+    tweet_created_at = serializers.DateTimeField(
+        format="%Y-%m-%d %H:%M:%S", required=False, allow_null=True)
     created_at = serializers.DateTimeField(
         format="%Y-%m-%d %H:%M:%S", read_only=True)
     approach = serializers.CharField()
@@ -169,3 +171,18 @@ class DocumentListResponseSerializer(serializers.Serializer):
         child=serializers.CharField(),
         help_text="List of S3 keys"
     )
+
+
+class RedditPostSerializer(serializers.Serializer):
+    """Serializer for RedditPost model"""
+    id = serializers.CharField(read_only=True)
+    deal_id = serializers.CharField()
+    reddit_id = serializers.CharField()
+    search_query = serializers.CharField()
+    post = serializers.JSONField()
+    competition = serializers.CharField(required=False, allow_null=True)
+    approach = serializers.CharField()
+    created_at = serializers.DateTimeField(
+        format="%Y-%m-%d %H:%M:%S", read_only=True)
+    updated_at = serializers.DateTimeField(
+        format="%Y-%m-%d %H:%M:%S", read_only=True)

@@ -195,16 +195,19 @@ class Tweet(Document):
 
     # Tweet data
     tweet = DynamicField(required=True)  # Stores the complete tweet object
+    # Parsed tweet creation time for sorting
+    tweet_created_at = DateTimeField(required=False, null=True)
 
     # Timestamps
     created_at = DateTimeField(default=datetime.utcnow)
 
     meta = {
         'collection': 'tweets',
-        'ordering': ['-created_at'],
+        'ordering': ['-tweet_created_at'],
         'indexes': [
             'search_query_id',
-            'created_at'
+            'created_at',
+            'tweet_created_at'
         ]
     }
 
@@ -213,6 +216,28 @@ class Tweet(Document):
         if isinstance(self.tweet, dict) and 'text' in self.tweet:
             tweet_text = self.tweet['text'][:50]
         return f"Tweet: {tweet_text}... (Query: {self.search_query_id.id})"
+
+    def parse_and_set_tweet_created_at(self):
+        """Parse the tweet's createdAt field and set tweet_created_at for sorting"""
+        if isinstance(self.tweet, dict) and 'createdAt' in self.tweet:
+            try:
+                from datetime import datetime
+                # Twitter format: "Thu May 08 11:13:03 +0000 2025"
+                created_at_str = self.tweet['createdAt']
+                parsed_date = datetime.strptime(
+                    created_at_str, "%a %b %d %H:%M:%S %z %Y")
+                self.tweet_created_at = parsed_date
+                return True
+            except Exception as e:
+                print(f"Error parsing tweet createdAt: {e}")
+                return False
+        return False
+
+    def save(self, *args, **kwargs):
+        """Override save to automatically parse tweet_created_at if not set"""
+        if not self.tweet_created_at:
+            self.parse_and_set_tweet_created_at()
+        super().save(*args, **kwargs)
 
 
 class Followers(Document):
