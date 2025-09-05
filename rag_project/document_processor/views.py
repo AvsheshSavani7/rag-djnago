@@ -10,6 +10,8 @@ import concurrent.futures
 import json
 
 from .models import ProcessingJob, CompanyProducts, CompetitiveAnalysis, HighValueFollowers, SearchQuery, Tweet, RedditPost
+# Remove Celery imports for simple approach
+# from .tasks import run_daily_reddit_scraper, run_reddit_scraper_for_deal, run_reddit_scraper_for_deals
 from .serializers import (
     ProcessingJobSerializer,
     FileProcessRequestSerializer,
@@ -1013,6 +1015,104 @@ class RedditPostsView(APIView):
         except Exception as e:
             logger.error(
                 f"Error fetching Reddit posts for deal {deal_id}: {str(e)}")
+            logger.error(traceback.format_exc())
+            return Response({
+                'error': str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class RedditScraperTaskView(APIView):
+    """
+    Simple API endpoint to trigger Reddit scraper (no Celery needed)
+    """
+
+    def post(self, request, format=None):
+        try:
+            action = request.data.get('action')
+
+            if action == 'run_daily':
+                # Run daily Reddit scraper for all deals (synchronous)
+                from .reddit_utils.deal_reddit_scraper import run_deal_reddit_analysis
+                from .models import ProcessingJob
+
+                deals = ProcessingJob.objects.all()
+                total_deals = deals.count()
+                processed_deals = 0
+                failed_deals = 0
+                results = []
+
+                for deal in deals:
+                    try:
+                        result = run_deal_reddit_analysis(str(deal.id))
+                        if result:
+                            processed_deals += 1
+                            results.append({
+                                'deal_id': str(deal.id),
+                                'status': 'success',
+                                'deal_name': f"{deal.acquire_name} acquiring {deal.target_name}"
+                            })
+                        else:
+                            failed_deals += 1
+                            results.append({
+                                'deal_id': str(deal.id),
+                                'status': 'failed',
+                                'error': 'No result returned'
+                            })
+                    except Exception as e:
+                        failed_deals += 1
+                        results.append({
+                            'deal_id': str(deal.id),
+                            'status': 'failed',
+                            'error': str(e)
+                        })
+
+                return Response({
+                    'message': 'Daily Reddit scraper completed',
+                    'total_deals': total_deals,
+                    'processed_deals': processed_deals,
+                    'failed_deals': failed_deals,
+                    'results': results
+                }, status=status.HTTP_200_OK)
+
+            elif action == 'run_deal':
+                # Run scraper for a specific deal
+                deal_id = request.data.get('deal_id')
+                if not deal_id:
+                    return Response({
+                        'error': 'deal_id is required for run_deal action'
+                    }, status=status.HTTP_400_BAD_REQUEST)
+
+                from .reddit_utils.deal_reddit_scraper import run_deal_reddit_analysis
+
+                try:
+                    result = run_deal_reddit_analysis(deal_id)
+                    if result:
+                        return Response({
+                            'message': f'Reddit scraper completed for deal {deal_id}',
+                            'deal_id': deal_id,
+                            'status': 'success',
+                            'result': result
+                        }, status=status.HTTP_200_OK)
+                    else:
+                        return Response({
+                            'message': f'Reddit scraper failed for deal {deal_id}',
+                            'deal_id': deal_id,
+                            'status': 'failed'
+                        }, status=status.HTTP_200_OK)
+                except Exception as e:
+                    return Response({
+                        'error': f'Error processing deal {deal_id}: {str(e)}',
+                        'deal_id': deal_id,
+                        'status': 'failed'
+                    }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+            else:
+                return Response({
+                    'error': 'Invalid action. Use: run_daily or run_deal'
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+        except Exception as e:
+            logger.error(f"Error triggering Reddit scraper: {str(e)}")
             logger.error(traceback.format_exc())
             return Response({
                 'error': str(e)

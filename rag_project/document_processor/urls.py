@@ -12,7 +12,8 @@ from .views import (
     JobStatusView,
     HighValueFollowersView,
     TweetsView,
-    RedditPostsView
+    RedditPostsView,
+    RedditScraperTaskView
 )
 
 urlpatterns = [
@@ -36,7 +37,9 @@ urlpatterns = [
     path('tweets/<str:deal_id>/',
          TweetsView.as_view(), name='tweets'),
     path('redditposts/<str:deal_id>/',
-         RedditPostsView.as_view(), name='reddit_posts')
+         RedditPostsView.as_view(), name='reddit_posts'),
+    path('reddit-scraper/tasks/',
+         RedditScraperTaskView.as_view(), name='reddit_scraper_tasks')
 ]
 
 

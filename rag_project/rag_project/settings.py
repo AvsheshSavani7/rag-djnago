@@ -48,6 +48,9 @@ INSTALLED_APPS = [
     "django.contrib.contenttypes",
     "django.contrib.sessions",
     "django.contrib.messages",
+    # Celery apps (removed for simple approach)
+    # 'django_celery_beat',
+    # 'django_celery_results',
     "django.contrib.staticfiles",
     # Third-party apps
     "rest_framework",
@@ -262,3 +265,23 @@ LOGGING = {
         },
     },
 }
+
+# Celery Configuration (removed for simple approach)
+# CELERY_BROKER_URL = os.getenv('REDIS_URL', 'redis://localhost:6379/0')
+# CELERY_RESULT_BACKEND = os.getenv('REDIS_URL', 'redis://localhost:6379/0')
+# CELERY_ACCEPT_CONTENT = ['json']
+# CELERY_TASK_SERIALIZER = 'json'
+# CELERY_RESULT_SERIALIZER = 'json'
+# CELERY_TIMEZONE = 'UTC'
+# CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
+
+# Celery Beat Settings (removed for simple approach)
+# CELERY_BEAT_SCHEDULE = {
+#     'daily-reddit-scraper': {
+#         'task': 'document_processor.tasks.run_daily_reddit_scraper',
+#         'schedule': 86400.0,  # Run every 24 hours
+#         'options': {
+#             'timezone': 'UTC',
+#         }
+#     },
+# }
