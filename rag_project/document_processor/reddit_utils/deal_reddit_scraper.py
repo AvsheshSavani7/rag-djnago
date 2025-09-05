@@ -7,7 +7,7 @@ import time
 import sys
 from datetime import datetime
 from typing import List, Dict, Any, Optional
-from serpapi import GoogleSearch
+import serpapi
 import praw
 from dotenv import load_dotenv
 
@@ -181,8 +181,8 @@ def scrape_reddit_competition(competition: str, deal_id: str) -> str:
         }
 
         logger.info("Making SerpAPI call")
-        search = GoogleSearch(params)
-        results = search.get_dict()
+        client = serpapi.Client(api_key=os.getenv("SERPAPI_KEY"))
+        results = client.search(params)
 
         # Filter Reddit links
         reddit_links = []
