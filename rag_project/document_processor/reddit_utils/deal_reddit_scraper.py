@@ -1,4 +1,5 @@
 from document_processor.models import ProcessingJob, CompetitiveAnalysis, CompanyProducts, RedditPost
+from mongoengine import connect
 import json
 import logging
 import os
@@ -19,6 +20,23 @@ sys.path.append(os.path.dirname(os.path.dirname(
     os.path.dirname(os.path.abspath(__file__)))))
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'rag_project.settings')
 django.setup()
+
+# Ensure MongoDB connection is established
+MONGODB_URI = os.getenv("MONGODB_CONNECTION_STRING")
+MONGODB_NAME = os.getenv("MONGODB_NAME", "Deal_DB")
+
+if MONGODB_URI:
+    print("✅ MongoDB config detected in deal scraper.")
+    connect(
+        db=MONGODB_NAME,
+        host=MONGODB_URI,
+        alias="default"
+    )
+else:
+    print("❌ No MongoDB connection string found in environment for deal scraper.")
+    raise ConnectionError("MongoDB connection string not found")
+
+# Import Django models after MongoDB connection is established
 
 
 # Load environment variables

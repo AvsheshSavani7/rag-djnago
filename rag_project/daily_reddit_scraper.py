@@ -6,6 +6,7 @@ This runs daily and scrapes Reddit for all deals in the database.
 
 from document_processor.reddit_utils.deal_reddit_scraper import run_deal_reddit_analysis
 from document_processor.models import ProcessingJob
+from mongoengine import connect
 import os
 import sys
 import django
@@ -16,6 +17,23 @@ import logging
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'rag_project.settings')
 django.setup()
+
+# Ensure MongoDB connection is established
+MONGODB_URI = os.getenv("MONGODB_CONNECTION_STRING")
+MONGODB_NAME = os.getenv("MONGODB_NAME", "Deal_DB")
+
+if MONGODB_URI:
+    print("✅ MongoDB config detected in daily scraper.")
+    connect(
+        db=MONGODB_NAME,
+        host=MONGODB_URI,
+        alias="default"
+    )
+else:
+    print("❌ No MongoDB connection string found in environment for daily scraper.")
+    raise ConnectionError("MongoDB connection string not found")
+
+# Import after Django and MongoDB setup
 
 
 # Setup logging
