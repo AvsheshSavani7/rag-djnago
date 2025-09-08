@@ -70,7 +70,7 @@ services:
     env: python
     plan: free
     buildCommand: "./build.sh"
-    schedule: "*/10 * * * *"  # Run daily at 2:00 AM UTC
+    schedule: "0 2 * * *"  # Run daily at 2:00 AM UTC
     startCommand: "python rag_project/daily_reddit_scraper.py"
     envVars:
       - key: DJANGO_SETTINGS_MODULE
@@ -87,3 +87,30 @@ services:
         sync: false
       - key: MONGODB_PASSWORD
         sync: false
+
+
+
+  # Daily Riffle Approach 2 Cron Job
+  - type: cron
+    name: daily-riffle-approach-2
+    env: python
+    plan: free
+    buildCommand: "./build.sh"
+    schedule: "0 2 * * *"  # Run daily at 2:00 AM UTC
+    startCommand: "python rag_project/run_daily_riffle_approach_2.py"
+    envVars:
+      - key: DJANGO_SETTINGS_MODULE
+        value: rag_project.settings
+      - key: PYTHON_VERSION
+        value: 3.12.4
+      - key: PYTHONPATH
+        value: /opt/render/project/src/rag_project
+      - key: MONGODB_CONNECTION_STRING
+        sync: false
+      - key: MONGODB_NAME
+        sync: false
+      - key: MONGODB_USER
+        sync: false
+      - key: MONGODB_PASSWORD
+        sync: false
+
