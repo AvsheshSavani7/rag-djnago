@@ -9,6 +9,7 @@ import asyncio
 from .models import SECFiling, SECFeedStatus, LastCronJob
 from .document_analyzer import SECDocumentAnalyzer
 from .websocket_service import SECWebSocketService
+from document_processor.models import ProcessingJob
 
 logger = logging.getLogger(__name__)
 
@@ -247,7 +248,7 @@ class SECRSSParser:
 
             # print(f"Extracted: {company_name} - {form_type} - {cik_number}")
 
-            xbrl_files = self.parse_xbrl_files(edgar_elem)
+            xbrl_files = self.parse_xbrl_files(edgar_elem, form_type)
 
             # print("xbrl_files1", xbrl_files)
 
@@ -260,7 +261,15 @@ class SECRSSParser:
                     for file in xbrl_files
                 )
             )
+
+            # Check if this is a DEF 14A or PRE 14A filing with xbrlFiles
+            has_def14a_files = (
+                form_type in ["DEF 14A", "PRE 14A"] and
+                len(xbrl_files) > 0
+            )
+
             # print("has_ex21_htm", has_ex21_htm)
+            # print("has_def14a_files", has_def14a_files)
 
             if has_ex21_htm:
                 # print(
@@ -284,20 +293,45 @@ class SECRSSParser:
                     'xbrl_files': xbrl_files,
                     'has_htm_files': has_ex21_htm  # Only set to True for EX-2.1 HTM files
                 }
+            elif has_def14a_files:
+                # print(
+                #     f"✅ Found DEF 14A/PRE 14A filing with xbrlFiles: {company_name}")
+                return {
+                    'title': title,
+                    'link': link,
+                    'guid': guid,
+                    'description': description,
+                    'pubDate': pubDate or None,
+                    'company_name': company_name,
+                    'form_type': form_type,
+                    'filing_date': filing_date or None,
+                    'cik_number': cik_number,
+                    'file_number': file_number,
+                    'accession_number': accession_number,
+                    'acceptance_datetime_utc': acceptance_datetime_utc,
+                    'period': period or None,
+                    'fiscal_year_end': fiscal_year_end or None,
+                    'assigned_sic': assigned_sic or None,
+                    'xbrl_files': xbrl_files,
+                    'has_htm_files': False  # Set to False for DEF 14A/PRE 14A
+                }
             else:
-                if description == "8-K":
+                if form_type == "8-K":
                     print(
                         f"❌ Skipping 8-K filing: {company_name} (no EX-2.1 HTM file)")
+                elif form_type in ["DEF 14A", "PRE 14A"]:
+                    print(
+                        f"❌ Skipping DEF 14A/PRE 14A filing: {company_name} (no xbrlFiles)")
                 else:
                     print(
-                        f"⏭️ Skipping non-8-K filing: {company_name} - {form_type}")
+                        f"⏭️ Skipping non-target filing: {company_name} - {form_type}")
                 return None
         except Exception as e:
             logger.error(f"Error parsing RSS item: {e}")
             print(f"Exception parsing item: {e}")
             return None
 
-    def parse_xbrl_files(self, edgar_elem):
+    def parse_xbrl_files(self, edgar_elem, form_type=None):
         xbrl_files = []
         # print("edgar_elem1", edgar_elem)
 
@@ -338,10 +372,19 @@ class SECRSSParser:
                     'description': file_description,
                     'url': file_url
                 }
-                if file_type == "EX-2.1" and file_url.endswith(".htm"):
+
+                # For 8-K filings, only save EX-2.1 HTM files
+                if form_type == "8-K" and file_type == "EX-2.1" and file_url.endswith(".htm"):
                     xbrl_files.append(file_data)
                     # print(
                     #     f"Found XBRL file: {file_data['file']} - {file_data['type']} - {file_data['url']}")
+
+                # For DEF 14A and PRE 14A filings, save all xbrlFiles when edgar:type matches
+                elif form_type in ["DEF 14A", "PRE 14A"] and (file_type == "DEF 14A" or file_type == "PRE 14A") and file_url.endswith(".htm"):
+                    # Save all xbrlFiles for DEF 14A/PRE 14A (edgar:type is already matched in the XML)
+                    xbrl_files.append(file_data)
+                    # print(
+                    #     f"Found DEF 14A/PRE 14A XBRL file: {file_data['file']} - {file_data['type']} - {file_data['url']}")
 
         # print(f"Total XBRL files found: {len(xbrl_files)}")
         return xbrl_files
@@ -355,6 +398,25 @@ class SECFeedProcessor:
     def __init__(self):
         self.parser = SECRSSParser()
         self.document_analyzer = SECDocumentAnalyzer()
+
+    def check_cik_in_deals(self, cik_number: str) -> bool:
+        """Check if CIK exists in the Deals collection"""
+        try:
+            if not cik_number:
+                return False
+
+            # Check if any deal exists with this CIK
+            deal_exists = ProcessingJob.objects(
+                cik=cik_number).first() is not None
+
+            logger.info(
+                f"CIK {cik_number} {'found' if deal_exists else 'not found'} in Deals collection")
+            return deal_exists
+
+        except Exception as e:
+            logger.error(
+                f"Error checking CIK {cik_number} in Deals collection: {e}")
+            return False
 
     def process_feed(self):
         try:
@@ -400,14 +462,14 @@ class SECFeedProcessor:
             if existing:
                 return False
 
-            # Analyze document with GPT before saving (only for 8-K with EX-2.1 HTM files)
+            # Analyze document with GPT before saving
             if (item_data.get('form_type') == '8-K' and
                 item_data.get('has_htm_files') and
                 any(file.get('type') == 'EX-2.1' and file.get('url', '').endswith('.htm')
                     for file in item_data.get('xbrl_files', []))):
 
                 logger.info(
-                    f"🔍 Analyzing document for: {item_data.get('company_name')}")
+                    f"🔍 Analyzing 8-K document for: {item_data.get('company_name')}")
                 item_data = self.document_analyzer.analyze_filing(item_data)
 
                 # Log the analysis result
@@ -420,8 +482,22 @@ class SECFeedProcessor:
                 else:
                     logger.info(
                         f"❓ Analysis inconclusive: {item_data.get('company_name')}")
+            elif item_data.get('form_type') in ['DEF 14A', 'PRE 14A']:
+                # Analyze DEF 14A/PRE 14A documents for document kind detection
+                logger.info(
+                    f"🔍 Analyzing DEF 14A/PRE 14A document for: {item_data.get('company_name')}")
+                item_data = self.document_analyzer.analyze_def14a_filing(
+                    item_data)
+
+                # Log the analysis result
+                if item_data.get('document_kind'):
+                    logger.info(
+                        f"📋 Document kind detected: {item_data.get('document_kind')} for {item_data.get('company_name')}")
+                else:
+                    logger.info(
+                        f"❓ Document kind analysis inconclusive: {item_data.get('company_name')}")
             else:
-                # For non-8K or non-EX-2.1 filings, set default values
+                # For other filings, set default values
                 item_data['is_new_deal'] = None
                 item_data['following'] = False
 

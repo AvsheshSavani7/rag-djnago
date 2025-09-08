@@ -15,6 +15,7 @@ from .serializers import (
     SECFilingDetailSerializer,
     SECFeedStatusSerializer
 )
+from document_processor.models import ProcessingJob
 
 logger = logging.getLogger(__name__)
 
@@ -90,10 +91,30 @@ class SECFilingListView(APIView):
             # Serialize
             serializer = SECFilingListSerializer(filings, many=True)
 
+            # Add deal_found field for DEF 14A and PRE 14A filings
+            filings_data = serializer.data
+            for filing_data in filings_data:
+                if filing_data.get('form_type') in ['DEF 14A', 'PRE 14A']:
+                    cik_number = filing_data.get('cik_number')
+                    if cik_number:
+                        try:
+                            deal_exists = ProcessingJob.objects(
+                                cik=cik_number).first() is not None
+                            filing_data['deal_found'] = deal_exists
+                        except Exception as e:
+                            logger.error(
+                                f"Error checking CIK {cik_number} in Deals collection: {e}")
+                            filing_data['deal_found'] = False
+                    else:
+                        filing_data['deal_found'] = False
+                else:
+                    # Not applicable for other form types
+                    filing_data['deal_found'] = None
+
             return Response({
                 'success': True,
-                'filings': serializer.data,
-                'count': len(serializer.data)
+                'filings': filings_data,
+                'count': len(filings_data)
             }, status=status.HTTP_200_OK)
 
         except Exception as e:
@@ -119,10 +140,29 @@ class SECFilingDetailView(APIView):
                 )
 
             serializer = SECFilingDetailSerializer(filing)
+            filing_data = serializer.data
+
+            # Add deal_found field for DEF 14A and PRE 14A filings
+            if filing_data.get('form_type') in ['DEF 14A', 'PRE 14A']:
+                cik_number = filing_data.get('cik_number')
+                if cik_number:
+                    try:
+                        deal_exists = ProcessingJob.objects(
+                            cik=cik_number).first() is not None
+                        filing_data['deal_found'] = deal_exists
+                    except Exception as e:
+                        logger.error(
+                            f"Error checking CIK {cik_number} in Deals collection: {e}")
+                        filing_data['deal_found'] = False
+                else:
+                    filing_data['deal_found'] = False
+            else:
+                # Not applicable for other form types
+                filing_data['deal_found'] = None
 
             return Response({
                 'success': True,
-                'filing': serializer.data
+                'filing': filing_data
             }, status=status.HTTP_200_OK)
 
         except Exception as e:
@@ -148,10 +188,30 @@ class SEC8KFilingListView(APIView):
 
             serializer = SECFilingListSerializer(filings, many=True)
 
+            # Add deal_found field for DEF 14A and PRE 14A filings
+            filings_data = serializer.data
+            for filing_data in filings_data:
+                if filing_data.get('form_type') in ['DEF 14A', 'PRE 14A']:
+                    cik_number = filing_data.get('cik_number')
+                    if cik_number:
+                        try:
+                            deal_exists = ProcessingJob.objects(
+                                cik=cik_number).first() is not None
+                            filing_data['deal_found'] = deal_exists
+                        except Exception as e:
+                            logger.error(
+                                f"Error checking CIK {cik_number} in Deals collection: {e}")
+                            filing_data['deal_found'] = False
+                    else:
+                        filing_data['deal_found'] = False
+                else:
+                    # Not applicable for other form types
+                    filing_data['deal_found'] = None
+
             return Response({
                 'success': True,
-                'filings': serializer.data,
-                'count': len(serializer.data)
+                'filings': filings_data,
+                'count': len(filings_data)
             }, status=status.HTTP_200_OK)
 
         except Exception as e:

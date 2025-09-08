@@ -303,3 +303,175 @@ Respond only with valid JSON.
             filing_data['is_new_deal'] = None
             filing_data['following'] = False
             return filing_data
+
+    def analyze_def14a_document_with_gpt(self, document_text: str, company_name: str) -> Dict[str, Any]:
+        """Analyze DEF 14A document with GPT to determine document kind based on checkbox text"""
+        try:
+            if not self.openai_client.api_key:
+                logger.error("OpenAI API key not configured")
+                return {
+                    'document_kind': None,
+                    'confidence': 0,
+                    'reasoning': 'OpenAI API key not configured',
+                    'error': 'API key missing'
+                }
+
+            prompt = f"""
+You are an expert in analyzing SEC proxy statements (DEF 14A and PRE 14A).
+
+Please analyze the following document excerpt from a DEF 14A/PRE 14A filing by {company_name} and determine the document kind based on the checkbox selection.
+
+Document excerpt:
+{document_text}
+
+Look for the checkbox section that typically appears like this:
+
+Check the appropriate box:
+
+☐ Preliminary Proxy Statement.
+☐ Confidential, for Use of the Commission Only (as permitted by Rule 14a-6(e)(2))
+☒ Definitive Proxy Statement.
+☐ Definitive Additional Materials.
+☐ Soliciting Material under §240.14a-12.
+
+Please respond with a JSON object containing:
+- "document_kind": one of the categories below based on which checkbox is selected
+- "confidence": a number from 0-100
+- "reasoning": brief explanation of which checkbox was found and selected
+- "checkbox_found": boolean indicating if the checkbox section was found
+
+---
+
+### Document Kind Categories
+
+Based on the checkbox selection:
+
+- "preliminary_proxy" → if "Preliminary Proxy Statement" is checked
+- "definitive_proxy" → if "Definitive Proxy Statement" is checked  
+- "definitive_additional_materials" → if "Definitive Additional Materials" is checked
+- "soliciting_material" → if "Soliciting Material under §240.14a-12" is checked
+- "confidential_commission_only" → if "Confidential, for Use of the Commission Only" is checked
+- "unknown" → if checkbox section is not found or unclear
+
+---
+
+Respond only with valid JSON.
+"""
+
+            response = self.openai_client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[
+                    {"role": "system", "content": "You are an expert SEC proxy statement analyst. Respond only with valid JSON."},
+                    {"role": "user", "content": prompt}
+                ],
+                max_tokens=300,
+                temperature=0.1,
+                response_format={"type": "json_object"}
+            )
+
+            result_text = response.choices[0].message.content.strip()
+
+            # Parse JSON response
+            print(f"GPT Response for DEF 14A: {result_text}")
+
+            result = json.loads(result_text)
+
+            analysis_result = {
+                'document_kind': result.get('document_kind', 'unknown'),
+                'confidence': result.get('confidence', 0),
+                'reasoning': result.get('reasoning', ''),
+                'checkbox_found': result.get('checkbox_found', False),
+                'raw_response': result_text
+            }
+
+            logger.info(
+                f"GPT DEF 14A Analysis Result: {result.get('document_kind', 'unknown')} (confidence: {result.get('confidence', 0)}%)")
+            return analysis_result
+
+        except json.JSONDecodeError as e:
+            logger.error(f"Error parsing GPT JSON response for DEF 14A: {e}")
+            return {
+                'document_kind': 'unknown',
+                'confidence': 0,
+                'reasoning': 'Failed to parse GPT response',
+                'error': str(e)
+            }
+        except Exception as e:
+            logger.error(f"Error analyzing DEF 14A document with GPT: {e}")
+            return {
+                'document_kind': 'unknown',
+                'confidence': 0,
+                'reasoning': 'GPT analysis failed',
+                'error': str(e)
+            }
+
+    def analyze_def14a_filing(self, filing_data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Main method to analyze a DEF 14A/PRE 14A filing for document kind detection
+        Returns updated filing_data with document_kind field
+        """
+        try:
+            # Check if this is a DEF 14A or PRE 14A
+            if filing_data.get('form_type') not in ['DEF 14A', 'PRE 14A']:
+                logger.info("Skipping analysis - not a DEF 14A/PRE 14A filing")
+                return filing_data
+
+            xbrl_files = filing_data.get('xbrl_files', [])
+
+            # For DEF 14A, we need to find the main document file (usually the first HTML file)
+            # Look for files that might contain the main document content
+            main_document_files = [
+                file for file in xbrl_files
+                if file.get('url', '').endswith('.htm') or file.get('url', '').endswith('.html')
+            ]
+
+            if not main_document_files:
+                logger.info(
+                    "Skipping analysis - no HTML files found in DEF 14A/PRE 14A")
+                filing_data['document_kind'] = 'unknown'
+                return filing_data
+
+            # Use the first HTML file as the main document
+            main_file = main_document_files[0]
+            htm_url = main_file.get('url')
+
+            logger.info(f"Analyzing DEF 14A/PRE 14A file: {htm_url}")
+
+            # Download document
+            html_content = self.download_htm_file(htm_url)
+            if not html_content:
+                logger.error("Failed to download DEF 14A/PRE 14A HTM file")
+                filing_data['document_kind'] = 'unknown'
+                return filing_data
+
+            # Extract pages (first few pages should contain the checkbox)
+            document_text = self.extract_document_pages(
+                html_content, max_pages=2)  # Only need first 2 pages for checkbox
+            if not document_text:
+                logger.error("Failed to extract DEF 14A/PRE 14A document text")
+                filing_data['document_kind'] = 'unknown'
+                return filing_data
+
+            # Analyze with GPT
+            analysis = self.analyze_def14a_document_with_gpt(
+                document_text,
+                filing_data.get('company_name', 'Unknown Company')
+            )
+
+            # Update filing data based on analysis
+            filing_data['document_kind'] = analysis.get(
+                'document_kind', 'unknown')
+            filing_data['is_new_deal'] = None  # Not applicable for DEF 14A
+            filing_data['following'] = False   # Not applicable for DEF 14A
+
+            logger.info(
+                f"📋 DEF 14A/PRE 14A Document kind: {filing_data.get('document_kind')} for {filing_data.get('company_name')}")
+
+            return filing_data
+
+        except Exception as e:
+            logger.error(f"Error in analyze_def14a_filing: {e}")
+            filing_data['document_kind'] = 'unknown'
+            filing_data['is_new_deal'] = None
+            filing_data['following'] = False
+            return filing_data

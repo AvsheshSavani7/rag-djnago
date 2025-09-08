@@ -56,6 +56,7 @@ class SECFilingSerializer(serializers.Serializer):
         max_length=20, default="Not Started")
     document_kind = serializers.CharField(
         max_length=20, required=False, allow_null=True)
+    deal_found = serializers.BooleanField(required=False, allow_null=True)
     # Timestamps
     created_at = serializers.DateTimeField(read_only=True)
     updated_at = serializers.DateTimeField(read_only=True)
@@ -105,6 +106,7 @@ class SECFilingListSerializer(serializers.Serializer):
     is_new_deal = serializers.BooleanField(read_only=True)
     following = serializers.BooleanField(read_only=True)
     following_status = serializers.CharField(read_only=True)
+    deal_found = serializers.BooleanField(read_only=True)
     created_at = serializers.DateTimeField(read_only=True)
     updated_at = serializers.DateTimeField(read_only=True)
 
