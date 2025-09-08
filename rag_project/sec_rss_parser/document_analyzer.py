@@ -137,6 +137,8 @@ Choose the most precise one:
 
 - "purchase_agreement" → for Stock Purchase Agreements, Asset Purchase Agreements, Equity Purchase Agreements, Membership Interest Purchase Agreements, etc.
 
+- "business_combination_agreement" → for Business Combination Agreements, Business Acquisition Agreements, Business Sale Agreements, Business Reorganization Agreements, etc.
+
 - "transaction_agreement" → labeled explicitly as "Transaction Agreement" (broader than merger or purchase agreement).
 
 - "joint_venture_agreement" → agreements establishing a joint venture or strategic alliance.
