@@ -69,21 +69,26 @@ class RiskBasedTwitterSearchService:
 
     def search_tweets(self, query: str, max_results: int = 5000) -> List[Dict[str, Any]]:
         """
-        Search for tweets using the advanced search API
+        Search for tweets using the advanced search API (last 24 hours only)
 
         Args:
             query: Search query string
             max_results: Maximum number of results to fetch
 
         Returns:
-            List of tweet data
+            List of tweet data from the last 24 hours
         """
         all_tweets = []
         cursor = ""
 
+        # Add 24-hour time filter to the query string
+        query_with_time = f"{query} within_time:24h"
+
+        self.logger.info(f"Searching tweets with query: {query_with_time}")
+
         while len(all_tweets) < max_results:
             params = {
-                'query': query,
+                'query': query_with_time,
                 'queryType': 'Latest',
                 'cursor': cursor
             }
