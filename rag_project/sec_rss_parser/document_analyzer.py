@@ -129,33 +129,37 @@ Please respond with a JSON object containing:
 - "new_deal" → if it is a new agreement (merger, acquisition, sale, or reorganization).
 - "amendment" → if it modifies, amends, or restates a prior agreement.
 
-**Document Kind**
-Choose the most precise one:
+**Document Kind (choose EXACTLY one; use these exact strings only)**
+- "Definitive Merger Agreement"
+- "Stock Purchase / Share Exchange Agreement"
+- "Asset Purchase Agreement"
+- "Plan of Reorganization (Bankruptcy)"
+- "Plan of Liquidation / Dissolution"
+- "Succession / Arrangement Plans"
+- "Amendment"
+- "Other Corporate Agreement" 
 
-- "mna_definitive" → ONLY for **Agreement and Plan of Merger** (true third-party merger agreements with purchase price/consideration, reps & warranties, covenants, indemnities, disclosure schedules, etc.).  
-  ⚠️ Do NOT use this for Stock Purchase Agreements or Asset Purchase Agreements or Transaction Agreement.
+### Title Keyword Hints (for recognition only; NEVER copy these into output unless they appear verbatim in the excerpt)
 
-- "purchase_agreement" → for Stock Purchase Agreements, Asset Purchase Agreements, Equity Purchase Agreements, Membership Interest Purchase Agreements, etc.
+- Definitive Merger Agreement → "Agreement and Plan of Merger"; "Definitive Merger Agreement"; "Agreement and Plan of Reorganization" (M&A context)
+- Stock Purchase / Share Exchange Agreement → "Stock Purchase Agreement"; "Share Exchange Agreement"
+- Asset Purchase Agreement → "Asset Purchase Agreement"; "Bill of Sale"
+- Plan of Reorganization (Bankruptcy) → "Plan of Reorganization"; "Joint Prepackaged Plan"
+- Plan of Liquidation / Dissolution → "Plan of Liquidation"; "Plan of Dissolution"
+- Succession / Arrangement Plans → "Succession Agreement"; "Arrangement Plan"; "Corporate Arrangement"
+- Amendment → "Amendment"; "Modification"; "Restatement"
+- Other Corporate Agreement → fallback if none of the above fit.
 
-- "business_combination_agreement" → for Business Combination Agreements, Business Combination Agreements, etc.
 
-- "transaction_agreement" → labeled explicitly as "Transaction Agreement" (broader than merger or purchase agreement).
+- Preserve **original text exactly as it appears** for anything quoted in "key_indicators" and referenced in "reasoning".
+- **Do not normalize, autocorrect, or map** phrases.
+  - Example: if the excerpt says **"Plan of recoganization"** (typo), output **"Plan of recoganization"** exactly in "key_indicators".
+- Keep original casing, punctuation, hyphenation, whitespace, and typos.
+- Use short verbatim snippets (≤ 12 words) that directly justify the decision.
 
-- "joint_venture_agreement" → agreements establishing a joint venture or strategic alliance.
-
-- "support_or_voting_agreement" → shareholder support, tender support, or voting agreements.
-
-- "tender_offer_agreement" → tender offer or acquisition offer agreements.
-
-- "mna_initial" → preliminary non-binding agreements (LOI, MOU, Term Sheet, Expression of Interest, press release).
-
-- "amendment" → amendment or modification to an existing agreement.
-
-- "reincorporation_merger" → parent-subsidiary merger, reincorporation, change of domicile, short-form merger.
-
-- "internal_reorganization" → intra-group reorganization, simplification agreement.
-
-- "other_corporate_agreement" → fallback if none of the above fit.
+Important:
+- Use the hints only to choose the closest `document_kind` from the fixed list above.
+- Output must be valid JSON.
 
 ---
 
