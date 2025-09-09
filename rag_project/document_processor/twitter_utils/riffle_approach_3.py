@@ -223,7 +223,7 @@ class CompetitiveProductsDealAnalyzer:
             acquire_company: Acquire company name (for cleaning product name)
             announce_date: Announcement date in YYYY-MM-DD format
             years_back: Number of years to search back from announcement date
-            daily_mode: If True, search only last 24 hours
+            daily_mode: If True, search only last 24 hours using within_time:24h filter
 
         Returns:
             Complete Twitter search query string with date filters
@@ -239,21 +239,19 @@ class CompetitiveProductsDealAnalyzer:
 
         # Determine date range
         if daily_mode:
-            # For daily mode, search from 12 AM to 12 AM of today (24 hours)
-            today = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
-            start_date = today  # 12 AM today
-            end_date = today + timedelta(days=1)  # 12 AM tomorrow
+            # For daily mode, use within_time:24h filter
+            query_with_dates = f'{query} within_time:24h'
         else:
             # For initial mode, search last 5 years from today (not announcement date)
             end_date = datetime.now()
             start_date = end_date - timedelta(days=years_back * 365)
 
-        # Format dates for Twitter search (YYYY-MM-DD format with UTC time)
-        since_date = start_date.strftime('%Y-%m-%d')
-        until_date = end_date.strftime('%Y-%m-%d')
+            # Format dates for Twitter search (YYYY-MM-DD format with UTC time)
+            since_date = start_date.strftime('%Y-%m-%d')
+            until_date = end_date.strftime('%Y-%m-%d')
 
-        # Add date filters to the query string with UTC time
-        query_with_dates = f'{query} since:{since_date}_00:00:00_UTC until:{until_date}_23:59:59_UTC'
+            # Add date filters to the query string with UTC time
+            query_with_dates = f'{query} since:{since_date}_00:00:00_UTC until:{until_date}_23:59:59_UTC'
 
         return query_with_dates
 
