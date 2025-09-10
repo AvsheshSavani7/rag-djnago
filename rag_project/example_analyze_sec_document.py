@@ -20,7 +20,7 @@ def main():
     """Example usage of the SEC document analyzer"""
 
     # Example SEC document URL (this is a placeholder - replace with real URL)
-    example_url = "https://www.sec.gov/Archives/edgar/data/910073/000091007325000121/exhibit21-amendedandrest.htm"
+    example_url = "https://www.sec.gov/Archives/edgar/data/1418135/000095014225002257/eh250670939_ex0201.htm"
     company_name = "Example Company Inc."
 
     print("🚀 Example: Analyzing SEC Document Programmatically")
