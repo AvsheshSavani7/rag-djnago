@@ -62,3 +62,5 @@ lxml==4.9.3
 serpapi==0.1.5
 praw==7.8.1
 prawcore==2.4.0
+
+playwright>=1.40.0

@@ -2,10 +2,8 @@ services:
   # Main Django Web Service
   - type: web
     name: rag-django
-    env: python
-    plan: free
-    buildCommand: "./build.sh"
-    startCommand: "uvicorn rag_project.asgi:application --bind 0.0.0.0:$PORT --timeout 120 --workers 1 --reload"
+    env: docker
+    plan: starter
     envVars:
       - key: DJANGO_SETTINGS_MODULE
         value: rag_project.settings
@@ -63,54 +61,6 @@ services:
         sync: false
       - key: PINECONE_INDEX_NAME1
         sync: false
-
-  # Daily Reddit Scraper Cron Job
-  - type: cron
-    name: daily-reddit-scraper
-    env: python
-    plan: free
-    buildCommand: "./build.sh"
-    schedule: "0 2 * * *"  # Run daily at 2:00 AM UTC
-    startCommand: "python rag_project/daily_reddit_scraper.py"
-    envVars:
-      - key: DJANGO_SETTINGS_MODULE
-        value: rag_project.settings
-      - key: PYTHON_VERSION
-        value: 3.12.4
-      - key: PYTHONPATH
-        value: /opt/render/project/src/rag_project
-      - key: MONGODB_CONNECTION_STRING
-        sync: false
-      - key: MONGODB_NAME
-        sync: false
-      - key: MONGODB_USER
-        sync: false
-      - key: MONGODB_PASSWORD
-        sync: false
-
-
-
-  # Daily Riffle Approach 2 Cron Job
-  - type: cron
-    name: daily-riffle-approach-2
-    env: python
-    plan: free
-    buildCommand: "./build.sh"
-    schedule: "0 2 * * *"  # Run daily at 2:00 AM UTC
-    startCommand: "python rag_project/run_daily_riffle_approach_2.py"
-    envVars:
-      - key: DJANGO_SETTINGS_MODULE
-        value: rag_project.settings
-      - key: PYTHON_VERSION
-        value: 3.12.4
-      - key: PYTHONPATH
-        value: /opt/render/project/src/rag_project
-      - key: MONGODB_CONNECTION_STRING
-        sync: false
-      - key: MONGODB_NAME
-        sync: false
-      - key: MONGODB_USER
-        sync: false
-      - key: MONGODB_PASSWORD
-        sync: false
+      - key: PLAYWRIGHT_BROWSERS_PATH
+        value: /opt/render/.playwright
 
