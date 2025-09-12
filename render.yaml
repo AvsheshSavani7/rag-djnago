@@ -3,7 +3,9 @@ services:
   - type: web
     name: rag-django
     env: docker
-    plan: starter
+    plan: stater
+    buildCommand: "./build.sh"
+    startCommand: "uvicorn rag_project.asgi:application --bind 0.0.0.0:$PORT --timeout 120 --workers 1 --reload"
     envVars:
       - key: DJANGO_SETTINGS_MODULE
         value: rag_project.settings
