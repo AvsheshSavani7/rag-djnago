@@ -4,7 +4,7 @@ FROM mcr.microsoft.com/playwright/python:v1.44.0-jammy
 RUN python --version
 
 # Set work directory
-WORKDIR /rag_project
+WORKDIR /app/rag_project
 
 # Install system dependencies required for Django + psycopg2/Postgres
 RUN apt-get update && apt-get install -y \
@@ -13,7 +13,7 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy Python dependencies first (better caching)
-COPY requirements.txt /rag_project/
+COPY requirements.txt /app/
 RUN pip install --no-cache-dir -r requirements.txt
 
 
@@ -21,7 +21,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 RUN playwright install --with-deps
 
 # Copy Django project code
-COPY . /rag_project/
+COPY . /app/
+RUN ls -al /app
 
 # Collect static files for Django
 RUN python manage.py collectstatic --noinput
