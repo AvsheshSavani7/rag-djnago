@@ -1,5 +1,7 @@
 # Use the official Playwright image (includes Chromium, Firefox, WebKit + deps)
-FROM mcr.microsoft.com/playwright/python:v1.40.0-focal
+FROM mcr.microsoft.com/playwright/python:v1.44.0-jammy
+
+RUN python --version
 
 # Set work directory
 WORKDIR /app
