@@ -14,6 +14,10 @@ RUN apt-get update && apt-get install -y \
 COPY requirements.txt /app/
 RUN pip install --no-cache-dir -r requirements.txt
 
+
+# Add this line to install browsers!
+RUN playwright install --with-deps
+
 # Copy Django project code
 COPY . /app/
 
