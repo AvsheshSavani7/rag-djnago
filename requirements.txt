@@ -33,7 +33,6 @@ pandas==2.2.3
 pinecone==6.0.2
 pinecone-plugin-interface==0.0.7
 pydantic>=2.11.5,<3
-pydantic_core==2.33.1
 PyJWT==2.9.0
 pymongo==4.6.3
 PyPDF2==3.0.1
