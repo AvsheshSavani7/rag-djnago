@@ -63,5 +63,5 @@ services:
       - key: PINECONE_INDEX_NAME1
         sync: false
       - key: PLAYWRIGHT_BROWSERS_PATH
-        value: /opt/render/.playwright
+        sync: false
 
