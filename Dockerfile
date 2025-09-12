@@ -8,9 +8,7 @@ RUN apt-get update && apt-get install -y \
     wget \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Playwright & browsers
-RUN pip install --no-cache-dir playwright && \
-    playwright install --with-deps
+
 
 # (Optional) Show version for debug
 RUN python --version
@@ -19,6 +17,10 @@ WORKDIR /app
 
 COPY requirements.txt /app/
 RUN pip install --no-cache-dir -r requirements.txt
+
+# Install Playwright & browsers
+RUN pip install --no-cache-dir playwright && playwright install --with-deps
+
 
 COPY . /app/
 
