@@ -64,6 +64,7 @@ INSTALLED_APPS = [
     "gpt_chat",
     "rss_feeds",
     "sec_rss_parser",
+    "proxy_processor",
 ]
 
 MIDDLEWARE = [
