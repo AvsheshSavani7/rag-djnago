@@ -187,7 +187,7 @@ def process_proxy_document_async(proxy_doc_id, proxy_sec_url):
         proxy_doc.s3_urls = results.get('s3_urls', {})
 
         # Check if empty percentage is too high (>40%)
-        if empty_percentage > 10.0:
+        if empty_percentage > 40.0:
             # Mark as failed due to high empty percentage
             proxy_doc.proxy_parsing_status = 'failed'
             proxy_doc.error_message = f'Processing failed: Empty percentage too high ({empty_percentage:.1f}% > 40%)'
