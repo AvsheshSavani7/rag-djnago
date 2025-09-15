@@ -51,12 +51,20 @@ class ProxyDocument(Document):
     # Agent response
     agent_response = StringField(max_length=10000)
 
+    # Pinecone processing information
+    pinecone_processing_status = StringField(max_length=20, default='pending', choices=[
+        'pending', 'processing', 'completed', 'failed'
+    ])
+    pinecone_processed_at = DateTimeField()
+    pinecone_error_message = StringField(max_length=1000)
+
     meta = {
         'collection': 'proxy_documents',
         'indexes': [
             'cik_number',
             'sec_filling_id',
             'proxy_parsing_status',
+            'pinecone_processing_status',
             'created_at',
             'company_name',
             'deal_id',

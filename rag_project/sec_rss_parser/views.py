@@ -73,7 +73,7 @@ class SECFilingListView(APIView):
             form_type = request.query_params.get('form_type')
             cik_number = request.query_params.get('cik_number')
             has_htm_files = request.query_params.get('has_htm_files')
-            limit = int(request.query_params.get('limit', 100))
+            limit = int(request.query_params.get('limit', 1000))
 
             # Build query
             query = {}
@@ -98,18 +98,26 @@ class SECFilingListView(APIView):
                     cik_number = filing_data.get('cik_number')
                     if cik_number:
                         try:
-                            deal_exists = ProcessingJob.objects(
-                                cik=cik_number).first() is not None
-                            filing_data['deal_found'] = deal_exists
+                            deal = ProcessingJob.objects(
+                                cik=cik_number).first()
+                            if deal:
+                                filing_data['deal_found'] = True
+                                filing_data['deal_id'] = str(deal.id)
+                            else:
+                                filing_data['deal_found'] = False
+                                filing_data['deal_id'] = None
                         except Exception as e:
                             logger.error(
                                 f"Error checking CIK {cik_number} in Deals collection: {e}")
                             filing_data['deal_found'] = False
+                            filing_data['deal_id'] = None
                     else:
                         filing_data['deal_found'] = False
+                        filing_data['deal_id'] = None
                 else:
                     # Not applicable for other form types
                     filing_data['deal_found'] = None
+                    filing_data['deal_id'] = None
 
             return Response({
                 'success': True,
@@ -147,18 +155,25 @@ class SECFilingDetailView(APIView):
                 cik_number = filing_data.get('cik_number')
                 if cik_number:
                     try:
-                        deal_exists = ProcessingJob.objects(
-                            cik=cik_number).first() is not None
-                        filing_data['deal_found'] = deal_exists
+                        deal = ProcessingJob.objects(cik=cik_number).first()
+                        if deal:
+                            filing_data['deal_found'] = True
+                            filing_data['deal_id'] = str(deal.id)
+                        else:
+                            filing_data['deal_found'] = False
+                            filing_data['deal_id'] = None
                     except Exception as e:
                         logger.error(
                             f"Error checking CIK {cik_number} in Deals collection: {e}")
                         filing_data['deal_found'] = False
+                        filing_data['deal_id'] = None
                 else:
                     filing_data['deal_found'] = False
+                    filing_data['deal_id'] = None
             else:
                 # Not applicable for other form types
                 filing_data['deal_found'] = None
+                filing_data['deal_id'] = None
 
             return Response({
                 'success': True,
@@ -195,18 +210,26 @@ class SEC8KFilingListView(APIView):
                     cik_number = filing_data.get('cik_number')
                     if cik_number:
                         try:
-                            deal_exists = ProcessingJob.objects(
-                                cik=cik_number).first() is not None
-                            filing_data['deal_found'] = deal_exists
+                            deal = ProcessingJob.objects(
+                                cik=cik_number).first()
+                            if deal:
+                                filing_data['deal_found'] = True
+                                filing_data['deal_id'] = str(deal.id)
+                            else:
+                                filing_data['deal_found'] = False
+                                filing_data['deal_id'] = None
                         except Exception as e:
                             logger.error(
                                 f"Error checking CIK {cik_number} in Deals collection: {e}")
                             filing_data['deal_found'] = False
+                            filing_data['deal_id'] = None
                     else:
                         filing_data['deal_found'] = False
+                        filing_data['deal_id'] = None
                 else:
                     # Not applicable for other form types
                     filing_data['deal_found'] = None
+                    filing_data['deal_id'] = None
 
             return Response({
                 'success': True,

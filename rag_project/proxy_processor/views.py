@@ -11,6 +11,9 @@ from .serializers import (
     ProxyProcessingRequestSerializer
 )
 from .agentic_sec_processor import AgenticSECProcessor
+from .sec_processor_and_pinecone import SectionProcessor
+from sec_rss_parser.websocket_service import SECWebSocketService
+from sec_rss_parser.models import SECFiling
 
 logger = logging.getLogger(__name__)
 
@@ -91,6 +94,25 @@ def process_sec_document(request):
             )
             proxy_doc.save()
 
+        # Update SEC filing collection with following and following_status
+        sec_filing_updated = False
+        try:
+            # Find the SEC filing by _id (sec_filling_id is the MongoDB ObjectId)
+            sec_filing = SECFiling.objects(_id=sec_filling_id).first()
+            if sec_filing:
+                sec_filing.following = True
+                sec_filing.following_status = "In Progress"
+                sec_filing.save()
+                sec_filing_updated = True
+                logger.info(
+                    f"Updated SEC filing {sec_filling_id} with following=True and following_status='In Progress'")
+            else:
+                logger.warning(
+                    f"SEC filing with _id {sec_filling_id} not found in sec_filings collection")
+        except Exception as e:
+            logger.error(
+                f"Error updating SEC filing {sec_filling_id}: {str(e)}")
+
         # Start processing in a separate thread
         processing_thread = threading.Thread(
             target=process_proxy_document_async,
@@ -114,12 +136,14 @@ def process_sec_document(request):
 
         return Response({
             'proxy_document_id': str(proxy_doc.id),
-            'status': 'processing',
+            'status': 'In Progress',
             'message': f'Proxy document {action.lower()}',
             'company_name': company_name,
             'cik_number': cik_number,
             'proxy_sec_url': proxy_sec_url,
-            'is_update': is_update
+            'is_update': is_update,
+            'sec_filing_updated': sec_filing_updated,
+            'sec_filing_id': sec_filling_id
         }, status=status.HTTP_202_ACCEPTED)
 
     except Exception as e:
@@ -156,26 +180,146 @@ def process_proxy_document_async(proxy_doc_id, proxy_sec_url):
         results = processor.process_document()
 
         # Update document with results
-        proxy_doc.proxy_parsing_status = 'completed'
-        proxy_doc.completed_at = datetime.utcnow()
-        proxy_doc.empty_percentage = results.get('empty_percentage', 100.0)
+        empty_percentage = results.get('empty_percentage', 100.0)
+        proxy_doc.empty_percentage = empty_percentage
         proxy_doc.agent_response = results.get('agent_response', '')
         proxy_doc.processing_state = processor.processing_state
         proxy_doc.s3_urls = results.get('s3_urls', {})
 
-        # Generate AWS URL for proxy parsing results
-        # Format: proxy-parse-jsons/{cik_number}/{sec_filling_id}/
+        # Check if empty percentage is too high (>40%)
+        if empty_percentage > 10.0:
+            # Mark as failed due to high empty percentage
+            proxy_doc.proxy_parsing_status = 'failed'
+            proxy_doc.error_message = f'Processing failed: Empty percentage too high ({empty_percentage:.1f}% > 40%)'
+            proxy_doc.completed_at = datetime.utcnow()
+            proxy_doc.save()
 
-        proxy_doc.save()
+            # Update SEC filing status to Failed
+            try:
+                sec_filing = SECFiling.objects(
+                    _id=proxy_doc.sec_filling_id).first()
+                if sec_filing:
+                    sec_filing.following_status = "Failed"
+                    sec_filing.save()
+                    logger.info(
+                        f"Updated SEC filing {proxy_doc.sec_filling_id} with following_status='Failed' due to high empty percentage")
+            except Exception as e:
+                logger.error(
+                    f"Error updating SEC filing status to Failed for {proxy_doc.sec_filling_id}: {str(e)}")
 
-        # Log completion
-        log_entry = ProxyProcessingLog(
-            proxy_document_id=str(proxy_doc_id),
-            level='INFO',
-            message=f'Successfully completed processing. Empty percentage: {proxy_doc.empty_percentage:.1f}%',
-            module='proxy_processor.views'
-        )
-        log_entry.save()
+            # Log failure
+            log_entry = ProxyProcessingLog(
+                proxy_document_id=str(proxy_doc_id),
+                level='ERROR',
+                message=f'Processing failed due to high empty percentage: {empty_percentage:.1f}% (threshold: 40%)',
+                module='proxy_processor.views'
+            )
+            log_entry.save()
+
+            logger.warning(
+                f"Processing failed for {proxy_doc.company_name}: Empty percentage {empty_percentage:.1f}% exceeds 40% threshold")
+
+            # Emit WebSocket event for processing failure
+            try:
+                # Prepare filing data for WebSocket emission
+                filing_data = {
+                    '_id': str(proxy_doc.sec_filling_id),
+                    'proxy_document_id': str(proxy_doc.id),
+                    'company_name': proxy_doc.company_name,
+                    'form_type': proxy_doc.form_type,
+                    'cik_number': proxy_doc.cik_number,
+                    'sec_filling_id': proxy_doc.sec_filling_id,
+                    'filing_date': proxy_doc.filing_date,
+                    'proxy_sec_url': proxy_doc.proxy_sec_url,
+                    'deal_id': proxy_doc.deal_id,
+                    'following': True,  # Still following, but failed
+                    'following_status': 'Failed',  # Set to Failed
+                    'proxy_parsing_status': proxy_doc.proxy_parsing_status,
+                    'empty_percentage': empty_percentage,
+                    'error_message': proxy_doc.error_message,
+                    'completed_at': proxy_doc.completed_at.isoformat() if proxy_doc.completed_at else None,
+                    'created_at': proxy_doc.created_at.isoformat() if proxy_doc.created_at else None,
+                    'updated_at': proxy_doc.updated_at.isoformat() if proxy_doc.updated_at else None
+                }
+
+                logger.info(
+                    f"🔍 DEBUG: About to emit WebSocket event for processing failure with data: {filing_data}")
+                logger.info(f"🔍 DEBUG: Analysis result: processing_failed")
+
+                # Emit WebSocket event for processing failure
+                SECWebSocketService.emit_sec_analysis_complete(
+                    filing_data, 'processing_failed')
+
+                logger.info(
+                    f"✅ Emitted WebSocket event for processing failure: {proxy_doc.company_name}")
+
+            except Exception as ws_error:
+                logger.error(
+                    f"Error emitting WebSocket event for processing failure: {ws_error}")
+                # Don't fail the entire process if WebSocket emission fails
+
+        else:
+            # Empty percentage is acceptable, proceed with completion
+            proxy_doc.proxy_parsing_status = 'completed'
+            proxy_doc.completed_at = datetime.utcnow()
+            proxy_doc.save()
+
+            # Update SEC filing status to Completed
+            try:
+                sec_filing = SECFiling.objects(
+                    _id=proxy_doc.sec_filling_id).first()
+                if sec_filing:
+                    sec_filing.following_status = "Completed"
+                    sec_filing.save()
+                    logger.info(
+                        f"Updated SEC filing {proxy_doc.sec_filling_id} with following_status='Completed'")
+            except Exception as e:
+                logger.error(
+                    f"Error updating SEC filing status to Completed for {proxy_doc.sec_filling_id}: {str(e)}")
+
+            # Log completion
+            log_entry = ProxyProcessingLog(
+                proxy_document_id=str(proxy_doc_id),
+                level='INFO',
+                message=f'Successfully completed processing. Empty percentage: {empty_percentage:.1f}%',
+                module='proxy_processor.views'
+            )
+            log_entry.save()
+
+            # Start Pinecone processing if sections JSON URL is available
+            s3_urls = results.get('s3_urls', {})
+            sections_json_url = s3_urls.get('sections_json_url')
+
+            if sections_json_url:
+                logger.info(
+                    f"Starting Pinecone processing for sections: {sections_json_url}")
+
+                # Start Pinecone processing in a separate thread
+                pinecone_thread = threading.Thread(
+                    target=process_sections_with_pinecone,
+                    args=(proxy_doc_id, sections_json_url)
+                )
+                pinecone_thread.daemon = True
+                pinecone_thread.start()
+
+                # Log the start of Pinecone processing
+                log_entry = ProxyProcessingLog(
+                    proxy_document_id=str(proxy_doc_id),
+                    level='INFO',
+                    message=f'Started Pinecone processing thread for sections',
+                    module='proxy_processor.views'
+                )
+                log_entry.save()
+            else:
+                logger.warning(
+                    f"No sections JSON URL found in S3 URLs: {s3_urls}")
+                log_entry = ProxyProcessingLog(
+                    proxy_document_id=str(proxy_doc_id),
+                    level='WARNING',
+                    message='No sections JSON URL found for Pinecone processing',
+                    module='proxy_processor.views'
+                )
+                log_entry.save()
 
     except Exception as e:
         # Update document status to failed
@@ -185,6 +329,19 @@ def process_proxy_document_async(proxy_doc_id, proxy_sec_url):
             proxy_doc.error_message = str(e)
             proxy_doc.completed_at = datetime.utcnow()
             proxy_doc.save()
+
+            # Update SEC filing status to Failed
+            try:
+                sec_filing = SECFiling.objects(
+                    _id=proxy_doc.sec_filling_id).first()
+                if sec_filing:
+                    sec_filing.following_status = "Failed"
+                    sec_filing.save()
+                    logger.info(
+                        f"Updated SEC filing {proxy_doc.sec_filling_id} with following_status='Failed'")
+            except Exception as sec_error:
+                logger.error(
+                    f"Error updating SEC filing status to Failed for {proxy_doc.sec_filling_id}: {str(sec_error)}")
         except:
             pass
 
@@ -199,6 +356,104 @@ def process_proxy_document_async(proxy_doc_id, proxy_sec_url):
 
         logger.error(
             f"Error processing proxy document {proxy_doc_id}: {str(e)}")
+
+
+def process_sections_with_pinecone(proxy_doc_id, sections_json_url):
+    """
+    Process sections with Pinecone after SEC processing is complete.
+    """
+    try:
+        # Get the proxy document
+        proxy_doc = ProxyDocument.objects.get(id=proxy_doc_id)
+
+        # Log start of Pinecone processing
+        log_entry = ProxyProcessingLog(
+            proxy_document_id=str(proxy_doc_id),
+            level='INFO',
+            message='Starting Pinecone processing for sections',
+            module='proxy_processor.views'
+        )
+        log_entry.save()
+
+        # Initialize SectionProcessor with proxy information
+        processor = SectionProcessor(
+            proxy_id=str(proxy_doc.id)
+        )
+
+        # Process sections from S3 URL
+        processor.process_from_s3_url(sections_json_url)
+
+        # Update document with Pinecone processing completion
+        proxy_doc.pinecone_processing_status = 'completed'
+        proxy_doc.pinecone_processed_at = datetime.utcnow()
+        proxy_doc.save()
+
+        # Log completion
+        log_entry = ProxyProcessingLog(
+            proxy_document_id=str(proxy_doc_id),
+            level='INFO',
+            message='Successfully completed Pinecone processing',
+            module='proxy_processor.views'
+        )
+        log_entry.save()
+
+        logger.info(
+            f"Successfully completed Pinecone processing for proxy document {proxy_doc_id}")
+
+        # Emit WebSocket event after Pinecone processing completion
+        try:
+            # Prepare filing data for WebSocket emission
+            filing_data = {
+                '_id': str(proxy_doc.sec_filling_id),
+                'proxy_document_id': str(proxy_doc.id),
+                'company_name': proxy_doc.company_name,
+                'form_type': proxy_doc.form_type,
+                'cik_number': proxy_doc.cik_number,
+                'sec_filling_id': proxy_doc.sec_filling_id,
+                'filing_date': proxy_doc.filing_date,
+                'proxy_sec_url': proxy_doc.proxy_sec_url,
+                'deal_id': proxy_doc.deal_id,
+                'following': True,  # Set to False as requested
+                'following_status': 'Completed',  # Set to Completed as requested
+                'pinecone_processing_status': proxy_doc.pinecone_processing_status,
+                'pinecone_processed_at': proxy_doc.pinecone_processed_at.isoformat() if proxy_doc.pinecone_processed_at else None,
+                'created_at': proxy_doc.created_at.isoformat() if proxy_doc.created_at else None,
+                'updated_at': proxy_doc.updated_at.isoformat() if proxy_doc.updated_at else None
+            }
+
+            # Emit WebSocket event for SEC analysis update
+            SECWebSocketService.emit_sec_analysis_complete(
+                filing_data, 'pinecone_completed')
+
+            logger.info(
+                f"✅ Emitted WebSocket event for Pinecone completion: {proxy_doc.company_name}")
+
+        except Exception as ws_error:
+            logger.error(
+                f"Error emitting WebSocket event for Pinecone completion: {ws_error}")
+            # Don't fail the entire process if WebSocket emission fails
+
+    except Exception as e:
+        # Update document status to failed
+        try:
+            proxy_doc = ProxyDocument.objects.get(id=proxy_doc_id)
+            proxy_doc.pinecone_processing_status = 'failed'
+            proxy_doc.pinecone_error_message = str(e)
+            proxy_doc.save()
+        except:
+            pass
+
+        # Log error
+        log_entry = ProxyProcessingLog(
+            proxy_document_id=str(proxy_doc_id),
+            level='ERROR',
+            message=f'Pinecone processing failed: {str(e)}',
+            module='proxy_processor.views'
+        )
+        log_entry.save()
+
+        logger.error(
+            f"Error in Pinecone processing for proxy document {proxy_doc_id}: {str(e)}")
 
 
 @api_view(['GET'])
