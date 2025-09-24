@@ -1511,7 +1511,7 @@ class SummaryGenerationService:
             logger.error(traceback.format_exc())
             return []
 
-    def generate_summary_engine(self, deal_id, temperature=0.7):
+    def generate_summary_engine(self, deal_id, temperature=0.7, provider="openai", model="gpt-4"):
         """
         Generate document summaries based on schema results for the given deal_id.
         Uses the same summary generation logic as summary_main.py but with different input/output handling.
@@ -1599,7 +1599,7 @@ class SummaryGenerationService:
 
                     logger.info(f"\n→ Evaluating: {clause_name}")
                     result = process_clause_config(
-                        clause_config, schema_results)
+                        clause_config, schema_results, provider=provider, model=model, temperature=temperature)
 
                     if result["output"] and result["output"] != "No output generated.":
                         # Skip concise summaries where view_prompt is False
@@ -1671,9 +1671,10 @@ class SummaryGenerationService:
                         # Upload the file
                         s3_client.upload_file(temp_docx, S3_BUCKET, docx_key)
 
-                        # Store HTTPS URL in MongoDB
+                        # Store HTTPS URL and summary provider info in MongoDB
                         s3_url = f"https://{S3_BUCKET}.s3.amazonaws.com/{docx_key}"
                         job.summary_docx_url = s3_url
+                        job.summary_using = f"{provider}-{model}"
                         job.save()
 
                         # Return the S3 URL
@@ -4499,26 +4500,26 @@ class SchemaCategorySearch:
                 # First pass: Submit all tasks to the executor
                 for section_name, section_value in schema.items():
                     # Check if this section should be processed
-                    if section_name in [
-                        "termination",
-                        "ordinary_course",
-                        "board_approval",
-                        "party_details",
-                        "conditions_to_closing",
-                        "closing_mechanics",
-                        "specific_performance",
-                        "confidentiality_and_clean_room",
-                        "complex_consideration_and_dividends",
-                        "law_and_jurisdiction",
-                        "financing",
-                        "proxy_statement",
-                        "timeline",
-                        "material_adverse_effect",
-                        "non_solicitation",
-                        "best_efforts",
-                    ]:
-                        # Change this to your desired section
-                        # if section_name == "best_efforts":
+                    # if section_name in [
+                    #     "termination",
+                    #     "ordinary_course",
+                    #     "board_approval",
+                    #     "party_details",
+                    #     "conditions_to_closing",
+                    #     "closing_mechanics",
+                    #     "specific_performance",
+                    #     "confidentiality_and_clean_room",
+                    #     "complex_consideration_and_dividends",
+                    #     "law_and_jurisdiction",
+                    #     "financing",
+                    #     "proxy_statement",
+                    #     "timeline",
+                    #     "material_adverse_effect",
+                    #     "non_solicitation",
+                    #     "best_efforts",
+                    # ]:
+                    # Change this to your desired section
+                    if section_name == "best_efforts":
 
                         logger.info(
                             f"Submitting tasks for section: {section_name}")

@@ -636,20 +636,23 @@ class SummaryEngineView(APIView):
     # Create a ThreadPoolExecutor for background tasks
     executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
 
-    def _generate_summary_background(self, deal_id, temperature):
+    def _generate_summary_background(self, deal_id, temperature, provider, model):
         """Background task to generate summary"""
         try:
             summary_service = SummaryGenerationService()
             result = summary_service.generate_summary_engine(
                 deal_id=deal_id,
-                temperature=temperature
+                temperature=temperature,
+                provider=provider,
+                model=model
             )
 
-            # Update the job with the summary URL
+            # Update the job with the summary URL and provider info
             try:
                 object_id = ObjectId(deal_id)
                 job = ProcessingJob.objects.get(id=object_id)
                 job.summary_docx_url = result
+                job.summary_using = f"{provider}-{model}"
                 job.summary_status = 'COMPLETED'
                 job.save()
             except Exception as e:
@@ -673,10 +676,19 @@ class SummaryEngineView(APIView):
         # Get request parameters
         deal_id = request.data.get('deal_id')
         temperature = float(request.data.get('temperature', 0.7))
+        provider = request.data.get('provider', 'openai')
+        model = request.data.get('model', 'gpt-4.1-mini')
 
         # Validate parameters
         if not deal_id:
             return Response({"error": "deal_id is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Validate provider
+        valid_providers = ['openai', 'google', 'anthropic']
+        if provider.lower() not in valid_providers:
+            return Response({
+                "error": f"Invalid provider. Must be one of: {', '.join(valid_providers)}"
+            }, status=status.HTTP_400_BAD_REQUEST)
 
         try:
             # Get the job and update status
@@ -687,12 +699,16 @@ class SummaryEngineView(APIView):
 
             # Start summary generation in background
             self.executor.submit(
-                self._generate_summary_background, deal_id, temperature)
+                self._generate_summary_background, deal_id, temperature, provider, model)
 
             # Return immediate response
             return Response({
                 'id': str(deal_id),
                 'summary_status': 'PROCESSING',
+                'provider': provider,
+                'model': model,
+                'summary_using': f"{provider}-{model}",
+                'temperature': temperature,
                 'message': 'Summary generation started in background.'
             }, status=status.HTTP_200_OK)
 

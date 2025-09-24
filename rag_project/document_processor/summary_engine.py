@@ -11,6 +11,14 @@ from docx.oxml import OxmlElement
 from collections import defaultdict
 import datetime
 import dateutil.parser
+try:
+    import google.generativeai as genai
+except ImportError:
+    genai = None
+try:
+    import anthropic
+except ImportError:
+    anthropic = None
 
 # summary_engine.py
 RUN_CONCISE_SUMMARIES = True
@@ -21,31 +29,129 @@ RUN_FULSOME_SUMMARIES = True
 # =========================
 
 
-def load_api_key():
+def load_api_keys():
     load_dotenv()
-    api_key = os.getenv("OPENAI_API_KEY")
-    if not api_key:
-        raise ValueError("OPENAI_API_KEY not found in .env file")
-    return api_key
+    api_keys = {
+        'openai': os.getenv("OPENAI_API_KEY"),
+        'google': os.getenv("GOOGLE_API_KEY"),
+        'anthropic': os.getenv("ANTHROPIC_API_KEY")
+    }
+    return api_keys
 
 
-openai.api_key = load_api_key()
+# Initialize API keys
+API_KEYS = load_api_keys()
+
+# Configure OpenAI
+if API_KEYS['openai']:
+    openai.api_key = API_KEYS['openai']
+
+# Configure Google Gemini
+if API_KEYS['google'] and genai:
+    genai.configure(api_key=API_KEYS['google'])
+
+# Configure Anthropic
+if API_KEYS['anthropic'] and anthropic:
+    anthropic_client = anthropic.Anthropic(api_key=API_KEYS['anthropic'])
+else:
+    anthropic_client = None
 
 
 def get_summary_mode_toggles():
     return RUN_CONCISE_SUMMARIES, RUN_FULSOME_SUMMARIES
 
 
-def call_llm(prompt_text, model="gpt-4", temperature=0):
-    response = openai.chat.completions.create(
-        model=model,
-        messages=[
-            {"role": "system", "content": "You are a legal summarization assistant."},
-            {"role": "user", "content": prompt_text}
-        ],
-        temperature=temperature
-    )
-    return response.choices[0].message.content.strip()
+def add_business_days(start_date, business_days):
+    """
+    Add business days to a given date, excluding weekends.
+
+    Args:
+        start_date (datetime): The starting date
+        business_days (int): Number of business days to add
+
+    Returns:
+        datetime: The resulting date
+    """
+    current_date = start_date
+    days_added = 0
+
+    while days_added < business_days:
+        current_date += datetime.timedelta(days=1)
+        # Check if it's a weekday (Monday=0, Sunday=6)
+        if current_date.weekday() < 5:  # Monday to Friday
+            days_added += 1
+
+    return current_date
+
+
+def call_llm(prompt_text, model="gpt-4", temperature=0, provider="openai"):
+    """
+    Call LLM with specified provider and model
+
+    Args:
+        prompt_text (str): The prompt to send to the model
+        model (str): The model name to use
+        temperature (float): Temperature for response generation
+        provider (str): The provider to use ('openai', 'google', 'anthropic')
+
+    Returns:
+        str: The model's response
+    """
+    system_message = "You are a legal summarization assistant."
+
+    if provider.lower() == "openai":
+        if not API_KEYS['openai']:
+            raise ValueError("OpenAI API key not found")
+
+        response = openai.chat.completions.create(
+            model=model,
+            messages=[
+                {"role": "system", "content": system_message},
+                {"role": "user", "content": prompt_text}
+            ],
+            temperature=temperature
+        )
+        return response.choices[0].message.content.strip()
+
+    elif provider.lower() == "google":
+        if not API_KEYS['google'] or not genai:
+            raise ValueError(
+                "Google API key not found or google.generativeai not installed")
+
+        # Configure the model
+        model_instance = genai.GenerativeModel(model)
+
+        # Create the prompt with system message
+        full_prompt = f"{system_message}\n\n{prompt_text}"
+
+        response = model_instance.generate_content(
+            full_prompt,
+            generation_config=genai.types.GenerationConfig(
+                temperature=temperature,
+                max_output_tokens=2048,
+            )
+        )
+        return response.text.strip()
+
+    elif provider.lower() == "anthropic":
+        if not API_KEYS['anthropic'] or not anthropic_client or not anthropic:
+            raise ValueError(
+                "Anthropic API key not found or anthropic library not installed")
+
+        response = anthropic_client.messages.create(
+            model=model,
+            max_tokens=2048,
+            temperature=temperature,
+            system=system_message,
+            messages=[
+                {"role": "user", "content": prompt_text}
+            ]
+        )
+        return response.content[0].text.strip()
+
+    else:
+        raise ValueError(
+            f"Unsupported provider: {provider}. Supported providers are: openai, google, anthropic")
 
 # =========================
 # Utility to Traverse Nested Data
@@ -235,7 +341,7 @@ def normalize_to_string_list(value):
 # =========================
 
 
-def process_clause_config(clause_config, schema_data):
+def process_clause_config(clause_config, schema_data, provider="openai", model="gpt-4", temperature=0):
 
     prompt_fields = {}
     references = []
@@ -294,7 +400,8 @@ def process_clause_config(clause_config, schema_data):
                 prompt = clause_config["fallback_prompt"]
             else:
                 prompt = f"[Missing field {str(e)} for prompt generation]"
-        llm_result = call_llm(prompt)
+        llm_result = call_llm(prompt, model=model,
+                              temperature=temperature, provider=provider)
         return {
             "output": llm_result,
             "references": short_refs,
@@ -469,7 +576,8 @@ if __name__ == "__main__":
             "summary_type") != "OFF", f"OFF clause was not skipped: {clause_name}"
 
         print(f"→ Evaluating: {clause_name}")
-        result = process_clause_config(clause_config, EXAMPLE_SCHEMA_DATA)
+        result = process_clause_config(
+            clause_config, EXAMPLE_SCHEMA_DATA, provider="openai", model="gpt-4", temperature=0)
         print(f"→ Output preview: {result['output'][:100]}")
         if result["output"] and result["output"] != "No output generated.":
             filtered_result = result.copy()

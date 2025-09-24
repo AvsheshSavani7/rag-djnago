@@ -35,6 +35,12 @@ class ProcessingJob(Document):
         choices=SUMMARY_STATUS_CHOICES,
         default='PENDING'
     )
+    summary_using = StringField(
+        max_length=100,
+        required=False,
+        null=True,
+        help_text="Platform and model used for summary generation (e.g., 'openai-gpt-4', 'google-gemini-pro')"
+    )
     sec_filing_id = StringField(max_length=100, required=False, null=True)
 
     # Processing fields

@@ -128,7 +128,8 @@ for clause_name, clause_config in CLAUSE_CONFIG.items():
         continue
 
     print(f"\n→ Evaluating: {clause_name}")
-    result = process_clause_config(clause_config, EXAMPLE_SCHEMA_DATA)
+    result = process_clause_config(
+        clause_config, EXAMPLE_SCHEMA_DATA, provider="openai", model="gpt-4", temperature=0)
 
     if result["output"] and result["output"] != "No output generated.":
         # Skip concise summaries where view_prompt is False

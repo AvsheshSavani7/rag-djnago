@@ -14,10 +14,11 @@ class Command(BaseCommand):
     Silicon_Motion: 682f252ef21b9fca8e1d0530
     United_States_Steel: 684054f02e2e5aa5468773db
     Celgene_Corporation:68412f11812d9ee0838c6fd4
+    Anywhere :68d14ef8530f016f4a3af0c2
 
 
     example command:
-    python manage.py search_schema 682f252ef21b9fca8e1d0530
+    python manage.py search_schema 68d14ef8530f016f4a3af0c2
 
     """
     help = 'Search all schema categories for a given deal ID using schema_by_summary_sections.json'
