@@ -6,11 +6,16 @@ import os
 import re
 import time
 import sys
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Dict, Any, Optional
 import serpapi
 import praw
 from dotenv import load_dotenv
+from concurrent.futures import ThreadPoolExecutor, as_completed
+import threading
+
+# Import the LLM analysis functions
+from .reddit_llm_review_new import get_competition_context, analyze_post
 
 # Django and MongoDB imports
 import django
@@ -43,7 +48,10 @@ else:
 load_dotenv()
 
 # ---------- CONFIGURATION ----------
-SERPAPI_KEY = "48b90f6ea1fcc3883357a09afe0eab9b24a6855c201a15cb770d336e05b1b312"
+SERPAPI_KEY = "05c6f59846a3e01cda9c1e47e99d2cabdc3981a0566d792c8ee0185bd0ac5147"
+
+# josh
+# SERPAPI_KEY = "4ef39c2711bef0264e5bde45ff957422dc569eccf8f651b2fa82613d4d5ce038"
 
 # Reddit API credentials
 REDDIT_CLIENT_ID = "nprXSCFbiDcmTS4H50ajqQ"
@@ -53,6 +61,9 @@ REDDIT_USER_AGENT = "Deal Reddit Scraper by /u/Fun-Consequence-9402"
 # Output Configuration
 OUTPUT_DIR = "deal_reddit_analysis"
 FINAL_OUTPUT_FILE = "deal_reddit_analysis_results.json"
+
+# Worker Configuration
+MAX_WORKERS = 4  # Maximum number of parallel workers for LLM analysis
 
 # ---------- LOGGING SETUP ----------
 logging.basicConfig(
@@ -80,6 +91,89 @@ os.makedirs(OUTPUT_DIR, exist_ok=True)
 reddit_results = []
 
 # ---------- TOOL FUNCTIONS ----------
+
+# Thread-safe lock for MongoDB operations
+mongodb_lock = threading.Lock()
+
+
+def process_single_post(post_data, competition_context, deal_id, post_id, search_query, competition):
+    """
+    Process a single Reddit post with LLM analysis (worker function).
+
+    Args:
+        post_data: Reddit post data
+        competition_context: Competition context for analysis
+        deal_id: Deal ID
+        post_id: Reddit post ID
+        search_query: Search query used
+        competition: Competition name
+
+    Returns:
+        dict: Processed post data with analysis
+    """
+    try:
+        logger.info(f"Worker processing post: {post_data['title'][:50]}...")
+
+        # Run LLM analysis on the post
+        analysis_result = analyze_post(post_data, competition_context)
+
+        # Create enhanced post info with analysis
+        post_info = {
+            **post_data,  # Include all original post data
+            "post_id": post_id,  # Add post_id field for consistency
+            "relevance_score": analysis_result.get("relevance_score"),
+            "risk_score": analysis_result.get("risk_score"),
+            "bullet_summary": analysis_result.get("bullet_summary"),
+            "verdict": analysis_result.get("verdict"),
+            "regulatory_flags": analysis_result.get("regulatory_flags"),
+            "sentiment": analysis_result.get("sentiment"),
+            "post_content": analysis_result.get("post_content"),
+            "claude_analysis": analysis_result.get("claude_analysis"),
+            "timestamp": analysis_result.get("timestamp")
+        }
+
+        # Save to MongoDB with thread-safe lock
+        with mongodb_lock:
+            saved_post, is_new = RedditPost.save_unique_post(
+                deal_id=deal_id,
+                reddit_id=post_id,
+                search_query=search_query,
+                post_data=post_info,
+                competition=competition,
+                approach="REDDIT_SCRAPER"
+            )
+
+            if is_new:
+                logger.info(
+                    f"✅ New post saved to MongoDB: '{post_data['title']}'")
+                return {"post_info": post_info, "is_new": True, "success": True}
+            else:
+                # Check if existing post needs LLM analysis update
+                existing_post = RedditPost.objects(
+                    deal_id=deal_id, reddit_id=post_id).first()
+                has_llm_analysis = (
+                    existing_post and
+                    existing_post.post and
+                    isinstance(existing_post.post, dict) and
+                    'relevance_score' in existing_post.post
+                )
+
+                if not has_llm_analysis:
+                    # Update existing post with LLM analysis
+                    existing_post.post = post_info
+                    existing_post.updated_at = datetime.now(timezone.utc)
+                    existing_post.save()
+                    logger.info(
+                        f"🔄 Updated existing post with LLM analysis: '{post_data['title']}'")
+                    return {"post_info": post_info, "is_new": True, "success": True}
+                else:
+                    logger.info(
+                        f"⏭️ Post already exists with LLM analysis: '{post_data['title']}'")
+                    return {"post_info": post_info, "is_new": False, "success": True}
+
+    except Exception as e:
+        logger.error(f"Error processing post {post_id}: {e}")
+        return {"post_info": post_data, "is_new": False, "success": False, "error": str(e)}
 
 
 def extract_comments(comment_forest):
@@ -172,7 +266,7 @@ def fetch_competitive_products(deal_id: str) -> List[Dict[str, Any]]:
     return competitive_pairs
 
 
-def scrape_reddit_competition(competition: str, deal_id: str) -> str:
+def scrape_reddit_competition(competition: str, deal_id: str, pair: Dict[str, Any]) -> str:
     """
     Scrape Reddit discussions for a specific product competition.
 
@@ -199,8 +293,7 @@ def scrape_reddit_competition(competition: str, deal_id: str) -> str:
         }
 
         logger.info("Making SerpAPI call")
-        client = serpapi.Client(api_key=os.getenv("SERPAPI_KEY"))
-        results = client.search(params)
+        results = serpapi.search(params)
 
         # Filter Reddit links
         reddit_links = []
@@ -227,13 +320,19 @@ def scrape_reddit_competition(competition: str, deal_id: str) -> str:
         # Initialize a set for already scraped post IDs
         already_scraped_posts = set()
 
+        # Get competition context from the competitive pair
+        competition_context = get_competition_context(pair)
+        logger.info(f"Competition context: {competition_context}")
+
         # Fetch posts and comments
         posts_data = []
         new_posts_saved = 0
         existing_posts_skipped = 0
 
-        for i, post_id in enumerate(reddit_ids):  # Limit to 5 posts
+        # Prepare posts for parallel processing
+        posts_to_process = []
 
+        for i, post_id in enumerate(reddit_ids):
             if post_id in already_scraped_posts:
                 logger.info(f"Post {post_id} already scraped, skipping.")
                 continue  # Skip fetching this post
@@ -247,7 +346,8 @@ def scrape_reddit_competition(competition: str, deal_id: str) -> str:
                 # Extract comments using the enhanced extract_comments function
                 comments = extract_comments(submission.comments)
 
-                post_info = {
+                # Create basic post info
+                post_data = {
                     "id": submission.id,
                     "title": submission.title,
                     "author": str(submission.author),
@@ -256,34 +356,58 @@ def scrape_reddit_competition(competition: str, deal_id: str) -> str:
                     "selftext": submission.selftext,
                     "num_comments": submission.num_comments,
                     "created_utc": submission.created_utc,
-                    "comments": comments  # Limit comments for efficiency
+                    "comments": comments,  # Limit comments for efficiency
+                    "pair": pair  # Add competitive pair information to each post
                 }
 
-                # Save to MongoDB with unique constraint check
-                saved_post, is_new = RedditPost.save_unique_post(
-                    deal_id=deal_id,
-                    reddit_id=post_id,
-                    search_query=search_query,
-                    post_data=post_info,
-                    competition=competition,
-                    approach="REDDIT_SCRAPER"
-                )
-
-                if is_new:
-                    new_posts_saved += 1
-                    logger.info(
-                        f"✅ New post saved to MongoDB: '{submission.title}'")
-                else:
-                    existing_posts_skipped += 1
-                    logger.info(
-                        f"⏭️ Post already exists in MongoDB: '{submission.title}'")
-
-                posts_data.append(post_info)
+                posts_to_process.append({
+                    "post_data": post_data,
+                    "post_id": post_id
+                })
                 already_scraped_posts.add(post_id)
                 logger.info(f"Successfully fetched: '{submission.title}'")
 
             except Exception as e:
                 logger.error(f"Error fetching post {post_id}: {e}")
+
+        # Process posts in parallel with workers
+        logger.info(
+            f"Processing {len(posts_to_process)} posts with workers...")
+
+        # Use ThreadPoolExecutor for parallel processing
+        max_workers = min(MAX_WORKERS, len(posts_to_process)
+                          )  # Limit workers based on config
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            # Submit all tasks
+            future_to_post = {
+                executor.submit(
+                    process_single_post,
+                    post_info["post_data"],
+                    competition_context,
+                    deal_id,
+                    post_info["post_id"],
+                    search_query,
+                    competition
+                ): post_info for post_info in posts_to_process
+            }
+
+            # Process completed tasks
+            for future in as_completed(future_to_post):
+                post_info = future_to_post[future]
+                try:
+                    result = future.result()
+                    if result["success"]:
+                        posts_data.append(result["post_info"])
+                        if result["is_new"]:
+                            new_posts_saved += 1
+                        else:
+                            existing_posts_skipped += 1
+                    else:
+                        logger.error(
+                            f"Failed to process post {post_info['post_id']}: {result.get('error', 'Unknown error')}")
+                except Exception as e:
+                    logger.error(
+                        f"Exception processing post {post_info['post_id']}: {e}")
 
         competition_result = {
             "competition": competition,
@@ -296,7 +420,8 @@ def scrape_reddit_competition(competition: str, deal_id: str) -> str:
                 "existing_posts_skipped": existing_posts_skipped,
                 "total_posts_processed": new_posts_saved + existing_posts_skipped
             },
-            "timestamp": datetime.now().isoformat()
+            "timestamp": datetime.now().isoformat(),
+            "pair": pair
         }
 
         # Save individual result
@@ -492,7 +617,8 @@ def run_deal_reddit_analysis(deal_id: str):
                     logger.info(
                         f"Processing competition {i+1}/{len(competitive_pairs)}: {competition}")
 
-                    result = scrape_reddit_competition(competition, deal_id)
+                    result = scrape_reddit_competition(
+                        competition, deal_id, pair)
                     logger.info(f"Competition {i+1} completed")
                 else:
                     logger.warning(

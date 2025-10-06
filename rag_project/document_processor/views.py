@@ -963,6 +963,10 @@ class RedditPostsView(APIView):
             # Get filter parameters from query string
             competition = request.query_params.get('competition', '')
             approach = request.query_params.get('approach', '')
+            relevance_score_from = request.query_params.get(
+                'relevance_score_from', '')
+            relevance_score_to = request.query_params.get(
+                'relevance_score_to', '')
 
             # Validate pagination parameters
             if page < 1:
@@ -984,12 +988,46 @@ class RedditPostsView(APIView):
             if approach:
                 query_filter['approach'] = approach
 
-            # Get total count of Reddit posts for this deal
-            total_count = RedditPost.objects(**query_filter).count()
+            # Add relevance_score range filter if provided
+            if relevance_score_from or relevance_score_to:
+                try:
+                    from mongoengine import Q
 
-            # Fetch Reddit posts with pagination, ordered by creation date (newest first)
-            reddit_posts = RedditPost.objects(**query_filter).order_by(
-                '-created_at').skip(skip).limit(limit)
+                    # Set default values if not provided
+                    from_value = float(
+                        relevance_score_from) if relevance_score_from else 0.0
+                    to_value = float(
+                        relevance_score_to) if relevance_score_to else 100.0
+
+                    # Create range condition: posts with relevance_score between from and to OR posts without relevance_score
+                    relevance_range_query = (
+                        Q(post__relevance_score__gte=from_value) &
+                        Q(post__relevance_score__lte=to_value) |
+                        Q(post__relevance_score__exists=False)
+                    )
+
+                    # Convert existing filter to Q object and combine
+                    if isinstance(query_filter, dict):
+                        base_query = Q(**query_filter)
+                    else:
+                        base_query = query_filter
+                    query_filter = base_query & relevance_range_query
+                except ValueError:
+                    # If conversion fails, ignore the filter
+                    pass
+
+            # Get total count of Reddit posts for this deal
+            if isinstance(query_filter, dict):
+                total_count = RedditPost.objects(**query_filter).count()
+                # Fetch Reddit posts with pagination, ordered by creation date (newest first)
+                reddit_posts = RedditPost.objects(**query_filter).order_by(
+                    '-created_at').skip(skip).limit(limit)
+            else:
+                # Handle Q object query
+                total_count = RedditPost.objects(query_filter).count()
+                # Fetch Reddit posts with pagination, ordered by creation date (newest first)
+                reddit_posts = RedditPost.objects(query_filter).order_by(
+                    '-created_at').skip(skip).limit(limit)
 
             # Serialize the Reddit posts
             serializer = RedditPostSerializer(reddit_posts, many=True)
@@ -1019,6 +1057,8 @@ class RedditPostsView(APIView):
                     'deal_id': deal_id,
                     'competition': competition if competition else 'all',
                     'approach': approach if approach else 'all',
+                    'relevance_score_from': relevance_score_from if relevance_score_from else 'all',
+                    'relevance_score_to': relevance_score_to if relevance_score_to else 'all',
                     'available_competitions': [c for c in unique_competitions if c],
                     'available_approaches': [a for a in unique_approaches if a]
                 }
