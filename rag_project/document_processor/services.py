@@ -4500,26 +4500,26 @@ class SchemaCategorySearch:
                 # First pass: Submit all tasks to the executor
                 for section_name, section_value in schema.items():
                     # Check if this section should be processed
-                    # if section_name in [
-                    #     "termination",
-                    #     "ordinary_course",
-                    #     "board_approval",
-                    #     "party_details",
-                    #     "conditions_to_closing",
-                    #     "closing_mechanics",
-                    #     "specific_performance",
-                    #     "confidentiality_and_clean_room",
-                    #     "complex_consideration_and_dividends",
-                    #     "law_and_jurisdiction",
-                    #     "financing",
-                    #     "proxy_statement",
-                    #     "timeline",
-                    #     "material_adverse_effect",
-                    #     "non_solicitation",
-                    #     "best_efforts",
-                    # ]:
-                    # Change this to your desired section
-                    if section_name == "best_efforts":
+                    if section_name in [
+                        "termination",
+                        "ordinary_course",
+                        "board_approval",
+                        "party_details",
+                        "conditions_to_closing",
+                        "closing_mechanics",
+                        "specific_performance",
+                        "confidentiality_and_clean_room",
+                        "complex_consideration_and_dividends",
+                        "law_and_jurisdiction",
+                        "financing",
+                        "proxy_statement",
+                        "timeline",
+                        "material_adverse_effect",
+                        "non_solicitation",
+                        "best_efforts",
+                    ]:
+                        # Change this to your desired section
+                        # if section_name == "best_efforts":
 
                         logger.info(
                             f"Submitting tasks for section: {section_name}")
