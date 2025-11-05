@@ -24,6 +24,7 @@ from .summary_utils.clause_config_util import ClauseConfigUtil
 from .transform_json import simplify_json
 from .summary_engine import process_clause_config, write_docx_summary
 from .summary_engine import RUN_CONCISE_SUMMARIES, RUN_FULSOME_SUMMARIES
+from .pinecone_utils import PineconeSectionFetcher
 import tempfile
 import time
 # Import will be done dynamically when needed to avoid circular imports
@@ -1580,6 +1581,16 @@ class SummaryGenerationService:
 
                 # Process summaries - exactly matching summary_main.py logic
                 summary_outputs = []
+
+                fetcher = PineconeSectionFetcher()
+                all_chunks = fetcher.get_all_chunks_for_deal(deal_id)
+
+                definitions_array = fetcher.extract_definitions_from_chunks(
+                    all_chunks, max_workers=8)
+
+                preamble_data = fetcher.extract_preamble_from_chunks(
+                    all_chunks)
+
                 for clause_name, clause_config in CLAUSE_CONFIG.items():
 
                     summary_type = clause_config.get("summary_type", "Concise")
@@ -1599,7 +1610,7 @@ class SummaryGenerationService:
 
                     logger.info(f"\n→ Evaluating: {clause_name}")
                     result = process_clause_config(
-                        clause_config, schema_results, provider=provider, model=model, temperature=temperature)
+                        clause_config, schema_results, provider=provider, model=model, temperature=temperature, definitions_array=definitions_array, preamble_data=preamble_data, deal_id=deal_id)
 
                     if result["output"] and result["output"] != "No output generated.":
                         # Skip concise summaries where view_prompt is False

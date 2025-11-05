@@ -11,6 +11,12 @@ from docx.oxml import OxmlElement
 from collections import defaultdict
 import datetime
 import dateutil.parser
+from document_processor.pinecone_utils import PineconeSectionFetcher
+import logging
+
+# Configure logger
+logger = logging.getLogger(__name__)
+
 try:
     import google.generativeai as genai
 except ImportError:
@@ -341,11 +347,155 @@ def normalize_to_string_list(value):
 # =========================
 
 
-def process_clause_config(clause_config, schema_data, provider="openai", model="gpt-4", temperature=0):
+def _resolve_reference_strings(reference_paths, schema_data):
+    refs = []
+    for path in reference_paths or []:
+        val = get_nested_value(schema_data, path)
+        if val:
+            refs.append(val if isinstance(val, str) else str(val))
+    return refs
+
+
+def _maybe_fetch_pinecone_context(reference_paths, schema_data, deal_id=None):
+
+    raw_refs = _resolve_reference_strings(reference_paths, schema_data)
+    if not raw_refs:
+        return {"context_text": "", "sections": []}
+
+    fetcher = PineconeSectionFetcher()
+    # Use provided deal_id, or fall back to environment variable
+    deal_id_to_use = deal_id
+    addl = {"deal_id": {"$eq": deal_id_to_use}} if deal_id_to_use else None
+    return fetcher.get_context_for_references(raw_refs, top_k=8, additional_filter=addl)
+
+
+def extract_and_match_definitions(pinecone_context_text, definitions_dict):
+    """
+    Extract capitalized terms (PascalCase, multi-word phrases) from text
+    and match them against the definitions dictionary.
+
+    Args:
+        pinecone_context_text: List of text chunks or single text string
+        definitions_dict: Dictionary of {term: definition}
+
+    Returns:
+        Dict of {matched_term: definition}
+    """
+    # Convert to string if it's a list
+    if isinstance(pinecone_context_text, list):
+        text = " ".join(pinecone_context_text)
+    else:
+        text = pinecone_context_text or ""
+
+    matched_definitions = {}
+
+    # Pattern 1: Multi-word acronyms (e.g., "PCI DSS")
+    # Matches 2+ all-caps words with spaces
+    acronym_pattern = r'\b([A-Z]{2,}(?:\s+[A-Z]{2,})+)\b'
+
+    # Pattern 2: Mixed acronym + word patterns (e.g., "HSR Act", "NYSE Listed")
+    # Matches acronym followed by capitalized word(s) or vice versa
+    mixed_pattern = r'\b([A-Z]{2,}\s+[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*|[A-Z][a-z]+\s+[A-Z]{2,})\b'
+
+    # Pattern 3: Number + word patterns (e.g., "102 Trustee", "409A Plan", "401K")
+    # Matches numbers followed by optional capital letter and/or capitalized word(s)
+    number_word_pattern = r'\b(\d+[A-Z]?(?:\s+[A-Z][a-z]+)*)\b'
+
+    # Pattern 4: Section with numbers and optional words (e.g., "Section 102", "Section 102 Award")
+    # Matches "Section" followed by numbers and optional capitalized words
+    section_pattern = r'\b(Section\s+\d+(?:\s+[A-Z][a-z]*)*)\b'
+
+    # Pattern 5: Multi-word capitalized phrases (e.g., "Parent Credit Facilities")
+    # Matches 2+ consecutive capitalized words (mixed case only)
+    multi_word_pattern = r'\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)\b'
+
+    # Pattern 6: Single capitalized words or acronyms (e.g., "Order", "NYSE")
+    # Matches single capital word or all-caps acronyms
+    single_word_pattern = r'\b([A-Z]{2,}|[A-Z][a-z]+)\b'
+
+    # Extract matches in priority order (most specific first)
+
+    # 1. Multi-word acronyms (e.g., "PCI DSS")
+    acronym_matches = re.findall(acronym_pattern, text)
+    for term in acronym_matches:
+        if term in definitions_dict:
+            matched_definitions[term] = definitions_dict[term]
+
+    # 2. Mixed patterns (e.g., "HSR Act", "NYSE Listed")
+    mixed_matches = re.findall(mixed_pattern, text)
+    for term in mixed_matches:
+        if term in definitions_dict:
+            matched_definitions[term] = definitions_dict[term]
+
+    # 3. Number + word patterns (e.g., "102 Trustee", "409A Plan")
+    number_word_matches = re.findall(number_word_pattern, text)
+    for term in number_word_matches:
+        # Filter out pure numbers or numbers with single letter (those are usually not definitions)
+        # Only keep if it has at least one space + capitalized word, or has meaning in definitions
+        if term in definitions_dict:
+            matched_definitions[term] = definitions_dict[term]
+
+    # 4. Section patterns (e.g., "Section 102", "Section 102 Award")
+    section_matches = re.findall(section_pattern, text)
+    for term in section_matches:
+        if term in definitions_dict:
+            matched_definitions[term] = definitions_dict[term]
+
+    # 5. Multi-word capitalized phrases (e.g., "Parent Credit Facilities")
+    multi_word_matches = re.findall(multi_word_pattern, text)
+    for term in multi_word_matches:
+        if term in definitions_dict:
+            matched_definitions[term] = definitions_dict[term]
+
+    # 6. Single capitalized words/acronyms (e.g., "Order", "NYSE")
+    single_word_matches = re.findall(single_word_pattern, text)
+    for term in single_word_matches:
+        # Skip if already matched as part of multi-word phrase
+        # Skip common words that are unlikely to be definitions
+        skip_words = {'The', 'This', 'That', 'These', 'Those', 'A', 'An', 'In', 'On', 'At',
+                      'To', 'For', 'With', 'By', 'From', 'As', 'Of', 'And', 'Or', 'But',
+                      'If', 'Then', 'When', 'Where', 'Who', 'What', 'Which', 'How', 'All',
+                      'Each', 'Every', 'Any', 'Some', 'No', 'Not', 'Only', 'Also', 'Such',
+                      'Other', 'Another', 'Both', 'Either', 'Neither', 'More', 'Most', 'Less',
+                      'Least', 'Few', 'Many', 'Much', 'Several', 'Upon', 'Under', 'Over',
+                      'Before', 'After', 'During', 'Between', 'Among', 'Through', 'Without',
+                      'Within', 'About', 'Regarding', 'Concerning', 'Respect', 'Including',
+                      'Except', 'Clause', 'Agreement', 'Party', 'Parties'}
+
+        if term not in skip_words and term in definitions_dict:
+            matched_definitions[term] = definitions_dict[term]
+
+    # print(
+    #     f"Extracted {len(matched_definitions)} matched definitions from context")
+    # if matched_definitions:
+    #     print(f"Sample matched terms: {list(matched_definitions.keys())[:10]}")
+
+    return matched_definitions
+
+
+def process_clause_config(clause_config, schema_data, provider="openai", model="gpt-4", temperature=0, deal_id=None, definitions_array=None, preamble_data=None):
+
+    # Handle case where definitions_array might be None or empty
+    if definitions_array:
+        definitions_dict = {definition["label"]: definition["means"]
+                            for definition in definitions_array}
+    else:
+        definitions_dict = {}
+    # print(f"Total definitions available: {len(definitions_dict)}")
+
+    # Extract preamble text if available
+    preamble_text = ""
+    if preamble_data and preamble_data.get('found'):
+        preamble_text = preamble_data.get('preamble_text', '')
+        # print(f"Preamble available: {len(preamble_text)} characters")
 
     prompt_fields = {}
     references = []
     final_text_output = None
+
+    # Get model configuration if provided
+    model_config = clause_config.get('model_config')
+
     for cond in clause_config.get("conditions", []):
         result = evaluate_condition_branch(cond, schema_data)
         if "add_to_prompt" in result:
@@ -387,10 +537,109 @@ def process_clause_config(clause_config, schema_data, provider="openai", model="
             for path in references
             if get_nested_value(schema_data, path)
         ]
+
+     # === NEW: fetch Pinecone context using only the reference sections ===
+    pinecone_ctx = _maybe_fetch_pinecone_context(
+        references, schema_data, deal_id=deal_id)
+    # print(f"pinecone_ctx: {pinecone_ctx}")
+
+    # print(f"pinecone_ctx: {pinecone_ctx}")
+    pinecone_context_text = pinecone_ctx.get("context_text", "")
+    # print(f"pinecone_context_text: {pinecone_context_text}")
+
+    # Extract and match definitions from the Pinecone context
+    matched_definitions = extract_and_match_definitions(
+        pinecone_context_text, definitions_dict)
+    # print(f"Matched definitions: {matched_definitions}")
+
+    pinecone_sections = pinecone_ctx.get("sections", [])
+
+    # Build a standardized context preamble if we have any referenced chunks
+    context_preamble = ""
+    if pinecone_context_text:
+        # Add preamble section if available
+        preamble_section = ""
+        if preamble_text:
+
+            preamble_section += f"{preamble_text}\n"
+
+        # Build excerpts with definitions per section
+        excerpts_content = ""
+
+        # pinecone_context_text is a list of strings formatted as "Section : Text"
+        if isinstance(pinecone_context_text, list):
+            for idx, chunk in enumerate(pinecone_context_text, 1):
+                # Parse the chunk to extract section and content
+                if " : " in chunk:
+                    section_name, content = chunk.split(" : ", 1)
+                else:
+                    section_name = f"Section {idx}"
+                    content = chunk
+
+                # Add excerpt header
+                excerpts_content += f"\nExcerpt {idx}\n"
+                excerpts_content += f"{section_name}\n\n"
+                excerpts_content += f"{content}\n"
+
+                # Extract and match definitions specific to this chunk
+                chunk_definitions = extract_and_match_definitions(
+                    content, definitions_dict)
+
+                # Add definitions for this section if any were found
+                if chunk_definitions:
+                    excerpts_content += f"\nRelevant Definitions for the above section:\n"
+                    for term, definition in chunk_definitions.items():
+                        excerpts_content += f"• {term}: {definition}\n"
+
+                excerpts_content += "\n"  # Add spacing between excerpts
+        else:
+            # Fallback if it's a single string
+            excerpts_content = f"\n{pinecone_context_text}\n"
+
+            # Add all matched definitions at the end
+            if matched_definitions:
+                excerpts_content += "\n=== Relevant Definitions ===\n"
+                for term, definition in matched_definitions.items():
+                    excerpts_content += f"• {term}: {definition}\n"
+                excerpts_content += "=== End Definitions ===\n"
+
+        # Keep the preamble neutral and instructionally strong
+        context_preamble = (
+            "\n\nAbove schema value/clasuses are just directional and you should not rely on those answers and Use ONLY the following contract excerpts (by referenced sections) to answer.\n"
+            "If information is not in the excerpts, say so rather than inferring.\n\n"
+            "=== Actual Excerpts Start ===\n"
+            f"{excerpts_content}"
+            "=== Actual Excerpts End ===\n\n"
+            "Below is the preamble section for the deal, which may be useful for resolving party aliases.\n"
+            "=== Contract Preamble ===\n"
+            f"{preamble_section}"
+            "=== End Preamble ===\n"
+            "----\n"
+            "### Entity Resolution Requirement (Mandatory Step)\n"
+            "Before you answer:\n"
+            "1. Read the **Contract Preamble**.\n"
+            "2. Identify and record all parties and their roles:\n"
+            "- e.g., 'Parent' = James Hardie Industries plc\n"
+            "'Merger Sub' = Juno Merger Sub Inc.\n"
+            "'Company' = The AZEK Company Inc.\n"
+            "3. Replace **every alias** in your reasoning and final answer with its specific name.\n"
+            "Examples:\n"
+            "- Use “The AZEK Company Inc.” instead of “Company.”\n"
+            "- Use “James Hardie Industries plc” instead of “Parent.”\n"
+            "4. This mapping must be performed **before writing the answer** and applied throughout.\n"
+
+        )
+
+    print(f"context_preamble: {context_preamble}")
+    logger.info(f"context_preamble: {context_preamble}")
+
     # If prompt can be built
     if prompt_fields and "prompt_template" in clause_config:
         try:
-            prompt = clause_config["prompt_template"].format(**prompt_fields)
+            base_prompt = clause_config["prompt_template"].format(
+                **prompt_fields) if prompt_fields else clause_config["prompt_template"]
+            prompt = (base_prompt +
+                      context_preamble) if context_preamble else base_prompt
             if clause_config.get("max_words"):
                 prompt += f"\n\nLimit the response to {clause_config['max_words']} words."
             if clause_config.get("format_style"):
@@ -411,7 +660,8 @@ def process_clause_config(clause_config, schema_data, provider="openai", model="
             "summary_display_section": clause_config.get("summary_display_section"),
             # "summary_display_sub_section" : clause_config.get("summary_display_sub_section"),
             "summary_rank": clause_config.get("summary_rank"),
-            "max_words": clause_config.get("max_words")
+            "max_words": clause_config.get("max_words"),
+            "matched_definitions": matched_definitions
         }
     # If no prompt was built, use fallback text_output
     if final_text_output:
@@ -424,7 +674,8 @@ def process_clause_config(clause_config, schema_data, provider="openai", model="
             "summary_display_section": clause_config.get("summary_display_section"),
             # "summary_display_sub_section" : clause_config.get("summary_display_sub_section"),
             "summary_rank": clause_config.get("summary_rank"),
-            "max_words": clause_config.get("max_words")
+            "max_words": clause_config.get("max_words"),
+            "matched_definitions": matched_definitions
         }
     return {
         "output": "No output generated.",
@@ -435,7 +686,8 @@ def process_clause_config(clause_config, schema_data, provider="openai", model="
         "summary_display_section": clause_config.get("summary_display_section"),
         # "summary_display_sub_section" : clause_config.get("summary_display_sub_section"),
         "summary_rank": clause_config.get("summary_rank"),
-        "max_words": clause_config.get("max_words")
+        "max_words": clause_config.get("max_words"),
+        "matched_definitions": matched_definitions
     }
 
 
@@ -527,7 +779,13 @@ def write_docx_summary(summaries, output_path, RUN_CONCISE_SUMMARIES, RUN_FULSOM
             bullet_run.font.name = "Aptos"
             bullet_run.font.size = Pt(10.5)
 
-            clean_output = s["output"].strip().strip('"').strip("'")
+            bad_chars = '"\'“”--–—'  # quote marks + hyphen + en dash + em dash
+            clean_output = s["output"].translate(
+                str.maketrans('', '', bad_chars))
+            # includes *
+            bullet_class = r'[\u2022\u2023\u25E6\u25AA\u25CF\u25CB\u2043\u00B7\*\-]'
+            clean_output = re.sub(
+                rf'(?m)^\s*{bullet_class}\s*', '', s["output"])
             text_run = bullet_para.add_run(clean_output)
             text_run.font.name = "Aptos"
             text_run.font.size = Pt(10.5)
@@ -544,8 +802,9 @@ def write_docx_summary(summaries, output_path, RUN_CONCISE_SUMMARIES, RUN_FULSOM
                 ref_bullet.font.size = Pt(8)
                 ref_bullet.font.color.rgb = RGBColor(0, 0, 0)
 
+                unique_refs = list(dict.fromkeys(s["references"]))
                 ref_text = ref_para.add_run(
-                    "References: " + "; ".join(s["references"]))
+                    "References: " + "; ".join(unique_refs))
                 ref_text.font.name = "Aptos"
                 ref_text.font.size = Pt(10)
 
