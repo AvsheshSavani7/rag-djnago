@@ -4038,7 +4038,7 @@ class SchemaCategorySearch:
         self.openai_client = openai.OpenAI(
             api_key=os.environ.get("OPENAI_API_KEY"))
         # Schema URL
-        self.schema_url = "https://mna-docs.s3.eu-north-1.amazonaws.com/clauses_category_template/schema_by_summary_sections.json"
+        self.schema_url = "https://rag-mna-doc.s3.eu-north-1.amazonaws.com/clauses_category_template/schema_by_summary_sections.json"
         # Cache for schema
         self._schema = None
         logger.info("SchemaCategorySearch initialized")
