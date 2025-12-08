@@ -328,7 +328,7 @@ class PineconeSectionFetcher:
             # Filter chunks with "Definition" or "Definitions" in label (case insensitive)
             for chunk in chunks:
                 label = chunk.get('label', '').lower()
-                if 'definition' in label:  # Match both singular and plural
+                if 'definitions' in label or "definition" in label:  # Match both singular and plural
                     definition_chunks.append(chunk)
                     # logger.info(
                     #     f"Found definition chunk: {chunk.get('label', 'N/A')}")

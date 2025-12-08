@@ -473,7 +473,7 @@ def extract_and_match_definitions(pinecone_context_text, definitions_dict):
     return matched_definitions
 
 
-def process_clause_config(clause_config, schema_data, provider="openai", model="gpt-4", temperature=0, deal_id=None, definitions_array=None, preamble_data=None):
+def process_clause_config(clause_config, clause_name, schema_data, provider="openai", model="gpt-4", temperature=0, deal_id=None, definitions_array=None, preamble_data=None):
 
     # Handle case where definitions_array might be None or empty
     if definitions_array:
@@ -622,20 +622,11 @@ def process_clause_config(clause_config, schema_data, provider="openai", model="
             "- e.g., 'Parent' = James Hardie Industries plc\n"
             "'Merger Sub' = Juno Merger Sub Inc.\n"
             "'Company' = The AZEK Company Inc.\n"
-            "3. **Do not output or list this mapping explicitly** in your response.\n"
-            "4. Instead, apply the mapping silently — replace every alias in your reasoning and final answer with its full entity name.\n"
+            "3. Replace **every alias** in your reasoning and final answer with its specific name.\n"
             "Examples:\n"
-            "  - Use “The AZEK Company Inc.” instead of “Company.”\n"
-            "  - Use “James Hardie Industries plc” instead of “Parent.”\n"
-            "5. Only include the final answer with resolved names — **do not describe the mapping or reasoning process.**\n"
-            "6. **Do not write any sentences that begin with or contain phrases like:**\n"
-            "    - Based on the Contract Preamble.\n"
-            "    - Based on the contract excerpts.\n"
-            "    - Based on the preamble section.\n"
-            "    - Based on the excerpts.\n"
-            "    - Based on the contract.\n"
-            "    - Based on the contract excerpts.\n"
-            "    - Looking at the contract excerpts,\n"
+            "- Use “The AZEK Company Inc.” instead of “Company.”\n"
+            "- Use “James Hardie Industries plc” instead of “Parent.”\n"
+            "4. This mapping must be performed **before writing the answer** and applied throughout.\n"
 
         )
 
@@ -670,6 +661,7 @@ def process_clause_config(clause_config, schema_data, provider="openai", model="
             # "summary_display_sub_section" : clause_config.get("summary_display_sub_section"),
             "summary_rank": clause_config.get("summary_rank"),
             "max_words": clause_config.get("max_words"),
+            "clause_name": clause_name,
             "matched_definitions": matched_definitions
         }
     # If no prompt was built, use fallback text_output
@@ -684,6 +676,7 @@ def process_clause_config(clause_config, schema_data, provider="openai", model="
             # "summary_display_sub_section" : clause_config.get("summary_display_sub_section"),
             "summary_rank": clause_config.get("summary_rank"),
             "max_words": clause_config.get("max_words"),
+            "clause_name": clause_name,
             "matched_definitions": matched_definitions
         }
     return {
@@ -696,6 +689,7 @@ def process_clause_config(clause_config, schema_data, provider="openai", model="
         # "summary_display_sub_section" : clause_config.get("summary_display_sub_section"),
         "summary_rank": clause_config.get("summary_rank"),
         "max_words": clause_config.get("max_words"),
+        "clause_name": clause_name,
         "matched_definitions": matched_definitions
     }
 
@@ -845,7 +839,7 @@ if __name__ == "__main__":
 
         print(f"→ Evaluating: {clause_name}")
         result = process_clause_config(
-            clause_config, EXAMPLE_SCHEMA_DATA, provider="openai", model="gpt-4", temperature=0)
+            clause_config, clause_name, EXAMPLE_SCHEMA_DATA, provider="openai", model="gpt-4", temperature=0)
         print(f"→ Output preview: {result['output'][:100]}")
         if result["output"] and result["output"] != "No output generated.":
             filtered_result = result.copy()
