@@ -16,6 +16,7 @@ import concurrent.futures
 import traceback
 import json
 import re
+from typing import List, Dict
 from .utils import get_impherior_prompt, get_experior_prompt
 import pytz
 from .models import ProcessingJob
@@ -27,6 +28,7 @@ from .summary_engine import RUN_CONCISE_SUMMARIES, RUN_FULSOME_SUMMARIES
 from .pinecone_utils import PineconeSectionFetcher
 import tempfile
 import time
+import tiktoken
 # Import will be done dynamically when needed to avoid circular imports
 import sys
 
@@ -44,6 +46,12 @@ class DocumentProcessingService:
     def __init__(self):
         # Set up executor for background tasks
         self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=5)
+        # Maximum tokens per chunk (leaving some buffer)
+        self.MAX_TOKENS = 7000
+        self.EMBEDDING_MAX_TOKENS = 8191
+
+        # Overlap tokens between chunks
+        self.OVERLAP_TOKENS = 200
 
     def _send_sec_filing_event(self, sec_filing_id, following_status, error_message=None):
         """
@@ -323,7 +331,7 @@ class DocumentProcessingService:
             # Define all available approaches
             approaches = [
                 ("RF1", riffle_approach_1, "--approach=1"),
-                ("RF3", riffle_approach_3, "--approach=3")
+                # ("RF3", riffle_approach_3, "--approach=3")
             ]
 
             # Filter approaches if specific ones are configured
@@ -1069,6 +1077,10 @@ class FlattenProcessor:
         self.total_definitions = 0
         self.total_clauses = 0
         self.deal_name = self.extract_deal_name(file_url)
+        # Maximum tokens per chunk (leaving some buffer)
+        self.MAX_TOKENS = 7000
+        # Overlap tokens between chunks
+        self.OVERLAP_TOKENS = 200
 
     def clean_unicode_quotes(self, text):
         if not text:
@@ -1227,6 +1239,138 @@ class FlattenProcessor:
 
         return outputs
 
+    def count_tokens(self, text: str) -> int:
+        """Count the number of tokens in a text"""
+        if not text:
+            return 0
+        encoding = tiktoken.get_encoding("cl100k_base")
+        num_tokens = len(encoding.encode(text))
+        return num_tokens
+
+    def split_text_into_chunks(self, flattened_results: List[Dict]) -> List[Dict]:
+        """
+        Split flattened results into chunks based on token count with overlap.
+        If a single item's combined_text exceeds MAX_TOKENS, it will be split into multiple chunks.
+
+        Args:
+            flattened_results: List of dictionaries with keys like 'label', 'original_text', 'combined_text', 'deal_name'
+
+        Returns:
+            List of dictionaries, potentially more than input if chunks were split
+        """
+        result_chunks = []
+
+        for item in flattened_results:
+            combined_text = item.get("combined_text", "")
+            if not combined_text:
+                # If no combined_text, keep the item as is
+                result_chunks.append(item)
+                continue
+
+            text_tokens = self.count_tokens(combined_text)
+
+            # If text is within limit, keep as is
+            if text_tokens <= self.MAX_TOKENS:
+                result_chunks.append(item)
+                continue
+
+            # Text exceeds limit, need to split it
+            logger.info(
+                f"Splitting text with {text_tokens} tokens (exceeds {self.MAX_TOKENS} limit)")
+
+            # Split text by words
+            words = combined_text.split()
+            chunks = []
+            current_chunk = []
+            current_tokens = 0
+            overlap_words = []
+
+            for word in words:
+                # Count tokens for current word with space
+                word_with_space = word + ' '
+                word_tokens = self.count_tokens(word_with_space)
+
+                # Check if adding this word would exceed the limit
+                if current_tokens + word_tokens > self.MAX_TOKENS:
+                    # Save current chunk
+                    if current_chunk:
+                        chunk_text = ' '.join(current_chunk)
+                        chunks.append(chunk_text)
+
+                        # Calculate overlap: find the last words that approximate OVERLAP_TOKENS
+                        # Start from the end and work backwards to find words that total ~200 tokens
+                        overlap_words = []
+                        overlap_tokens = 0
+
+                        # Work backwards through current_chunk to build overlap
+                        for i in range(len(current_chunk) - 1, -1, -1):
+                            test_word = current_chunk[i]
+                            test_word_tokens = self.count_tokens(
+                                test_word + ' ')
+
+                            if overlap_tokens + test_word_tokens <= self.OVERLAP_TOKENS:
+                                overlap_words.insert(0, test_word)
+                                overlap_tokens += test_word_tokens
+                            else:
+                                # If adding this word would exceed overlap, stop
+                                break
+
+                        # If we couldn't get enough overlap, try to get at least some overlap
+                        if overlap_tokens == 0 and current_chunk:
+                            # Use at least the last word
+                            overlap_words = [current_chunk[-1]]
+                            overlap_tokens = self.count_tokens(
+                                overlap_words[0] + ' ')
+
+                        # Start new chunk with overlap
+                        current_chunk = overlap_words + [word]
+                        current_tokens = self.count_tokens(
+                            ' '.join(current_chunk))
+                    else:
+                        # Edge case: single word exceeds limit (shouldn't happen, but handle it)
+                        current_chunk = [word]
+                        current_tokens = word_tokens
+                else:
+                    current_chunk.append(word)
+                    current_tokens += word_tokens
+
+            # Add the last chunk if there's anything left
+            if current_chunk:
+                chunk_text = ' '.join(current_chunk)
+                chunks.append(chunk_text)
+
+            # Create new items for each chunk
+            for idx, chunk_text in enumerate(chunks):
+                chunk_tokens = self.count_tokens(chunk_text)
+                logger.info(
+                    f"Created chunk {idx+1}/{len(chunks)} with {chunk_tokens} tokens")
+
+                # Create a new item for this chunk, preserving original metadata
+                chunk_item = {
+                    "label": item.get("label", ""),
+                    # Keep original
+                    "original_text": item.get("original_text", ""),
+                    "combined_text": chunk_text,  # Use chunked text
+                    "deal_name": item.get("deal_name", ""),
+                }
+
+                # Add chunk_index if there are multiple chunks
+                if len(chunks) > 1:
+                    chunk_item["chunk_index"] = idx
+                    chunk_item["total_chunks"] = len(chunks)
+
+                # Preserve other fields if they exist
+                for key, value in item.items():
+                    if key not in chunk_item:
+                        chunk_item[key] = value
+
+                result_chunks.append(chunk_item)
+
+        # Log summary
+        logger.info(
+            f"Split {len(flattened_results)} items into {len(result_chunks)} chunks")
+        return result_chunks
+
     def process(self):
         """
         Process a JSON file from a URL and save the flattened result to S3
@@ -1306,6 +1450,11 @@ class FlattenProcessor:
                 logger.info(
                     f"Successfully extracted {len(flattened_results)} content elements"
                 )
+
+            # before saving to S3, split the flattened results into chunks
+            flattened_results = self.split_text_into_chunks(flattened_results)
+
+            print(f"Flattened results: {flattened_results}")
 
             # Calculate statistics
             self.total_clauses = len(flattened_results)
