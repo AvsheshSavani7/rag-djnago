@@ -73,7 +73,8 @@ class SECFilingListView(APIView):
             form_type = request.query_params.get('form_type')
             cik_number = request.query_params.get('cik_number')
             has_htm_files = request.query_params.get('has_htm_files')
-            limit = int(request.query_params.get('limit', 1000))
+            offset = int(request.query_params.get('offset', 0))
+            limit = int(request.query_params.get('limit', 10))
 
             # Build query
             query = {}
@@ -84,9 +85,12 @@ class SECFilingListView(APIView):
             if has_htm_files is not None:
                 query['has_htm_files'] = has_htm_files.lower() == 'true'
 
-            # Get filings
+            # Get total count before pagination
+            total_count = SECFiling.objects(**query).count()
+
+            # Get filings with pagination
             filings = SECFiling.objects(
-                **query).order_by('-created_at').limit(limit)
+                **query).order_by('-created_at').skip(offset).limit(limit)
 
             # Serialize
             serializer = SECFilingListSerializer(filings, many=True)
@@ -122,7 +126,7 @@ class SECFilingListView(APIView):
             return Response({
                 'success': True,
                 'filings': filings_data,
-                'count': len(filings_data)
+                'count': total_count
             }, status=status.HTTP_200_OK)
 
         except Exception as e:
