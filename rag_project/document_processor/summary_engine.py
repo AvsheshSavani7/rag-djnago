@@ -811,6 +811,32 @@ def write_docx_summary(summaries, output_path, RUN_CONCISE_SUMMARIES, RUN_FULSOM
                 ref_text.font.name = "Aptos"
                 ref_text.font.size = Pt(10)
 
+            config_para = doc.add_paragraph()
+
+            config_para.paragraph_format.left_indent = Inches(1.0)
+
+            config_para.paragraph_format.first_line_indent = -Inches(0.25)
+
+            config_para.paragraph_format.line_spacing = 1
+
+            add_tab_stop(config_para, 1.0)
+
+            config_bullet = config_para.add_run("○\t")
+
+            config_bullet.font.name = "Aptos"
+
+            config_bullet.font.size = Pt(8)
+
+            config_bullet.font.color.rgb = RGBColor(0, 0, 0)
+
+            config_bullet = config_para.add_run(
+
+                "From : " + s.get("clause_name") + " - " + str(s.get("summary_rank")))
+
+            config_bullet.font.name = "Aptos"
+
+            config_bullet.font.size = Pt(10)
+
     doc.save(output_path)
     print(f"\n✅ DOCX summary written to: {output_path}")
 
