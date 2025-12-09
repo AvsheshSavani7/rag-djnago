@@ -583,20 +583,37 @@ class EmbeddingService:
 
         return sorted(references)
 
-    def extract_section_from_label(self, label):
+    def extract_section_from_label(self, label: str) -> str:
         """
-        Extract a single section reference from the label.
-        Example: "ARTICLE Article VIII GENERAL PROVISIONS > Section 8.12 Consent to Jurisdiction" returns ["Section 8.12"]
+        Extract section from label field.
+
+        Examples:
+        "ARTICLE Article VI CONDITIONS TO THE MERGER > Section 6.1 Conditions..." -> "Section 6.1"
+        "ARTICLE Article II > Section 2.5 Company Disclosure Schedules > (a)" -> "Section 2.5"
+        "Section 8.11 Specific Performance" -> "Section 8.11"
+        "ARTICLE ARTICLE I The Merger > Section SECTION 1.03 Effective Time" -> "SECTION 1.03"
+        "Some label without section" -> "Some label without section" (returns full label)
+
+        Args:
+            label (str): The label string from metadata
+
+        Returns:
+            str: The extracted section (e.g., "Section 6.1" or "SECTION 1.03") or the full label if no section found
         """
-        # Pattern to match section after ">" symbol
-        pattern = r'>\s*(Section\s+\d+(?:\.\d+)*)'
-        match = re.search(pattern, label, re.IGNORECASE)
-        if match:
-            # Get the full section reference and clean it
-            base_section = re.sub(
-                r'(\(.*?\))|(\s+[a-z].*$)', '', match.group(1))
-            return [base_section]
-        return []  # Return empty list if no match
+        if not label:
+            return ""
+
+        # Try to match "Section X.Y" pattern (case-insensitive, captures full "Section X.Y" text)
+        section_match = re.search(r"Section\s+\d+\.\d+", label, re.IGNORECASE)
+        if section_match:
+            section_text = section_match.group(0)
+            logger.debug(
+                f"Extracted section '{section_text}' from label: {label}")
+            return section_text
+
+        # If no section found, return the entire label
+        logger.debug(f"No section pattern found, using full label: {label}")
+        return label
 
     def process_chunks(self, chunks, deal_id):
         """Process a list of text chunks and store embeddings in Pinecone one by one"""
@@ -650,10 +667,13 @@ class EmbeddingService:
                     )
 
                 # Start with required metadata fields
+                label = enhanced_chunk.get("label", "") or ""
+                section_text = self.extract_section_from_label(label)
+
                 metadata = {
                     "deal_id": str(deal_id),
                     "deal_name": enhanced_chunk.get("deal_name", "") or "",
-                    "label": enhanced_chunk.get("label", "") or "",
+                    "label": label,
                     "definition_terms": (
                         ""
                         if enhanced_chunk.get("definition_terms") is None
@@ -664,8 +684,8 @@ class EmbeddingService:
                     # "categories": enhanced_chunk.get("categories", "") or "",
                     "chunk_index": i,
                     # "reference_section": self.extract_section_references(enhanced_chunk.get("combined_text", "")),
-                    # "section": self.extract_section_from_label(enhanced_chunk.get("label", ""))
                     # "clause_summary": enhanced_chunk.get("clause_summary", "") or "",
+                    "Section": [section_text] if section_text else [],
                 }
                 logger.info(f"Metadata: {metadata}")
 
