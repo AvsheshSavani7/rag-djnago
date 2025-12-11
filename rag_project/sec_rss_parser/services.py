@@ -231,7 +231,7 @@ class SECRSSParser:
                 "target_name": "Brighthouse Financial, Inc.",
                 "acquire_name": None,
                 "target_cik": "0001685040",
-                "acquire_cik": "0001027263"
+                "acquire_cik": None
             },
             {
                 "target_name": "Exact Sciences Corporation",
