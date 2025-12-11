@@ -176,6 +176,9 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
+DEFAULT_FROM_EMAIL = "ashish.kachadiya@teqnodux.com"
+SEC_FILING_NOTIFICATION_EMAIL = "avshesh.savani@teqnodux.com"
+
 # Node.js API settings
 NODE_API_BASE_URL = os.environ.get(
     'NODE_API_BASE_URL', 'http://192.168.1.4:3001/api')

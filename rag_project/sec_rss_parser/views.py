@@ -35,10 +35,17 @@ class ProcessSECFeedView(APIView):
     def process_feed_request(self):
         """Common method to process SEC feed in background"""
         try:
+            # Get form_type from request (query params for GET, body for POST)
+            form_type = None
+            if hasattr(self.request, 'query_params'):
+                form_type = self.request.query_params.get('form_type')
+            if not form_type and hasattr(self.request, 'data'):
+                form_type = self.request.data.get('form_type')
+
             # Start processing in background thread
             def process_in_background():
                 try:
-                    processor = SECFeedProcessor()
+                    processor = SECFeedProcessor(form_type=form_type)
                     result = processor.process_feed()
                     logger.info(
                         f"Background SEC processing completed: {result}")
@@ -52,7 +59,8 @@ class ProcessSECFeedView(APIView):
             return Response({
                 'success': True,
                 'message': 'SEC feed processing started in background',
-                'status': 'processing'
+                'status': 'processing',
+                'form_type': form_type
             }, status=status.HTTP_200_OK)
 
         except Exception as e:
