@@ -200,7 +200,8 @@ class SECRSSParser:
             'Referer': 'https://www.sec.gov/',
         }
 
-        self.form_types = ["8-k", "DEF 14A"]
+        self.form_types = ["8-k", "DEF 14A", "DEFM14A",
+                           "DEFM14C", "PREM14A", "PREM14C", "PRE 14A"]
 
         self.proxy_watcher = [
             {
