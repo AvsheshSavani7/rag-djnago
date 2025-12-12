@@ -10,9 +10,10 @@ import re
 import os
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from django.core.mail import send_mail, EmailMultiAlternatives
 from django.conf import settings
-from .models import SECFiling, SECFeedStatus, LastCronJob
+from .models import SECFiling, SECFeedStatus, LastCronJob, AccessionLookedUp
 from .document_analyzer import SECDocumentAnalyzer
 from .websocket_service import SECWebSocketService
 from document_processor.models import ProcessingJob
@@ -200,8 +201,8 @@ class SECRSSParser:
             'Referer': 'https://www.sec.gov/',
         }
 
-        self.form_types = ["8-k", "DEF 14A", "DEFM14A",
-                           "DEFM14C", "PREM14A", "PREM14C", "PRE 14A"]
+        self.form_types = ["8-k", "DEFM14A",
+                           "DEFM14C", "PREM14A", "PREM14C", "S-4", "S-4/A", "F-4", "F-4/A", "SC 14D9", "SC 14D9/A"]
 
         self.proxy_watcher = [
             {
@@ -752,6 +753,169 @@ class SECFeedProcessor:
                 f"Error checking CIK {cik_number} in Deals collection: {e}")
             return False
 
+    def _process_single_form_type(self, form_type):
+        """Process a single form type - extracted for parallel processing"""
+        try:
+            # Create a new parser instance for thread safety
+            parser = SECRSSParser(form_type=form_type)
+            parser.set_feed_url(form_type)
+            rss_content = parser.fetch_rss_feed()
+            if not rss_content:
+                print(f"Failed to fetch feed for form type: {form_type}")
+                return {
+                    'form_type': form_type,
+                    'processed_items': [],
+                    'new_items_count': 0,
+                    'success': False,
+                    'error': 'Failed to fetch RSS feed'
+                }
+
+            items = parser.parse_rss_content(rss_content)
+            print(
+                f"Parsed {len(items)} items from feed for form type: {form_type}")
+
+            # Filter items by checking accession numbers in accession_lookedup and database
+            unique_items = []
+            new_accession_numbers = []  # Track new accession numbers to add to AccessionLookedUp
+
+            for item_data in items:
+                accession_number = item_data.get('accession_number')
+                if not accession_number and item_data.get('guid'):
+                    match = re.search(
+                        r'accession-number=([\d-]+)', item_data.get('guid', ''))
+                    if match:
+                        accession_number = match.group(1)
+
+                if accession_number:
+                    # First check if accession number exists in AccessionLookedUp
+                    looked_up = AccessionLookedUp.objects(
+                        accession_number=accession_number).first()
+                    if looked_up:
+                        print(
+                            f"Skipping already looked up filing: {accession_number}")
+                        continue
+
+                    # Then check if it exists in SECFiling
+                    existing = SECFiling.objects(
+                        accession_number=accession_number).first()
+                    if existing:
+                        print(
+                            f"Skipping existing filing: {accession_number}")
+                        # Add to AccessionLookedUp to avoid checking again in future
+                        try:
+                            AccessionLookedUp(
+                                accession_number=accession_number).save()
+                        except Exception as e:
+                            # Ignore duplicate key errors (race condition)
+                            if 'duplicate' not in str(e).lower() and 'E11000' not in str(e):
+                                logger.warning(
+                                    f"Failed to save accession number to AccessionLookedUp: {e}")
+                        continue
+
+                    # New accession number - add to list for processing
+                    unique_items.append(item_data)
+                    new_accession_numbers.append(accession_number)
+                else:
+                    # No accession number - process it
+                    unique_items.append(item_data)
+
+            # Bulk insert new accession numbers to AccessionLookedUp
+            if new_accession_numbers:
+                try:
+                    for acc_num in new_accession_numbers:
+                        try:
+                            AccessionLookedUp(accession_number=acc_num).save()
+                        except Exception as e:
+                            # Ignore duplicate key errors (race condition)
+                            if 'duplicate' not in str(e).lower() and 'E11000' not in str(e):
+                                logger.warning(
+                                    f"Failed to save accession number {acc_num} to AccessionLookedUp: {e}")
+                except Exception as e:
+                    logger.error(
+                        f"Error bulk saving accession numbers to AccessionLookedUp: {e}")
+
+            print(
+                f"Found {len(unique_items)} unique new items to process for {form_type}")
+
+            # Process each unique item
+            processed_items = []
+            for item_data in unique_items:
+                # Skip 8-K/A items early (before HTML parsing)
+                form_type_from_feed = item_data.get('form_type')
+                if form_type_from_feed == '8-K/A':
+                    print(
+                        f"Skipping 8-K/A filing: {item_data.get('accession_number', 'N/A')}")
+                    continue
+
+                if item_data.get('needs_html_parsing'):
+                    html_url = item_data.get('link')
+                    if html_url:
+                        # Pass form_type from Atom feed to HTML parser
+                        print(
+                            f"Fetching HTML for: {html_url} (form_type from feed: {form_type_from_feed})")
+                        html_data = parser.fetch_and_parse_html(
+                            html_url, form_type_from_feed=form_type_from_feed)
+                        if html_data:
+                            item_data.update(html_data)
+                            item_data.pop('needs_html_parsing', None)
+
+                            # Skip 8-K/A items after HTML parsing (in case form_type changed)
+                            if item_data.get('form_type') == '8-K/A':
+                                print(
+                                    f"Skipping 8-K/A filing: {item_data.get('accession_number', 'N/A')}")
+                                continue
+
+                            if item_data.get('form_type') == '8-K' and not item_data.get('has_ex21'):
+                                print(
+                                    f"Skipping 8-K filing without EX-2.1: {item_data.get('accession_number')}")
+                                continue
+                        else:
+                            print(f"Failed to parse HTML for: {html_url}")
+                            continue
+
+                # Final check for items that don't need HTML parsing
+                if item_data.get('form_type') == '8-K/A':
+                    print(
+                        f"Skipping 8-K/A filing: {item_data.get('accession_number', 'N/A')}")
+                    continue
+
+                processed_items.append(item_data)
+
+            print(
+                f"Processing {len(processed_items)} items after HTML parsing and filtering for {form_type}")
+            new_items_count = 0
+
+            for item_data in processed_items:
+                if self.save_filing(item_data):
+                    new_items_count += 1
+
+            # Emit processing statistics per form type
+            if new_items_count > 0:
+                stats = {
+                    'total_processed': len(processed_items),
+                    'new_filings': new_items_count,
+                    'processing_time': datetime.utcnow().isoformat(),
+                    'feed_url': parser.feed_url,
+                    'form_type': form_type
+                }
+                SECWebSocketService.emit_sec_processing_stats(stats)
+
+            return {
+                'form_type': form_type,
+                'processed_items': processed_items,
+                'new_items_count': new_items_count,
+                'success': True
+            }
+        except Exception as e:
+            logger.error(f"Error processing form type {form_type}: {e}")
+            return {
+                'form_type': form_type,
+                'processed_items': [],
+                'new_items_count': 0,
+                'success': False,
+                'error': str(e)
+            }
+
     def process_feed(self):
         try:
             # Decide which form types to process (single provided or all configured)
@@ -761,106 +925,32 @@ class SECFeedProcessor:
             all_processed_items = []
             total_new_items = 0
 
-            for ft in form_types_to_process:
-                self.parser.set_feed_url(ft)
-                rss_content = self.parser.fetch_rss_feed()
-                if not rss_content:
-                    print(f"Failed to fetch feed for form type: {ft}")
-                    continue
+            # Use ThreadPoolExecutor with 5 workers to process form types in parallel
+            with ThreadPoolExecutor(max_workers=8) as executor:
+                # Submit all form types for processing
+                future_to_form_type = {
+                    executor.submit(self._process_single_form_type, ft): ft
+                    for ft in form_types_to_process
+                }
 
-                items = self.parser.parse_rss_content(rss_content)
-                print(
-                    f"Parsed {len(items)} items from feed for form type: {ft}")
-
-                # Filter items by checking accession numbers in database
-                unique_items = []
-                for item_data in items:
-                    accession_number = item_data.get('accession_number')
-                    if not accession_number and item_data.get('guid'):
-                        match = re.search(
-                            r'accession-number=([\d-]+)', item_data.get('guid', ''))
-                        if match:
-                            accession_number = match.group(1)
-
-                    if accession_number:
-                        existing = SECFiling.objects(
-                            accession_number=accession_number).first()
-                        if not existing:
-                            unique_items.append(item_data)
+                # Collect results as they complete
+                for future in as_completed(future_to_form_type):
+                    form_type = future_to_form_type[future]
+                    try:
+                        result = future.result()
+                        if result['success']:
+                            all_processed_items.extend(
+                                result['processed_items'])
+                            total_new_items += result['new_items_count']
+                            print(
+                                f"Completed processing form type {form_type}: {result['new_items_count']} new items")
                         else:
                             print(
-                                f"Skipping existing filing: {accession_number}")
-                    else:
-                        unique_items.append(item_data)
-
-                print(
-                    f"Found {len(unique_items)} unique new items to process for {ft}")
-
-                # Process each unique item
-                processed_items = []
-                for item_data in unique_items:
-                    # Skip 8-K/A items early (before HTML parsing)
-                    form_type_from_feed = item_data.get('form_type')
-                    if form_type_from_feed == '8-K/A':
-                        print(
-                            f"Skipping 8-K/A filing: {item_data.get('accession_number', 'N/A')}")
-                        continue
-
-                    if item_data.get('needs_html_parsing'):
-                        html_url = item_data.get('link')
-                        if html_url:
-                            # Pass form_type from Atom feed to HTML parser
-                            print(
-                                f"Fetching HTML for: {html_url} (form_type from feed: {form_type_from_feed})")
-                            html_data = self.parser.fetch_and_parse_html(
-                                html_url, form_type_from_feed=form_type_from_feed)
-                            if html_data:
-                                item_data.update(html_data)
-                                item_data.pop('needs_html_parsing', None)
-
-                                # Skip 8-K/A items after HTML parsing (in case form_type changed)
-                                if item_data.get('form_type') == '8-K/A':
-                                    print(
-                                        f"Skipping 8-K/A filing: {item_data.get('accession_number', 'N/A')}")
-                                    continue
-
-                                if item_data.get('form_type') == '8-K' and not item_data.get('has_ex21'):
-                                    print(
-                                        f"Skipping 8-K filing without EX-2.1: {item_data.get('accession_number')}")
-                                    continue
-                            else:
-                                print(f"Failed to parse HTML for: {html_url}")
-                                continue
-
-                    # Final check for items that don't need HTML parsing
-                    if item_data.get('form_type') == '8-K/A':
-                        print(
-                            f"Skipping 8-K/A filing: {item_data.get('accession_number', 'N/A')}")
-                        continue
-
-                    processed_items.append(item_data)
-
-                print(
-                    f"Processing {len(processed_items)} items after HTML parsing and filtering for {ft}")
-                new_items_count = 0
-
-                for item_data in processed_items:
-                    if self.save_filing(item_data):
-                        new_items_count += 1
-
-                total_new_items += new_items_count
-                all_processed_items.extend(processed_items)
-
-                # Emit processing statistics per form type
-            if new_items_count > 0:
-                stats = {
-                    'total_processed': len(processed_items),
-                    'new_filings': new_items_count,
-                    'processing_time': datetime.utcnow().isoformat(),
-                    'feed_url': self.parser.feed_url,
-                    'form_type': ft
-                }
-                SECWebSocketService.emit_sec_processing_stats(stats)
+                                f"Failed to process form type {form_type}: {result.get('error', 'Unknown error')}")
+                    except Exception as e:
+                        logger.error(
+                            f"Exception occurred while processing form type {form_type}: {e}")
+                        print(f"Error processing form type {form_type}: {e}")
 
             return {
                 'success': True,
@@ -1016,6 +1106,13 @@ class SECFeedProcessor:
             }
             item_data = {k: v for k, v in item_data.items()
                          if k in allowed_fields}
+
+            # Only save if document_kind is "Definitive Merger Agreement"
+            document_kind = item_data.get('document_kind')
+            if item_data.get('form_type') == '8-K' and document_kind != "Definitive Merger Agreement":
+                logger.info(
+                    f"⏭️  Skipping record - document_kind is '{document_kind}' (not 'Definitive Merger Agreement') for: {item_data.get('company_name')}")
+                return False
 
             # Create and save the filing
             filing = SECFiling(**item_data)

@@ -151,3 +151,29 @@ class LastCronJob(Document):
 
     def __str__(self):
         return f"LastCronJob - {self.job_name} - {self.last_build_date}"
+
+
+class AccessionLookedUp(Document):
+    """Model to track accession numbers that have been looked up"""
+    _id = StringField(primary_key=True, default=generate_object_id)
+
+    accession_number = StringField(required=True, unique=True, max_length=50)
+
+    # Timestamps
+    created_at = DateTimeField(default=datetime.utcnow)
+    updated_at = DateTimeField(default=datetime.utcnow)
+
+    # MongoDB-specific field
+    v_version = IntField(default=0, db_field="__v")
+
+    meta = {
+        'collection': 'accession_lookedup',
+        'indexes': ['accession_number']
+    }
+
+    def save(self, *args, **kwargs):
+        self.updated_at = datetime.utcnow()
+        return super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"AccessionLookedUp - {self.accession_number}"
