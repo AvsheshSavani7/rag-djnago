@@ -106,7 +106,8 @@ class SECFilingListView(APIView):
             # Add deal_found field for DEF 14A and PRE 14A filings
             filings_data = serializer.data
             for filing_data in filings_data:
-                if filing_data.get('form_type') in ['DEF 14A', 'PRE 14A']:
+                if filing_data.get('form_type') in ["DEFM14A",
+                                                    "DEFM14C", "PREM14A", "PREM14C", "S-4", "S-4/A", "F-4", "F-4/A", "SC 14D9", "SC 14D9/A"]:
                     cik_number = filing_data.get('cik_number')
                     if cik_number:
                         try:
@@ -163,7 +164,8 @@ class SECFilingDetailView(APIView):
             filing_data = serializer.data
 
             # Add deal_found field for DEF 14A and PRE 14A filings
-            if filing_data.get('form_type') in ['DEF 14A', 'PRE 14A']:
+            if filing_data.get('form_type') in ["DEFM14A",
+                                                "DEFM14C", "PREM14A", "PREM14C", "S-4", "S-4/A", "F-4", "F-4/A", "SC 14D9", "SC 14D9/A"]:
                 cik_number = filing_data.get('cik_number')
                 if cik_number:
                     try:
@@ -218,7 +220,8 @@ class SEC8KFilingListView(APIView):
             # Add deal_found field for DEF 14A and PRE 14A filings
             filings_data = serializer.data
             for filing_data in filings_data:
-                if filing_data.get('form_type') in ['DEF 14A', 'PRE 14A']:
+                if filing_data.get('form_type') in ["DEFM14A",
+                                                    "DEFM14C", "PREM14A", "PREM14C", "S-4", "S-4/A", "F-4", "F-4/A", "SC 14D9", "SC 14D9/A"]:
                     cik_number = filing_data.get('cik_number')
                     if cik_number:
                         try:
