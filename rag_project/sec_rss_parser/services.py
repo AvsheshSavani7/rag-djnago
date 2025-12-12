@@ -262,7 +262,7 @@ class SECRSSParser:
         if form_type:
             self.feed_url = (
                 "https://www.sec.gov/cgi-bin/browse-edgar?"
-                f"action=getcurrent&CIK=&type={form_type}&company=&dateb=&owner=include&start=0&count=10&output=atom"
+                f"action=getcurrent&CIK=&type={form_type}&company=&dateb=&owner=include&start=0&count=40&output=atom"
             )
         else:
             self.feed_url = None
@@ -799,11 +799,17 @@ class SECFeedProcessor:
                 # Process each unique item
                 processed_items = []
                 for item_data in unique_items:
+                    # Skip 8-K/A items early (before HTML parsing)
+                    form_type_from_feed = item_data.get('form_type')
+                    if form_type_from_feed == '8-K/A':
+                        print(
+                            f"Skipping 8-K/A filing: {item_data.get('accession_number', 'N/A')}")
+                        continue
+
                     if item_data.get('needs_html_parsing'):
                         html_url = item_data.get('link')
                         if html_url:
                             # Pass form_type from Atom feed to HTML parser
-                            form_type_from_feed = item_data.get('form_type')
                             print(
                                 f"Fetching HTML for: {html_url} (form_type from feed: {form_type_from_feed})")
                             html_data = self.parser.fetch_and_parse_html(
@@ -812,6 +818,12 @@ class SECFeedProcessor:
                                 item_data.update(html_data)
                                 item_data.pop('needs_html_parsing', None)
 
+                                # Skip 8-K/A items after HTML parsing (in case form_type changed)
+                                if item_data.get('form_type') == '8-K/A':
+                                    print(
+                                        f"Skipping 8-K/A filing: {item_data.get('accession_number', 'N/A')}")
+                                    continue
+
                                 if item_data.get('form_type') == '8-K' and not item_data.get('has_ex21'):
                                     print(
                                         f"Skipping 8-K filing without EX-2.1: {item_data.get('accession_number')}")
@@ -819,6 +831,12 @@ class SECFeedProcessor:
                             else:
                                 print(f"Failed to parse HTML for: {html_url}")
                                 continue
+
+                    # Final check for items that don't need HTML parsing
+                    if item_data.get('form_type') == '8-K/A':
+                        print(
+                            f"Skipping 8-K/A filing: {item_data.get('accession_number', 'N/A')}")
+                        continue
 
                     processed_items.append(item_data)
 
@@ -1052,7 +1070,9 @@ class SECFeedProcessor:
                 SECWebSocketService.emit_sec_analysis_complete(
                     filing_data, analysis_result)
 
-            # Check if form_type is not 8-K and CIK matches proxy_watcher
+            # Email notification logic:
+            # - If form_type is "8-K": Send email directly
+            # - If form_type is NOT "8-K": Check proxy_watcher, send email if matched
             form_type = item_data.get('form_type', '')
             cik_number = item_data.get('cik_number', '')
 
@@ -1061,7 +1081,18 @@ class SECFeedProcessor:
             print(
                 f"🔍 Checking email notification - form_type: {form_type}, cik_number: {cik_number}")
 
-            if form_type != '8-K' and cik_number:
+            should_send_email = False
+            matched_watcher = None
+            email_reason = ""
+
+            if form_type == '8-K':
+                # For 8-K filings, send email directly
+                should_send_email = True
+                email_reason = "form_type is 8-K"
+                logger.info(f"✅ Form type is 8-K - will send email")
+                print(f"✅ Form type is 8-K - will send email")
+            elif form_type != '8-K' and cik_number:
+                # For non-8-K filings, check proxy_watcher matches
                 logger.info(
                     f"✅ Form type is not 8-K ({form_type}) and CIK exists ({cik_number}), checking proxy_watcher matches...")
                 print(
@@ -1074,7 +1105,6 @@ class SECFeedProcessor:
                 print(f"📋 Normalized CIK: {cik_normalized}")
 
                 # Check if CIK matches any target_cik or acquire_cik in proxy_watcher
-                matched_watcher = None
                 logger.info(
                     f"🔎 Checking {len(self.parser.proxy_watcher)} watcher entries...")
                 print(
@@ -1094,137 +1124,150 @@ class SECFeedProcessor:
                     if (target_cik and cik_normalized == target_cik) or \
                        (acquire_cik and cik_normalized == acquire_cik):
                         matched_watcher = watcher
+                        should_send_email = True
+                        email_reason = f"matched watcher: {watcher.get('target_name', 'Unknown')}"
                         logger.info(
                             f"✅ MATCH FOUND! Watcher {idx + 1}: {watcher.get('target_name', 'Unknown')}")
                         print(
                             f"✅ MATCH FOUND! Watcher {idx + 1}: {watcher.get('target_name', 'Unknown')}")
                         break
 
-                if matched_watcher:
-                    try:
-                        logger.info(
-                            f"📧 Preparing to send email for matched watcher: {matched_watcher.get('target_name', 'Unknown')}")
-                        print(
-                            f"📧 Preparing to send email for matched watcher: {matched_watcher.get('target_name', 'Unknown')}")
-
-                        # Generate email HTML
-                        subject, html_email = generate_filing_email_html(
-                            item_data, item_data.get('xbrl_files', []))
-                        logger.info(f"📝 Generated email subject: {subject}")
-                        print(f"📝 Generated email subject: {subject}")
-
-                        # Get email recipients (can be multiple, comma or space separated)
-                        recipient_emails_str = getattr(
-                            settings, 'SEC_FILING_NOTIFICATION_EMAIL', 'notifications@example.com')
-                        logger.info(
-                            f"📬 Raw recipient emails from env: {recipient_emails_str}")
-                        print(
-                            f"📬 Raw recipient emails from env: {recipient_emails_str}")
-
-                        # Parse multiple emails (comma or space separated)
-                        recipient_emails = []
-                        if recipient_emails_str:
-                            # Split by comma first, then by space, and strip whitespace
-                            for email_part in recipient_emails_str.replace(',', ' ').split():
-                                email = email_part.strip()
-                                if email and '@' in email:  # Basic email validation
-                                    recipient_emails.append(email)
-                                    logger.info(
-                                        f"  ✅ Added valid email: {email}")
-                                    print(f"  ✅ Added valid email: {email}")
-                                else:
-                                    logger.warning(
-                                        f"  ⚠️ Skipped invalid email: {email}")
-                                    print(
-                                        f"  ⚠️ Skipped invalid email: {email}")
-
-                        # If no valid emails found, use default
-                        if not recipient_emails:
-                            recipient_emails = ['notifications@example.com']
-                            logger.warning(
-                                f"⚠️ No valid emails found, using default: {recipient_emails}")
-                            print(
-                                f"⚠️ No valid emails found, using default: {recipient_emails}")
-
-                        logger.info(
-                            f"📧 Final recipient list: {recipient_emails}")
-                        print(f"📧 Final recipient list: {recipient_emails}")
-
-                        # Send email via n8n webhook
-                        webhook_url = "https://n8n-xwx1.onrender.com/webhook/3ff1b0ea-7114-4dda-940e-95ce81e08017"
-                        logger.info(
-                            f"📤 Sending email via n8n webhook: {webhook_url}")
-                        print(
-                            f"📤 Sending email via n8n webhook: {webhook_url}")
-
-                        # Prepare payload for n8n webhook
-                        payload = {
-                            'subject': subject,
-                            'html': html_email,
-                            'recipients': recipient_emails,
-                            'company_name': item_data.get('company_name', 'Unknown Company'),
-                            'accession_number': item_data.get('accession_number', 'N/A'),
-                            'form_type': item_data.get('form_type', 'N/A'),
-                            'filing_url': item_data.get('link', '')
-                        }
-
-                        logger.info(
-                            f"📦 Payload prepared with {len(recipient_emails)} recipient(s)")
-                        print(
-                            f"📦 Payload prepared with {len(recipient_emails)} recipient(s)")
-
-                        # Send POST request to n8n webhook
-                        try:
-                            response = requests.post(
-                                webhook_url,
-                                json=payload,
-                                headers={'Content-Type': 'application/json'},
-                                timeout=30
-                            )
-                            response.raise_for_status()
-
-                            logger.info(
-                                f"✅ Email sent successfully via n8n webhook! Status: {response.status_code}")
-                            print(
-                                f"✅ Email sent successfully via n8n webhook! Status: {response.status_code}")
-                            logger.info(f"📧 Response: {response.text[:200]}")
-                            print(f"📧 Response: {response.text[:200]}")
-                        except requests.exceptions.RequestException as e:
-                            logger.error(
-                                f"❌ Error sending email via n8n webhook: {e}")
-                            print(
-                                f"❌ Error sending email via n8n webhook: {e}")
-                            if hasattr(e, 'response') and e.response is not None:
-                                logger.error(
-                                    f"❌ Response status: {e.response.status_code}, Response body: {e.response.text[:200]}")
-                                print(
-                                    f"❌ Response status: {e.response.status_code}, Response body: {e.response.text[:200]}")
-                            raise
-
-                        logger.info(
-                            f"📧 Email sent to {len(recipient_emails)} recipient(s) for filing: {item_data.get('company_name')} - {item_data.get('accession_number')} "
-                            f"(Matched watcher: {matched_watcher.get('target_name', 'Unknown')})")
-                        print(
-                            f"📧 Email sent to {len(recipient_emails)} recipient(s) for filing: {item_data.get('company_name')} - {item_data.get('accession_number')} "
-                            f"(Matched watcher: {matched_watcher.get('target_name', 'Unknown')})")
-                    except Exception as e:
-                        logger.error(
-                            f"❌ Error sending email notification: {e}", exc_info=True)
-                        print(f"❌ Error sending email notification: {e}")
-                        import traceback
-                        print(traceback.format_exc())
-                else:
+                if not should_send_email:
                     logger.info(
                         f"ℹ️ No watcher match found for CIK {cik_normalized}")
                     print(
                         f"ℹ️ No watcher match found for CIK {cik_normalized}")
             else:
-                if form_type == '8-K':
-                    logger.info(f"ℹ️ Skipping email check - form_type is 8-K")
-                    print(f"ℹ️ Skipping email check - form_type is 8-K")
-                elif not cik_number:
+                if not cik_number:
                     logger.info(f"ℹ️ Skipping email check - no CIK number")
                     print(f"ℹ️ Skipping email check - no CIK number")
+
+            # Send email if conditions are met
+            if should_send_email:
+                try:
+                    if matched_watcher:
+                        logger.info(
+                            f"📧 Preparing to send email for matched watcher: {matched_watcher.get('target_name', 'Unknown')}")
+                        print(
+                            f"📧 Preparing to send email for matched watcher: {matched_watcher.get('target_name', 'Unknown')}")
+                    else:
+                        logger.info(
+                            f"📧 Preparing to send email for 8-K filing: {item_data.get('company_name', 'Unknown')}")
+                        print(
+                            f"📧 Preparing to send email for 8-K filing: {item_data.get('company_name', 'Unknown')}")
+
+                    # Generate email HTML
+                    subject, html_email = generate_filing_email_html(
+                        item_data, item_data.get('xbrl_files', []))
+                    logger.info(f"📝 Generated email subject: {subject}")
+                    print(f"📝 Generated email subject: {subject}")
+
+                    # Get email recipients (can be multiple, comma or space separated)
+                    recipient_emails_str = getattr(
+                        settings, 'SEC_FILING_NOTIFICATION_EMAIL', 'notifications@example.com')
+                    logger.info(
+                        f"📬 Raw recipient emails from env: {recipient_emails_str}")
+                    print(
+                        f"📬 Raw recipient emails from env: {recipient_emails_str}")
+
+                    # Parse multiple emails (comma or space separated)
+                    recipient_emails = []
+                    if recipient_emails_str:
+                        # Split by comma first, then by space, and strip whitespace
+                        for email_part in recipient_emails_str.replace(',', ' ').split():
+                            email = email_part.strip()
+                            if email and '@' in email:  # Basic email validation
+                                recipient_emails.append(email)
+                                logger.info(
+                                    f"  ✅ Added valid email: {email}")
+                                print(f"  ✅ Added valid email: {email}")
+                            else:
+                                logger.warning(
+                                    f"  ⚠️ Skipped invalid email: {email}")
+                                print(
+                                    f"  ⚠️ Skipped invalid email: {email}")
+
+                    # If no valid emails found, use default
+                    if not recipient_emails:
+                        recipient_emails = ['notifications@example.com']
+                        logger.warning(
+                            f"⚠️ No valid emails found, using default: {recipient_emails}")
+                        print(
+                            f"⚠️ No valid emails found, using default: {recipient_emails}")
+
+                    logger.info(
+                        f"📧 Final recipient list: {recipient_emails}")
+                    print(f"📧 Final recipient list: {recipient_emails}")
+
+                    # Send email via n8n webhook
+                    webhook_url = "https://n8n-xwx1.onrender.com/webhook/3ff1b0ea-7114-4dda-940e-95ce81e08017"
+                    logger.info(
+                        f"📤 Sending email via n8n webhook: {webhook_url}")
+                    print(
+                        f"📤 Sending email via n8n webhook: {webhook_url}")
+
+                    # Prepare payload for n8n webhook
+                    payload = {
+                        'subject': subject,
+                        'html': html_email,
+                        'recipients': recipient_emails,
+                        'company_name': item_data.get('company_name', 'Unknown Company'),
+                        'accession_number': item_data.get('accession_number', 'N/A'),
+                        'form_type': item_data.get('form_type', 'N/A'),
+                        'filing_url': item_data.get('link', '')
+                    }
+
+                    logger.info(
+                        f"📦 Payload prepared with {len(recipient_emails)} recipient(s)")
+                    print(
+                        f"📦 Payload prepared with {len(recipient_emails)} recipient(s)")
+
+                    # Send POST request to n8n webhook
+                    try:
+                        response = requests.post(
+                            webhook_url,
+                            json=payload,
+                            headers={'Content-Type': 'application/json'},
+                            timeout=30
+                        )
+                        response.raise_for_status()
+
+                        logger.info(
+                            f"✅ Email sent successfully via n8n webhook! Status: {response.status_code}")
+                        print(
+                            f"✅ Email sent successfully via n8n webhook! Status: {response.status_code}")
+                        logger.info(f"📧 Response: {response.text[:200]}")
+                        print(f"📧 Response: {response.text[:200]}")
+                    except requests.exceptions.RequestException as e:
+                        logger.error(
+                            f"❌ Error sending email via n8n webhook: {e}")
+                        print(
+                            f"❌ Error sending email via n8n webhook: {e}")
+                        if hasattr(e, 'response') and e.response is not None:
+                            logger.error(
+                                f"❌ Response status: {e.response.status_code}, Response body: {e.response.text[:200]}")
+                            print(
+                                f"❌ Response status: {e.response.status_code}, Response body: {e.response.text[:200]}")
+                        raise
+
+                    if matched_watcher:
+                        logger.info(
+                            f"📧 Email sent to {len(recipient_emails)} recipient(s) for filing: {item_data.get('company_name')} - {item_data.get('accession_number')} "
+                            f"(Matched watcher: {matched_watcher.get('target_name', 'Unknown')})")
+                        print(
+                            f"📧 Email sent to {len(recipient_emails)} recipient(s) for filing: {item_data.get('company_name')} - {item_data.get('accession_number')} "
+                            f"(Matched watcher: {matched_watcher.get('target_name', 'Unknown')})")
+                    else:
+                        logger.info(
+                            f"📧 Email sent to {len(recipient_emails)} recipient(s) for 8-K filing: {item_data.get('company_name')} - {item_data.get('accession_number')}")
+                        print(
+                            f"📧 Email sent to {len(recipient_emails)} recipient(s) for 8-K filing: {item_data.get('company_name')} - {item_data.get('accession_number')}")
+                except Exception as e:
+                    logger.error(
+                        f"❌ Error sending email notification: {e}", exc_info=True)
+                    print(f"❌ Error sending email notification: {e}")
+                    import traceback
+                    print(traceback.format_exc())
 
             return True
 
