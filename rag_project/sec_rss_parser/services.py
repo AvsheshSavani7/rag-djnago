@@ -240,7 +240,55 @@ class SECRSSParser:
                 "acquire_name": "Abbott Laboratories",
                 "target_cik": "0001124140",
                 "acquire_cik": "0000001800"
-            }
+            },
+            {
+                "target_name": "Axalta Coating Systems Ltd.",
+                "acquire_name": "AKZO NOBEL NV",
+                "target_cik": "0001616862",
+                "acquire_cik": "0000003124"
+            },
+            {
+                "target_name": "Sealed Air Corporation",
+                "acquire_name": "Clayton, Dubilier & Rice (CD&R) affiliated funds",
+                "target_cik": "0001012100",
+                "acquire_cik": ""
+            },
+            {
+                "target_name": "TreeHouse Foods, Inc.",
+                "acquire_name": "Investindustrial",
+                "target_cik": "0001320695",
+                "acquire_cik": ""
+            },
+            {
+                "target_name": "Alexander & Baldwin, Inc.",
+                "acquire_name": "Blackstone Inc.",
+                "target_cik": "0001545654",
+                "acquire_cik": "0001393818"
+            },
+            {
+                "target_name": "Confluent, Inc.",
+                "acquire_name": "International Business Machines Corporation",
+                "target_cik": "0001699838",
+                "acquire_cik": "0000051143"
+            },
+            {
+                "target_name": "Warner Bros. Discovery, Inc.",
+                "acquire_name": "Netflix, Inc.",
+                "target_cik": "0001210476",
+                "acquire_cik": "0001065280"
+            },
+            {
+                "target_name": "Blue Foundry Bancorp",
+                "acquire_name": "Fulton Financial Corporation",
+                "target_cik": "0001846017",
+                "acquire_cik": "0000700564"
+            },
+            {
+                "target_name": "Eventbrite, Inc.",
+                "acquire_name": "Bending Spoons",
+                "target_cik": "0001475115",
+                "acquire_cik": ""
+            },
         ]
 
         # Initialize feed URL placeholder (set per form type)
