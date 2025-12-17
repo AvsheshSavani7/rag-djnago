@@ -22,6 +22,7 @@ class ProcessingJob(Document):
 
     # Deal information
     cik = StringField(max_length=20, required=False, null=True)
+    acquirer_cik = StringField(max_length=20, required=False, null=True)
     acquire_name = StringField(max_length=255, required=False, null=True)
     target_name = StringField(max_length=255, required=False, null=True)
     announce_date = DateTimeField(required=False, null=True)

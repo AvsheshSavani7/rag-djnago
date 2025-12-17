@@ -209,85 +209,85 @@ class SECRSSParser:
                 "target_name": "CIVITAS RESOURCES, INC",
                 "acquire_name": "SM Energy Company",
                 "target_cik": "0001509589",
-                "acquire_cik": "0000893538"
+                "acquirer_cik": "0000893538"
             },
             {
                 "target_name": "Forge Global, Inc.",
                 "acquire_name": "SCHWAB CHARLES CORP",
                 "target_cik": "0001827821",
-                "acquire_cik": "000316709"
+                "acquirer_cik": "000316709"
             },
             {
                 "target_name": "Semrush Holdings, Inc.",
                 "acquire_name": "Adobe Inc.",
                 "target_cik": "0001831840",
-                "acquire_cik": "0000796343"
+                "acquirer_cik": "0000796343"
             },
             {
                 "target_name": "HOLOGIC INC",
                 "acquire_name": "Blackstone Inc. and TPG",
                 "target_cik": "0000859737",
-                "acquire_cik": "0001393818"
+                "acquirer_cik": "0001393818"
             },
             {
                 "target_name": "Brighthouse Financial, Inc.",
                 "acquire_name": None,
                 "target_cik": "0001685040",
-                "acquire_cik": None
+                "acquirer_cik": None
             },
             {
                 "target_name": "Exact Sciences Corporation",
                 "acquire_name": "Abbott Laboratories",
                 "target_cik": "0001124140",
-                "acquire_cik": "0000001800"
+                "acquirer_cik": "0000001800"
             },
             {
                 "target_name": "Axalta Coating Systems Ltd.",
                 "acquire_name": "AKZO NOBEL NV",
                 "target_cik": "0001616862",
-                "acquire_cik": "0000003124"
+                "acquirer_cik": "0000003124"
             },
             {
                 "target_name": "Sealed Air Corporation",
                 "acquire_name": "Clayton, Dubilier & Rice (CD&R) affiliated funds",
                 "target_cik": "0001012100",
-                "acquire_cik": ""
+                "acquirer_cik": ""
             },
             {
                 "target_name": "TreeHouse Foods, Inc.",
                 "acquire_name": "Investindustrial",
                 "target_cik": "0001320695",
-                "acquire_cik": ""
+                "acquirer_cik": ""
             },
             {
                 "target_name": "Alexander & Baldwin, Inc.",
                 "acquire_name": "Blackstone Inc.",
                 "target_cik": "0001545654",
-                "acquire_cik": "0001393818"
+                "acquirer_cik": "0001393818"
             },
             {
                 "target_name": "Confluent, Inc.",
                 "acquire_name": "International Business Machines Corporation",
                 "target_cik": "0001699838",
-                "acquire_cik": "0000051143"
+                "acquirer_cik": "0000051143"
             },
             {
                 "target_name": "Warner Bros. Discovery, Inc.",
                 "acquire_name": "Netflix, Inc.",
                 "target_cik": "0001210476",
-                "acquire_cik": "0001065280"
+                "acquirer_cik": "0001065280"
             },
             {
                 "target_name": "Blue Foundry Bancorp",
                 "acquire_name": "Fulton Financial Corporation",
                 "target_cik": "0001846017",
-                "acquire_cik": "0000700564"
+                "acquirer_cik": "0000700564"
             },
             {
                 "target_name": "Eventbrite, Inc.",
                 "acquire_name": "Bending Spoons",
                 "target_cik": "0001475115",
-                "acquire_cik": ""
+                "acquirer_cik": ""
             },
         ]
 
@@ -1249,7 +1249,7 @@ class SECFeedProcessor:
                 logger.info(f"📋 Normalized CIK: {cik_normalized}")
                 print(f"📋 Normalized CIK: {cik_normalized}")
 
-                # Check if CIK matches any target_cik or acquire_cik in proxy_watcher
+                # Check if CIK matches any target_cik or acquirer_cik in proxy_watcher
                 logger.info(
                     f"🔎 Checking {len(self.parser.proxy_watcher)} watcher entries...")
                 print(
@@ -1258,16 +1258,16 @@ class SECFeedProcessor:
                 for idx, watcher in enumerate(self.parser.proxy_watcher):
                     target_cik = str(watcher.get('target_cik', '')).zfill(
                         10) if watcher.get('target_cik') else ''
-                    acquire_cik = str(watcher.get('acquire_cik', '')).zfill(
-                        10) if watcher.get('acquire_cik') else ''
+                    acquirer_cik = str(watcher.get('acquirer_cik', '')).zfill(
+                        10) if watcher.get('acquirer_cik') else ''
 
                     logger.info(
-                        f"  Watcher {idx + 1}: target_cik={target_cik}, acquire_cik={acquire_cik}, target_name={watcher.get('target_name', 'N/A')}")
+                        f"  Watcher {idx + 1}: target_cik={target_cik}, acquirer_cik={acquirer_cik}, target_name={watcher.get('target_name', 'N/A')}")
                     print(
-                        f"  Watcher {idx + 1}: target_cik={target_cik}, acquire_cik={acquire_cik}, target_name={watcher.get('target_name', 'N/A')}")
+                        f"  Watcher {idx + 1}: target_cik={target_cik}, acquirer_cik={acquirer_cik}, target_name={watcher.get('target_name', 'N/A')}")
 
                     if (target_cik and cik_normalized == target_cik) or \
-                       (acquire_cik and cik_normalized == acquire_cik):
+                       (acquirer_cik and cik_normalized == acquirer_cik):
                         matched_watcher = watcher
                         should_send_email = True
                         email_reason = f"matched watcher: {watcher.get('target_name', 'Unknown')}"

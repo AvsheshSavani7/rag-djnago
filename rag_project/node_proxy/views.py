@@ -259,7 +259,7 @@ class AnnouncementView(APIView):
             # Extract data from request
             announce_data = request.data.get('announce_data')
             target_name = request.data.get('target_name')
-            acquired_name = request.data.get('acquired_name')
+            acquirer_name = request.data.get('acquired_name')
             target_cik = request.data.get('target_cik')
 
             # Log the extracted values
@@ -326,8 +326,10 @@ class AnnouncementWithUrlView(APIView):
                 missing_fields.append('announce_data')
             if not existing_data.get('target_name'):
                 missing_fields.append('target_name')
-            if not existing_data.get('acquired_name'):
-                missing_fields.append('acquired_name')
+            if not existing_data.get('acquirer_name'):
+                missing_fields.append('acquirer_name')
+            if not existing_data.get('acquirer_cik'):
+                missing_fields.append('acquirer_cik')
 
             if not missing_fields:
                 return existing_data
@@ -360,17 +362,30 @@ class AnnouncementWithUrlView(APIView):
             if 'announce_data' in missing_fields:
                 field_instructions.append(
                     "For `announce_data`: Look for the date the deal was publicly announced, usually in the first paragraph or preamble (e.g., 'dated as of...'). Format: YYYY-MM-DD")
+
             if 'target_cik' in missing_fields:
                 field_instructions.append(
-                    "For `target_cik`: Look for the CIK of the company being **acquired** (often labeled 'Company' or 'Target').")
+                    "For `target_cik`: The SEC CIK of the Target (the company being acquired, usually defined as the 'Company'). "
+                    "If not present in the document text, return an empty string."
+                    "Rule: add zeros to the left of the CIK to make it 10 digits long."
+                )
+
             if 'target_name' in missing_fields:
                 field_instructions.append(
-                    "For `target_name`: The legal name of the company being **acquired** (often labeled 'Company').")
-            if 'acquired_name' in missing_fields:
+                    "For `target_name`: The company being acquired (“Target/Company”). "
+                    "Rule: If one party is an SEC registrant/public company (has a CIK) and the other is a private “Holdings”/buyer entity, the SEC registrant/public company is the Target.")
+            if 'acquirer_name' in missing_fields:
                 field_instructions.append(
-                    "For `acquired_name`: The legal name of the **acquiring company** (often labeled 'Parent', 'Acquirer', or 'Buyer').")
-
+                    "For `acquirer_name`: The company buying/acquiring the Target (often “Parent/Buyer”)."
+                    "Rule: If there is a private “Holdings” entity and a public registrant, the Holdings entity is the Acquirer.")
+            if 'acquirer_cik' in missing_fields:
+                field_instructions.append(
+                    "For `acquirer_cik`: The SEC CIK of the Acquirer/Buyer only if the acquirer is an SEC registrant; otherwise return an empty string. Do NOT copy the target’s CIK."
+                    "Rule: add zeros to the left of the CIK to make it 10 digits long."
+                )
             instructions_text = "\n".join(field_instructions)
+
+            print(f"instructions_text: {instructions_text}")
 
             prompt = f"""Extract the following information from the merger agreement document: {fields_prompt}
             
@@ -386,7 +401,8 @@ class AnnouncementWithUrlView(APIView):
                 "target_cik": "{{target_cik}}",
                 "announce_data": "{{announce_data}}",
                 "target_name": "{{target_name}}",
-                "acquired_name": "{{acquired_name}}"
+                "acquirer_name": "{{acquirer_name}}",
+                "acquirer_cik": "{{acquirer_cik}}"
             }}
 
             Only include the fields that were requested. Do not include any other text or explanation.
@@ -395,14 +411,16 @@ class AnnouncementWithUrlView(APIView):
             # Call OpenAI API directly
             try:
                 completion = openai_client.chat.completions.create(
-                    model="gpt-4o",  # or your preferred model
+                    model="gpt-4.1",  # or your preferred model
                     messages=[
                         {"role": "system", "content": "You are a helpful assistant that extracts specific information from merger agreement documents. You only return JSON objects with the requested fields."},
                         {"role": "user", "content": prompt}
                     ],
-                    temperature=0.1
+                    temperature=0.1,
+                    response_format={"type": "json_object"}
                 )
 
+                print(f"prompt: {prompt}")
                 print(f"completion: {completion}")
 
                 logger.info(f"completion: {completion}")
@@ -469,9 +487,10 @@ class AnnouncementWithUrlView(APIView):
                 "target_cik": request.data.get('target_cik') or extracted_cik,
                 "announce_data": request.data.get('announce_data'),
                 "target_name": request.data.get('target_name'),
-                "acquired_name": request.data.get('acquired_name'),
+                "acquirer_name": request.data.get('acquired_name'),
                 "url": url,
-                "sec_filing_id": request.data.get('sec_filing_id') if request.data.get('sec_filing_id') else None
+                "sec_filing_id": request.data.get('sec_filing_id') if request.data.get('sec_filing_id') else None,
+                "acquirer_cik": ""
             }
 
             # Check if we have all required fields
@@ -479,7 +498,8 @@ class AnnouncementWithUrlView(APIView):
                 data.get('target_cik'),
                 data.get('announce_data'),
                 data.get('target_name'),
-                data.get('acquired_name')
+                data.get('acquirer_name'),
+                data.get('acquirer_cik')
 
             ])
 
@@ -517,8 +537,8 @@ class AnnouncementWithUrlView(APIView):
                 missing_fields.append('announce_data')
             if not data.get('target_name'):
                 missing_fields.append('target_name')
-            if not data.get('acquired_name'):
-                missing_fields.append('acquired_name')
+            if not data.get('acquirer_name'):
+                missing_fields.append('acquirer_name')
 
             if missing_fields:
                 doc_processor._send_sec_filing_event(
@@ -538,8 +558,9 @@ class AnnouncementWithUrlView(APIView):
                     "target_cik": data.get('target_cik'),
                     "announce_data": data.get('announce_data'),
                     "target_name": data.get('target_name'),
-                    "acquired_name": data.get('acquired_name'),
-                    "sec_filing_id": data.get('sec_filing_id') if data.get('sec_filing_id') else None
+                    "acquired_name": data.get('acquirer_name'),
+                    "sec_filing_id": data.get('sec_filing_id') if data.get('sec_filing_id') else None,
+                    "acquirer_cik": data.get('acquirer_cik')
                 }
             )
 
@@ -547,6 +568,7 @@ class AnnouncementWithUrlView(APIView):
             if response.get('status') and response.get('data', {}).get('jsonUrl'):
                 # Initialize document processing service
                 doc_processor = DocumentProcessingService()
+                breakpoint()
                 print(f"response: {response}")
 
                 # Process the document using the JSON URL

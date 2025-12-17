@@ -5,6 +5,7 @@ from .models import ProcessingJob, SearchQuery, Tweet, CompanyProducts, Competit
 class ProcessingJobSerializer(serializers.Serializer):
     id = serializers.CharField(read_only=True)
     cik = serializers.CharField(required=False, allow_null=True)
+    acquirer_cik = serializers.CharField(required=False, allow_null=True)
     acquire_name = serializers.CharField(required=False, allow_null=True)
     target_name = serializers.CharField(required=False, allow_null=True)
     announce_date = serializers.DateTimeField(
@@ -131,6 +132,7 @@ class FileProcessRequestSerializer(serializers.Serializer):
     file_url = serializers.URLField(
         required=True, help_text="URL to the JSON file to process")
     cik = serializers.CharField(required=False, max_length=20)
+    acquirer_cik = serializers.CharField(required=False, max_length=20)
     acquire_name = serializers.CharField(required=False, max_length=255)
     target_name = serializers.CharField(required=False, max_length=255)
     announce_date = serializers.DateField(required=False)
