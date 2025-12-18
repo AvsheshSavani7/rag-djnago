@@ -568,7 +568,7 @@ class AnnouncementWithUrlView(APIView):
             if response.get('status') and response.get('data', {}).get('jsonUrl'):
                 # Initialize document processing service
                 doc_processor = DocumentProcessingService()
-                breakpoint()
+
                 print(f"response: {response}")
 
                 # Process the document using the JSON URL
