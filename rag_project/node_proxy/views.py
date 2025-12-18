@@ -19,6 +19,7 @@ from bs4 import BeautifulSoup
 
 logger = logging.getLogger(__name__)
 openai_client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+MODEL = "gpt-5-nano-2025-08-07"
 
 # Create your views here.
 
@@ -365,22 +366,36 @@ class AnnouncementWithUrlView(APIView):
 
             if 'target_cik' in missing_fields:
                 field_instructions.append(
-                    "For `target_cik`: The SEC CIK of the Target (the company being acquired, usually defined as the 'Company'). "
-                    "If not present in the document text, return an empty string."
-                    "Rule: add zeros to the left of the CIK to make it 10 digits long."
+                    "For `target_cik`: The SEC CIK of the TARGET company (the company being acquired/sold). "
+                    "Look for the company that is being merged into, acquired by, or purchased by another company. "
+                    "This is usually the 'Company' in merger agreements. "
+                    "If not present in the document text, return an empty string. "
+                    "Rule: add zeros to the left of the CIK to make it 10 digits long. "
+                    "CRITICAL: This must be DIFFERENT from the acquirer_cik if both are present."
                 )
 
             if 'target_name' in missing_fields:
                 field_instructions.append(
-                    "For `target_name`: The company being acquired (“Target/Company”). "
-                    "Rule: If one party is an SEC registrant/public company (has a CIK) and the other is a private “Holdings”/buyer entity, the SEC registrant/public company is the Target.")
+                    "For `target_name`: The TARGET company name (the company being acquired/sold). "
+                    "This is the company that is being merged into, acquired, or purchased. "
+                    "Look for terms like 'Company', 'Target', 'being acquired', 'merging into', 'sold to'. "
+                    "CRITICAL: The target_name and acquirer_name MUST be DIFFERENT companies. "
+                    "If you cannot clearly identify two distinct companies, return an empty string rather than duplicating a name."
+                )
             if 'acquirer_name' in missing_fields:
                 field_instructions.append(
-                    "For `acquirer_name`: The company buying/acquiring the Target (often “Parent/Buyer”)."
-                    "Rule: If there is a private “Holdings” entity and a public registrant, the Holdings entity is the Acquirer.")
+                    "For `acquirer_name`: The ACQUIRER company name (the company doing the acquiring/buying). "
+                    "This is the company that is acquiring, buying, or merging with the target. "
+                    "Look for terms like 'Parent', 'Buyer', 'Acquirer', 'Merger Sub', 'Holdings', 'acquiring', 'purchasing'. "
+                    "CRITICAL: The acquirer_name and target_name MUST be DIFFERENT companies. "
+                    "If you cannot clearly identify two distinct companies, return an empty string rather than duplicating a name."
+                )
             if 'acquirer_cik' in missing_fields:
                 field_instructions.append(
-                    "For `acquirer_cik`: The SEC CIK of the Acquirer/Buyer only if the acquirer is an SEC registrant; otherwise return an empty string. Do NOT copy the target’s CIK."
+                    "For `acquirer_cik`: The SEC CIK of the ACQUIRER/BUYER company only if the acquirer is an SEC registrant; otherwise return an empty string. "
+                    "This is the company doing the acquiring. "
+                    "CRITICAL: Do NOT copy the target's CIK. The acquirer_cik and target_cik must be DIFFERENT if both are present. "
+                    "If the acquirer is a private company (like a Holdings entity), return an empty string. "
                     "Rule: add zeros to the left of the CIK to make it 10 digits long."
                 )
             instructions_text = "\n".join(field_instructions)
@@ -390,6 +405,13 @@ class AnnouncementWithUrlView(APIView):
             prompt = f"""Extract the following information from the merger agreement document: {fields_prompt}
             
             {instructions_text}
+
+            IMPORTANT RULES:
+            - The TARGET is the company being acquired/sold (the one being merged into or purchased)
+            - The ACQUIRER is the company doing the acquiring/buying (the one purchasing or merging with the target)
+            - TARGET and ACQUIRER MUST be DIFFERENT companies - they cannot be the same
+            - Look for language like "merger of [Target] into [Acquirer]", "acquisition of [Target] by [Acquirer]", "purchase of [Target]"
+            - If you cannot identify two distinct companies, return empty strings rather than duplicating values
 
             Document url: {url}
             
@@ -411,12 +433,12 @@ class AnnouncementWithUrlView(APIView):
             # Call OpenAI API directly
             try:
                 completion = openai_client.chat.completions.create(
-                    model="gpt-4.1",  # or your preferred model
+                    model=MODEL,
                     messages=[
-                        {"role": "system", "content": "You are a helpful assistant that extracts specific information from merger agreement documents. You only return JSON objects with the requested fields."},
+                        {"role": "system",
+                            "content": "You are a helpful assistant that extracts specific information from merger agreement documents. CRITICAL: The target company (being acquired) and acquirer company (doing the acquiring) MUST be different entities. Never return the same company name or CIK for both target and acquirer. You only return JSON objects with the requested fields."},
                         {"role": "user", "content": prompt}
                     ],
-                    temperature=0.1,
                     response_format={"type": "json_object"}
                 )
 
@@ -440,6 +462,24 @@ class AnnouncementWithUrlView(APIView):
                 extracted_data = json.loads(content)
 
                 print(f"extracted_data: {extracted_data}")
+
+                # Validate that target and acquirer are different
+                target_name = extracted_data.get('target_name', '').strip()
+                acquirer_name = extracted_data.get('acquirer_name', '').strip()
+                target_cik = extracted_data.get('target_cik', '').strip()
+                acquirer_cik = extracted_data.get('acquirer_cik', '').strip()
+
+                # Check if names are the same
+                if target_name and acquirer_name and target_name.lower() == acquirer_name.lower():
+                    logger.warning(
+                        f"Target and acquirer names are the same: {target_name}. Clearing acquirer_name.")
+                    extracted_data['acquirer_name'] = ""
+
+                # Check if CIKs are the same
+                if target_cik and acquirer_cik and target_cik == acquirer_cik:
+                    logger.warning(
+                        f"Target and acquirer CIKs are the same: {target_cik}. Clearing acquirer_cik.")
+                    extracted_data['acquirer_cik'] = ""
 
                 return extracted_data
 
