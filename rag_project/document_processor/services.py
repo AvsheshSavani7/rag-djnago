@@ -1779,7 +1779,7 @@ class SummaryGenerationService:
 
                     logger.info(f"\n→ Evaluating: {clause_name}")
                     result = process_clause_config(
-                        clause_config, schema_results, provider=provider, model=model, temperature=temperature, definitions_array=definitions_array, preamble_data=preamble_data, deal_id=deal_id)
+                        clause_config, clause_name, schema_results, provider=provider, model=model, temperature=temperature, definitions_array=definitions_array, preamble_data=preamble_data, deal_id=deal_id)
 
                     if result["output"] and result["output"] != "No output generated.":
                         # Skip concise summaries where view_prompt is False
