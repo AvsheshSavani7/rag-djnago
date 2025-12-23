@@ -17,6 +17,7 @@ from .models import SECFiling, SECFeedStatus, LastCronJob, AccessionLookedUp
 from .document_analyzer import SECDocumentAnalyzer
 from .websocket_service import SECWebSocketService
 from document_processor.models import ProcessingJob
+from proxy_processor.views import process_sec_document_helper
 
 logger = logging.getLogger(__name__)
 
@@ -1061,7 +1062,8 @@ class SECFeedProcessor:
                         f"⚠️ 8-K filing has EX-2.1 flag but no HTM file found: {item_data.get('company_name')}")
                     item_data['is_new_deal'] = None
                     item_data['following'] = False
-            elif item_data.get('form_type') and item_data.get('form_type').startswith(('DEF 14A', 'PRE 14A')):
+            elif item_data.get('form_type') and item_data.get('form_type').startswith(("DEFM14A",
+                                                                                       "DEFM14C", "PREM14A", "PREM14C")):
                 # Normalize form_type for comparison (handle cases like "DEF 14A - O")
                 normalized_form_type = item_data.get(
                     'form_type').split(' - ')[0].strip()
@@ -1413,6 +1415,131 @@ class SECFeedProcessor:
                     print(f"❌ Error sending email notification: {e}")
                     import traceback
                     print(traceback.format_exc())
+
+            # After saving filing, check if CIK matches proxy_watcher or deals collection
+            # If match found and form_type is any from given array, process the document
+            cik_number = item_data.get('cik_number', '')
+            form_type = item_data.get('form_type', '')
+
+            if cik_number and form_type in ["DEFM14A",
+                                            "DEFM14C", "PREM14A", "PREM14C"]:
+                logger.info(
+                    f"🔍 Checking for CIK match in deals collection and proxy_watcher for: {item_data.get('company_name')}")
+                print(
+                    f"🔍 Checking for CIK match in deals collection and proxy_watcher for: {item_data.get('company_name')}")
+                # Normalize CIK for comparison (pad to 10 digits)
+                cik_normalized = str(cik_number).zfill(
+                    10) if cik_number else ''
+
+                matched_deal = None
+                matched_watcher = None
+                deal_id = None
+
+                # Check if CIK matches deals collection (cik or acquirer_cik)
+                if cik_normalized:
+                    try:
+                        # Check for matches in deals collection
+                        matched_deal = ProcessingJob.objects(
+                            cik=cik_normalized
+                        ).first()
+
+                        if not matched_deal:
+                            matched_deal = ProcessingJob.objects(
+                                acquirer_cik=cik_normalized
+                            ).first()
+
+                        if matched_deal:
+                            deal_id = str(matched_deal.id)
+                            logger.info(
+                                f"✅ CIK {cik_normalized} matched with deal collection: {deal_id}")
+                    except Exception as e:
+                        logger.error(
+                            f"Error checking deals collection for CIK {cik_normalized}: {str(e)}")
+
+                    # Check if CIK matches proxy_watcher (target_cik or acquirer_cik)
+                    if not matched_deal:
+                        try:
+                            for watcher in self.parser.proxy_watcher:
+                                target_cik = str(watcher.get('target_cik', '')).zfill(
+                                    10) if watcher.get('target_cik') else ''
+                                acquirer_cik = str(watcher.get('acquirer_cik', '')).zfill(
+                                    10) if watcher.get('acquirer_cik') else ''
+
+                                if (target_cik and cik_normalized == target_cik) or \
+                                   (acquirer_cik and cik_normalized == acquirer_cik):
+                                    matched_watcher = watcher
+                                    logger.info(
+                                        f"✅ CIK {cik_normalized} matched with proxy_watcher: {watcher.get('target_name', 'Unknown')}")
+                                    break
+                        except Exception as e:
+                            logger.error(
+                                f"Error checking proxy_watcher for CIK {cik_normalized}: {str(e)}")
+
+                # If match found, process the SEC document
+                if matched_deal or matched_watcher:
+                    # Find the HTM file URL from xbrl_files for given form type
+                    proxy_sec_url = None
+                    xbrl_files = item_data.get('xbrl_files', [])
+
+                    for file in xbrl_files:
+                        doc_type = file.get('type', '')
+                        doc_url = file.get('url', '')
+                        if (doc_type in ["DEFM14A",
+                                         "DEFM14C", "PREM14A", "PREM14C"]) and doc_url.endswith('.htm'):
+                            # Build full URL if needed
+                            if not doc_url.startswith('http://') and not doc_url.startswith('https://'):
+                                proxy_sec_url = f"https://www.sec.gov{doc_url}"
+                            else:
+                                proxy_sec_url = doc_url
+                            break
+
+                    if proxy_sec_url:
+                        try:
+                            # Get filing date as string
+                            filing_date_str = None
+                            filing_date = item_data.get('filing_date')
+                            if filing_date:
+                                if isinstance(filing_date, datetime):
+                                    filing_date_str = filing_date.strftime(
+                                        '%Y-%m-%d')
+                                else:
+                                    filing_date_str = str(filing_date)
+
+                            # Get sec_filling_id (MongoDB ObjectId as string)
+                            sec_filling_id = str(
+                                filing._id) if filing else None
+
+                            if sec_filling_id:
+                                logger.info(
+                                    f"🚀 Starting proxy document processing for CIK {cik_normalized} (matched: {'deal' if matched_deal else 'watcher'})")
+
+                                # Call the helper function to process the document
+                                result = process_sec_document_helper(
+                                    cik_number=cik_number,
+                                    company_name=item_data.get(
+                                        'company_name', ''),
+                                    sec_filling_id=sec_filling_id,
+                                    filing_date=filing_date_str or '',
+                                    form_type=form_type,
+                                    proxy_sec_url=proxy_sec_url,
+                                    deal_id=deal_id
+                                )
+
+                                if result:
+                                    logger.info(
+                                        f"✅ Successfully started proxy document processing: {result.get('proxy_document_id')}")
+                                else:
+                                    logger.error(
+                                        f"❌ Failed to start proxy document processing for CIK {cik_normalized}")
+                            else:
+                                logger.warning(
+                                    f"⚠️ Cannot process document: sec_filling_id not found")
+                        except Exception as e:
+                            logger.error(
+                                f"❌ Error processing SEC document for CIK {cik_normalized}: {str(e)}", exc_info=True)
+                    else:
+                        logger.warning(
+                            f"⚠️ No HTM file found in xbrl_files for DEF 14A/PRE 14A filing: {item_data.get('company_name')}")
 
             return True
 

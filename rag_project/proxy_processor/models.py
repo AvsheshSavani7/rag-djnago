@@ -58,6 +58,14 @@ class ProxyDocument(Document):
     pinecone_processed_at = DateTimeField()
     pinecone_error_message = StringField(max_length=1000)
 
+    # Summary document information
+    summary_docx_url = StringField(max_length=500, null=True)
+    summary_generation_status = StringField(max_length=20, default='pending', choices=[
+        'pending', 'processing', 'completed', 'failed'
+    ])
+    summary_generated_at = DateTimeField()
+    summary_error_message = StringField(max_length=1000)
+
     meta = {
         'collection': 'proxy_documents',
         'indexes': [

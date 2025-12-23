@@ -25,12 +25,13 @@ logger = logging.getLogger(__name__)
 
 
 class SectionProcessor:
-    def __init__(self, proxy_id: str = None):
+    def __init__(self, proxy_id: str = None, deal_id: str = None):
         # Load environment variables
         load_dotenv()
 
         # Store proxy information
         self.proxy_id = proxy_id
+        self.deal_id = deal_id
 
         # Initialize OpenAI
         self.openai_client = openai.OpenAI(
@@ -322,11 +323,16 @@ class SectionProcessor:
                 metadata = {
                     'title': section['title'],
                     'page_no': section['page_no'],
-                    'proxy_id': self.proxy_id or 'unknown',
+                    'deal_id': self.deal_id or '',
+                    'proxy_id': self.proxy_id or '',
                     'parent_section': section['parent_section'],
                     'original_text': section['content'],
                     'metadata': True
                 }
+
+                # Add deal_id to metadata if available
+                if self.deal_id:
+                    metadata['deal_id'] = self.deal_id
 
                 # Trim metadata if needed
                 metadata = self.trim_metadata(metadata)
