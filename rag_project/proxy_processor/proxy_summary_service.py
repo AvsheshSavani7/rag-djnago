@@ -84,6 +84,10 @@ class ProxySummaryService:
     def __init__(self):
         self.s3_service = S3Service()
         self.analyzer = ProxyBackgroundAnalyzer()
+        # Initialize OpenAI client (for embeddings)
+        self.openai_client = openai.OpenAI(
+            api_key=os.environ.get("OPENAI_API_KEY")
+        )
 
     def get_background_chunks_by_proxy_id(self, proxy_id: str) -> str:
         """Get background section chunks using proxy_id filter"""
@@ -130,8 +134,72 @@ class ProxySummaryService:
             logger.info(f"Found {len(background_chunks)} background chunks")
 
             if not background_chunks:
-                logger.warning("No background chunks found")
-                return ""
+                logger.warning("No background chunks found by title BGM")
+
+                filters = [
+                    {"title": {"$eq": "The Merger"}},
+                    {"title": {"$eq": "THE MERGER"}}
+                ]
+
+                # Use a dummy vector for filter-only search
+                dummy_vector = [0.0] * 3072
+
+                search_response = index.query(
+                    vector=dummy_vector,
+                    top_k=10,  # Get more chunks for background
+                    include_metadata=True,
+                    filter={
+                        "proxy_id": proxy_id,
+                        "$or": filters
+                    }
+                )
+
+                for match in search_response.matches:
+                    result = {
+                        'score': match.score,
+                        'text': match.metadata.get('original_text', ''),
+                        'title': match.metadata.get('title', ''),
+                        'id': match.id
+                    }
+                    background_chunks.append(result)
+
+                logger.info(
+                    f"Found {len(background_chunks)} background chunks by proxy_id & query")
+
+                logger.info(f"Background chunks1: {background_chunks}")
+
+            if not background_chunks:
+                logger.warning(
+                    "No background chunks found by title The merger")
+
+                query = "Background of the Mergers , Background of the Transaction,Background of the Merger,timeline of events leading to the merger, chronology of negotiations, deal process timeline, discussions between company and buyer, board deliberations, The Merger, Effects of the Merger,banker engagement, strategic alternatives review, key meetings, proposals, term sheets, letters of intent, fairness opinion process."
+                query_embedding = self.openai_client.embeddings.create(
+                    input=query,
+                    model="text-embedding-3-large"
+                )
+                query_embedding = query_embedding.data[0].embedding
+
+                search_response = index.query(
+                    vector=query_embedding,
+                    top_k=15,  # Get more chunks for background
+                    include_metadata=True,
+                    filter={
+                        "proxy_id": proxy_id,
+                    }
+                )
+
+                for match in search_response.matches:
+                    result = {
+                        'score': match.score,
+                        'text': match.metadata.get('original_text', ''),
+                        'id': match.id
+                    }
+                    background_chunks.append(result)
+
+                logger.info(
+                    f"Found {len(background_chunks)} background chunks by proxy_id & query")
+
+                logger.info(f"Background chunks1: {background_chunks}")
 
             # Format chunks to document
             document_parts = []
