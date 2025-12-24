@@ -119,7 +119,7 @@ class SECDocumentProcessor:
         """
         return "|" in line
 
-    def find_title_in_text(self, lines: list[str], title: str, currentEntry: int = 0) -> Optional[int]:
+    def find_title_in_text(self, lines: list[str], title: str, currentEntry: int = 0, skip_first_n: int = 0) -> Optional[int]:
         """
         Find the exact line number where a title appears.
 
@@ -127,6 +127,7 @@ class SECDocumentProcessor:
             lines: List of text lines
             title: Title to find
             currentEntry: Current entry index for context
+            skip_first_n: Number of initial matches to skip (default: 0)
 
         Returns:
             Line number (0-based) or None if not found
@@ -143,6 +144,8 @@ class SECDocumentProcessor:
             logger.info(f"title_clean annex before: {title_clean}")
             title_clean = self.extract_annex_title(title_clean)
             logger.info(f"title_clean annex after: {title_clean}")
+
+        matches_found = 0
 
         for i, line in enumerate(lines):
             if self.is_pipe_separated(line):
@@ -161,6 +164,9 @@ class SECDocumentProcessor:
             if not line_text:
                 continue
 
+            # Track if this line matched (even if we skip it)
+            line_matched = False
+
             # Case 1: Single-line match
             if "annex" in title_clean:
                 line_text_clean = self.clean_text(line_text)
@@ -169,39 +175,73 @@ class SECDocumentProcessor:
 
                 # Use exact match after cleaning
                 if line_text_clean == title_clean:
-                    logger.info(f"Found title annex '{title}' at line {i}")
+                    matches_found += 1
+                    line_matched = True
+                    if matches_found > skip_first_n:
+                        logger.info(f"Found title annex '{title}' at line {i}")
+                        return i+1
+                    else:
+                        logger.info(
+                            f"Skipping first occurrence of '{title}' at line {i} (match {matches_found})")
+                        continue  # Move to next line after skipping
+
+            if not line_matched and line_text.lower() in title_clean and line_text.lower() == title_clean:
+                matches_found += 1
+                line_matched = True
+                if matches_found > skip_first_n:
+                    logger.info(f"Found title1 '{title}' at line {i}")
                     return i+1
-
-            if line_text.lower() in title_clean and line_text.lower() == title_clean:
-                logger.info(f"Found title1 '{title}' at line {i}")
-                return i+1
-
-            # Case 2: Multi-line match up to 6 lines
-            combined = line_text
-
-            for j in range(1, 14):  # combine up to 5 more lines (total 6)
-                if i + j >= len(lines):
-                    break
-                next_line = lines[i + j].strip()
-                combined += f" {next_line}" if len(next_line) > 0 else ""
-                combined_clean = combined.strip().lower()
-                logger.info(f"combined_clean: {combined_clean}")
-
-                if combined_clean in title_clean:
-                    if combined_clean == title_clean:
-                        logger.info(f"Found title2 '{title}' at line {i}")
-                        return i
                 else:
                     logger.info(
-                        f" combined_clean : '{combined_clean}' is not in title_clean : '{title_clean}' at line {i}")
+                        f"Skipping first occurrence of '{title}' at line {i} (match {matches_found})")
+                    continue  # Move to next line after skipping
 
-                    break
+            # Case 2: Multi-line match up to 6 lines
+            if not line_matched:
+                combined = line_text
 
-            if self.is_similar(line_text, title_clean):
-                logger.info(f"Found title4 '{title}' at line {i}")
-                return i+1
+                for j in range(1, 14):  # combine up to 5 more lines (total 6)
+                    if i + j >= len(lines):
+                        break
+                    next_line = lines[i + j].strip()
+                    combined += f" {next_line}" if len(next_line) > 0 else ""
+                    combined_clean = combined.strip().lower()
+                    logger.info(f"combined_clean: {combined_clean}")
 
-            if currentEntry != 0:
+                    if combined_clean in title_clean:
+                        if combined_clean == title_clean:
+                            matches_found += 1
+                            line_matched = True
+                            if matches_found > skip_first_n:
+                                logger.info(
+                                    f"Found title2 '{title}' at line {i}")
+                                return i
+                            else:
+                                logger.info(
+                                    f"Skipping first occurrence of '{title}' at line {i} (match {matches_found})")
+                                break  # Break inner loop, then continue outer loop
+                    else:
+                        logger.info(
+                            f" combined_clean : '{combined_clean}' is not in title_clean : '{title_clean}' at line {i}")
+
+                        break
+
+                # If we found a match in multi-line but skipped it, move to next line
+                if line_matched:
+                    continue
+
+            if not line_matched and self.is_similar(line_text, title_clean):
+                matches_found += 1
+                line_matched = True
+                if matches_found > skip_first_n:
+                    logger.info(f"Found title4 '{title}' at line {i}")
+                    return i+1
+                else:
+                    logger.info(
+                        f"Skipping first occurrence of '{title}' at line {i} (match {matches_found})")
+                    continue  # Move to next line after skipping
+
+            if not line_matched and currentEntry != 0:
                 logger.info(f"line_text in is_similar: {line_text}")
                 logger.info(f"title_clean in is_similar: {title_clean}")
                 if self.preprocess_title(line_text) in self.preprocess_title(title_clean):
@@ -234,9 +274,16 @@ class SECDocumentProcessor:
                                 f"New best match found at index {best_index} with ratio {best_ratio}")
 
                     if best_index is not None:
-                        logger.info(
-                            f"Returning best match at index {best_index} with ratio {best_ratio}")
-                        return best_index
+                        matches_found += 1
+                        line_matched = True
+                        if matches_found > skip_first_n:
+                            logger.info(
+                                f"Returning best match at index {best_index} with ratio {best_ratio}")
+                            return best_index
+                        else:
+                            logger.info(
+                                f"Skipping first occurrence of '{title}' at line {best_index} (match {matches_found})")
+                            continue  # Move to next line after skipping
 
         logger.info(f"Not found title: '{title}'")
         return None
@@ -319,11 +366,13 @@ class SECDocumentProcessor:
 
         lines = text.split('\n')
 
+        # Skip first occurrence for the first entry (index 0) to avoid table of contents
+        skip_first = 1 if currentEntry == 0 else 0
         start_line = self.find_title_in_text(
-            lines, current_title, currentEntry)
+            lines, current_title, currentEntry, skip_first_n=skip_first)
 
         logger.info(
-            f"start_line: {start_line}, current_title: {current_title}")
+            f"start_line: {start_line}, current_title: {current_title}, skip_first: {skip_first}")
 
         if start_line is None:
             return None
@@ -336,7 +385,13 @@ class SECDocumentProcessor:
 
             # if next_title == "The Go-Shop Period — Solicitation of Other Offers":
             #     pdb.set_trace()
-            end_line = self.find_title_in_text(lines, next_title, currentEntry)
+            # Search for next title starting from after the current title to avoid finding earlier occurrences
+            remaining_lines_for_next = lines[start_line +
+                                             1:] if start_line is not None else lines
+            next_title_line = self.find_title_in_text(
+                remaining_lines_for_next, next_title, currentEntry)
+            end_line = (
+                start_line + 1 + next_title_line) if next_title_line is not None else None
 
             cp_int = self.page_to_int(current_page)
             np_int = self.page_to_int(next_page)
@@ -365,8 +420,12 @@ class SECDocumentProcessor:
                     if content_aprox_length_max is not None and content_length > content_aprox_length_max:
                         logger.info(
                             f"Content too long ({content_length} > {content_aprox_length_max}), trying next_of_next_title")
-                        end_line = self.find_title_in_text(
-                            lines, next_of_next_title, currentEntry)
+                        remaining_lines_for_next_of_next = lines[start_line +
+                                                                 1:] if start_line is not None else lines
+                        next_of_next_title_line = self.find_title_in_text(
+                            remaining_lines_for_next_of_next, next_of_next_title, currentEntry)
+                        end_line = (
+                            start_line + 1 + next_of_next_title_line) if next_of_next_title_line is not None else None
                         continue
 
                     # If content is too short and pages are far apart, search further
@@ -384,15 +443,23 @@ class SECDocumentProcessor:
                         else:
                             logger.info(
                                 f"No better match found, trying next_of_next_title")
-                            end_line = self.find_title_in_text(
-                                lines, next_of_next_title, currentEntry)
+                            remaining_lines_for_next_of_next = lines[start_line +
+                                                                     1:] if start_line is not None else lines
+                            next_of_next_title_line = self.find_title_in_text(
+                                remaining_lines_for_next_of_next, next_of_next_title, currentEntry)
+                            end_line = (
+                                start_line + 1 + next_of_next_title_line) if next_of_next_title_line is not None else None
                             continue
                     # Good match found
                     break
                 else:
                     # Try next_of_next_title if not found
-                    end_line = self.find_title_in_text(
-                        lines, next_of_next_title, currentEntry)
+                    remaining_lines_for_next_of_next = lines[start_line +
+                                                             1:] if start_line is not None else lines
+                    next_of_next_title_line = self.find_title_in_text(
+                        remaining_lines_for_next_of_next, next_of_next_title, currentEntry)
+                    end_line = (
+                        start_line + 1 + next_of_next_title_line) if next_of_next_title_line is not None else None
 
             # Final assignment of content and text after, once only
             if end_line is not None:
