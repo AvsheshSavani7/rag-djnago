@@ -841,3 +841,26 @@ def list_processing_jobs(request):
             'error': 'Failed to list processing jobs',
             'message': str(e)
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_proxy_document(request, deal_id):
+    """
+    Get all proxy documents filtered by deal_id.
+
+    GET /api/proxy-processor/proxy-document/<deal_id>/
+    """
+    try:
+        proxy_docs = ProxyDocument.objects(
+            deal_id=deal_id).order_by('-created_at')
+        serializer = ProxyDocumentSerializer(proxy_docs, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    except Exception as e:
+        logger.error(
+            f"Error retrieving proxy documents for deal_id {deal_id}: {str(e)}")
+        return Response({
+            'error': 'Failed to retrieve proxy documents',
+            'message': str(e)
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

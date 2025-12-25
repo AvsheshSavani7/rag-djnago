@@ -16,6 +16,7 @@ from .serializers import (
     SECFeedStatusSerializer
 )
 from document_processor.models import ProcessingJob
+from proxy_processor.models import ProxyDocument
 
 logger = logging.getLogger(__name__)
 
@@ -106,6 +107,23 @@ class SECFilingListView(APIView):
             # Add deal_found field for given form type filings
             filings_data = serializer.data
             for filing_data in filings_data:
+                # Check for ProxyDocument by sec_filling_id (matches SECFiling _id)
+                filing_id = filing_data.get('id')
+                if filing_id:
+                    try:
+                        proxy_doc = ProxyDocument.objects(
+                            sec_filling_id=filing_id).first()
+                        if proxy_doc and proxy_doc.summary_docx_url:
+                            filing_data['summary_docx_url'] = proxy_doc.summary_docx_url
+                        else:
+                            filing_data['summary_docx_url'] = None
+                    except Exception as e:
+                        logger.error(
+                            f"Error checking ProxyDocument for filing_id {filing_id}: {e}")
+                        filing_data['summary_docx_url'] = None
+                else:
+                    filing_data['summary_docx_url'] = None
+
                 if filing_data.get('form_type') in ["DEFM14A",
                                                     "DEFM14C", "PREM14A", "PREM14C", "S-4", "S-4/A", "F-4", "F-4/A", "SC 14D9", "SC 14D9/A"]:
                     cik_number = filing_data.get('cik_number')
@@ -162,6 +180,23 @@ class SECFilingDetailView(APIView):
 
             serializer = SECFilingDetailSerializer(filing)
             filing_data = serializer.data
+
+            # Check for ProxyDocument by sec_filling_id (matches SECFiling _id)
+            filing_id = filing_data.get('id')
+            if filing_id:
+                try:
+                    proxy_doc = ProxyDocument.objects(
+                        sec_filling_id=filing_id).first()
+                    if proxy_doc and proxy_doc.summary_docx_url:
+                        filing_data['summary_docx_url'] = proxy_doc.summary_docx_url
+                    else:
+                        filing_data['summary_docx_url'] = None
+                except Exception as e:
+                    logger.error(
+                        f"Error checking ProxyDocument for filing_id {filing_id}: {e}")
+                    filing_data['summary_docx_url'] = None
+            else:
+                filing_data['summary_docx_url'] = None
 
             # Add deal_found field for given form type filings
             if filing_data.get('form_type') in ["DEFM14A",
@@ -220,6 +255,23 @@ class SEC8KFilingListView(APIView):
             # Add deal_found field for given form type filings
             filings_data = serializer.data
             for filing_data in filings_data:
+                # Check for ProxyDocument by sec_filling_id (matches SECFiling _id)
+                filing_id = filing_data.get('id')
+                if filing_id:
+                    try:
+                        proxy_doc = ProxyDocument.objects(
+                            sec_filling_id=filing_id).first()
+                        if proxy_doc and proxy_doc.summary_docx_url:
+                            filing_data['summary_docx_url'] = proxy_doc.summary_docx_url
+                        else:
+                            filing_data['summary_docx_url'] = None
+                    except Exception as e:
+                        logger.error(
+                            f"Error checking ProxyDocument for filing_id {filing_id}: {e}")
+                        filing_data['summary_docx_url'] = None
+                else:
+                    filing_data['summary_docx_url'] = None
+
                 if filing_data.get('form_type') in ["DEFM14A",
                                                     "DEFM14C", "PREM14A", "PREM14C", "S-4", "S-4/A", "F-4", "F-4/A", "SC 14D9", "SC 14D9/A"]:
                     cik_number = filing_data.get('cik_number')

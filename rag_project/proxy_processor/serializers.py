@@ -48,6 +48,17 @@ class ProxyDocumentSerializer(serializers.Serializer):
     # Agent response
     agent_response = serializers.CharField(read_only=True)
 
+    # Pinecone processing information
+    pinecone_processing_status = serializers.CharField(read_only=True)
+    pinecone_processed_at = serializers.DateTimeField(read_only=True)
+    pinecone_error_message = serializers.CharField(read_only=True)
+
+    # Summary document information
+    summary_docx_url = serializers.URLField(read_only=True, allow_null=True)
+    summary_generation_status = serializers.CharField(read_only=True)
+    summary_generated_at = serializers.DateTimeField(read_only=True)
+    summary_error_message = serializers.CharField(read_only=True)
+
     def create(self, validated_data):
         """
         Create a new Proxy document.
