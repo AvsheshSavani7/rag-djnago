@@ -341,7 +341,7 @@ class SECDocumentProcessor:
     def extract_content_between_titles(self, text: str, current_title: str, next_title: Optional[str] = None,
                                        next_of_next_title: Optional[str] = None, currentEntry: int = 0,
                                        current_page: Optional[str] = None, next_page: Optional[str] = None,
-                                       next_of_next_page: Optional[str] = None) -> Optional[Tuple[str, str]]:
+                                       next_of_next_page: Optional[str] = None) -> Optional[Tuple[str, str, Optional[str]]]:
         """
         Extract content between two titles in the text.
 
@@ -356,7 +356,9 @@ class SECDocumentProcessor:
             next_of_next_page: Page number after next page
 
         Returns:
-            Tuple of (extracted content, remaining text) or None if title not found
+            Tuple of (extracted content, remaining text, actual_end_title_used) or None if title not found.
+            actual_end_title_used indicates which title was actually used as the boundary (next_title or next_of_next_title).
+            If None, it means next_title was used or there was no next title.
         """
         logger.info(f"current_title: {current_title}")
         logger.info(f"next_title: {next_title}")
@@ -379,6 +381,7 @@ class SECDocumentProcessor:
 
         content, remaining_text = "", ""
         end_line = start_line
+        actual_end_title_used = None  # Track which title was actually used as boundary
 
         # If there's a next title, find its position
         if next_title:
@@ -392,6 +395,8 @@ class SECDocumentProcessor:
                 remaining_lines_for_next, next_title, currentEntry)
             end_line = (
                 start_line + 1 + next_title_line) if next_title_line is not None else None
+            if end_line is not None:
+                actual_end_title_used = next_title  # next_title was found and used
 
             cp_int = self.page_to_int(current_page)
             np_int = self.page_to_int(next_page)
@@ -426,6 +431,9 @@ class SECDocumentProcessor:
                             remaining_lines_for_next_of_next, next_of_next_title, currentEntry)
                         end_line = (
                             start_line + 1 + next_of_next_title_line) if next_of_next_title_line is not None else None
+                        if end_line is not None:
+                            # next_of_next_title was used instead
+                            actual_end_title_used = next_of_next_title
                         continue
 
                     # If content is too short and pages are far apart, search further
@@ -449,6 +457,9 @@ class SECDocumentProcessor:
                                 remaining_lines_for_next_of_next, next_of_next_title, currentEntry)
                             end_line = (
                                 start_line + 1 + next_of_next_title_line) if next_of_next_title_line is not None else None
+                            if end_line is not None:
+                                # next_of_next_title was used instead
+                                actual_end_title_used = next_of_next_title
                             continue
                     # Good match found
                     break
@@ -460,6 +471,9 @@ class SECDocumentProcessor:
                         remaining_lines_for_next_of_next, next_of_next_title, currentEntry)
                     end_line = (
                         start_line + 1 + next_of_next_title_line) if next_of_next_title_line is not None else None
+                    if end_line is not None:
+                        # next_of_next_title was used instead
+                        actual_end_title_used = next_of_next_title
 
             # Final assignment of content and text after, once only
             if end_line is not None:
@@ -473,7 +487,7 @@ class SECDocumentProcessor:
             content = '\n'.join(lines[start_line+1:]).strip()
             remaining_text = ""
 
-        return content, remaining_text
+        return content, remaining_text, actual_end_title_used
 
     def fetch_sec_document(self) -> str:
         """
@@ -574,18 +588,30 @@ class SECDocumentProcessor:
         # Create flat list of entries
         self.entries = []
         for section in toc:
+            # Handle missing page-no key
+            # Default to page 1 if missing
+            page_no = section.get('page-no', '1')
+            if 'page-no' not in section:
+                logger.warning(
+                    f"Section '{section['title']}' is missing page-no, defaulting to page 1")
             self.entries.append({
                 'title': section['title'],
-                'page': section['page-no'],
+                'page': page_no,
                 'content': '',
                 'is_main_section': True,
                 'original_title': section['title']
             })
             if 'subsection' in section:
                 for subsection in section['subsection']:
+                    # Handle missing page-no key in subsections
+                    # Default to parent page if missing
+                    sub_page_no = subsection.get('page-no', page_no)
+                    if 'page-no' not in subsection:
+                        logger.warning(
+                            f"Subsection '{subsection['title']}' is missing page-no, defaulting to parent page {page_no}")
                     self.entries.append({
                         'title': subsection['title'],
-                        'page': subsection['page-no'],
+                        'page': sub_page_no,
                         'content': '',
                         'is_main_section': False,
                         'parent_title': section['title']
@@ -620,18 +646,35 @@ class SECDocumentProcessor:
 
             logger.info(f"Successfully fetched and converted SEC document")
 
+            # Track which entries have been processed or skipped
+            processed_entries = set()
+            i = 0
+
             # Process each entry
-            for i, entry in enumerate(self.entries):
+            while i < len(self.entries):
+                # Skip entries that were already processed or bypassed
+                if i in processed_entries:
+                    i += 1
+                    continue
+
+                entry = self.entries[i]
                 logger.info(f"Processing entry: {entry['title']}")
 
-                # Get next entry for boundary
-                next_entry = self.entries[i + 1] if i + \
-                    1 < len(self.entries) else None
+                # Get next entry for boundary (skip already processed entries)
+                next_entry_idx = i + 1
+                while next_entry_idx < len(self.entries) and next_entry_idx in processed_entries:
+                    next_entry_idx += 1
+                next_entry = self.entries[next_entry_idx] if next_entry_idx < len(
+                    self.entries) else None
                 next_title = next_entry['title'] if next_entry else None
                 next_page = next_entry['page'] if next_entry else None
 
-                next_of_next_entry = self.entries[i +
-                                                  2] if i + 2 < len(self.entries) else None
+                # Get next of next entry (skip already processed entries)
+                next_of_next_entry_idx = next_entry_idx + 1
+                while next_of_next_entry_idx < len(self.entries) and next_of_next_entry_idx in processed_entries:
+                    next_of_next_entry_idx += 1
+                next_of_next_entry = self.entries[next_of_next_entry_idx] if next_of_next_entry_idx < len(
+                    self.entries) else None
                 next_of_next_title = next_of_next_entry['title'] if next_of_next_entry else None
                 next_of_next_page = next_of_next_entry['page'] if next_of_next_entry else None
 
@@ -643,11 +686,25 @@ class SECDocumentProcessor:
                 # logger.info(f"result: {result}")
 
                 if result:
-                    content, text = result
+                    content, text, actual_end_title_used = result
                     self.all_text = text
                     entry['content'] = content
+                    processed_entries.add(i)  # Mark current entry as processed
+
+                    # If we used next_of_next_title instead of next_title, skip the next entry
+                    if actual_end_title_used == next_of_next_title and next_entry:
+                        logger.info(
+                            f"Skipping entry '{next_entry['title']}' because it was not found and we used '{next_of_next_title}' instead")
+                        # Mark next entry as skipped
+                        processed_entries.add(next_entry_idx)
+                        # Set empty content for skipped entry
+                        next_entry['content'] = ''
                 else:
                     logger.warning(f"No content found for {entry['title']}")
+                    # Mark as processed even if no content found
+                    processed_entries.add(i)
+
+                i += 1
 
             # Convert back to hierarchical structure
             result = []
