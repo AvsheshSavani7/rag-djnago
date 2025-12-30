@@ -38,6 +38,17 @@ class SECDocumentProcessor:
         self.all_text = ""
         self.any_entry_has_page_reference = False
 
+    def remove_page_references(self, text: str) -> str:
+        """
+        Remove page references from text like "(see page 25)", "(page 25)", "(pg. 25)", etc.
+        """
+     # Remove patterns like (see page X), (page X), (pg. X), (p. X), etc.
+        text = re.sub(r'\s*\([^)]*(?:page|pg|p\.)\s*\d+[^)]*\)',
+                      '', text, flags=re.IGNORECASE)
+        # Also remove any remaining standalone parenthetical references at the end
+        text = re.sub(r'\s*\([^)]*\)\s*$', '', text)
+        return text.strip()
+
     def preprocess_title(self, title: str) -> str:
         """
         Preprocess a title for comparison.
@@ -137,6 +148,7 @@ class SECDocumentProcessor:
             return None
 
         title_clean = title.strip().lower()
+        title_clean = self.remove_page_references(title_clean)
         title_clean = title_clean.replace(":", "")
         title_clean = title_clean.replace("-", " ")
 
@@ -153,6 +165,7 @@ class SECDocumentProcessor:
                 continue
 
             line_text = line.strip()
+            line_text = self.remove_page_references(line_text)
             line_text = line_text.replace(":", "")
             line_text = line_text.replace("-", " ")
             logger.info(f"line_text: {line_text} {i}")
