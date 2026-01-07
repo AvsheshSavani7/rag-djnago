@@ -1,7 +1,12 @@
-from django.core.management.base import BaseCommand
-from document_processor.services import SchemaCategorySearch
 import json
 import os
+from datetime import datetime
+
+import pytz
+from django.core.management.base import BaseCommand
+
+from document_processor.services import SchemaCategorySearch
+from document_processor.transform_json import simplify_json
 from django.conf import settings
 
 
@@ -17,8 +22,11 @@ class Command(BaseCommand):
     Anywhere :68d14ef8530f016f4a3af0c2
 
 
+
+
     example command:
-    python manage.py search_schema 68d14ef8530f016f4a3af0c2
+    python manage.py search_schema 68f2346697173821e21c5a71
+    python manage.py search_schema 68d14ef8530f016f4a3af0c2 anywhere
 
     """
     help = 'Search all schema categories for a given deal ID using schema_by_summary_sections.json'
@@ -26,10 +34,17 @@ class Command(BaseCommand):
     def add_arguments(self, parser):
         parser.add_argument('deal_id', type=str,
                             help='The deal ID to search for')
+        parser.add_argument(
+            '--output',
+            '-o',
+            type=str,
+            help='Optional path to save search results as JSON'
+        )
 
     def handle(self, *args, **options):
         try:
             deal_id = options['deal_id']
+            output_path = options.get('output')
 
             # Path to your schema file
             schema_path = os.path.join(
@@ -54,6 +69,30 @@ class Command(BaseCommand):
 
             # Print results in a readable format
             self.stdout.write(json.dumps(results, indent=2))
+
+            # Determine output path
+            if output_path:
+                target_path = os.path.abspath(output_path)
+            else:
+                # Match default filename pattern used when saving schema results
+                ist = pytz.timezone('Asia/Kolkata')
+                timestamp = datetime.now(ist).strftime("%d-%m-%y_%I-%M_%p")
+                filename = f"schema_results_{timestamp}.json"
+                target_path = os.path.join(settings.BASE_DIR, filename)
+
+            # Always simplify results before saving
+            data_to_save = simplify_json(results)
+
+            # Save results to the determined path
+            with open(target_path, 'w', encoding='utf-8') as outfile:
+                json.dump(data_to_save, outfile, indent=2, ensure_ascii=False)
+
+            if output_path:
+                self.stdout.write(self.style.SUCCESS(
+                    f'Search results (simplified) saved to {target_path}'))
+            else:
+                self.stdout.write(self.style.SUCCESS(
+                    f'Search results (simplified) saved to {target_path}'))
 
             self.stdout.write(self.style.SUCCESS(
                 'Search completed successfully'))

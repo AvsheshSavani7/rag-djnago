@@ -36,6 +36,8 @@ load_dotenv()
 
 logger = logging.getLogger(__name__)
 
+MODEL = "gpt-5-nano-2025-08-07"
+
 
 class DocumentProcessingService:
     """
@@ -900,7 +902,7 @@ Return a JSON object in this exact format:
             logger.info("Calling GPT to determine category")
             # Call GPT
             response = self.openai_client.chat.completions.create(
-                model="gpt-4o",
+                model=MODEL,
                 messages=[
                     {
                         "role": "system",
@@ -996,7 +998,7 @@ Return your answer as a valid JSON object with each field name as the key and th
             )
             # Call GPT
             response = self.openai_client.chat.completions.create(
-                model="gpt-4o",
+                model=MODEL,
                 messages=[
                     {
                         "role": "system",
@@ -1568,7 +1570,7 @@ class ChatWithAIService:
             # Call OpenAI API
             logger.info(f"Calling OpenAI API with {len(messages)} messages")
             response = self.openai_client.chat.completions.create(
-                model="gpt-4o",
+                model=MODEL,
                 messages=messages,
                 temperature=temperature,
                 max_tokens=1000,
@@ -2678,7 +2680,7 @@ class SummaryGenerationService:
 
             # Call OpenAI API
             response = self.openai_client.chat.completions.create(
-                model="gpt-4o",
+                model=MODEL,
                 messages=[
                     {
                         "role": "system",
@@ -4235,102 +4237,160 @@ class SchemaCategorySearch:
 
     #  This is a function to extract field answer using GPT.
     def extract_field_value_with_gpt(
-        self, field, chunks, section_name, subsection_name=None
+        self, field, chunks, section_name, subsection_name=None, max_retries=3
     ):
         """
-        Extract field value using GPT based on chunks
+        Extract field value using GPT based on chunks with retry logic
 
         Args:
             field (dict): The field information from schema
             chunks (list): List of document chunks to analyze
+            section_name (str): Name of the section
+            subsection_name (str, optional): Name of the subsection
+            max_retries (int): Maximum number of retry attempts (default: 3)
 
         Returns:
             str: The extracted field value
         """
-        try:
-            # Extract relevant info for prompt
-            field_name = field.get("field_name", "")
-            instructions = field.get("instructions", "")
+        # Extract relevant info for prompt
+        field_name = field.get("field_name", "")
+        instructions = field.get("instructions", "")
 
-            # Get the field type
-            field_type = field.get("recommended_prompt_type", "")
+        # Get the field type
+        field_type = field.get("recommended_prompt_type", "")
 
-            # Skip if no chunks found
-            if not chunks:
-                logger.warning(f"No chunks found for field: {field_name}")
-                return "No relevant document sections found"
+        # Skip if no chunks found
+        if not chunks:
+            logger.warning(f"No chunks found for field: {field_name}")
+            return "No relevant document sections found"
 
-            if field_type == "Inference-optimized":
-                prompt = get_impherior_prompt(
-                    section_name, field_name, instructions, chunks, subsection_name
-                )
-            elif field_type == "Precision-optimized":
-                prompt = get_experior_prompt(
-                    section_name, field_name, instructions, chunks, subsection_name
-                )
-            else:
-                # Default to experior prompt if type is not specified
-                prompt = get_experior_prompt(
-                    section_name, field_name, instructions, chunks, subsection_name
-                )
-
-            # Call GPT
-            logger.info(
-                f"Calling GPT to extract value for field: {field_name}")
-            logger.info(f"Find answer Promt {prompt}")
-            response = self.openai_client.chat.completions.create(
-                model="gpt-4o",
-                messages=[{"role": "user", "content": prompt}],
-                temperature=0.1,
-                max_tokens=4000,
+        if field_type == "Inference-optimized":
+            prompt = get_impherior_prompt(
+                section_name, field_name, instructions, chunks, subsection_name
+            )
+        elif field_type == "Precision-optimized":
+            prompt = get_experior_prompt(
+                section_name, field_name, instructions, chunks, subsection_name
+            )
+        else:
+            # Default to experior prompt if type is not specified
+            prompt = get_experior_prompt(
+                section_name, field_name, instructions, chunks, subsection_name
             )
 
-            # Extract and return the value
-            value = response.choices[0].message.content.strip()
-            logger.info(
-                f"Extracted value for field '{field_name}': {value}...")
-
-            logger.info(f"Token usage - Prompt: {response.usage.prompt_tokens}, " +
-                        f"Completion: {response.usage.completion_tokens}, " +
-                        f"Total: {response.usage.total_tokens}")
+        # Retry logic for GPT API call
+        last_error = None
+        for attempt in range(max_retries):
             try:
-                # First check if the response is wrapped in markdown code block
-                markdown_match = re.search(
-                    r"```(?:json)?\s*([\s\S]+?)\s*```", value)
-                if markdown_match:
-                    # Extract the JSON content from the markdown code block
-                    json_content = markdown_match.group(1).strip()
-                    parsed_response = json.loads(json_content)
+                # Call GPT
+                logger.info(
+                    f"Calling GPT to extract value for field: {field_name} (Attempt {attempt + 1}/{max_retries})")
+                logger.info(f"Find answer Promt {prompt}")
+
+                response = self.openai_client.chat.completions.create(
+                    model=MODEL,
+                    messages=[
+                        {"role": "system",
+                         "content": "You are a legal summarization assistant."},
+                        {"role": "user", "content": prompt},
+                    ],
+                    temperature=1,
+                    # max_tokens=4000,
+                    response_format={"type": "json_object"},
+                    # GPT-5.2 controls (Chat Completions)
+                    reasoning_effort="high",
+                    verbosity="high",
+                )
+
+                logger.info(f"Response: {response}")
+                logger.info(f"Model: {MODEL}")
+
+                value = response.choices[0].message.content.strip()
+
+                logger.info(
+                    f"Extracted value for field '{field_name}': {value}...")
+
+                logger.info(f"Token usage - Prompt: {response.usage.prompt_tokens}, " +
+                            f"Completion: {response.usage.completion_tokens}, " +
+                            f"Total: {response.usage.total_tokens}")
+
+                try:
+                    # First check if the response is wrapped in markdown code block
+                    markdown_match = re.search(
+                        r"```(?:json)?\s*([\s\S]+?)\s*```", value)
+                    if markdown_match:
+                        # Extract the JSON content from the markdown code block
+                        json_content = markdown_match.group(1).strip()
+                        parsed_response = json.loads(json_content)
+                    else:
+                        # Try parsing directly if not in markdown format
+                        parsed_response = json.loads(value)
+
+                    # Extract all fields
+                    return {
+                        "answer": parsed_response.get("answer", ""),
+                        "summary": parsed_response.get("summary", ""),
+                        "confidence": parsed_response.get("confidence", 1.0),
+                        "reason": parsed_response.get("reason", ""),
+                        "clause_text": parsed_response.get("clause_text", ""),
+                        "reference_section": parsed_response.get("reference_section", ""),
+                    }
+
+                except json.JSONDecodeError as e:
+                    logger.error(
+                        f"Failed to parse GPT response as JSON: {value}")
+                    logger.error(f"JSON parse error: {str(e)}")
+
+                    # If we can't parse the JSON, try to extract answer with regex
+                    answer_match = re.search(
+                        r'"answer"\s*:\s*"([^"]*)"', value)
+                    if answer_match:
+                        return {
+                            "answer": answer_match.group(1),
+                            "summary": "",
+                            "confidence": 0.5,
+                            "reason": "Extracted from malformed JSON response",
+                            "clause_text": "",
+                            "reference_section": "",
+                        }
+
+                    # If JSON parsing fails, raise exception to trigger retry
+                    raise json.JSONDecodeError(
+                        f"Failed to parse JSON response: {str(e)}", value, 0)
+
+            except Exception as e:
+                last_error = e
+                logger.error(
+                    f"Error extracting field value with GPT (Attempt {attempt + 1}/{max_retries}): {str(e)}")
+                logger.error(traceback.format_exc())
+
+                # If this is not the last attempt, wait 10 seconds before retrying
+                if attempt < max_retries - 1:
+                    logger.info(
+                        f"Retrying after 10 seconds... (Attempt {attempt + 2}/{max_retries})")
+                    time.sleep(10)
                 else:
-                    # Try parsing directly if not in markdown format
-                    parsed_response = json.loads(value)
+                    # Last attempt failed, return error
+                    logger.error(
+                        f"All {max_retries} attempts failed for field: {field_name}")
+                    return {
+                        "answer": f"Error: {str(e)}",
+                        "summary": "",
+                        "confidence": 0.0,
+                        "reason": f"Failed after {max_retries} attempts: {str(e)}",
+                        "clause_text": "",
+                        "reference_section": "",
+                    }
 
-                # Extract just the answer field
-                answer = parsed_response.get("answer", "")
-                # Extract all fields
-                return {
-                    "answer": parsed_response.get("answer", ""),
-                    "summary": parsed_response.get("summary", ""),
-                    "confidence": parsed_response.get("confidence", 1.0),
-                    "reason": parsed_response.get("reason", ""),
-                    "clause_text": parsed_response.get("clause_text", ""),
-                    "reference_section": parsed_response.get("reference_section", ""),
-                }
-
-            except json.JSONDecodeError as e:
-                logger.error(f"Failed to parse GPT response as JSON: {value}")
-                logger.error(f"JSON parse error: {str(e)}")
-
-                # If we can't parse the JSON, try to extract answer with regex
-                answer_match = re.search(r'"answer"\s*:\s*"([^"]*)"', value)
-                if answer_match:
-                    return answer_match.group(1)
-
-                # Default to empty string if all else fails
-        except Exception as e:
-            logger.error(f"Error extracting field value with GPT: {str(e)}")
-            logger.error(traceback.format_exc())
-            return f"Error: {str(e)}"
+        # This should not be reached, but just in case
+        return {
+            "answer": f"Error: {str(last_error)}",
+            "summary": "",
+            "confidence": 0.0,
+            "reason": f"Failed after {max_retries} attempts",
+            "clause_text": "",
+            "reference_section": "",
+        }
 
     #
 
@@ -4673,7 +4733,7 @@ class SchemaCategorySearch:
         try:
             results = {}
             # Set up a ThreadPoolExecutor with a reasonable number of workers
-            with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
+            with concurrent.futures.ThreadPoolExecutor(max_workers=60) as executor:
                 # Dictionary to track all future objects by section and field
                 futures = {}
 
