@@ -8,16 +8,21 @@ import logging
 import asyncio
 import re
 import os
+import threading
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from django.core.mail import send_mail, EmailMultiAlternatives
 from django.conf import settings
+from bson import ObjectId
 from .models import SECFiling, SECFeedStatus, LastCronJob, AccessionLookedUp
 from .document_analyzer import SECDocumentAnalyzer
 from .websocket_service import SECWebSocketService
 from document_processor.models import ProcessingJob
+from document_processor.services import DocumentProcessingService, SummaryGenerationService
 from proxy_processor.views import process_sec_document_helper
+from node_proxy.utils import call_node_api
+from node_proxy.views import AnnouncementWithUrlView
 
 logger = logging.getLogger(__name__)
 
@@ -186,6 +191,518 @@ def generate_filing_email_html(filing_data, doc_files):
 """
 
     return subject, html_email
+
+
+def generate_8k_summary_email_html(company_name: str, form_type: str, summary_doc_url: str, cik_number: str, sec_url: str, accession_number: str) -> tuple:
+    """
+    Generate HTML email for 8-K summary document notification.
+
+    Args:
+        company_name: Name of the company
+        form_type: Form type (e.g., 8-K)
+        summary_doc_url: URL of the generated summary document
+        cik_number: CIK number
+        sec_url: URL of the SEC filing
+        accession_number: SEC accession number
+    Returns:
+        tuple: (subject, html_email)
+    """
+    subject = f"New 8-K Summary Document – {form_type} – {company_name}"
+
+    html_email = f"""
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>{escape_html(subject)}</title>
+</head>
+<body style="margin:0; padding:0; font-family:Arial,sans-serif; background-color:#f4f4f4;">
+  <div style="max-width:700px; margin:20px auto; background-color:#ffffff; padding:30px; border-radius:8px; box-shadow:0 2px 4px rgba(0,0,0,0.1);">
+    <h2 style="color:#333; text-align:center; margin-top:0; padding-bottom:20px; border-bottom:3px solid #4a90e2;">
+      New 8-K Summary Document
+    </h2>
+
+    <div style="margin-bottom:30px;">
+      <p style="color:#333; font-size:16px; line-height:1.6;">
+        The 8-K summary document has been successfully generated for:
+      </p>
+      
+      <div style="background-color:#f9f9f9; padding:15px; border-radius:5px; margin:20px 0;">
+        <p style="margin:8px 0; color:#555;">
+          <strong style="color:#333;">Company:</strong> {escape_html(company_name)}
+        </p>
+        <p style="margin:8px 0; color:#555;">
+          <strong style="color:#333;">Form Type:</strong> {escape_html(form_type)}
+        </p>
+        <p style="margin:8px 0; color:#555;">
+          <strong style="color:#333;">CIK Number:</strong> {escape_html(cik_number)}
+        </p>
+        <p style="margin:8px 0; color:#555;">
+          <strong style="color:#333;">Accession Number:</strong> {escape_html(accession_number)}
+        </p>
+        <p style="margin:8px 0; color:#555;">
+          <strong style="color:#333;">SEC URL:</strong> <a href="{escape_html(sec_url)}" style="color:#4a90e2; text-decoration:none;" target="_blank">{escape_html(sec_url)}</a>
+        </p>
+      </div>
+    </div>
+
+    <div style="text-align:center; margin:30px 0;">
+      <a href="{escape_html(summary_doc_url)}" 
+         style="display:inline-block; background-color:#4a90e2; color:#ffffff; padding:15px 30px; text-decoration:none; border-radius:5px; font-size:16px; font-weight:bold; box-shadow:0 2px 4px rgba(0,0,0,0.2);">
+        Download Summary Document
+      </a>
+    </div>
+
+    <div style="margin-top:30px; padding:15px; background-color:#e8f4f8; border-radius:5px; border-left:4px solid #4a90e2;">
+      <p style="margin:0; color:#555; font-size:14px;">
+        <strong>Note:</strong> This document contains the summary generated from the 8-K filing.
+      </p>
+    </div>
+
+    <div style="margin-top:30px; padding-top:20px; border-top:1px solid #e0e0e0; text-align:center; color:#999; font-size:12px;">
+      <p>This is an automated email notification for 8-K summary document generation.</p>
+      <p style="margin-top:5px;">
+        <a href="{escape_html(summary_doc_url)}" style="color:#4a90e2; text-decoration:none; word-break:break-all;">
+          {escape_html(summary_doc_url)}
+        </a>
+      </p>
+    </div>
+  </div>
+</body>
+</html>
+"""
+
+    return subject, html_email
+
+
+def send_8k_summary_email(deal_id, company_name, form_type, cik_number, sec_url, accession_number):
+    """
+    Send email notification with 8-K summary document URL.
+
+    Args:
+        deal_id: ProcessingJob ID
+        company_name: Company name
+        form_type: Form type (e.g., 8-K)
+        cik_number: CIK number
+        sec_url: SEC filing URL
+        accession_number: SEC accession number
+    """
+    try:
+        # Get the job to retrieve summary_docx_url
+        try:
+            object_id = ObjectId(deal_id)
+            job = ProcessingJob.objects.get(id=object_id)
+        except Exception as e:
+            logger.error(f"Error retrieving job {deal_id}: {e}")
+            return
+
+        if not job.summary_docx_url:
+            logger.warning(
+                f"No summary document URL available for job {deal_id}")
+            return
+
+        logger.info(
+            f"Preparing to send 8-K summary email for: {company_name}")
+
+        # Generate email HTML
+        subject, html_email = generate_8k_summary_email_html(
+            company_name=company_name,
+            form_type=form_type,
+            summary_doc_url=job.summary_docx_url,
+            cik_number=cik_number,
+            sec_url=sec_url,
+            accession_number=accession_number
+        )
+        logger.info(f"Generated email subject: {subject}")
+
+        # Get email recipients (can be multiple, comma or space separated)
+        recipient_emails_str = getattr(
+            settings, 'SEC_FILING_NOTIFICATION_EMAIL', 'notifications@example.com')
+        logger.info(f"Raw recipient emails from env: {recipient_emails_str}")
+
+        # Parse multiple emails (comma or space separated)
+        recipient_emails = []
+        if recipient_emails_str:
+            # Split by comma first, then by space, and strip whitespace
+            for email_part in recipient_emails_str.replace(',', ' ').split():
+                email = email_part.strip()
+                if email and '@' in email:  # Basic email validation
+                    recipient_emails.append(email)
+                    logger.info(f"  ✅ Added valid email: {email}")
+                else:
+                    logger.warning(f"  ⚠️ Skipped invalid email: {email}")
+
+        # Send email via n8n webhook
+        webhook_url = "https://n8n-xwx1.onrender.com/webhook/b3007d21-6845-47b5-aece-7b26583758bc"
+        logger.info(
+            f"📤 Sending 8-K summary email via n8n webhook: {webhook_url}")
+
+        # Prepare payload for n8n webhook
+        payload = {
+            'subject': subject,
+            'html': html_email,
+            'recipients': recipient_emails,
+            'company_name': company_name,
+            'form_type': form_type,
+            'summary_doc_url': job.summary_docx_url,
+            'deal_id': deal_id
+        }
+
+        logger.info(
+            f"📦 Payload prepared with {len(recipient_emails)} recipient(s)")
+
+        # Send POST request to n8n webhook
+        try:
+            response = requests.post(
+                webhook_url,
+                json=payload,
+                headers={'Content-Type': 'application/json'},
+                timeout=30
+            )
+            response.raise_for_status()
+
+            logger.info(
+                f"✅ 8-K summary email sent successfully via n8n webhook! Status: {response.status_code}")
+            logger.info(f"📧 Response: {response.text[:200]}")
+
+        except requests.exceptions.RequestException as e:
+            logger.error(
+                f"❌ Error sending 8-K summary email via n8n webhook: {e}")
+            if hasattr(e, 'response') and e.response is not None:
+                logger.error(
+                    f"❌ Response status: {e.response.status_code}, Response body: {e.response.text[:200]}")
+            raise
+
+        logger.info(
+            f"📧 8-K summary email sent to {len(recipient_emails)} recipient(s) for: {company_name} - {form_type}")
+
+    except Exception as e:
+        logger.error(
+            f"❌ Error sending 8-K summary email notification: {e}", exc_info=True)
+        # Don't fail the entire process if email sending fails
+
+
+def generate_8k_summary_async(deal_id, company_name, form_type, cik_number, sec_url, accession_number, max_attempts=60, delay_seconds=30):
+    """
+    Async function to generate summary for 8-K after processing completes.
+    Monitors for schema_results and then generates summary.
+
+    Args:
+        deal_id: ProcessingJob ID
+        company_name: Company name
+        form_type: Form type
+        cik_number: CIK number
+        sec_url: SEC filing URL
+        accession_number: SEC accession number
+        max_attempts: Maximum number of attempts to check for schema_results
+        delay_seconds: Delay between attempts in seconds
+    """
+    try:
+        logger.info(
+            f"🔍 Starting summary generation monitoring for deal_id: {deal_id}")
+
+        # Monitor for schema_results
+        object_id = ObjectId(deal_id)
+        attempts = 0
+
+        while attempts < max_attempts:
+            try:
+                job = ProcessingJob.objects(id=object_id).first()
+
+                if not job:
+                    logger.error(f"❌ Job {deal_id} not found")
+                    return
+
+                # Check if schema_results are available
+                if job.schema_results and job.embedding_status == 'COMPLETED':
+                    logger.info(
+                        f"✅ Schema results available for deal_id: {deal_id}, generating summary")
+
+                    # Update summary status to processing
+                    job.summary_status = 'PROCESSING'
+                    job.save()
+
+                    # Generate summary
+                    summary_service = SummaryGenerationService()
+                    result = summary_service.generate_summary_engine(
+                        deal_id=deal_id,
+                        temperature=0.7,
+                        provider='openai',
+                        model='gpt-4.1-mini'
+                    )
+
+                    if result:
+                        # Update job with summary URL
+                        job.summary_docx_url = result
+                        job.summary_using = "openai-gpt-4.1-mini"
+                        job.summary_status = 'COMPLETED'
+                        job.save()
+
+                        logger.info(
+                            f"✅ Summary generated successfully for deal_id: {deal_id}")
+
+                        # Send email notification
+                        try:
+                            logger.info(
+                                f"📧 Sending 8-K summary email for: {company_name}")
+                            send_8k_summary_email(
+                                deal_id=deal_id,
+                                company_name=company_name,
+                                form_type=form_type,
+                                cik_number=cik_number,
+                                sec_url=sec_url,
+                                accession_number=accession_number
+                            )
+                            logger.info(
+                                f"✅ 8-K summary email sent successfully")
+                        except Exception as email_error:
+                            logger.error(
+                                f"❌ Error sending 8-K summary email: {str(email_error)}")
+
+                        return
+                    else:
+                        logger.error(
+                            f"❌ Summary generation returned None for deal_id: {deal_id}")
+                        job.summary_status = 'FAILED'
+                        job.error_message = 'Summary generation returned None'
+                        job.save()
+                        return
+
+            except Exception as e:
+                logger.error(f"❌ Error checking job status: {e}")
+                # Continue to next attempt unless it's a critical error
+                if 'not found' in str(e).lower() or 'does not exist' in str(e).lower():
+                    logger.error(f"❌ Job {deal_id} not found")
+                    return
+
+            # Wait before next attempt
+            attempts += 1
+            if attempts < max_attempts:
+                logger.info(
+                    f"⏳ Waiting for schema_results... (attempt {attempts}/{max_attempts})")
+                time.sleep(delay_seconds)
+
+        logger.warning(
+            f"⚠️ Timeout waiting for schema_results for deal_id: {deal_id}")
+
+    except Exception as e:
+        logger.error(
+            f"❌ Error in generate_8k_summary_async: {e}", exc_info=True)
+
+
+def process_8k_document_async(ex21_url, cik_number, company_name, sec_filing_id, filing_date, item_data):
+    """
+    Async function to process 8-K document using Node API.
+
+    Args:
+        ex21_url: URL of EX-2.1 HTM file
+        cik_number: CIK number
+        company_name: Company name
+        sec_filing_id: SEC filing ID
+        filing_date: Filing date
+        item_data: Item data from SEC filing
+    """
+    try:
+        logger.info(f"🚀 Starting 8-K document processing for: {company_name}")
+
+        # Extract CIK from URL if available
+        extracted_cik = None
+        if ex21_url and '/data/' in ex21_url:
+            try:
+                url_parts = ex21_url.split('/data/')
+                if len(url_parts) > 1:
+                    cik_part = url_parts[1].split('/')[0]
+                    extracted_cik = cik_part.zfill(10)
+                    logger.info(f"Extracted CIK from URL: {extracted_cik}")
+            except Exception as e:
+                logger.warning(f"Could not extract CIK from URL: {e}")
+
+        # Prepare data for Node API
+        target_cik = cik_number or extracted_cik
+        target_name = company_name
+        announce_data = filing_date.strftime(
+            '%Y-%m-%d') if isinstance(filing_date, datetime) else str(filing_date)
+
+        data = {
+            "target_cik": target_cik,
+            "announce_data": announce_data,
+            "target_name": target_name,
+            "acquired_name": "",  # Will be extracted if needed
+            "url": ex21_url,
+            "sec_filing_id": sec_filing_id,
+            "acquirer_cik": ""
+        }
+
+        # Use OpenAI to extract missing fields if needed (similar to AnnouncementWithUrlView)
+        announcement_view = AnnouncementWithUrlView()
+        try:
+            extracted_data = announcement_view.extract_missing_fields_with_openai(
+                ex21_url, data)
+            # Merge extracted data
+            for key, value in extracted_data.items():
+                if not data.get(key) and value:
+                    data[key] = value
+                    logger.info(f"Added missing field {key}: {value}")
+        except Exception as e:
+            logger.warning(
+                f"Could not extract missing fields with OpenAI: {e}")
+
+        # Update data with extracted values
+        if not data.get('target_cik'):
+            data['target_cik'] = target_cik
+        if not data.get('target_name'):
+            data['target_name'] = target_name
+        if not data.get('announce_data'):
+            data['announce_data'] = announce_data
+
+        # Validate required fields
+        if not all([data.get('target_cik'), data.get('announce_data'), data.get('target_name')]):
+            missing_fields = []
+            if not data.get('target_cik'):
+                missing_fields.append('target_cik')
+            if not data.get('announce_data'):
+                missing_fields.append('announce_data')
+            if not data.get('target_name'):
+                missing_fields.append('target_name')
+
+            logger.error(
+                f"❌ Missing required fields: {', '.join(missing_fields)}")
+            # Send failure event
+            doc_processor = DocumentProcessingService()
+            doc_processor._send_sec_filing_event(
+                sec_filing_id, "Fail", f"Could not obtain all required fields: {', '.join(missing_fields)}")
+            return
+
+        # Send processing started event
+        doc_processor = DocumentProcessingService()
+        doc_processor._send_sec_filing_event(sec_filing_id, "In Progress")
+
+        # Call Node API
+        logger.info(f"📞 Calling Node API with data: {data}")
+        response = call_node_api(
+            endpoint="deal/process-with-url",
+            method="POST",
+            data={
+                "url": ex21_url,
+                "target_cik": data.get('target_cik'),
+                "announce_data": data.get('announce_data'),
+                "target_name": data.get('target_name'),
+                "acquired_name": data.get('acquired_name', ''),
+                "sec_filing_id": sec_filing_id,
+                "acquirer_cik": data.get('acquirer_cik', '')
+            }
+        )
+
+        logger.info(f"📥 Node API response: {response}")
+
+        # Check if we got a successful response with jsonUrl
+        if response.get('status') and response.get('data', {}).get('jsonUrl'):
+            deal_id = response['data'].get('deal_id')
+            json_url = response['data']['jsonUrl']
+
+            if deal_id:
+                logger.info(f"✅ Processing started, deal_id: {deal_id}")
+
+                # Process the document using the JSON URL
+                process_result = doc_processor.process_document(
+                    file_url=json_url,
+                    deal_id=deal_id,
+                    sec_filing_id=sec_filing_id,
+                    embed_data=True
+                )
+
+                logger.info(f"✅ Document processing started: {process_result}")
+
+                # Start monitoring for summary generation in a separate thread
+                summary_thread = threading.Thread(
+                    target=generate_8k_summary_async,
+                    args=(
+                        deal_id,
+                        company_name,
+                        item_data.get('form_type', '8-K'),
+                        cik_number,
+                        item_data.get('link', ''),
+                        item_data.get('accession_number', '')
+                    )
+                )
+                summary_thread.daemon = True
+                summary_thread.start()
+
+                logger.info(
+                    f"✅ Started summary generation monitoring thread for deal_id: {deal_id}")
+            else:
+                logger.error("❌ No deal_id in Node API response")
+                doc_processor._send_sec_filing_event(
+                    sec_filing_id, "Fail", "No deal_id returned from Node API")
+        else:
+            logger.error(
+                f"❌ Node API response did not contain expected data: {response}")
+            doc_processor._send_sec_filing_event(
+                sec_filing_id, "Fail", "Invalid response from Node API")
+
+    except Exception as e:
+        logger.error(
+            f"❌ Error in process_8k_document_async: {e}", exc_info=True)
+        try:
+            doc_processor = DocumentProcessingService()
+            doc_processor._send_sec_filing_event(
+                sec_filing_id, "Fail", str(e))
+        except:
+            pass
+
+
+def process_8k_document_helper(cik_number, company_name, sec_filing_id, filing_date, form_type, ex21_url, item_data):
+    """
+    Helper function to process 8-K document programmatically.
+    Similar to process_sec_document_helper but for 8-K filings.
+
+    Args:
+        cik_number: CIK number of the company
+        company_name: Name of the company
+        sec_filing_id: SEC filing ID (MongoDB ObjectId as string)
+        filing_date: Filing date
+        form_type: Form type (should be '8-K')
+        ex21_url: URL of the EX-2.1 HTM file
+        item_data: Full item data from SEC filing
+
+    Returns:
+        dict with status, or None if error
+    """
+    try:
+        logger.info(
+            f"🚀 Starting 8-K document processing for: {company_name} - {sec_filing_id}")
+
+        # Start processing in a separate thread
+        processing_thread = threading.Thread(
+            target=process_8k_document_async,
+            args=(
+                ex21_url,
+                cik_number,
+                company_name,
+                sec_filing_id,
+                filing_date,
+                item_data
+            )
+        )
+        processing_thread.daemon = True
+        processing_thread.start()
+
+        logger.info(
+            f"✅ Started 8-K document processing thread for: {company_name}")
+
+        return {
+            'status': 'In Progress',
+            'message': '8-K document processing started',
+            'company_name': company_name,
+            'cik_number': cik_number,
+            'sec_filing_id': sec_filing_id,
+            'ex21_url': ex21_url
+        }
+
+    except Exception as e:
+        logger.error(
+            f"❌ Error starting 8-K document processing: {str(e)}", exc_info=True)
+        return None
 
 
 class SECRSSParser:
@@ -1409,6 +1926,110 @@ class SECFeedProcessor:
                             f"📧 Email sent to {len(recipient_emails)} recipient(s) for 8-K filing: {item_data.get('company_name')} - {item_data.get('accession_number')}")
                         print(
                             f"📧 Email sent to {len(recipient_emails)} recipient(s) for 8-K filing: {item_data.get('company_name')} - {item_data.get('accession_number')}")
+
+                    # After email is sent, process 8-K document if it's an 8-K filing with EX-2.1
+                    # Check if EX-2.1 exists in xbrl_files (more reliable than checking has_ex21 which might not be preserved)
+                    has_ex21_in_files = False
+                    xbrl_files = item_data.get('xbrl_files', [])
+                    for file in xbrl_files:
+                        doc_type = file.get('type', '')
+                        doc_url = file.get('url', '')
+                        if ('EX-2.1' in doc_type or 'EX-2.1' in file.get('description', '')) and doc_url.endswith('.htm'):
+                            has_ex21_in_files = True
+                            break
+
+                    # Also check item_data and filing object
+                    has_ex21_from_data = item_data.get('has_ex21', False)
+                    has_ex21_from_filing = (
+                        hasattr(filing, 'has_htm_files') and filing.has_htm_files) if filing else False
+                    has_ex21 = has_ex21_in_files or has_ex21_from_data or has_ex21_from_filing
+
+                    logger.info(
+                        f"🔍 Checking 8-K processing condition - form_type: {form_type}, has_ex21_in_files: {has_ex21_in_files}, has_ex21_from_data: {has_ex21_from_data}, has_ex21_from_filing: {has_ex21_from_filing}, final has_ex21: {has_ex21}")
+                    print(
+                        f"🔍 Checking 8-K processing condition - form_type: {form_type}, has_ex21_in_files: {has_ex21_in_files}, has_ex21_from_data: {has_ex21_from_data}, has_ex21_from_filing: {has_ex21_from_filing}, final has_ex21: {has_ex21}")
+
+                    if form_type == '8-K' and has_ex21:
+                        try:
+                            logger.info(
+                                f"🚀 Starting 8-K document processing after email notification for: {item_data.get('company_name')}")
+                            print(
+                                f"🚀 Starting 8-K document processing after email notification for: {item_data.get('company_name')}")
+
+                            # Find EX-2.1 HTM file URL
+                            ex21_url = None
+                            xbrl_files = item_data.get('xbrl_files', [])
+
+                            for file in xbrl_files:
+                                doc_type = file.get('type', '')
+                                doc_url = file.get('url', '')
+                                if ('EX-2.1' in doc_type or 'EX-2.1' in file.get('description', '')) and doc_url.endswith('.htm'):
+                                    # Build full URL if needed
+                                    if not doc_url.startswith('http://') and not doc_url.startswith('https://'):
+                                        ex21_url = f"https://www.sec.gov{doc_url}"
+                                    else:
+                                        ex21_url = doc_url
+                                    break
+
+                            if ex21_url:
+                                # Get sec_filling_id (MongoDB ObjectId as string)
+                                sec_filling_id = str(
+                                    filing._id) if filing else None
+
+                                if sec_filling_id:
+                                    # Get filing date as string
+                                    filing_date_str = None
+                                    filing_date = item_data.get('filing_date')
+                                    if filing_date:
+                                        if isinstance(filing_date, datetime):
+                                            filing_date_str = filing_date
+                                        else:
+                                            try:
+                                                filing_date_str = datetime.strptime(
+                                                    str(filing_date), '%Y-%m-%d')
+                                            except:
+                                                filing_date_str = None
+
+                                    # Call helper function to process 8-K document
+                                    result = process_8k_document_helper(
+                                        cik_number=cik_number,
+                                        company_name=item_data.get(
+                                            'company_name', ''),
+                                        sec_filing_id=sec_filling_id,
+                                        filing_date=filing_date_str,
+                                        form_type=form_type,
+                                        ex21_url=ex21_url,
+                                        item_data=item_data
+                                    )
+
+                                    if result:
+                                        logger.info(
+                                            f"✅ Successfully started 8-K document processing: {result.get('message', 'Processing started')}")
+                                        print(
+                                            f"✅ Successfully started 8-K document processing: {result.get('message', 'Processing started')}")
+                                    else:
+                                        logger.error(
+                                            f"❌ Failed to start 8-K document processing for: {item_data.get('company_name')}")
+                                        print(
+                                            f"❌ Failed to start 8-K document processing for: {item_data.get('company_name')}")
+                                else:
+                                    logger.warning(
+                                        f"⚠️ Cannot process 8-K document: sec_filling_id not found")
+                                    print(
+                                        f"⚠️ Cannot process 8-K document: sec_filling_id not found")
+                            else:
+                                logger.warning(
+                                    f"⚠️ No EX-2.1 HTM file found in xbrl_files for 8-K filing: {item_data.get('company_name')}")
+                                print(
+                                    f"⚠️ No EX-2.1 HTM file found in xbrl_files for 8-K filing: {item_data.get('company_name')}")
+                        except Exception as e:
+                            logger.error(
+                                f"❌ Error processing 8-K document after email: {str(e)}", exc_info=True)
+                            print(
+                                f"❌ Error processing 8-K document after email: {str(e)}")
+                            import traceback
+                            print(traceback.format_exc())
+
                 except Exception as e:
                     logger.error(
                         f"❌ Error sending email notification: {e}", exc_info=True)

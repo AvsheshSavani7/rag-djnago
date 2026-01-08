@@ -236,7 +236,9 @@ def evaluate_condition_branch(condition, data):
         if isinstance(value, list):
             value_normalized = ", ".join(str(v) for v in value).strip()
         else:
-            value_normalized = (value or "").strip()
+            # Convert value to string first to handle booleans, None, etc.
+            value_normalized = str(value) if value is not None else ""
+            value_normalized = value_normalized.strip()
         enum_cases = condition.get("enum_cases", {})
         branch = enum_cases.get(value_normalized, condition.get("default", {}))
         if branch:
