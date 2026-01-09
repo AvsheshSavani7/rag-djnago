@@ -157,7 +157,7 @@ def send_summary_email_notification(proxy_doc):
                     logger.warning(f"  ⚠️ Skipped invalid email: {email}")
 
         # Send email via n8n webhook
-        webhook_url = "https://n8n-xwx1.onrender.com/webhook/3ff1b0ea-7114-4dda-940e-95ce81e08017"
+        webhook_url = "https://n8n-xwx1.onrender.com/webhook/b3007d21-6845-47b5-aece-7b26583758bc"
         logger.info(f"📤 Sending summary email via n8n webhook: {webhook_url}")
 
         # Prepare payload for n8n webhook

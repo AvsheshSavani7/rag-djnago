@@ -412,6 +412,9 @@ class AnnouncementWithUrlView(APIView):
             - TARGET and ACQUIRER MUST be DIFFERENT companies - they cannot be the same
             - Look for language like "merger of [Target] into [Acquirer]", "acquisition of [Target] by [Acquirer]", "purchase of [Target]"
             - If you cannot identify two distinct companies, return empty strings rather than duplicating values
+            - Search CIK from websearch if not found in the document.
+            [https://www.sec.gov/files/company_tickers.json] is the list of all companies with their CIKs.
+            
 
             Document url: {url}
             
