@@ -90,10 +90,10 @@ def add_business_days(start_date, business_days):
     return current_date
 
 
-def call_llm(prompt_text, model="gpt-4", temperature=0, provider="openai"):
+def call_llm(prompt_text, model="gpt-5", temperature=1, provider="openai"):
     """
     Call LLM with specified provider and model
-
+`
     Args:
         prompt_text (str): The prompt to send to the model
         model (str): The model name to use
@@ -109,15 +109,36 @@ def call_llm(prompt_text, model="gpt-4", temperature=0, provider="openai"):
         if not API_KEYS['openai']:
             raise ValueError("OpenAI API key not found")
 
-        response = openai.chat.completions.create(
-            model=model,
-            messages=[
-                {"role": "system", "content": system_message},
-                {"role": "user", "content": prompt_text}
-            ],
-            temperature=temperature
-        )
-        return response.choices[0].message.content.strip()
+        if model == "gpt-5":
+
+            resp = openai.chat.completions.create(
+                model=model,  # “gpt-5", or “gpt-5-mini”, “gpt-5-nano”, or “gpt-5-chat-latest”
+                messages=[
+                    {
+                        "role": "system",
+                        "content": "You are a legal summarization assistant.",
+                    },
+                    {"role": "user", "content": prompt_text},
+                ],
+                temperature=temperature,
+                # New optional GPT-5 controls:
+                extra_headers={"OpenAI-Beta": "gpt-5-controls"},
+                reasoning_effort="medium",  # low | “medium” | “high”
+                verbosity="medium",  # “low” | “medium” | “high”
+            )
+
+            return resp.choices[0].message.content.strip()
+        else:
+
+            response = openai.chat.completions.create(
+                model=model,
+                messages=[
+                    {"role": "system", "content": system_message},
+                    {"role": "user", "content": prompt_text}
+                ],
+                temperature=temperature
+            )
+            return response.choices[0].message.content.strip()
 
     elif provider.lower() == "google":
         if not API_KEYS['google'] or not genai:
@@ -158,6 +179,18 @@ def call_llm(prompt_text, model="gpt-4", temperature=0, provider="openai"):
     else:
         raise ValueError(
             f"Unsupported provider: {provider}. Supported providers are: openai, google, anthropic")
+
+
+def add_table_spacing(doc, before_pt=6, after_pt=6):
+    if before_pt:
+        p_before = doc.add_paragraph()
+        p_before.paragraph_format.space_after = Pt(before_pt)
+        p_before.paragraph_format.space_before = Pt(0)
+
+    if after_pt:
+        p_after = doc.add_paragraph()
+        p_after.paragraph_format.space_before = Pt(after_pt)
+        p_after.paragraph_format.space_after = Pt(0)
 
 # =========================
 # Utility to Traverse Nested Data
@@ -475,7 +508,91 @@ def extract_and_match_definitions(pinecone_context_text, definitions_dict):
     return matched_definitions
 
 
-def process_clause_config(clause_config, clause_name, schema_data, provider="openai", model="gpt-4", temperature=0, deal_id=None, definitions_array=None, preamble_data=None):
+def extract_section_references(text, current_sections=None):
+    """
+
+    Extract section references from text (e.g., "Section 7.3", "7.3", "§ 7.3").
+
+    Excludes current sections to avoid duplicates.
+
+
+
+    Args:
+
+        text: String or list of strings to search for section references
+
+        current_sections: List of current section IDs to exclude (e.g., ['7.1'])
+
+
+
+    Returns:
+
+        List of unique section references (normalized to section numbers like '7.3')
+
+    """
+
+    # Convert to string if it's a list
+
+    if isinstance(text, list):
+
+        text = " ".join(text)
+
+    else:
+
+        text = text or ""
+
+    # Normalize current sections to just numbers (e.g., '7.1' from 'Section 7.1')
+
+    current_section_nums = set()
+
+    if current_sections:
+
+        for sec in current_sections:
+
+            # Extract just the number part
+
+            match = re.search(r"(\d+(?:\.\d+)+|\d+)", str(sec))
+
+            if match:
+
+                current_section_nums.add(match.group(1))
+
+    # Pattern to match section references:
+
+    # - "Section 7.3", "Section 7.3.1", "section 7.3"
+
+    # - "7.3", "7.3.1"
+
+    # - "§ 7.3", "§7.3"
+
+    # - "Sections 7.3 and 7.4"
+
+    section_patterns = [
+        r"(?:Section|section|Sections|sections)\s+(\d+(?:\.\d+)+|\d+)",  # "Section 7.3"
+        r"§\s*(\d+(?:\.\d+)+|\d+)",  # "§ 7.3" or "§7.3"
+        r"\b(\d+\.\d+(?:\.\d+)*)\b",  # "7.3" or "7.3.1" (standalone)
+    ]
+
+    found_sections = set()
+
+    for pattern in section_patterns:
+
+        matches = re.findall(pattern, text, re.IGNORECASE)
+
+        for match in matches:
+
+            # re.findall with a single capturing group returns a list of strings
+
+            section_num = match if isinstance(match, str) else str(match)
+
+            if section_num and section_num not in current_section_nums:
+
+                found_sections.add(section_num)
+
+    return list(found_sections)
+
+
+def process_clause_config(clause_config, clause_name, schema_data, provider="openai", model="gpt-4", temperature=1, deal_id=None, definitions_array=None, preamble_data=None):
 
     # Handle case where definitions_array might be None or empty
     if definitions_array:
@@ -556,14 +673,37 @@ def process_clause_config(clause_config, clause_name, schema_data, provider="ope
 
     pinecone_sections = pinecone_ctx.get("sections", [])
 
+    # Extract section references from pinecone_context_text (excluding current sections)
+
+    referenced_sections = extract_section_references(
+        pinecone_context_text, current_sections=pinecone_sections
+    )
+
+    print(f"referenced_sections: {referenced_sections}")
+
+    referenced_chunks = []
+
+    if referenced_sections and pinecone_context_text:
+
+        fetcher = PineconeSectionFetcher()
+
+        addl = {"deal_id": {"$eq": deal_id}} if deal_id else None
+
+        referenced_ctx = fetcher.get_context_for_references(
+            referenced_sections, top_k=8, additional_filter=addl
+        )
+
+        referenced_chunks = referenced_ctx.get("context_chunks", [])
+
     # Build a standardized context preamble if we have any referenced chunks
     context_preamble = ""
     if pinecone_context_text:
         # Add preamble section if available
         preamble_section = ""
         if preamble_text:
-
+            preamble_section = "\n=== Contract Preamble ===\n"
             preamble_section += f"{preamble_text}\n"
+            preamble_section += "=== End Preamble ===\n\n"
 
         # Build excerpts with definitions per section
         excerpts_content = ""
@@ -604,6 +744,50 @@ def process_clause_config(clause_config, clause_name, schema_data, provider="ope
                 for term, definition in matched_definitions.items():
                     excerpts_content += f"• {term}: {definition}\n"
                 excerpts_content += "=== End Definitions ===\n"
+
+        # Append referenced section chunks(from other sections mentioned in context)
+
+        # This is done after processing the main context, regardless of list or string format
+
+        if referenced_chunks:
+
+            excerpts_content += "\n\n=== Additional Referenced Sections from Response ===\nPlease use the following additional sections to resolve any section references mentioned in your response, if possible.\n\n"
+
+            # Calculate starting index based on how many excerpts we already have
+
+            if isinstance(pinecone_context_text, list):
+
+                start_idx = len(pinecone_context_text) + 1
+
+            else:
+
+                start_idx = 2  # If it was a string, we had 1 excerpt
+
+            for idx, chunk in enumerate(referenced_chunks, start=start_idx):
+
+                # Parse the chunk to extract section and content
+
+                if " : " in chunk:
+
+                    section_name, content = chunk.split(" : ", 1)
+
+                else:
+
+                    section_name = f"Section {idx}"
+
+                    content = chunk
+
+                # Add excerpt header
+
+                excerpts_content += f"\nExcerpt {idx}\n"
+
+                excerpts_content += f"{section_name}\n\n"
+
+                excerpts_content += f"{content}\n"
+
+                excerpts_content += "\n"  # Add spacing between excerpts
+
+            excerpts_content += "=== End Additional Referenced Sections ===\n"
 
         # Keep the preamble neutral and instructionally strong
         context_preamble = (
@@ -772,6 +956,106 @@ def write_docx_summary(summaries, output_path, RUN_CONCISE_SUMMARIES, RUN_FULSOM
                 doc.add_heading(s.get("summary_display_section"), level=2)
                 already_print.append(s.get("summary_display_section"))
 
+            if s.get("format_style") == "matrix_table":
+                lines = [ln for ln in (
+                    s.get("output") or "").splitlines() if ln.strip()]
+                if len(lines) == 3:
+                    header_line, row1_line, row2_line = lines
+
+                    # Extract row labels
+                    row_label1 = re.split(
+                        r"\s+", row1_line.strip())[0] if row1_line.strip() else "Row 1"
+                    row_label2 = re.split(
+                        r"\s+", row2_line.strip())[0] if row2_line.strip() else "Row 2"
+                    row_labels = ["", row_label1, row_label2]
+
+                    # Split on 2+ spaces
+                    header_cells = re.split(
+                        r"\s{2,}", header_line.rstrip("\n"))
+                    row1_cells = re.split(r"\s{2,}", row1_line.rstrip("\n"))
+                    row2_cells = re.split(r"\s{2,}", row2_line.rstrip("\n"))
+
+                    # Remove row labels from data rows
+                    if row1_cells and row1_cells[0].strip() == row_label1:
+                        row1_cells = row1_cells[1:]
+                    if row2_cells and row2_cells[0].strip() == row_label2:
+                        row2_cells = row2_cells[1:]
+
+                    # --- KEY: shift Parent amounts if LLM left the first column empty ---
+                    # Count leading spaces in the original row2_line (after the label)
+                    after_label = row2_line
+                    if row_label2 in row2_line:
+                        idx = row2_line.index(row_label2) + len(row_label2)
+                        after_label = row2_line[idx:]
+
+                    leading_spaces = len(after_label) - \
+                        len(after_label.lstrip(" "))
+
+                    # Heuristic: if there is a gap wider than one typical space block,
+                    # treat it as an intentionally empty first column
+                    if leading_spaces >= 4:  # tweakable threshold
+                        row2_cells = [""] + row2_cells
+
+                    # Pad to equal length
+                    max_data_cols = max(len(header_cells), len(
+                        row1_cells), len(row2_cells))
+                    header_cells += [""] * (max_data_cols - len(header_cells))
+                    row1_cells += [""] * (max_data_cols - len(row1_cells))
+                    row2_cells += [""] * (max_data_cols - len(row2_cells))
+
+                    total_cols = max_data_cols + 1  # +1 for row label col
+
+                    # Space before table
+                    add_table_spacing(doc, before_pt=8)
+
+                    table = doc.add_table(rows=3, cols=total_cols)
+                    table.style = "Table Grid"
+                    table.autofit = True
+
+                    # Space after table
+                    add_table_spacing(doc, after_pt=10)
+
+                    for row_idx, row in enumerate(table.rows):
+                        for cell_idx, cell in enumerate(row.cells):
+                            for p in cell.paragraphs:
+                                p.clear()
+
+                            if cell_idx == 0:
+                                cell.text = row_labels[row_idx]
+                                for run in cell.paragraphs[0].runs:
+                                    run.bold = True
+                                cell.paragraphs[0].alignment = 0  # LEFT
+                            else:
+                                data_idx = cell_idx - 1
+                                if row_idx == 0:
+                                    cell.text = header_cells[data_idx]
+                                elif row_idx == 1:
+                                    cell.text = row1_cells[data_idx]
+                                elif row_idx == 2:
+                                    cell.text = row2_cells[data_idx]
+
+                                if row_idx == 0 and cell.text:
+                                    for run in cell.paragraphs[0].runs:
+                                        run.bold = True
+                                    cell.paragraphs[0].alignment = 1  # CENTER
+
+                            for para in cell.paragraphs:
+                                para.paragraph_format.space_before = Pt(0)
+                                para.paragraph_format.space_after = Pt(0)
+
+                    # Borders (unchanged)
+                    table_part = table._tbl
+                    tblPr = table_part.tblPr
+                    tblBorders = OxmlElement("w:tblBorders")
+                    for border_name in ["top", "left", "insideH", "insideV", "right", "bottom"]:
+                        border = OxmlElement(f"w:{border_name}")
+                        border.set(qn("w:val"), "single")
+                        border.set(qn("w:sz"), "8")
+                        border.set(qn("w:color"), "000000")
+                        tblBorders.append(border)
+                    tblPr.append(tblBorders)
+                continue  # Skip bullets
+
             bullet_para = doc.add_paragraph()
             bullet_para.paragraph_format.left_indent = Inches(0.25)
             bullet_para.paragraph_format.first_line_indent = -Inches(0.25)
@@ -831,9 +1115,9 @@ def write_docx_summary(summaries, output_path, RUN_CONCISE_SUMMARIES, RUN_FULSOM
 
             config_bullet.font.color.rgb = RGBColor(0, 0, 0)
 
-            config_bullet = config_para.add_run(
+            # config_bullet = config_para.add_run(
 
-                "From : " + s.get("clause_name") + " - " + str(s.get("summary_rank")))
+            #     "From : " + s.get("clause_name") + " - " + str(s.get("summary_rank")))
 
             config_bullet.font.name = "Aptos"
 
@@ -867,7 +1151,7 @@ if __name__ == "__main__":
 
         print(f"→ Evaluating: {clause_name}")
         result = process_clause_config(
-            clause_config, clause_name, EXAMPLE_SCHEMA_DATA, provider="openai", model="gpt-4", temperature=0)
+            clause_config, clause_name, EXAMPLE_SCHEMA_DATA, provider="openai", model="gpt-5", temperature=1)
         print(f"→ Output preview: {result['output'][:100]}")
         if result["output"] and result["output"] != "No output generated.":
             filtered_result = result.copy()

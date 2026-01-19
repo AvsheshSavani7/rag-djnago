@@ -675,9 +675,9 @@ class SummaryEngineView(APIView):
     def post(self, request, format=None):
         # Get request parameters
         deal_id = request.data.get('deal_id')
-        temperature = float(request.data.get('temperature', 0.7))
+        temperature = float(request.data.get('temperature', 1))
         provider = request.data.get('provider', 'openai')
-        model = request.data.get('model', 'gpt-4.1-mini')
+        model = request.data.get('model', 'gpt-5')
 
         # Validate parameters
         if not deal_id:

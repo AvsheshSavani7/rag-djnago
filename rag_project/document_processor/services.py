@@ -1683,7 +1683,7 @@ class SummaryGenerationService:
             logger.error(traceback.format_exc())
             return []
 
-    def generate_summary_engine(self, deal_id, temperature=0.7, provider="openai", model="gpt-4"):
+    def generate_summary_engine(self, deal_id, temperature=1, provider="openai", model="gpt-5"):
         """
         Generate document summaries based on schema results for the given deal_id.
         Uses the same summary generation logic as summary_main.py but with different input/output handling.
