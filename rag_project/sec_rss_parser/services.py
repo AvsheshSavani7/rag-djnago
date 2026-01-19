@@ -426,7 +426,7 @@ def generate_8k_summary_async(deal_id, company_name, form_type, cik_number, sec_
                     summary_service = SummaryGenerationService()
                     result = summary_service.generate_summary_engine(
                         deal_id=deal_id,
-                        temperature=0.7,
+                        temperature=1,
                         provider='openai',
                         model='gpt-5-2025-08-07'
                     )
