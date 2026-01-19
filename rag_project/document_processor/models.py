@@ -52,6 +52,9 @@ class ProcessingJob(Document):
     summary_docx_url = URLField(max_length=1000, required=False, null=True)
     sec_url = URLField(max_length=1000, required=False, null=True)
     brazil = DynamicField(null=True)
+    samr_public = DynamicField(null=True)
+    samr_conditional = DynamicField(null=True)
+    samr_unconditional = DynamicField(null=True)
 
     # Schema parsing results
     # schema_results = DictField(null=True)

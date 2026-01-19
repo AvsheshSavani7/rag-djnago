@@ -20,6 +20,9 @@ class ProcessingJobSerializer(serializers.Serializer):
     createdAt = serializers.DateTimeField(format="%Y-%m-%d %H:%M:%S")
     updatedAt = serializers.DateTimeField(format="%Y-%m-%d %H:%M:%S")
     brazil = serializers.JSONField(required=False, allow_null=True)
+    samr_public = serializers.JSONField(required=False, allow_null=True)
+    samr_conditional = serializers.JSONField(required=False, allow_null=True)
+    samr_unconditional = serializers.JSONField(required=False, allow_null=True)
     schema_results = serializers.JSONField(required=False, allow_null=True)
     schema_processing_completed = serializers.BooleanField()
     schema_processing_timestamp = serializers.DateTimeField(

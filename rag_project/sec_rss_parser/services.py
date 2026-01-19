@@ -428,13 +428,13 @@ def generate_8k_summary_async(deal_id, company_name, form_type, cik_number, sec_
                         deal_id=deal_id,
                         temperature=0.7,
                         provider='openai',
-                        model='gpt-4.1-mini'
+                        model='gpt-5-2025-08-07'
                     )
 
                     if result:
                         # Update job with summary URL
                         job.summary_docx_url = result
-                        job.summary_using = "openai-gpt-4.1-mini"
+                        job.summary_using = "gpt-5"
                         job.summary_status = 'COMPLETED'
                         job.save()
 
