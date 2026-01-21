@@ -56,6 +56,7 @@ class ProcessingJob(Document):
     samr_conditional = DynamicField(null=True)
     samr_unconditional = DynamicField(null=True)
     uk_cma_cases = DynamicField(null=True)
+    german_scrap = DynamicField(null=True)
 
     # Schema parsing results
     # schema_results = DictField(null=True)
