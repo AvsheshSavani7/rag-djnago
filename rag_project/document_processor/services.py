@@ -1215,13 +1215,15 @@ class FlattenProcessor:
                 ):
                     section_label = f"Section {section.get('section', '')} {section.get('title', '')}".strip(
                     )
-                    path_section = path + [section_label]
+                    # path_section = path + [section_label] removing article from lable on 22nd jan 26 as we are facing issue in summary generation while resolving reference
+                    path_section = [section_label]
 
                     for item in section.get("definitions"):
                         # if "Material Adverse Effect" in item.get('term', ""):
                         outputs.append(
                             {
-                                "label": f"{' > '.join(path_section)} > {item['term']}",
+                                # "label": f"{' > '.join(path_section)} > {item['term']}", comment on 22nd jan 26 as we are facing issue in summary generation while resolving reference
+                                "label": f"Definition > {item['term']}",
                                 "original_text": f"{item['term']} {item['definition']}",
                                 "combined_text": f"{item['term']} {item['definition']}",
                                 "deal_name": self.deal_name,
