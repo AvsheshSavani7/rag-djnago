@@ -308,8 +308,16 @@ class ListAllDealsView(APIView):
 
     def get(self, request, format=None):
         try:
-            # Get all deals from the database
-            jobs = ProcessingJob.objects.all().order_by('-createdAt')
+            # Get pagination parameters
+            offset = int(request.query_params.get('offset', 0))
+            limit = int(request.query_params.get('limit', 10))
+
+            # Get total count before pagination
+            total_count = ProcessingJob.objects.all().count()
+
+            # Get deals with pagination
+            jobs = ProcessingJob.objects.all().order_by(
+                '-createdAt').skip(offset).limit(limit)
 
             # Convert schema_results from a JSON string to a dictionary if applicable, ensuring valid DictField representation
             for job in jobs:
@@ -376,7 +384,9 @@ class ListAllDealsView(APIView):
             # Return the serialized data with products
             return Response({
                 'deals': deals_data,
-                'total': len(deals_data)
+                'total': total_count,
+                'offset': offset,
+                'limit': limit
             }, status=status.HTTP_200_OK)
 
         except Exception as e:
