@@ -1867,8 +1867,9 @@ class SummaryGenerationService:
                 # Create timestamp
                 current_time = datetime.now().strftime("%m-%d-%Y_%I-%M%p")
 
-                # Create temporary file with .docx extension
+                # Create temporary file(s) with .docx extension
                 temp_docx = None
+                temp_docx_from = None
                 try:
                     # Create temp file with .docx extension that will be deleted when closed
                     with tempfile.NamedTemporaryFile(suffix='.docx', delete=False) as temp_file:
@@ -1883,6 +1884,19 @@ class SummaryGenerationService:
                         )
                         logger.info("\n✅ DOCX summary written.")
 
+                    # Create a second DOCX that includes "From Clause" info
+                    with tempfile.NamedTemporaryFile(suffix='.docx', delete=False) as temp_file_from:
+                        temp_docx_from = temp_file_from.name
+
+                        write_docx_summary(
+                            summary_outputs_sorted,
+                            temp_docx_from,
+                            RUN_CONCISE_SUMMARIES,
+                            RUN_FULSOME_SUMMARIES,
+                            True
+                        )
+                        logger.info("\n✅ DOCX (from-clause) summary written.")
+
                     # Upload DOCX to S3
 
                     # Get the filename from the parsed_file_url
@@ -1890,10 +1904,22 @@ class SummaryGenerationService:
                     filename = parsed_json_url.split("/")[-1]
                     remove_extension = filename.split(".")[0]
                     docx_key = f"summaries-engine/{remove_extension}.docx"
+                    docx_from_key = f"summaries-engine/{remove_extension}_from.docx"
 
                     try:
                         # Upload the file
                         s3_client.upload_file(temp_docx, S3_BUCKET, docx_key)
+
+                        # Upload the "from-clause" file (do NOT store in MongoDB)
+                        if temp_docx_from and os.path.exists(temp_docx_from):
+                            try:
+                                s3_client.upload_file(
+                                    temp_docx_from, S3_BUCKET, docx_from_key)
+                                logger.info(
+                                    f"\n✅ DOCX (from-clause) uploaded to S3: {docx_from_key}")
+                            except Exception as e:
+                                logger.error(
+                                    f"Error uploading from-clause DOCX to S3: {str(e)}")
 
                         # Store HTTPS URL and summary provider info in MongoDB
                         s3_url = f"https://{S3_BUCKET}.s3.amazonaws.com/{docx_key}"
@@ -1909,19 +1935,30 @@ class SummaryGenerationService:
                         return None
 
                     finally:
-                        # Cleanup temporary file
+                        # Cleanup temporary file(s)
                         if temp_docx and os.path.exists(temp_docx):
                             try:
                                 os.unlink(temp_docx)
                             except Exception as cleanup_error:
                                 logger.warning(
                                     f"Could not delete temporary file {temp_docx}: {str(cleanup_error)}")
+                        if temp_docx_from and os.path.exists(temp_docx_from):
+                            try:
+                                os.unlink(temp_docx_from)
+                            except Exception as cleanup_error:
+                                logger.warning(
+                                    f"Could not delete temporary file {temp_docx_from}: {str(cleanup_error)}")
 
                 except Exception as e:
                     logger.error(f"Error in summary generation: {str(e)}")
                     if temp_docx and os.path.exists(temp_docx):
                         try:
                             os.unlink(temp_docx)
+                        except Exception:
+                            pass
+                    if temp_docx_from and os.path.exists(temp_docx_from):
+                        try:
+                            os.unlink(temp_docx_from)
                         except Exception:
                             pass
                     return None

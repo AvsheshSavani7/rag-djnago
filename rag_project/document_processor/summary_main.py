@@ -109,6 +109,8 @@ def parse_rank(rank):
 summary_outputs = []
 
 # Function to process a single clause - will be executed in parallel
+
+
 def process_single_clause(clause_name, clause_config):
     """Process a single clause configuration"""
     try:
@@ -116,7 +118,8 @@ def process_single_clause(clause_name, clause_config):
 
         # Skip unknown or disabled types
         if summary_type not in ("Concise", "Fulsome"):
-            print(f"Skipping {clause_name} — summary_type '{summary_type}' not recognized.")
+            print(
+                f"Skipping {clause_name} — summary_type '{summary_type}' not recognized.")
             return None
 
         if summary_type == "Concise" and not RUN_CONCISE_SUMMARIES:
@@ -127,7 +130,7 @@ def process_single_clause(clause_name, clause_config):
 
         print(f"\n→ Evaluating: {clause_name}")
         result = process_clause_config(
-            clause_config, clause_name, EXAMPLE_SCHEMA_DATA, 
+            clause_config, clause_name, EXAMPLE_SCHEMA_DATA,
             provider="openai", model="gpt-4", temperature=0)
 
         if result["output"] and result["output"] != "No output generated.":
@@ -162,9 +165,10 @@ def process_single_clause(clause_name, clause_config):
         traceback.print_exc()
         return None
 
+
 # Use ThreadPoolExecutor to parallelize API calls
 # Adjust max_workers based on your needs (10 is a good starting point)
-max_workers = 10
+max_workers = 50
 print(f"Processing {len(CLAUSE_CONFIG)} clauses with {max_workers} workers")
 
 with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
@@ -173,7 +177,7 @@ with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
         executor.submit(process_single_clause, clause_name, clause_config): clause_name
         for clause_name, clause_config in CLAUSE_CONFIG.items()
     }
-    
+
     # Collect results as they complete
     for future in concurrent.futures.as_completed(future_to_clause):
         clause_name = future_to_clause[future]

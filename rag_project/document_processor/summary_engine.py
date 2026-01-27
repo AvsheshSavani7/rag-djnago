@@ -906,7 +906,7 @@ def add_tab_stop(paragraph, position_inches):
     tabs.append(tab)
 
 
-def write_docx_summary(summaries, output_path, RUN_CONCISE_SUMMARIES, RUN_FULSOME_SUMMARIES):
+def write_docx_summary(summaries, output_path, RUN_CONCISE_SUMMARIES, RUN_FULSOME_SUMMARIES, From_Clause=False):
 
     doc = Document()
 
@@ -1107,24 +1107,36 @@ def write_docx_summary(summaries, output_path, RUN_CONCISE_SUMMARIES, RUN_FULSOM
 
             add_tab_stop(config_para, 1.0)
 
-            # config_bullet = config_para.add_run("○\t")
+            if From_Clause:
 
-            # config_bullet.font.name = "Aptos"
+                config_bullet = config_para.add_run("○\t")
 
-            # config_bullet.font.size = Pt(8)
+                config_bullet.font.name = "Aptos"
 
-            # config_bullet.font.color.rgb = RGBColor(0, 0, 0)
+                config_bullet.font.size = Pt(8)
 
-            # config_bullet = config_para.add_run(
+                config_bullet.font.color.rgb = RGBColor(0, 0, 0)
 
-            #     "From : " + s.get("clause_name") + " - " + str(s.get("summary_rank")))
+                config_bullet = config_para.add_run(
 
-            # config_bullet.font.name = "Aptos"
+                    "From : " + s.get("clause_name") + " - " + str(s.get("summary_rank")))
 
-            # config_bullet.font.size = Pt(10)
+                config_bullet.font.name = "Aptos"
+
+                config_bullet.font.size = Pt(10)
 
     doc.save(output_path)
     print(f"\n✅ DOCX summary written to: {output_path}")
+
+    # for local testing - save both DOCX and JSON locally
+    # local_docx_path = "summary_outputs.docx"
+    # doc.save(local_docx_path)
+
+    # with open("summary_outputs.json", "w", encoding="utf-8") as f:
+    #     json.dump(summaries, f, indent=2, ensure_ascii=False)
+
+    # print(f"\n✅ Local DOCX copy written to: {local_docx_path}")
+    # print(f"\n✅ Summary outputs written to: summary_outputs.json")
 
 
 # =========================
