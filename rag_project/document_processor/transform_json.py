@@ -20,6 +20,18 @@ def simplify_reference_section(ref_section):
     if not ref_section:
         return ""
 
+    # Handle case where ref_section is a list instead of a string
+    if isinstance(ref_section, list):
+        # Join list items with a separator, or return empty string if list is empty
+        if not ref_section:
+            return ""
+        # Convert list to string by joining items
+        ref_section = " > ".join(str(item) for item in ref_section if item)
+
+    # Ensure ref_section is a string before using regex
+    if not isinstance(ref_section, str):
+        return str(ref_section) if ref_section else ""
+
     # Extract the section number and name using regex
     section_match = re.search(r"Section\s+(\d+\.\d+)[^(>]*", ref_section)
     if not section_match:
@@ -110,8 +122,8 @@ def transform_json_file(input_file, output_file):
 
 
 if __name__ == "__main__":
-    input_file = "Azek_04-06-25_Schema.json"
-    output_file = "Azek_Schema.json"
+    input_file = "schema_results_26-01-26_03-33_PM.json"
+    output_file = "schema_results_c.json"
 
     if not os.path.exists(input_file):
         print(f"Error: Input file {input_file} not found.")
