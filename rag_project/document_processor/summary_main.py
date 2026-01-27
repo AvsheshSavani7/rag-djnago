@@ -5,6 +5,8 @@ import sys
 import os
 import json
 import boto3
+import concurrent.futures
+import traceback
 from dotenv import load_dotenv
 from summary_engine import process_clause_config, write_docx_summary
 from summary_engine import RUN_CONCISE_SUMMARIES, RUN_FULSOME_SUMMARIES
@@ -106,56 +108,84 @@ def parse_rank(rank):
 # =========================
 summary_outputs = []
 
-for clause_name, clause_config in CLAUSE_CONFIG.items():
+# Function to process a single clause - will be executed in parallel
+def process_single_clause(clause_name, clause_config):
+    """Process a single clause configuration"""
+    try:
+        summary_type = clause_config.get("summary_type", "Concise")
 
-    summary_type = clause_config.get("summary_type", "Concise")
+        # Skip unknown or disabled types
+        if summary_type not in ("Concise", "Fulsome"):
+            print(f"Skipping {clause_name} — summary_type '{summary_type}' not recognized.")
+            return None
 
-    # 🚨 ADD THIS LINE TO SKIP UNKNOWN OR DISABLED TYPES
+        if summary_type == "Concise" and not RUN_CONCISE_SUMMARIES:
+            return None
 
-    if summary_type not in ("Concise", "Fulsome"):
+        if summary_type == "Fulsome" and not RUN_FULSOME_SUMMARIES:
+            return None
 
-        print(
-            f"Skipping {clause_name} — summary_type '{summary_type}' not recognized.")
+        print(f"\n→ Evaluating: {clause_name}")
+        result = process_clause_config(
+            clause_config, clause_name, EXAMPLE_SCHEMA_DATA, 
+            provider="openai", model="gpt-4", temperature=0)
 
-        continue
+        if result["output"] and result["output"] != "No output generated.":
+            # Skip concise summaries where view_prompt is False
+            if (
+                result.get("summary_type", "") == "Concise"
+                and clause_config.get("view_prompt", True) is False
+            ):
+                print(f"Skipping {clause_name} (concise, view_prompt=False)")
+                return None
 
-    if summary_type == "Concise" and not RUN_CONCISE_SUMMARIES:
+            # Log output
+            print("=== CLAUSE SUMMARY OUTPUT ===")
+            print(f"Clause: {clause_name}")
+            if result.get("used_prompt"):
+                print("Used Prompt:\n" + result["used_prompt"])
+            print("Summary:\n" + result["output"])
+            if result.get("references"):
+                print("References:")
+                for r in result["references"]:
+                    print("- " + r)
+            else:
+                print("References: [None found or resolved]")
 
-        continue
+            return {
+                "clause_name": clause_name,
+                **result
+            }
+        return None
+    except Exception as e:
+        print(f"Error processing clause {clause_name}: {str(e)}")
+        traceback.print_exc()
+        return None
 
-    if summary_type == "Fulsome" and not RUN_FULSOME_SUMMARIES:
+# Use ThreadPoolExecutor to parallelize API calls
+# Adjust max_workers based on your needs (10 is a good starting point)
+max_workers = 10
+print(f"Processing {len(CLAUSE_CONFIG)} clauses with {max_workers} workers")
 
-        continue
+with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
+    # Submit all tasks
+    future_to_clause = {
+        executor.submit(process_single_clause, clause_name, clause_config): clause_name
+        for clause_name, clause_config in CLAUSE_CONFIG.items()
+    }
+    
+    # Collect results as they complete
+    for future in concurrent.futures.as_completed(future_to_clause):
+        clause_name = future_to_clause[future]
+        try:
+            result = future.result()
+            if result:
+                summary_outputs.append(result)
+        except Exception as e:
+            print(f"Exception for clause {clause_name}: {str(e)}")
+            traceback.print_exc()
 
-    print(f"\n→ Evaluating: {clause_name}")
-    result = process_clause_config(
-        clause_config, clause_name, EXAMPLE_SCHEMA_DATA, provider="openai", model="gpt-4", temperature=0)
-
-    if result["output"] and result["output"] != "No output generated.":
-        # Skip concise summaries where view_prompt is False
-        if (
-            result.get("summary_type", "") == "Concise"
-            and clause_config.get("view_prompt", True) is False
-        ):
-            print(f"Skipping {clause_name} (concise, view_prompt=False)")
-            continue
-
-        summary_outputs.append({
-            "clause_name": clause_name,
-            **result
-        })
-
-        print("=== CLAUSE SUMMARY OUTPUT ===")
-        print(f"Clause: {clause_name}")
-        if result.get("used_prompt"):
-            print("Used Prompt:\n" + result["used_prompt"])
-        print("Summary:\n" + result["output"])
-        if result.get("references"):
-            print("References:")
-            for r in result["references"]:
-                print("- " + r)
-        else:
-            print("References: [None found or resolved]")
+print(f"Completed processing {len(summary_outputs)} clause summaries")
 
 # =========================
 # Write to DOCX

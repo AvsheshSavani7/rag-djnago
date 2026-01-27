@@ -1764,55 +1764,95 @@ class SummaryGenerationService:
                 preamble_data = fetcher.extract_preamble_from_chunks(
                     all_chunks)
 
-                for clause_name, clause_config in CLAUSE_CONFIG.items():
+                # Function to process a single clause - will be executed in parallel
+                def process_single_clause(clause_name, clause_config):
+                    """Process a single clause configuration"""
+                    try:
+                        summary_type = clause_config.get(
+                            "summary_type", "Concise")
 
-                    summary_type = clause_config.get("summary_type", "Concise")
-
-                    # Skip unknown or disabled types - matching summary_main.py logic
-                    # "Fulsome" is commented out
-                    if summary_type not in ("Concise", "Fulsome"):
-                        logger.info(
-                            f"Skipping {clause_name} — summary_type '{summary_type}' not recognized.")
-                        continue
-
-                    if summary_type == "Concise" and not RUN_CONCISE_SUMMARIES:
-                        continue
-
-                    if summary_type == "Fulsome" and not RUN_FULSOME_SUMMARIES:
-                        continue
-
-                    logger.info(f"\n→ Evaluating: {clause_name}")
-                    result = process_clause_config(
-                        clause_config, clause_name, schema_results, provider=provider, model=model, temperature=temperature, definitions_array=definitions_array, preamble_data=preamble_data, deal_id=deal_id)
-
-                    if result["output"] and result["output"] != "No output generated.":
-                        # Skip concise summaries where view_prompt is False
-                        if (
-                            result.get("summary_type", "") == "Concise"
-                            and clause_config.get("view_prompt", True) is False
-                        ):
+                        # Skip unknown or disabled types - matching summary_main.py logic
+                        if summary_type not in ("Concise", "Fulsome"):
                             logger.info(
-                                f"Skipping {clause_name} (concise, view_prompt=False)")
-                            continue
+                                f"Skipping {clause_name} — summary_type '{summary_type}' not recognized.")
+                            return None
 
-                        summary_outputs.append({
-                            "clause_name": clause_name,
-                            **result
-                        })
+                        if summary_type == "Concise" and not RUN_CONCISE_SUMMARIES:
+                            return None
 
-                        # Log output matching summary_main.py
-                        logger.info("=== CLAUSE SUMMARY OUTPUT ===")
-                        logger.info(f"Clause: {clause_name}")
-                        if result.get("used_prompt"):
-                            logger.info("Used Prompt:\n" +
-                                        result["used_prompt"])
-                        logger.info("Summary:\n" + result["output"])
-                        if result.get("references"):
-                            logger.info("References:")
-                            for r in result["references"]:
-                                logger.info("- " + r)
-                        else:
-                            logger.info("References: [None found or resolved]")
+                        if summary_type == "Fulsome" and not RUN_FULSOME_SUMMARIES:
+                            return None
+
+                        logger.info(f"\n→ Evaluating: {clause_name}")
+                        result = process_clause_config(
+                            clause_config, clause_name, schema_results,
+                            provider=provider, model=model, temperature=temperature,
+                            definitions_array=definitions_array, preamble_data=preamble_data,
+                            deal_id=deal_id)
+
+                        if result["output"] and result["output"] != "No output generated.":
+                            # Skip concise summaries where view_prompt is False
+                            if (
+                                result.get("summary_type", "") == "Concise"
+                                and clause_config.get("view_prompt", True) is False
+                            ):
+                                logger.info(
+                                    f"Skipping {clause_name} (concise, view_prompt=False)")
+                                return None
+
+                            # Log output matching summary_main.py
+                            logger.info("=== CLAUSE SUMMARY OUTPUT ===")
+                            logger.info(f"Clause: {clause_name}")
+                            if result.get("used_prompt"):
+                                logger.info("Used Prompt:\n" +
+                                            result["used_prompt"])
+                            logger.info("Summary:\n" + result["output"])
+                            if result.get("references"):
+                                logger.info("References:")
+                                for r in result["references"]:
+                                    logger.info("- " + r)
+                            else:
+                                logger.info(
+                                    "References: [None found or resolved]")
+
+                            return {
+                                "clause_name": clause_name,
+                                **result
+                            }
+                        return None
+                    except Exception as e:
+                        logger.error(
+                            f"Error processing clause {clause_name}: {str(e)}")
+                        logger.error(traceback.format_exc())
+                        return None
+
+                # Use ThreadPoolExecutor to parallelize API calls
+                # Adjust max_workers based on your needs (10 is a good starting point)
+                max_workers = 50
+                logger.info(
+                    f"Processing {len(CLAUSE_CONFIG)} clauses with {max_workers} workers")
+
+                with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
+                    # Submit all tasks
+                    future_to_clause = {
+                        executor.submit(process_single_clause, clause_name, clause_config): clause_name
+                        for clause_name, clause_config in CLAUSE_CONFIG.items()
+                    }
+
+                    # Collect results as they complete
+                    for future in concurrent.futures.as_completed(future_to_clause):
+                        clause_name = future_to_clause[future]
+                        try:
+                            result = future.result()
+                            if result:
+                                summary_outputs.append(result)
+                        except Exception as e:
+                            logger.error(
+                                f"Exception for clause {clause_name}: {str(e)}")
+                            logger.error(traceback.format_exc())
+
+                logger.info(
+                    f"Completed processing {len(summary_outputs)} clause summaries")
 
                 # Sort summaries by rank - exactly as in summary_main.py
                 def parse_rank(rank):
