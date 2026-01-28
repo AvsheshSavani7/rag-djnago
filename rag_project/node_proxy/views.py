@@ -321,16 +321,16 @@ class AnnouncementWithUrlView(APIView):
         try:
             # Prepare the prompt for OpenAI
             missing_fields = []
-            if not existing_data.get('target_cik'):
-                missing_fields.append('target_cik')
-            if not existing_data.get('announce_data'):
-                missing_fields.append('announce_data')
-            if not existing_data.get('target_name'):
-                missing_fields.append('target_name')
-            if not existing_data.get('acquirer_name'):
-                missing_fields.append('acquirer_name')
-            if not existing_data.get('acquirer_cik'):
-                missing_fields.append('acquirer_cik')
+            # if not existing_data.get('target_cik'):
+            missing_fields.append('target_cik')
+            # if not existing_data.get('announce_data'):
+            missing_fields.append('announce_data')
+            # if not existing_data.get('target_name'):
+            missing_fields.append('target_name')
+            # if not existing_data.get('acquirer_name'):
+            missing_fields.append('acquirer_name')
+            # if not existing_data.get('acquirer_cik'):
+            missing_fields.append('acquirer_cik')
 
             if not missing_fields:
                 return existing_data
@@ -505,25 +505,25 @@ class AnnouncementWithUrlView(APIView):
             # Extract data from request
             url = request.data.get('url')
             sec_filing_id = request.data.get('sec_filing_id')
-            print(f"url:1 {url}")
-            if not url:
-                return Response({
-                    "error": "URL is required"
-                }, status=status.HTTP_400_BAD_REQUEST)
+            # print(f"url:1 {url}")
+            # if not url:
+            #     return Response({
+            #         "error": "URL is required"
+            #     }, status=status.HTTP_400_BAD_REQUEST)
 
             # Extract CIK from SEC URL if available
             extracted_cik = None
-            if url and '/data/' in url:
-                try:
-                    # Extract CIK from URL path after /data/
-                    url_parts = url.split('/data/')
-                    if len(url_parts) > 1:
-                        cik_part = url_parts[1].split('/')[0]
-                        # Pad with leading zeros to make it 10 digits
-                        extracted_cik = cik_part.zfill(10)
-                        logger.info(f"Extracted CIK from URL: {extracted_cik}")
-                except Exception as e:
-                    logger.warning(f"Could not extract CIK from URL: {e}")
+            # if url and '/data/' in url:
+            #     try:
+            #         # Extract CIK from URL path after /data/
+            #         url_parts = url.split('/data/')
+            #         if len(url_parts) > 1:
+            #             cik_part = url_parts[1].split('/')[0]
+            #             # Pad with leading zeros to make it 10 digits
+            #             extracted_cik = cik_part.zfill(10)
+            #             logger.info(f"Extracted CIK from URL: {extracted_cik}")
+            #     except Exception as e:
+            #         logger.warning(f"Could not extract CIK from URL: {e}")
 
             # Extract other fields
             data = {
