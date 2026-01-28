@@ -321,16 +321,16 @@ class AnnouncementWithUrlView(APIView):
         try:
             # Prepare the prompt for OpenAI
             missing_fields = []
-            # if not existing_data.get('target_cik'):
-            missing_fields.append('target_cik')
-            # if not existing_data.get('announce_data'):
-            missing_fields.append('announce_data')
-            # if not existing_data.get('target_name'):
-            missing_fields.append('target_name')
-            # if not existing_data.get('acquirer_name'):
-            missing_fields.append('acquirer_name')
-            # if not existing_data.get('acquirer_cik'):
-            missing_fields.append('acquirer_cik')
+            if not existing_data.get('target_cik'):
+                missing_fields.append('target_cik')
+            if not existing_data.get('announce_data'):
+                missing_fields.append('announce_data')
+            if not existing_data.get('target_name'):
+                missing_fields.append('target_name')
+            if not existing_data.get('acquirer_name'):
+                missing_fields.append('acquirer_name')
+            if not existing_data.get('acquirer_cik'):
+                missing_fields.append('acquirer_cik')
 
             if not missing_fields:
                 return existing_data
@@ -360,44 +360,44 @@ class AnnouncementWithUrlView(APIView):
 
             # Create field-specific instructions based on what's missing
             field_instructions = []
-            # if 'announce_data' in missing_fields:
-            field_instructions.append(
-                "For `announce_data`: Look for the date the deal was publicly announced, usually in the first paragraph or preamble (e.g., 'dated as of...'). Format: YYYY-MM-DD")
+            if 'announce_data' in missing_fields:
+                field_instructions.append(
+                    "For `announce_data`: Look for the date the deal was publicly announced, usually in the first paragraph or preamble (e.g., 'dated as of...'). Format: YYYY-MM-DD")
 
-            # if 'target_cik' in missing_fields:
-            field_instructions.append(
-                "For `target_cik`: The SEC CIK of the TARGET company (the company being acquired/sold). "
-                "Look for the company that is being merged into, acquired by, or purchased by another company. "
-                "This is usually the 'Company' in merger agreements. "
-                "If not present in the document text, return an empty string. "
-                "Rule: add zeros to the left of the CIK to make it 10 digits long. "
-                "CRITICAL: This must be DIFFERENT from the acquirer_cik if both are present."
-            )
+            if 'target_cik' in missing_fields:
+                field_instructions.append(
+                    "For `target_cik`: The SEC CIK of the TARGET company (the company being acquired/sold). "
+                    "Look for the company that is being merged into, acquired by, or purchased by another company. "
+                    "This is usually the 'Company' in merger agreements. "
+                    "If not present in the document text, return an empty string. "
+                    "Rule: add zeros to the left of the CIK to make it 10 digits long. "
+                    "CRITICAL: This must be DIFFERENT from the acquirer_cik if both are present."
+                )
 
-            # if 'target_name' in missing_fields:
-            field_instructions.append(
-                "For `target_name`: The TARGET company name (the company being acquired/sold). "
-                "This is the company that is being merged into, acquired, or purchased. "
-                "Look for terms like 'Company', 'Target', 'being acquired', 'merging into', 'sold to'. "
-                "CRITICAL: The target_name and acquirer_name MUST be DIFFERENT companies. "
-                "If you cannot clearly identify two distinct companies, return an empty string rather than duplicating a name."
-            )
-            # if 'acquirer_name' in missing_fields:
-            field_instructions.append(
-                "For `acquirer_name`: The ACQUIRER company name (the company doing the acquiring/buying). "
-                "This is the company that is acquiring, buying, or merging with the target. "
-                "Look for terms like 'Parent', 'Buyer', 'Acquirer', 'Merger Sub', 'Holdings', 'acquiring', 'purchasing'. "
-                "CRITICAL: The acquirer_name and target_name MUST be DIFFERENT companies. "
-                "If you cannot clearly identify two distinct companies, return an empty string rather than duplicating a name."
-            )
-            # if 'acquirer_cik' in missing_fields:
-            field_instructions.append(
-                "For `acquirer_cik`: The SEC CIK of the ACQUIRER/BUYER company only if the acquirer is an SEC registrant; otherwise return an empty string. "
-                "This is the company doing the acquiring. "
-                "CRITICAL: Do NOT copy the target's CIK. The acquirer_cik and target_cik must be DIFFERENT if both are present. "
-                "If the acquirer is a private company (like a Holdings entity), return an empty string. "
-                "Rule: add zeros to the left of the CIK to make it 10 digits long."
-            )
+            if 'target_name' in missing_fields:
+                field_instructions.append(
+                    "For `target_name`: The TARGET company name (the company being acquired/sold). "
+                    "This is the company that is being merged into, acquired, or purchased. "
+                    "Look for terms like 'Company', 'Target', 'being acquired', 'merging into', 'sold to'. "
+                    "CRITICAL: The target_name and acquirer_name MUST be DIFFERENT companies. "
+                    "If you cannot clearly identify two distinct companies, return an empty string rather than duplicating a name."
+                )
+            if 'acquirer_name' in missing_fields:
+                field_instructions.append(
+                    "For `acquirer_name`: The ACQUIRER company name (the company doing the acquiring/buying). "
+                    "This is the company that is acquiring, buying, or merging with the target. "
+                    "Look for terms like 'Parent', 'Buyer', 'Acquirer', 'Merger Sub', 'Holdings', 'acquiring', 'purchasing'. "
+                    "CRITICAL: The acquirer_name and target_name MUST be DIFFERENT companies. "
+                    "If you cannot clearly identify two distinct companies, return an empty string rather than duplicating a name."
+                )
+            if 'acquirer_cik' in missing_fields:
+                field_instructions.append(
+                    "For `acquirer_cik`: The SEC CIK of the ACQUIRER/BUYER company only if the acquirer is an SEC registrant; otherwise return an empty string. "
+                    "This is the company doing the acquiring. "
+                    "CRITICAL: Do NOT copy the target's CIK. The acquirer_cik and target_cik must be DIFFERENT if both are present. "
+                    "If the acquirer is a private company (like a Holdings entity), return an empty string. "
+                    "Rule: add zeros to the left of the CIK to make it 10 digits long."
+                )
             instructions_text = "\n".join(field_instructions)
 
             print(f"instructions_text: {instructions_text}")
@@ -505,25 +505,25 @@ class AnnouncementWithUrlView(APIView):
             # Extract data from request
             url = request.data.get('url')
             sec_filing_id = request.data.get('sec_filing_id')
-            # print(f"url:1 {url}")
-            # if not url:
-            #     return Response({
-            #         "error": "URL is required"
-            #     }, status=status.HTTP_400_BAD_REQUEST)
+            print(f"url:1 {url}")
+            if not url:
+                return Response({
+                    "error": "URL is required"
+                }, status=status.HTTP_400_BAD_REQUEST)
 
             # Extract CIK from SEC URL if available
             extracted_cik = None
-            # if url and '/data/' in url:
-            #     try:
-            #         # Extract CIK from URL path after /data/
-            #         url_parts = url.split('/data/')
-            #         if len(url_parts) > 1:
-            #             cik_part = url_parts[1].split('/')[0]
-            #             # Pad with leading zeros to make it 10 digits
-            #             extracted_cik = cik_part.zfill(10)
-            #             logger.info(f"Extracted CIK from URL: {extracted_cik}")
-            #     except Exception as e:
-            #         logger.warning(f"Could not extract CIK from URL: {e}")
+            if url and '/data/' in url:
+                try:
+                    # Extract CIK from URL path after /data/
+                    url_parts = url.split('/data/')
+                    if len(url_parts) > 1:
+                        cik_part = url_parts[1].split('/')[0]
+                        # Pad with leading zeros to make it 10 digits
+                        extracted_cik = cik_part.zfill(10)
+                        logger.info(f"Extracted CIK from URL: {extracted_cik}")
+                except Exception as e:
+                    logger.warning(f"Could not extract CIK from URL: {e}")
 
             # Extract other fields
             data = {
