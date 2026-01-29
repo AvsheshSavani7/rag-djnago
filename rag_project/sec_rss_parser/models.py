@@ -1,4 +1,4 @@
-from mongoengine import Document, StringField, DateTimeField, IntField, ListField, DictField, BooleanField, URLField
+from mongoengine import Document, StringField, DateTimeField, IntField, ListField, DictField, BooleanField, URLField, DynamicField
 from datetime import datetime
 import uuid
 
@@ -67,6 +67,8 @@ class SECFiling(Document):
     following = BooleanField(default=False)
     # Processing status: "Not Started", "In Progress", "Fail", "Completed"
     following_status = StringField(default="Not Started", max_length=20)
+
+    company_details = DynamicField(required=False, null=True)
 
     # Timestamps
     created_at = DateTimeField(default=datetime.utcnow)

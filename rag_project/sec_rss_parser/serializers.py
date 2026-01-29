@@ -54,6 +54,7 @@ class SECFilingSerializer(serializers.Serializer):
     following = serializers.BooleanField(default=False)
     following_status = serializers.CharField(
         max_length=20, default="Not Started")
+    company_details = serializers.JSONField(required=False, allow_null=True)
     document_kind = serializers.CharField(
         max_length=20, required=False, allow_null=True)
     deal_found = serializers.BooleanField(required=False, allow_null=True)
