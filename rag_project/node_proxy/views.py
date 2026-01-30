@@ -603,7 +603,8 @@ class AnnouncementWithUrlView(APIView):
                     "target_name": data.get('target_name'),
                     "acquired_name": data.get('acquirer_name'),
                     "sec_filing_id": data.get('sec_filing_id') if data.get('sec_filing_id') else None,
-                    "acquirer_cik": data.get('acquirer_cik')
+                    "acquirer_cik": data.get('acquirer_cik'),
+                    "is_from_ui": request.data.get('is_from_ui') if request.data.get('is_from_ui') else False
                 }
             )
 

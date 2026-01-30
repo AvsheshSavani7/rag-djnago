@@ -104,66 +104,68 @@ class SECDocumentAnalyzer:
                 }
 
             prompt = f"""
-You are an expert in analyzing SEC filings and merger & acquisition documents. 
+            You are an expert in analyzing SEC filings and merger & acquisition documents. 
 
-Please analyze the following document excerpt from a Form 8-K filing by {company_name} and determine:
+            Please analyze the following document excerpt from a Form 8-K/2.1 filing by {company_name} and determine:
 
-1. Is this a NEW DEAL/MERGER/ACQUISITION AGREEMENT or an AMENDMENT to an existing deal/agreement?
-2. Classify the **document kind** precisely.
+            1. Is this a NEW DEAL/MERGER/ACQUISITION AGREEMENT or an AMENDMENT to an existing deal/agreement?
+            2. Classify the **document kind** precisely.
 
-Document excerpt:
-{document_text}
+            Document excerpt:
+            {document_text}
 
-Please respond with a JSON object containing:
-- "classification": either "new_deal" or "amendment"
-- "document_kind": one of the categories below
-- "confidence": a number from 0-100
-- "reasoning": brief explanation
-- "key_indicators": list of key phrases or sections that led to your conclusion
+            Please respond with a JSON object containing:
+            - "classification": either "new_deal" or "amendment"
+            - "document_kind": one of the categories below
+            - "confidence": a number from 0-100
+            - "reasoning": brief explanation
+            - "key_indicators": list of key phrases or sections that led to your conclusion
 
----
+            ---
 
-### Classification Rules
+            ### Classification Rules
 
-**Deal Classification**
-- "new_deal" → if it is a new agreement (merger, acquisition, sale, or reorganization).
-- "amendment" → if it modifies, amends, or restates a prior agreement.
+            **Deal Classification**
+            - "new_deal" → if it is a new agreement (merger, acquisition, sale, or reorganization).
+            - "amendment" → if it modifies, amends, or restates a prior agreement.
 
-**Document Kind (choose EXACTLY one; use these exact strings only)**
-- "Definitive Merger Agreement"
-- "Stock Purchase / Share Exchange Agreement"
-- "Asset Purchase Agreement"
-- "Plan of Reorganization (Bankruptcy)"
-- "Plan of Liquidation / Dissolution"
-- "Succession / Arrangement Plans"
-- "Amendment"
-- "Other Corporate Agreement" 
+            **Document Kind (choose EXACTLY one; use these exact strings only)**
+            - "Definitive Merger Agreement"
+            - "Business Combination Agreement"
+            - "Stock Purchase / Share Exchange Agreement"
+            - "Asset Purchase Agreement"
+            - "Plan of Reorganization (Bankruptcy)"
+            - "Plan of Liquidation / Dissolution"
+            - "Succession / Arrangement Plans"
+            - "Amendment"
+            - "Other Corporate Agreement" 
 
-### Title Keyword Hints (for recognition only; NEVER copy these into output unless they appear verbatim in the excerpt)
+            ### Title Keyword Hints (for recognition only; NEVER copy these into output unless they appear verbatim in the excerpt)
 
-- Definitive Merger Agreement → "Agreement and Plan of Merger"; "Definitive Merger Agreement"; "Agreement and Plan of Reorganization" (M&A context)
-- Stock Purchase / Share Exchange Agreement → "Stock Purchase Agreement"; "Share Exchange Agreement"
-- Asset Purchase Agreement → "Asset Purchase Agreement"; "Bill of Sale"
-- Plan of Reorganization (Bankruptcy) → "Plan of Reorganization"; "Joint Prepackaged Plan"
-- Plan of Liquidation / Dissolution → "Plan of Liquidation"; "Plan of Dissolution"
-- Succession / Arrangement Plans → "Succession Agreement"; "Arrangement Plan"; "Corporate Arrangement"
-- Amendment → "Amendment"; "Modification"; "Restatement"
-- Other Corporate Agreement → fallback if none of the above fit.
+            - Definitive Merger Agreement → "Agreement and Plan of Merger" or "Arrangement Agreement and plan of Merger"; 
+            - Business Combination Agreement → "Business Combination Agreement"; 
+            - Stock Purchase / Share Exchange Agreement → "Stock Purchase Agreement"; "Share Exchange Agreement"
+            - Asset Purchase Agreement → "Asset Purchase Agreement"; "Bill of Sale"
+            - Plan of Reorganization (Bankruptcy) → "Plan of Reorganization"; "Joint Prepackaged Plan"
+            - Plan of Liquidation / Dissolution → "Plan of Liquidation"; "Plan of Dissolution"
+            - Succession / Arrangement Plans → "Succession Agreement"; "Arrangement Plan"; "Corporate Arrangement"
+            - Amendment → "Amendment"; "Modification"; "Restatement"
+            - Other Corporate Agreement → fallback if none of the above fit.
 
 
-- Preserve **original text exactly as it appears** for anything quoted in "key_indicators" and referenced in "reasoning".
-- **Do not normalize, autocorrect, or map** phrases.
-  - Example: if the excerpt says **"Plan of recoganization"** (typo), output **"Plan of recoganization"** exactly in "key_indicators".
-- Keep original casing, punctuation, hyphenation, whitespace, and typos.
-- Use short verbatim snippets (≤ 12 words) that directly justify the decision.
+            - Preserve **original text exactly as it appears** for anything quoted in "key_indicators" and referenced in "reasoning".
+            - **Do not normalize, autocorrect, or map** phrases.
+            - Example: if the excerpt says **"Plan of recoganization"** (typo), output **"Plan of recoganization"** exactly in "key_indicators".
+            - Keep original casing, punctuation, hyphenation, whitespace, and typos.
+            - Use short verbatim snippets (≤ 12 words) that directly justify the decision.
 
-Important:
-- Use the hints only to choose the closest `document_kind` from the fixed list above.
-- Output must be valid JSON.
+            Important:
+            - Use the hints only to choose the closest `document_kind` from the fixed list above.
+            - Output must be valid JSON.
 
----
+            ---
 
-Respond only with valid JSON.
+            Respond only with valid JSON.
 """
 
             response = self.openai_client.chat.completions.create(
@@ -220,6 +222,155 @@ Respond only with valid JSON.
                 'error': str(e)
             }
 
+    @staticmethod
+    def _normalize_cik(cik: str) -> str:
+        """Ensure CIK is 10 digits with leading zeros if needed."""
+        if not cik or not isinstance(cik, str):
+            return cik or ""
+        digits = re.sub(r"\D", "", cik)
+        if not digits:
+            return cik.strip()
+        return digits.zfill(10)
+
+    def analyze_company_details_with_gpt(self, document_text: str, company_name: str) -> Dict[str, Any]:
+        """Analyze document with GPT to extract target/acquirer company details."""
+        try:
+            if not self.openai_client.api_key:
+                logger.error("OpenAI API key not configured")
+                return {
+                    'target_name': '',
+                    'target_cik': '',
+                    'acquirer_name': '',
+                    'acquirer_cik': '',
+                    'is_acquirer_us_listed': None,
+                    'is_acquirer_cap_greater_than_100m': None,
+                    'error': 'API key missing'
+                }
+
+            full_prompt = f"""You are an expert SEC filing analyst with web search access. Use web search to verify company listing status and market cap.
+
+Analyze the following document excerpt from a Form 8-K/2.1 filing by {company_name}.
+
+Document excerpt:
+{document_text}
+
+Extract the following information. First extract company names the document. Then use web search to verify listing status and market cap for the target company and CIKs for both target and acquirer.
+
+Respond with a JSON object containing:
+
+1. "target_name" (string): The full legal name of the target company being acquired (from document).
+2. "target_cik" (string): The SEC Central Index Key (CIK) of the target. Output digits only; it will be normalized to 10 digits with leading zeros elsewhere.
+3. "acquirer_name" (string): The full legal name of the acquirer company (the one doing the acquisition, from document).
+4. "acquirer_cik" (string): The SEC CIK of the acquirer. Output digits only; it will be normalized to 10 digits with leading zeros elsewhere.
+5. "is_target_us_listed" (boolean): USE WEB SEARCH to verify if the target is currently listed on a US stock exchange (NYSE, NASDAQ, etc.). Set to true if listed, false if not listed or delisted, null if cannot determine.
+6. "is_target_market_cap_greater_than_100m" (boolean): USE WEB SEARCH to find the current market capitalization of the target company. Set to true if market cap is greater than $100 million USD, false if less than $100M, null if cannot determine.
+
+IMPORTANT:
+- Extract target_name and acquirer_name from the document excerpt above
+- For acquirer_cik, target_cik, is_target_us_listed and is_target_market_cap_greater_than_100m, you MUST perform web searches to get current, accurate information
+- Search for "[target company name] stock exchange listing" and "[target company name] market cap"
+- If information cannot be found in document, use empty string "" for strings and null for booleans
+
+Respond only with valid JSON.
+"""
+
+            response = self.openai_client.responses.create(
+                model="gpt-5",
+                tools=[{"type": "web_search"}],
+                input=full_prompt,
+                reasoning={"effort": "low"}
+            )
+
+            print(f"GPT Response: {response}")
+
+            # Extract text from Responses API output
+            result_text = None
+            for item in response.output:
+                if item.type == 'message' and hasattr(item, 'content'):
+                    for content_item in item.content:
+                        if content_item.type == 'output_text':
+                            result_text = content_item.text
+                            break
+                if result_text:
+                    break
+
+            if not result_text:
+                raise ValueError("No text output found in response")
+
+            # Extract JSON from response (handle markdown code blocks or plain JSON)
+            result_text = result_text.strip()
+
+            # Remove markdown code blocks if present
+            if result_text.startswith('```'):
+                # Find the JSON content between ```json and ``` or ``` and ```
+                lines = result_text.split('\n')
+                json_lines = []
+                in_code_block = False
+                for line in lines:
+                    if line.strip().startswith('```'):
+                        in_code_block = not in_code_block
+                        continue
+                    if in_code_block:
+                        json_lines.append(line)
+                result_text = '\n'.join(json_lines).strip()
+
+            # Try to find JSON object if there's extra text
+            if not result_text.startswith('{'):
+                # Look for first { and last }
+                start = result_text.find('{')
+                end = result_text.rfind('}')
+                if start != -1 and end != -1:
+                    result_text = result_text[start:end+1]
+
+            result = json.loads(result_text)
+
+            target_cik = result.get('target_cik', '')
+            acquirer_cik = result.get('acquirer_cik', '')
+            if isinstance(target_cik, (int, float)):
+                target_cik = str(int(target_cik))
+            else:
+                target_cik = str(target_cik or '').strip()
+            if isinstance(acquirer_cik, (int, float)):
+                acquirer_cik = str(int(acquirer_cik))
+            else:
+                acquirer_cik = str(acquirer_cik or '').strip()
+
+            company_details = {
+                'target_name': (result.get('target_name') or '').strip(),
+                'target_cik': self._normalize_cik(target_cik),
+                'acquirer_name': (result.get('acquirer_name') or '').strip(),
+                'acquirer_cik': self._normalize_cik(acquirer_cik),
+                'is_target_us_listed': result.get('is_target_us_listed'),
+                'is_target_market_cap_greater_than_100m': result.get('is_target_market_cap_greater_than_100m'),
+            }
+
+            logger.info(
+                f"GPT Company details: target={company_details['target_name']}, acquirer={company_details['acquirer_name']}")
+            return company_details
+
+        except json.JSONDecodeError as e:
+            logger.error(f"Error parsing GPT company details JSON: {e}")
+            return {
+                'target_name': '',
+                'target_cik': '',
+                'acquirer_name': '',
+                'acquirer_cik': '',
+                'is_target_us_listed': None,
+                'is_target_market_cap_greater_than_100m': None,
+                'error': str(e)
+            }
+        except Exception as e:
+            logger.error(f"Error analyzing company details with GPT: {e}")
+            return {
+                'target_name': '',
+                'target_cik': '',
+                'acquirer_name': '',
+                'acquirer_cik': '',
+                'is_target_us_listed': None,
+                'is_target_market_cap_greater_than_100m': None,
+                'error': str(e)
+            }
+
     def analyze_filing(self, filing_data: Dict[str, Any]) -> Dict[str, Any]:
         """
         Main method to analyze a filing
@@ -257,7 +408,7 @@ Respond only with valid JSON.
 
             # Extract pages
             document_text = self.extract_document_pages(
-                html_content, max_pages=4)
+                html_content, max_pages=5)
             if not document_text:
                 logger.error("Failed to extract document text")
                 filing_data['is_new_deal'] = None
@@ -269,6 +420,15 @@ Respond only with valid JSON.
                 document_text,
                 filing_data.get('company_name', 'Unknown Company')
             )
+
+            if analysis.get('document_kind') == 'Definitive Merger Agreement':
+
+                # Extract company details (target/acquirer) with GPT
+                company_details = self.analyze_company_details_with_gpt(
+                    document_text,
+                    filing_data.get('company_name', 'Unknown Company')
+                )
+                filing_data['company_details'] = company_details
 
             # Update filing data based on analysis
             if analysis.get('is_new_deal') is True:

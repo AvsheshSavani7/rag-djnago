@@ -139,23 +139,6 @@ def send_summary_email_notification(proxy_doc):
         )
         logger.info(f"Generated email subject: {subject}")
 
-        # Get email recipients (can be multiple, comma or space separated)
-        recipient_emails_str = getattr(
-            settings, 'SEC_FILING_NOTIFICATION_EMAIL', 'notifications@example.com')
-        logger.info(f"Raw recipient emails from env: {recipient_emails_str}")
-
-        # Parse multiple emails (comma or space separated)
-        recipient_emails = []
-        if recipient_emails_str:
-            # Split by comma first, then by space, and strip whitespace
-            for email_part in recipient_emails_str.replace(',', ' ').split():
-                email = email_part.strip()
-                if email and '@' in email:  # Basic email validation
-                    recipient_emails.append(email)
-                    logger.info(f"  ✅ Added valid email: {email}")
-                else:
-                    logger.warning(f"  ⚠️ Skipped invalid email: {email}")
-
         # Send email via n8n webhook
         webhook_url = "https://n8n-xwx1.onrender.com/webhook/3ff1b0ea-7114-4dda-940e-95ce81e08017"
         logger.info(f"📤 Sending summary email via n8n webhook: {webhook_url}")
@@ -164,15 +147,11 @@ def send_summary_email_notification(proxy_doc):
         payload = {
             'subject': subject,
             'html': html_email,
-            'recipients': recipient_emails,
             'company_name': proxy_doc.company_name,
             'form_type': proxy_doc.form_type,
             'summary_doc_url': proxy_doc.summary_docx_url,
             'proxy_doc_id': str(proxy_doc.id)
         }
-
-        logger.info(
-            f"📦 Payload prepared with {len(recipient_emails)} recipient(s)")
 
         # Send POST request to n8n webhook
         try:
@@ -194,9 +173,6 @@ def send_summary_email_notification(proxy_doc):
                 logger.error(
                     f"❌ Response status: {e.response.status_code}, Response body: {e.response.text[:200]}")
             raise
-
-        logger.info(
-            f"📧 Summary email sent to {len(recipient_emails)} recipient(s) for: {proxy_doc.company_name} - {proxy_doc.form_type}")
 
     except Exception as e:
         logger.error(

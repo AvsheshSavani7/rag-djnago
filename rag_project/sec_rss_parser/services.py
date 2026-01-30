@@ -1,3 +1,4 @@
+from coreschema import Null
 import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
@@ -46,6 +47,7 @@ def generate_filing_email_html(filing_data, doc_files):
     company_name = filing_data.get('company_name', 'Unknown Company')
     accession_no = filing_data.get('accession_number', 'N/A')
     filing_date = filing_data.get('filing_date', 'N/A')
+    company_details = filing_data.get('company_details', None)
     if isinstance(filing_date, datetime):
         filing_date = filing_date.strftime('%Y-%m-%d')
     accepted_date = filing_data.get('acceptance_datetime_utc', 'N/A')
@@ -162,6 +164,83 @@ def generate_filing_email_html(filing_data, doc_files):
         <td style="padding:8px; font-weight:bold; color:#555;">CIK:</td>
         <td style="padding:8px; color:#333;">{escape_html(cik)}</td>
       </tr>
+"""
+
+    # Add company details for 8-K forms
+    if form_type == '8-K' and company_details:
+        html_email += """
+      <tr>
+        <td colspan="2" style="padding:12px 8px 8px 8px; font-weight:bold; color:#4a90e2; font-size:14px; border-top:2px solid #e0e0e0;">
+          Company Details (M&A Information)
+        </td>
+      </tr>
+"""
+
+        # Target Company Info
+        target_name = company_details.get('target_name', '')
+        if target_name:
+            html_email += f"""
+      <tr style="background-color:#f9f9f9;">
+        <td style="padding:8px; font-weight:bold; color:#555;">Target Company:</td>
+        <td style="padding:8px; color:#333;">{escape_html(target_name)}</td>
+      </tr>
+"""
+
+        target_cik = company_details.get('target_cik', '')
+        if target_cik:
+            html_email += f"""
+      <tr>
+        <td style="padding:8px; font-weight:bold; color:#555;">Target CIK:</td>
+        <td style="padding:8px; color:#333;">{escape_html(target_cik)}</td>
+      </tr>
+"""
+
+        # Acquirer Company Info
+        acquirer_name = company_details.get('acquirer_name', '')
+        if acquirer_name:
+            html_email += f"""
+      <tr style="background-color:#f9f9f9;">
+        <td style="padding:8px; font-weight:bold; color:#555;">Acquirer Company:</td>
+        <td style="padding:8px; color:#333;">{escape_html(acquirer_name)}</td>
+      </tr>
+"""
+
+        acquirer_cik = company_details.get('acquirer_cik', '')
+        if acquirer_cik:
+            html_email += f"""
+      <tr>
+        <td style="padding:8px; font-weight:bold; color:#555;">Acquirer CIK:</td>
+        <td style="padding:8px; color:#333;">{escape_html(acquirer_cik)}</td>
+      </tr>
+"""
+
+        # US Listed Status
+        is_us_listed = company_details.get('is_target_us_listed')
+        if is_us_listed is not None:
+            listed_text = "✓ Yes" if is_us_listed else "✗ No"
+            listed_color = "#28a745" if is_us_listed else "#dc3545"
+            html_email += f"""
+      <tr style="background-color:#f9f9f9;">
+        <td style="padding:8px; font-weight:bold; color:#555;">Target US Listed:</td>
+        <td style="padding:8px; color:{listed_color}; font-weight:bold;">{escape_html(listed_text)}</td>
+      </tr>
+"""
+
+        # Market Cap > $100M
+        is_cap_gt_100m = company_details.get(
+            'is_target_market_cap_greater_than_100m')
+        if is_cap_gt_100m is not None:
+            cap_text = "✓ Yes (> $100M)" if is_cap_gt_100m else "✗ No (< $100M)"
+            cap_color = "#28a745" if is_cap_gt_100m else "#dc3545"
+            html_email += f"""
+      <tr>
+        <td style="padding:8px; font-weight:bold; color:#555;">Market Cap > $100M:</td>
+        <td style="padding:8px; color:{cap_color}; font-weight:bold;">{escape_html(cap_text)}</td>
+      </tr>
+"""
+
+    html_email += """
+      
 """
 
     if filing_url:
@@ -315,23 +394,6 @@ def send_8k_summary_email(deal_id, company_name, form_type, cik_number, sec_url,
         )
         logger.info(f"Generated email subject: {subject}")
 
-        # Get email recipients (can be multiple, comma or space separated)
-        recipient_emails_str = getattr(
-            settings, 'SEC_FILING_NOTIFICATION_EMAIL', 'notifications@example.com')
-        logger.info(f"Raw recipient emails from env: {recipient_emails_str}")
-
-        # Parse multiple emails (comma or space separated)
-        recipient_emails = []
-        if recipient_emails_str:
-            # Split by comma first, then by space, and strip whitespace
-            for email_part in recipient_emails_str.replace(',', ' ').split():
-                email = email_part.strip()
-                if email and '@' in email:  # Basic email validation
-                    recipient_emails.append(email)
-                    logger.info(f"  ✅ Added valid email: {email}")
-                else:
-                    logger.warning(f"  ⚠️ Skipped invalid email: {email}")
-
         # Send email via n8n webhook
         webhook_url = "https://n8n-xwx1.onrender.com/webhook/b3007d21-6845-47b5-aece-7b26583758bc"
         logger.info(
@@ -341,15 +403,11 @@ def send_8k_summary_email(deal_id, company_name, form_type, cik_number, sec_url,
         payload = {
             'subject': subject,
             'html': html_email,
-            'recipients': recipient_emails,
             'company_name': company_name,
             'form_type': form_type,
             'summary_doc_url': job.summary_docx_url,
             'deal_id': deal_id
         }
-
-        logger.info(
-            f"📦 Payload prepared with {len(recipient_emails)} recipient(s)")
 
         # Send POST request to n8n webhook
         try:
@@ -372,9 +430,6 @@ def send_8k_summary_email(deal_id, company_name, form_type, cik_number, sec_url,
                 logger.error(
                     f"❌ Response status: {e.response.status_code}, Response body: {e.response.text[:200]}")
             raise
-
-        logger.info(
-            f"📧 8-K summary email sent to {len(recipient_emails)} recipient(s) for: {company_name} - {form_type}")
 
     except Exception as e:
         logger.error(
@@ -490,7 +545,7 @@ def generate_8k_summary_async(deal_id, company_name, form_type, cik_number, sec_
             f"❌ Error in generate_8k_summary_async: {e}", exc_info=True)
 
 
-def process_8k_document_async(ex21_url, cik_number, company_name, sec_filing_id, filing_date, item_data):
+def process_8k_document_async(ex21_url, cik_number, company_name, sec_filing_id, filing_date, item_data, company_details):
     """
     Async function to process 8-K document using Node API.
 
@@ -505,47 +560,23 @@ def process_8k_document_async(ex21_url, cik_number, company_name, sec_filing_id,
     try:
         logger.info(f"🚀 Starting 8-K document processing for: {company_name}")
 
-        # Extract CIK from URL if available
-        extracted_cik = None
-        if ex21_url and '/data/' in ex21_url:
-            try:
-                url_parts = ex21_url.split('/data/')
-                if len(url_parts) > 1:
-                    cik_part = url_parts[1].split('/')[0]
-                    extracted_cik = cik_part.zfill(10)
-                    logger.info(f"Extracted CIK from URL: {extracted_cik}")
-            except Exception as e:
-                logger.warning(f"Could not extract CIK from URL: {e}")
-
         # Prepare data for Node API
-        target_cik = cik_number or extracted_cik
-        target_name = company_name
+        target_cik = company_details.get('target_cik', '')
+        target_name = company_details.get('target_name', '')
+        acquirer_cik = company_details.get('acquirer_cik', '')
+        acquired_name = company_details.get('acquired_name', '')
         announce_data = filing_date.strftime(
             '%Y-%m-%d') if isinstance(filing_date, datetime) else str(filing_date)
 
         data = {
             "target_cik": target_cik,
-            "announce_data": announce_data,
             "target_name": target_name,
-            "acquired_name": "",  # Will be extracted if needed
+            "announce_data": announce_data,
+            "acquired_name": acquired_name,
+            "acquirer_cik": acquirer_cik,
             "url": ex21_url,
             "sec_filing_id": sec_filing_id,
-            "acquirer_cik": ""
         }
-
-        # Use OpenAI to extract missing fields if needed (similar to AnnouncementWithUrlView)
-        announcement_view = AnnouncementWithUrlView()
-        try:
-            extracted_data = announcement_view.extract_missing_fields_with_openai(
-                ex21_url, data)
-            # Merge extracted data
-            for key, value in extracted_data.items():
-                if not data.get(key) and value:
-                    data[key] = value
-                    logger.info(f"Added missing field {key}: {value}")
-        except Exception as e:
-            logger.warning(
-                f"Could not extract missing fields with OpenAI: {e}")
 
         # Update data with extracted values
         if not data.get('target_cik'):
@@ -584,12 +615,13 @@ def process_8k_document_async(ex21_url, cik_number, company_name, sec_filing_id,
             method="POST",
             data={
                 "url": ex21_url,
-                "target_cik": data.get('target_cik'),
+                "target_cik": data.get('target_cik', ''),
                 "announce_data": data.get('announce_data'),
-                "target_name": data.get('target_name'),
+                "target_name": data.get('target_name', ''),
                 "acquired_name": data.get('acquired_name', ''),
                 "sec_filing_id": sec_filing_id,
-                "acquirer_cik": data.get('acquirer_cik', '')
+                "acquirer_cik": data.get('acquirer_cik', ''),
+                "is_from_ui": False
             }
         )
 
@@ -651,7 +683,7 @@ def process_8k_document_async(ex21_url, cik_number, company_name, sec_filing_id,
             pass
 
 
-def process_8k_document_helper(cik_number, company_name, sec_filing_id, filing_date, form_type, ex21_url, item_data):
+def process_8k_document_helper(cik_number, company_name, sec_filing_id, filing_date, form_type, ex21_url, item_data, company_details):
     """
     Helper function to process 8-K document programmatically.
     Similar to process_sec_document_helper but for 8-K filings.
@@ -664,7 +696,7 @@ def process_8k_document_helper(cik_number, company_name, sec_filing_id, filing_d
         form_type: Form type (should be '8-K')
         ex21_url: URL of the EX-2.1 HTM file
         item_data: Full item data from SEC filing
-
+        company_details: Company details from GPT analysis
     Returns:
         dict with status, or None if error
     """
@@ -681,7 +713,8 @@ def process_8k_document_helper(cik_number, company_name, sec_filing_id, filing_d
                 company_name,
                 sec_filing_id,
                 filing_date,
-                item_data
+                item_data,
+                company_details
             )
         )
         processing_thread.daemon = True
@@ -963,7 +996,7 @@ class SECRSSParser:
                 'pubDate': pubDate,
                 'form_type': form_type,
                 'accession_number': accession_number,
-                'needs_html_parsing': True  # Flag to indicate HTML parsing is needed
+
             }
         except Exception as e:
             logger.error(f"Error parsing Atom entry: {e}")
@@ -1413,31 +1446,29 @@ class SECFeedProcessor:
                         f"Skipping 8-K/A filing: {item_data.get('accession_number', 'N/A')}")
                     continue
 
-                if item_data.get('needs_html_parsing'):
-                    html_url = item_data.get('link')
-                    if html_url:
-                        # Pass form_type from Atom feed to HTML parser
-                        print(
-                            f"Fetching HTML for: {html_url} (form_type from feed: {form_type_from_feed})")
-                        html_data = parser.fetch_and_parse_html(
-                            html_url, form_type_from_feed=form_type_from_feed)
-                        if html_data:
-                            item_data.update(html_data)
-                            item_data.pop('needs_html_parsing', None)
+                html_url = item_data.get('link')
+                if html_url:
+                    # Pass form_type from Atom feed to HTML parser
+                    print(
+                        f"Fetching HTML for: {html_url} (form_type from feed: {form_type_from_feed})")
+                    html_data = parser.fetch_and_parse_html(
+                        html_url, form_type_from_feed=form_type_from_feed)
+                    if html_data:
+                        item_data.update(html_data)
 
-                            # Skip 8-K/A items after HTML parsing (in case form_type changed)
-                            if item_data.get('form_type') == '8-K/A':
-                                print(
-                                    f"Skipping 8-K/A filing: {item_data.get('accession_number', 'N/A')}")
-                                continue
-
-                            if item_data.get('form_type') == '8-K' and not item_data.get('has_ex21'):
-                                print(
-                                    f"Skipping 8-K filing without EX-2.1: {item_data.get('accession_number')}")
-                                continue
-                        else:
-                            print(f"Failed to parse HTML for: {html_url}")
+                        # Skip 8-K/A items after HTML parsing (in case form_type changed)
+                        if item_data.get('form_type') == '8-K/A':
+                            print(
+                                f"Skipping 8-K/A filing: {item_data.get('accession_number', 'N/A')}")
                             continue
+
+                        if item_data.get('form_type') == '8-K' and not item_data.get('has_ex21'):
+                            print(
+                                f"Skipping 8-K filing without EX-2.1: {item_data.get('accession_number')}")
+                            continue
+                    else:
+                        print(f"Failed to parse HTML for: {html_url}")
+                        continue
 
                 # Final check for items that don't need HTML parsing
                 if item_data.get('form_type') == '8-K/A':
@@ -1669,7 +1700,8 @@ class SECFeedProcessor:
                 'accession_number', 'file_number', 'acceptance_datetime_utc',
                 'period', 'fiscal_year_end', 'assigned_sic', 'xbrl_files',
                 'has_htm_files', 'processed', 'is_new_deal', 'document_kind',
-                'following', 'following_status', 'created_at', 'updated_at'
+                'following', 'following_status', 'created_at', 'updated_at',
+                'company_details'
             }
             item_data = {k: v for k, v in item_data.items()
                          if k in allowed_fields}
@@ -1716,7 +1748,8 @@ class SECFeedProcessor:
                 'xbrl_files': filing.xbrl_files,
                 'created_at': safe_isoformat(filing.created_at),
                 'updated_at': safe_isoformat(filing.updated_at),
-                'document_kind': filing.document_kind
+                'document_kind': filing.document_kind,
+                'company_details': filing.company_details if filing.company_details else None
             }
 
             # Emit WebSocket event for new SEC filing
@@ -1747,12 +1780,10 @@ class SECFeedProcessor:
 
             should_send_email = False
             matched_watcher = None
-            email_reason = ""
 
-            if form_type == '8-K':
+            if form_type == '8-K' and item_data.get('document_kind') == 'Definitive Merger Agreement':
                 # For 8-K filings, send email directly
                 should_send_email = True
-                email_reason = "form_type is 8-K"
                 logger.info(f"✅ Form type is 8-K - will send email")
                 print(f"✅ Form type is 8-K - will send email")
             elif form_type != '8-K' and cik_number:
@@ -1789,7 +1820,7 @@ class SECFeedProcessor:
                        (acquirer_cik and cik_normalized == acquirer_cik):
                         matched_watcher = watcher
                         should_send_email = True
-                        email_reason = f"matched watcher: {watcher.get('target_name', 'Unknown')}"
+
                         logger.info(
                             f"✅ MATCH FOUND! Watcher {idx + 1}: {watcher.get('target_name', 'Unknown')}")
                         print(
@@ -1826,43 +1857,6 @@ class SECFeedProcessor:
                     logger.info(f"📝 Generated email subject: {subject}")
                     print(f"📝 Generated email subject: {subject}")
 
-                    # Get email recipients (can be multiple, comma or space separated)
-                    recipient_emails_str = getattr(
-                        settings, 'SEC_FILING_NOTIFICATION_EMAIL', 'notifications@example.com')
-                    logger.info(
-                        f"📬 Raw recipient emails from env: {recipient_emails_str}")
-                    print(
-                        f"📬 Raw recipient emails from env: {recipient_emails_str}")
-
-                    # Parse multiple emails (comma or space separated)
-                    recipient_emails = []
-                    if recipient_emails_str:
-                        # Split by comma first, then by space, and strip whitespace
-                        for email_part in recipient_emails_str.replace(',', ' ').split():
-                            email = email_part.strip()
-                            if email and '@' in email:  # Basic email validation
-                                recipient_emails.append(email)
-                                logger.info(
-                                    f"  ✅ Added valid email: {email}")
-                                print(f"  ✅ Added valid email: {email}")
-                            else:
-                                logger.warning(
-                                    f"  ⚠️ Skipped invalid email: {email}")
-                                print(
-                                    f"  ⚠️ Skipped invalid email: {email}")
-
-                    # If no valid emails found, use default
-                    if not recipient_emails:
-                        recipient_emails = ['notifications@example.com']
-                        logger.warning(
-                            f"⚠️ No valid emails found, using default: {recipient_emails}")
-                        print(
-                            f"⚠️ No valid emails found, using default: {recipient_emails}")
-
-                    logger.info(
-                        f"📧 Final recipient list: {recipient_emails}")
-                    print(f"📧 Final recipient list: {recipient_emails}")
-
                     # Send email via n8n webhook
                     webhook_url = "https://n8n-xwx1.onrender.com/webhook/3ff1b0ea-7114-4dda-940e-95ce81e08017"
                     logger.info(
@@ -1874,17 +1868,11 @@ class SECFeedProcessor:
                     payload = {
                         'subject': subject,
                         'html': html_email,
-                        'recipients': recipient_emails,
                         'company_name': item_data.get('company_name', 'Unknown Company'),
                         'accession_number': item_data.get('accession_number', 'N/A'),
                         'form_type': item_data.get('form_type', 'N/A'),
                         'filing_url': item_data.get('link', '')
                     }
-
-                    logger.info(
-                        f"📦 Payload prepared with {len(recipient_emails)} recipient(s)")
-                    print(
-                        f"📦 Payload prepared with {len(recipient_emails)} recipient(s)")
 
                     # Send POST request to n8n webhook
                     try:
@@ -1914,19 +1902,6 @@ class SECFeedProcessor:
                                 f"❌ Response status: {e.response.status_code}, Response body: {e.response.text[:200]}")
                         raise
 
-                    if matched_watcher:
-                        logger.info(
-                            f"📧 Email sent to {len(recipient_emails)} recipient(s) for filing: {item_data.get('company_name')} - {item_data.get('accession_number')} "
-                            f"(Matched watcher: {matched_watcher.get('target_name', 'Unknown')})")
-                        print(
-                            f"📧 Email sent to {len(recipient_emails)} recipient(s) for filing: {item_data.get('company_name')} - {item_data.get('accession_number')} "
-                            f"(Matched watcher: {matched_watcher.get('target_name', 'Unknown')})")
-                    else:
-                        logger.info(
-                            f"📧 Email sent to {len(recipient_emails)} recipient(s) for 8-K filing: {item_data.get('company_name')} - {item_data.get('accession_number')}")
-                        print(
-                            f"📧 Email sent to {len(recipient_emails)} recipient(s) for 8-K filing: {item_data.get('company_name')} - {item_data.get('accession_number')}")
-
                     # After email is sent, process 8-K document if it's an 8-K filing with EX-2.1
                     # Check if EX-2.1 exists in xbrl_files (more reliable than checking has_ex21 which might not be preserved)
                     has_ex21_in_files = False
@@ -1940,6 +1915,7 @@ class SECFeedProcessor:
 
                     # Also check item_data and filing object
                     has_ex21_from_data = item_data.get('has_ex21', False)
+                    company_details = item_data.get('company_details', None)
                     has_ex21_from_filing = (
                         hasattr(filing, 'has_htm_files') and filing.has_htm_files) if filing else False
                     has_ex21 = has_ex21_in_files or has_ex21_from_data or has_ex21_from_filing
@@ -1949,7 +1925,10 @@ class SECFeedProcessor:
                     print(
                         f"🔍 Checking 8-K processing condition - form_type: {form_type}, has_ex21_in_files: {has_ex21_in_files}, has_ex21_from_data: {has_ex21_from_data}, has_ex21_from_filing: {has_ex21_from_filing}, final has_ex21: {has_ex21}")
 
-                    if form_type == '8-K' and has_ex21:
+                    if (form_type == '8-K' and has_ex21 and item_data.get('document_kind') == 'Definitive Merger Agreement' and company_details
+                        and company_details.get('is_target_market_cap_greater_than_100m')
+                            and company_details.get('is_target_us_listed')):
+
                         try:
                             logger.info(
                                 f"🚀 Starting 8-K document processing after email notification for: {item_data.get('company_name')}")
@@ -1999,7 +1978,8 @@ class SECFeedProcessor:
                                         filing_date=filing_date_str,
                                         form_type=form_type,
                                         ex21_url=ex21_url,
-                                        item_data=item_data
+                                        item_data=item_data,
+                                        company_details=company_details
                                     )
 
                                     if result:
