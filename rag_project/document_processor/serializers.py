@@ -26,6 +26,7 @@ class ProcessingJobSerializer(serializers.Serializer):
     uk_cma_cases = serializers.JSONField(required=False, allow_null=True)
     german_scrap = serializers.JSONField(required=False, allow_null=True)
     ec_cases = serializers.JSONField(required=False, allow_null=True)
+    accc_cases = serializers.JSONField(required=False, allow_null=True)
     schema_results = serializers.JSONField(required=False, allow_null=True)
     schema_processing_completed = serializers.BooleanField()
     schema_processing_timestamp = serializers.DateTimeField(
