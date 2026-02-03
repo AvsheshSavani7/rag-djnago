@@ -1597,7 +1597,7 @@ class SECFeedProcessor:
                     item_data['is_new_deal'] = None
                     item_data['following'] = False
             elif item_data.get('form_type') and item_data.get('form_type').startswith(("DEFM14A",
-                                                                                       "DEFM14C", "PREM14A", "PREM14C")):
+                                                                                       "DEFM14C", "PREM14A", "PREM14C", "S-4", "F-4")):
                 # Normalize form_type for comparison (handle cases like "DEF 14A - O")
                 normalized_form_type = item_data.get(
                     'form_type').split(' - ')[0].strip()
@@ -2027,7 +2027,7 @@ class SECFeedProcessor:
             form_type = item_data.get('form_type', '')
 
             if cik_number and form_type in ["DEFM14A",
-                                            "DEFM14C", "PREM14A", "PREM14C"]:
+                                            "DEFM14C", "PREM14A", "PREM14C", "S-4", "F-4"]:
                 logger.info(
                     f"🔍 Checking for CIK match in deals collection for: {item_data.get('company_name')}")
                 print(
@@ -2069,7 +2069,7 @@ class SECFeedProcessor:
                         doc_type = file.get('type', '')
                         doc_url = file.get('url', '')
                         if (doc_type in ["DEFM14A",
-                                         "DEFM14C", "PREM14A", "PREM14C"]) and doc_url.endswith('.htm'):
+                                         "DEFM14C", "PREM14A", "PREM14C", "S-4", "F-4"]) and doc_url.endswith('.htm'):
                             # Build full URL if needed
                             if not doc_url.startswith('http://') and not doc_url.startswith('https://'):
                                 proxy_sec_url = f"https://www.sec.gov{doc_url}"
