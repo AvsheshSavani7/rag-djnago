@@ -560,10 +560,11 @@ def process_8k_document_async(ex21_url, cik_number, company_name, sec_filing_id,
     try:
         logger.info(f"🚀 Starting 8-K document processing for: {company_name}")
 
-        # Prepare data for Node API
+        # Prepare data for Node API (company_details keys: target_name, target_cik, acquirer_name, acquirer_cik, ...)
         target_cik = company_details.get('target_cik', '')
         target_name = company_details.get('target_name', '')
         acquirer_cik = company_details.get('acquirer_cik', '')
+        acquirer_name = company_details.get('acquirer_name', '')
         acquired_name = company_details.get('acquired_name', '')
         announce_data = filing_date.strftime(
             '%Y-%m-%d') if isinstance(filing_date, datetime) else str(filing_date)
@@ -576,6 +577,7 @@ def process_8k_document_async(ex21_url, cik_number, company_name, sec_filing_id,
             "acquirer_cik": acquirer_cik,
             "url": ex21_url,
             "sec_filing_id": sec_filing_id,
+            "company_details": company_details,
         }
 
         # Update data with extracted values
@@ -618,7 +620,7 @@ def process_8k_document_async(ex21_url, cik_number, company_name, sec_filing_id,
                 "target_cik": data.get('target_cik', ''),
                 "announce_data": data.get('announce_data'),
                 "target_name": data.get('target_name', ''),
-                "acquired_name": data.get('acquired_name', ''),
+                "acquired_name": data.get('acquirer_name', ''),
                 "sec_filing_id": sec_filing_id,
                 "acquirer_cik": data.get('acquirer_cik', ''),
                 "is_from_ui": False
