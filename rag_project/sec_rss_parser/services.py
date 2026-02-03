@@ -753,7 +753,7 @@ class SECRSSParser:
         }
 
         self.form_types = ["8-k", "DEFM14A",
-                           "DEFM14C", "PREM14A", "PREM14C", "S-4", "S-4/A", "F-4", "F-4/A", "SC 14D9", "SC 14D9/A"]
+                           "DEFM14C", "PREM14A", "PREM14C", "S-4", "S-4/A", "F-4", "F-4/A", "SC 14D9", "SC 14D9/A", "10-Q", "10-K"]
 
         self.proxy_watcher = [
             {
@@ -1233,14 +1233,11 @@ class SECRSSParser:
                             }
 
                             # Filter files based on form type
-                            # For 8-K: only include EX-2.1 HTM files
+                            # For 8-K: include all HTM files (EX-2.1 when present, plus other .htm e.g. main 8-K)
                             # For DEF 14A/PRE 14A: only include DEF 14A/PRE 14A HTM files (exclude GRAPHIC)
                             # For other forms: include all HTM files
                             should_include = False
-                            if form_type == "8-K":
-                                if ('EX-2.1' in doc_type or 'EX-2.1' in description) and doc_url.endswith('.htm'):
-                                    should_include = True
-                            elif form_type in ["DEF 14A", "PRE 14A"]:
+                            if form_type in ["DEF 14A", "PRE 14A"]:
                                 if (doc_type in ["DEF 14A", "PRE 14A"]) and doc_url.endswith('.htm'):
                                     should_include = True
                             else:
@@ -1439,12 +1436,8 @@ class SECFeedProcessor:
             # Process each unique item
             processed_items = []
             for item_data in unique_items:
-                # Skip 8-K/A items early (before HTML parsing)
+
                 form_type_from_feed = item_data.get('form_type')
-                if form_type_from_feed == '8-K/A':
-                    print(
-                        f"Skipping 8-K/A filing: {item_data.get('accession_number', 'N/A')}")
-                    continue
 
                 html_url = item_data.get('link')
                 if html_url:
@@ -1456,12 +1449,6 @@ class SECFeedProcessor:
                     if html_data:
                         item_data.update(html_data)
 
-                        # Skip 8-K/A items after HTML parsing (in case form_type changed)
-                        if item_data.get('form_type') == '8-K/A':
-                            print(
-                                f"Skipping 8-K/A filing: {item_data.get('accession_number', 'N/A')}")
-                            continue
-
                         if item_data.get('form_type') == '8-K' and not item_data.get('has_ex21'):
                             print(
                                 f"Skipping 8-K filing without EX-2.1: {item_data.get('accession_number')}")
@@ -1470,11 +1457,8 @@ class SECFeedProcessor:
                         print(f"Failed to parse HTML for: {html_url}")
                         continue
 
-                # Final check for items that don't need HTML parsing
-                if item_data.get('form_type') == '8-K/A':
-                    print(
-                        f"Skipping 8-K/A filing: {item_data.get('accession_number', 'N/A')}")
-                    continue
+                # 8-K/A: allow through for save + email (no document processing)
+                # No final skip for 8-K/A so they get saved and can trigger email like 10-Q/10-K
 
                 processed_items.append(item_data)
 
@@ -1708,10 +1692,10 @@ class SECFeedProcessor:
 
             # Only save if document_kind is "Definitive Merger Agreement"
             document_kind = item_data.get('document_kind')
-            if item_data.get('form_type') == '8-K' and document_kind != "Definitive Merger Agreement":
-                logger.info(
-                    f"⏭️  Skipping record - document_kind is '{document_kind}' (not 'Definitive Merger Agreement') for: {item_data.get('company_name')}")
-                return False
+            # if item_data.get('form_type') == '8-K' and document_kind != "Definitive Merger Agreement":
+            #     logger.info(
+            #         f"⏭️  Skipping record - document_kind is '{document_kind}' (not 'Definitive Merger Agreement') for: {item_data.get('company_name')}")
+            #     return False
 
             # Create and save the filing
             filing = SECFiling(**item_data)
@@ -1768,8 +1752,9 @@ class SECFeedProcessor:
                     filing_data, analysis_result)
 
             # Email notification logic:
-            # - If form_type is "8-K": Send email directly
-            # - If form_type is NOT "8-K": Check proxy_watcher, send email if matched
+            # - 8-K with EX-2.1 + Definitive Merger Agreement: Send email directly
+            # - 8-K (any), 10-Q, 10-K: Send email only if filing CIK matches a deal's target cik
+            # - Other form types: Send email only if filing CIK matches a deal's cik or acquirer_cik
             form_type = item_data.get('form_type', '')
             cik_number = item_data.get('cik_number', '')
 
@@ -1779,19 +1764,45 @@ class SECFeedProcessor:
                 f"🔍 Checking email notification - form_type: {form_type}, cik_number: {cik_number}")
 
             should_send_email = False
-            matched_watcher = None
+            matched_deal = None
 
-            if form_type == '8-K' and item_data.get('document_kind') == 'Definitive Merger Agreement':
+            if form_type == '8-K' and filing.has_htm_files and item_data.get('document_kind') == 'Definitive Merger Agreement':
                 # For 8-K filings, send email directly
                 should_send_email = True
                 logger.info(f"✅ Form type is 8-K - will send email")
                 print(f"✅ Form type is 8-K - will send email")
+
+            elif (form_type == "8-K" or form_type == '8-K/A' or form_type == '10-Q' or form_type == '10-K') and cik_number:
+                # 8-K, 8-K/A (no doc processing), 10-Q, 10-K: send email only if filing CIK matches a deal's target cik
+                cik_normalized = str(cik_number).zfill(
+                    10) if cik_number else ''
+                logger.info(f"📋 Normalized CIK: {cik_normalized}")
+                print(f"📋 Normalized CIK: {cik_normalized}")
+
+                # Check if CIK matches any deal's target cik in MongoDB
+                try:
+                    matched_deal = ProcessingJob.objects(
+                        cik=cik_normalized).first()
+
+                    if matched_deal:
+                        should_send_email = True
+                    else:
+                        logger.info(
+                            f"ℹ️ No deal match found for CIK {cik_normalized}")
+                        print(
+                            f"ℹ️ No deal match found for CIK {cik_normalized}")
+                except Exception as e:
+                    logger.error(
+                        f"Error checking deals collection for CIK {cik_normalized}: {e}")
+                    print(
+                        f"Error checking deals collection for CIK {cik_normalized}: {e}")
+
             elif form_type != '8-K' and cik_number:
-                # For non-8-K filings, check proxy_watcher matches
+                # For non-8-K filings, check MongoDB deals (ProcessingJob): cik = target CIK, acquirer_cik = acquirer CIK
                 logger.info(
-                    f"✅ Form type is not 8-K ({form_type}) and CIK exists ({cik_number}), checking proxy_watcher matches...")
+                    f"✅ Form type is not 8-K ({form_type}) and CIK exists ({cik_number}), checking deals collection...")
                 print(
-                    f"✅ Form type is not 8-K ({form_type}) and CIK exists ({cik_number}), checking proxy_watcher matches...")
+                    f"✅ Form type is not 8-K ({form_type}) and CIK exists ({cik_number}), checking deals collection...")
 
                 # Normalize CIK (pad to 10 digits for comparison)
                 cik_normalized = str(cik_number).zfill(
@@ -1799,39 +1810,30 @@ class SECFeedProcessor:
                 logger.info(f"📋 Normalized CIK: {cik_normalized}")
                 print(f"📋 Normalized CIK: {cik_normalized}")
 
-                # Check if CIK matches any target_cik or acquirer_cik in proxy_watcher
-                logger.info(
-                    f"🔎 Checking {len(self.parser.proxy_watcher)} watcher entries...")
-                print(
-                    f"🔎 Checking {len(self.parser.proxy_watcher)} watcher entries...")
+                # Check if CIK matches any deal in MongoDB (target cik or acquirer_cik)
+                try:
+                    matched_deal = ProcessingJob.objects(
+                        cik=cik_normalized).first()
+                    if not matched_deal:
+                        matched_deal = ProcessingJob.objects(
+                            acquirer_cik=cik_normalized).first()
 
-                for idx, watcher in enumerate(self.parser.proxy_watcher):
-                    target_cik = str(watcher.get('target_cik', '')).zfill(
-                        10) if watcher.get('target_cik') else ''
-                    acquirer_cik = str(watcher.get('acquirer_cik', '')).zfill(
-                        10) if watcher.get('acquirer_cik') else ''
-
-                    logger.info(
-                        f"  Watcher {idx + 1}: target_cik={target_cik}, acquirer_cik={acquirer_cik}, target_name={watcher.get('target_name', 'N/A')}")
-                    print(
-                        f"  Watcher {idx + 1}: target_cik={target_cik}, acquirer_cik={acquirer_cik}, target_name={watcher.get('target_name', 'N/A')}")
-
-                    if (target_cik and cik_normalized == target_cik) or \
-                       (acquirer_cik and cik_normalized == acquirer_cik):
-                        matched_watcher = watcher
+                    if matched_deal:
                         should_send_email = True
-
                         logger.info(
-                            f"✅ MATCH FOUND! Watcher {idx + 1}: {watcher.get('target_name', 'Unknown')}")
+                            f"✅ MATCH FOUND! Deal: {getattr(matched_deal, 'target_name', 'Unknown')} (ID: {matched_deal.id})")
                         print(
-                            f"✅ MATCH FOUND! Watcher {idx + 1}: {watcher.get('target_name', 'Unknown')}")
-                        break
-
-                if not should_send_email:
-                    logger.info(
-                        f"ℹ️ No watcher match found for CIK {cik_normalized}")
+                            f"✅ MATCH FOUND! Deal: {getattr(matched_deal, 'target_name', 'Unknown')} (ID: {matched_deal.id})")
+                    else:
+                        logger.info(
+                            f"ℹ️ No deal match found for CIK {cik_normalized}")
+                        print(
+                            f"ℹ️ No deal match found for CIK {cik_normalized}")
+                except Exception as e:
+                    logger.error(
+                        f"Error checking deals collection for CIK {cik_normalized}: {e}")
                     print(
-                        f"ℹ️ No watcher match found for CIK {cik_normalized}")
+                        f"Error checking deals collection for CIK {cik_normalized}: {e}")
             else:
                 if not cik_number:
                     logger.info(f"ℹ️ Skipping email check - no CIK number")
@@ -1840,11 +1842,11 @@ class SECFeedProcessor:
             # Send email if conditions are met
             if should_send_email:
                 try:
-                    if matched_watcher:
+                    if matched_deal:
                         logger.info(
-                            f"📧 Preparing to send email for matched watcher: {matched_watcher.get('target_name', 'Unknown')}")
+                            f"📧 Preparing to send email for matched deal: {getattr(matched_deal, 'target_name', 'Unknown')}")
                         print(
-                            f"📧 Preparing to send email for matched watcher: {matched_watcher.get('target_name', 'Unknown')}")
+                            f"📧 Preparing to send email for matched deal: {getattr(matched_deal, 'target_name', 'Unknown')}")
                     else:
                         logger.info(
                             f"📧 Preparing to send email for 8-K filing: {item_data.get('company_name', 'Unknown')}")
@@ -2017,7 +2019,7 @@ class SECFeedProcessor:
                     import traceback
                     print(traceback.format_exc())
 
-            # After saving filing, check if CIK matches proxy_watcher or deals collection
+            # After saving filing, check if CIK matches deals collection or deals collection
             # If match found and form_type is any from given array, process the document
             cik_number = item_data.get('cik_number', '')
             form_type = item_data.get('form_type', '')
@@ -2025,21 +2027,19 @@ class SECFeedProcessor:
             if cik_number and form_type in ["DEFM14A",
                                             "DEFM14C", "PREM14A", "PREM14C"]:
                 logger.info(
-                    f"🔍 Checking for CIK match in deals collection and proxy_watcher for: {item_data.get('company_name')}")
+                    f"🔍 Checking for CIK match in deals collection for: {item_data.get('company_name')}")
                 print(
-                    f"🔍 Checking for CIK match in deals collection and proxy_watcher for: {item_data.get('company_name')}")
+                    f"🔍 Checking for CIK match in deals collection for: {item_data.get('company_name')}")
                 # Normalize CIK for comparison (pad to 10 digits)
                 cik_normalized = str(cik_number).zfill(
                     10) if cik_number else ''
 
                 matched_deal = None
-                matched_watcher = None
                 deal_id = None
 
-                # Check if CIK matches deals collection (cik or acquirer_cik)
+                # Check if CIK matches deals collection (cik = target CIK, acquirer_cik = acquirer CIK)
                 if cik_normalized:
                     try:
-                        # Check for matches in deals collection
                         matched_deal = ProcessingJob.objects(
                             cik=cik_normalized
                         ).first()
@@ -2057,27 +2057,8 @@ class SECFeedProcessor:
                         logger.error(
                             f"Error checking deals collection for CIK {cik_normalized}: {str(e)}")
 
-                    # Check if CIK matches proxy_watcher (target_cik or acquirer_cik)
-                    if not matched_deal:
-                        try:
-                            for watcher in self.parser.proxy_watcher:
-                                target_cik = str(watcher.get('target_cik', '')).zfill(
-                                    10) if watcher.get('target_cik') else ''
-                                acquirer_cik = str(watcher.get('acquirer_cik', '')).zfill(
-                                    10) if watcher.get('acquirer_cik') else ''
-
-                                if (target_cik and cik_normalized == target_cik) or \
-                                   (acquirer_cik and cik_normalized == acquirer_cik):
-                                    matched_watcher = watcher
-                                    logger.info(
-                                        f"✅ CIK {cik_normalized} matched with proxy_watcher: {watcher.get('target_name', 'Unknown')}")
-                                    break
-                        except Exception as e:
-                            logger.error(
-                                f"Error checking proxy_watcher for CIK {cik_normalized}: {str(e)}")
-
                 # If match found, process the SEC document
-                if matched_deal or matched_watcher:
+                if matched_deal:
                     # Find the HTM file URL from xbrl_files for given form type
                     proxy_sec_url = None
                     xbrl_files = item_data.get('xbrl_files', [])
@@ -2112,7 +2093,7 @@ class SECFeedProcessor:
 
                             if sec_filling_id:
                                 logger.info(
-                                    f"🚀 Starting proxy document processing for CIK {cik_normalized} (matched: {'deal' if matched_deal else 'watcher'})")
+                                    f"🚀 Starting proxy document processing for CIK {cik_normalized} (matched deal: {deal_id})")
 
                                 # Call the helper function to process the document
                                 result = process_sec_document_helper(
