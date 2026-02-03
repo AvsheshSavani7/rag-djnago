@@ -312,11 +312,19 @@ class ListAllDealsView(APIView):
             offset = int(request.query_params.get('offset', 0))
             limit = int(request.query_params.get('limit', 10))
 
+            # Optional embedding status filter (All means no filter)
+            embedding_status = request.query_params.get(
+                'embedding_status', 'All')
+            jobs_query = ProcessingJob.objects
+            if embedding_status and embedding_status.upper() != 'ALL':
+                jobs_query = jobs_query.filter(
+                    embedding_status=embedding_status.upper())
+
             # Get total count before pagination
-            total_count = ProcessingJob.objects.all().count()
+            total_count = jobs_query.count()
 
             # Get deals with pagination
-            jobs = ProcessingJob.objects.all().order_by(
+            jobs = jobs_query.order_by(
                 '-createdAt').skip(offset).limit(limit)
 
             # Convert schema_results from a JSON string to a dictionary if applicable, ensuring valid DictField representation
@@ -418,6 +426,93 @@ class ListAllDealsView(APIView):
             logger.warning(f"Error extracting product names: {e}")
 
         return product_names
+
+
+class ListAllDealsNoPaginationView(ListAllDealsView):
+    """
+    API endpoint to get all deals without pagination
+    """
+
+    def get(self, request, format=None):
+        try:
+            # Get all deals
+            jobs = ProcessingJob.objects.all().order_by('-createdAt')
+
+            # Convert schema_results from a JSON string to a dictionary if applicable, ensuring valid DictField representation
+            for job in jobs:
+                if isinstance(job.schema_results, str):
+                    try:
+                        job.schema_results = json.loads(job.schema_results)
+                    except json.JSONDecodeError:
+                        job.schema_results = {}
+
+            # Serialize the deals
+            serializer = ProcessingJobSerializer(jobs, many=True)
+            deals_data = serializer.data
+
+            # Add product information to each deal
+            for deal in deals_data:
+                deal_id = deal['id']
+
+                # Fetch company products for this deal
+                try:
+                    # Get products for both target and acquire companies
+                    company_products = CompanyProducts.objects(deal_id=deal_id)
+                    target_products = []
+                    acquire_products = []
+
+                    for cp in company_products:
+                        if cp.company_type == 'target':
+                            target_products = self._extract_product_names(
+                                cp.products)
+                        elif cp.company_type == 'acquire':
+                            acquire_products = self._extract_product_names(
+                                cp.products)
+
+                    # Get competitive analysis if available
+                    competitive_analysis = None
+                    try:
+                        comp_analysis = CompetitiveAnalysis.objects(
+                            deal_id=deal_id).first()
+                        if comp_analysis:
+                            competitive_analysis = {
+                                'competitive_pairs': comp_analysis.competitive_pairs,
+                                'analysis_timestamp': comp_analysis.analysis_timestamp.isoformat() if comp_analysis.analysis_timestamp else None,
+                                'processing_status': comp_analysis.processing_status
+                            }
+                    except Exception as e:
+                        logger.warning(
+                            f"Could not fetch competitive analysis for deal {deal_id}: {e}")
+
+                    # Add product information to the deal
+                    deal['products'] = {
+                        'target_company_products': target_products,
+                        'acquire_company_products': acquire_products,
+                        'competitive_analysis': competitive_analysis
+                    }
+
+                except Exception as e:
+                    logger.warning(
+                        f"Could not fetch products for deal {deal_id}: {e}")
+                    deal['products'] = {
+                        'target_company_products': [],
+                        'acquire_company_products': [],
+                        'competitive_analysis': None
+                    }
+
+            return Response({
+                'deals': deals_data,
+                'total': len(deals_data)
+            }, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            logger.error(f"Error fetching all deals: {str(e)}")
+            logger.error(traceback.format_exc())
+
+            # Return error response
+            return Response({
+                'error': str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 class PineconeVectorListView(APIView):
