@@ -16,6 +16,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from django.core.mail import send_mail, EmailMultiAlternatives
 from django.conf import settings
 from bson import ObjectId
+from mongoengine.errors import NotUniqueError
 from .models import SECFiling, SECFeedStatus, LastCronJob, AccessionLookedUp
 from .document_analyzer import SECDocumentAnalyzer
 from .websocket_service import SECWebSocketService
@@ -1417,6 +1418,25 @@ class SECFeedProcessor:
                     # No accession number - process it
                     unique_items.append(item_data)
 
+            # Deduplicate by accession_number so we never save or email twice for same record in one run
+            seen_accessions = set()
+            unique_items_deduped = []
+            for item in unique_items:
+                acc = item.get('accession_number')
+                if not acc and item.get('guid'):
+                    match = re.search(
+                        r'accession-number=([\d-]+)', item.get('guid', ''))
+                    if match:
+                        acc = match.group(1)
+                if acc and acc in seen_accessions:
+                    print(
+                        f"Skipping duplicate accession in same feed: {acc}")
+                    continue
+                if acc:
+                    seen_accessions.add(acc)
+                unique_items_deduped.append(item)
+            unique_items = unique_items_deduped
+
             # Bulk insert new accession numbers to AccessionLookedUp
             if new_accession_numbers:
                 try:
@@ -1699,9 +1719,28 @@ class SECFeedProcessor:
             #         f"⏭️  Skipping record - document_kind is '{document_kind}' (not 'Definitive Merger Agreement') for: {item_data.get('company_name')}")
             #     return False
 
+            # Re-check for existing just before save (handles race with concurrent runs)
+            existing = SECFiling.objects(
+                accession_number=accession_number).first()
+            if existing:
+                logger.info(
+                    f"⏭️ Skipping duplicate save (existing): {accession_number}")
+                return False
+
             # Create and save the filing
             filing = SECFiling(**item_data)
-            filing.save()
+            try:
+                filing.save()
+            except NotUniqueError:
+                logger.warning(
+                    f"⏭️ Duplicate accession_number (race): {accession_number} - skipping save and email")
+                return False
+            except Exception as e:
+                if 'E11000' in str(e) or 'duplicate' in str(e).lower():
+                    logger.warning(
+                        f"⏭️ Duplicate accession_number (race): {accession_number} - skipping save and email")
+                    return False
+                raise
 
             logger.info(
                 f"💾 Saved filing: {item_data.get('company_name')} - {item_data.get('accession_number')}")

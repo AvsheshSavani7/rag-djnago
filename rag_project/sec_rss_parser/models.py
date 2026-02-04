@@ -45,7 +45,7 @@ class SECFiling(Document):
     form_type = StringField(required=True, max_length=50)
     filing_date = DateTimeField(required=False, null=True)
     cik_number = StringField(required=True, max_length=20)
-    accession_number = StringField(required=True, max_length=50)
+    accession_number = StringField(required=True, max_length=50, unique=True)
     file_number = StringField(required=False, max_length=50, null=True)
     acceptance_datetime_utc = DateTimeField(required=False, null=True)
     period = StringField(required=False, max_length=20, null=True)
