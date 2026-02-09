@@ -130,6 +130,9 @@ def call_llm(prompt_text, model="gpt-5", temperature=1, provider="openai"):
             return resp.choices[0].message.content.strip()
         else:
 
+            logger.info(f"Model1: {model}")
+            logger.info(f"Temperature1: {temperature}")
+
             response = openai.chat.completions.create(
                 model=model,
                 messages=[
@@ -837,6 +840,9 @@ def process_clause_config(clause_config, clause_name, schema_data, provider="ope
                 prompt = f"[Missing field {str(e)} for prompt generation]"
         llm_result = call_llm(prompt, model=model,
                               temperature=temperature, provider=provider)
+
+        logger.info(f"llm_result: {llm_result[:100]}")
+        logger.info(f"Clause Name Done: {clause_name}")
         return {
             "output": llm_result,
             "references": short_refs,

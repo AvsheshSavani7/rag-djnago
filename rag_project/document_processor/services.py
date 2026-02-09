@@ -2,6 +2,7 @@ import os
 import json
 import boto3
 import uuid
+from openai.types import Model
 import requests
 from datetime import datetime
 from django.conf import settings
@@ -1692,6 +1693,9 @@ class SummaryGenerationService:
         """
         try:
             logger.info(f"Generating summary for deal ID: {deal_id}")
+            logger.info(f"Temperature: {temperature}")
+            logger.info(f"Provider: {provider}")
+            logger.info(f"Model: {model}")
             try:
                 object_id = ObjectId(deal_id)
                 job = ProcessingJob.objects.get(id=object_id)
@@ -1789,6 +1793,7 @@ class SummaryGenerationService:
                             provider=provider, model=model, temperature=temperature,
                             definitions_array=definitions_array, preamble_data=preamble_data,
                             deal_id=deal_id)
+                        logger.info(f"Result: {result}")
 
                         if result["output"] and result["output"] != "No output generated.":
                             # Skip concise summaries where view_prompt is False
