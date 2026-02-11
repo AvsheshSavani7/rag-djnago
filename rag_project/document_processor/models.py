@@ -59,6 +59,7 @@ class ProcessingJob(Document):
     german_scrap = DynamicField(null=True)
     ec_cases = DynamicField(null=True)
     accc_cases = DynamicField(null=True)
+    ftc_early_termination = DynamicField(null=True)
 
     # Schema parsing results
     # schema_results = DictField(null=True)
