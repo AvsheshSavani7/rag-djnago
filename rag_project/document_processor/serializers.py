@@ -36,6 +36,10 @@ class ProcessingJobSerializer(serializers.Serializer):
     RF3_approach_done = serializers.BooleanField()
     GUNSHOT_approach_done = serializers.BooleanField()
     twitter_details = serializers.JSONField(required=False, allow_null=True)
+
+    parent_aliases = serializers.ListField(child=serializers.CharField())
+    target_aliases = serializers.ListField(child=serializers.CharField())
+
     summary_docx_url = serializers.URLField(required=False, allow_null=True)
     sec_url = serializers.URLField(required=False, allow_null=True)
     sec_filing_id = serializers.CharField(required=False, allow_null=True)

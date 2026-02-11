@@ -45,8 +45,8 @@ class ProcessingJob(Document):
     sec_filing_id = StringField(max_length=100, required=False, null=True)
 
     # Processing fields
-    file_url = URLField(max_length=1000, required=True)
-    pdf_url = URLField(max_length=1000, required=True)
+    file_url = URLField(max_length=1000, required=False, null=True)
+    pdf_url = URLField(max_length=1000, required=False, null=True)
     parsed_json_url = URLField(max_length=1000, required=False, null=True)
     flattened_json_url = URLField(max_length=1000, required=False, null=True)
     summary_docx_url = URLField(max_length=1000, required=False, null=True)
@@ -75,6 +75,10 @@ class ProcessingJob(Document):
     # Twitter handles information
     # Store Twitter handles for companies and subsidiaries
     twitter_details = DynamicField(default=[])
+
+    # Entity-resolution aliases (from M&A Exhibit 2.1 preamble + web search)
+    parent_aliases = ListField(StringField(), default=list, null=True)
+    target_aliases = ListField(StringField(), default=list, null=True)
 
     # Error information
     error_message = StringField(required=False, null=True)

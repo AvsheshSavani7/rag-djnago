@@ -256,6 +256,136 @@ class DocumentProcessingService:
                 "status": "failed",
             }
 
+    @staticmethod
+    def parse_entity_resolution_response(response_text: str) -> dict | None:
+        """
+        Parse entity-resolution API response into {parent_aliases: [...], target_aliases: [...]}.
+        Tolerates markdown code blocks, leading/trailing text, and ensures list of strings.
+        Returns None if parsing fails or required keys are missing.
+        """
+        if not response_text or not isinstance(response_text, str):
+            return None
+        text = response_text.strip()
+        if not text:
+            return None
+        # Strip markdown code block if present
+        if "```" in text:
+            lines = text.split("\n")
+            json_lines = []
+            in_code_block = False
+            for line in lines:
+                if line.strip().startswith("```"):
+                    in_code_block = not in_code_block
+                    continue
+                if in_code_block:
+                    json_lines.append(line)
+            text = "\n".join(json_lines).strip()
+        # Extract JSON object (handles "Entity-resolution response: {...}" or any wrapper)
+        start = text.find("{")
+        end = text.rfind("}")
+        if start == -1 or end == -1 or end <= start:
+            return None
+        try:
+            data = json.loads(text[start:end + 1])
+        except (json.JSONDecodeError, TypeError):
+            return None
+        if not isinstance(data, dict):
+            return None
+        parent = data.get("parent_aliases")
+        target = data.get("target_aliases")
+        # Coerce to list of strings
+        parent_list = parent if isinstance(parent, list) else []
+        target_list = target if isinstance(target, list) else []
+        parent_list = [str(x).strip() for x in parent_list if x is not None]
+        target_list = [str(x).strip() for x in target_list if x is not None]
+        return {"parent_aliases": parent_list, "target_aliases": target_list}
+
+    def run_entity_resolution_for_deal(self, deal_id: str) -> str | None:
+        """
+        Run M&A entity-resolution (parent/target aliases) using Exhibit 2.1 preamble
+        from Pinecone and GPT with web search. Callable for testing or after embedding completion.
+
+        Args:
+            deal_id: Processing job / deal ID (used to fetch chunks from Pinecone).
+
+        Returns:
+            The model output text, or None on failure.
+        """
+        ENTITY_RESOLUTION_PROMPT = """You are an M&A entity-resolution analyst.
+
+Goal
+Return exhaustive alias lists for:
+1) TARGET (the operating company being acquired)
+2) The Acquirer side (ultimate parents + fund managers + acquisition vehicles) so we can match foreign regulator filings (e.g., SAMR China, CMA UK, EC EU). Foreign filings often mention ultimate parents (e.g., “Blackstone”, “TPG”) instead of merger SPVs (e.g., “Hopper Parent Inc.”).
+
+Use TWO inputs:
+A) Exhibit 2.1 excerpt (preamble ) pasted below
+B) Public internet research (SEC filings, official investor relations press releases, reputable news, and regulator case pages)
+
+Critical rules
+- Do NOT rely only on the Exhibit 2.1 preamble.
+- You MUST expand aliases using internet sources.
+- Prefer authoritative sources (SEC, investor relations, regulator sites, top-tier financial news).
+- Include:
+  - Exact legal names, short names, common abbreviations
+  - Variants with/without punctuation and suffixes (Inc., Incorporated, plc, Ltd., Limited, LLC)
+  - "fund manager" phrases used in foreign filings (e.g., "funds managed by …", "affiliates of …", "consortium led by …")
+  - SPVs / merger subs named in the agreement (e.g., Parent, Merger Sub vehicles)
+  - If found, non-English/transliteration variants that appear in foreign regulator notices
+- Output must be only JSON with exactly two arrays:
+  - "parent_aliases"
+  - "target_aliases"
+- Remove duplicates (case-insensitive), but keep meaningful variants (e.g., "Hologic, Inc." and "Hologic Inc").
+- Do not include unrelated "Hooper/ Hopper" spelling guesses unless you can support it from the Exhibit text or web sources.
+
+Output JSON format (ONLY this)
+{
+  "parent_aliases": ["..."],
+  "target_aliases": ["..."]
+}
+
+Exhibit 2.1 excerpt
+
+"""
+        try:
+            fetcher = PineconeSectionFetcher()
+            all_chunks = fetcher.get_all_chunks_for_deal(deal_id)
+            preamble_data = fetcher.extract_preamble_from_chunks(all_chunks)
+            preamble_text = preamble_data.get("preamble_text", "") or ""
+            print("Preamble text:", preamble_text)
+
+            full_prompt = ENTITY_RESOLUTION_PROMPT + (
+                preamble_text if preamble_text else "(No preamble text available)"
+            )
+
+            openai_client = openai.OpenAI(
+                api_key=os.environ.get("OPENAI_API_KEY"))
+            response = openai_client.responses.create(
+                model="gpt-5",
+                tools=[{"type": "web_search"}],
+                input=full_prompt,
+                reasoning={"effort": "low"}
+            )
+
+            print("Entity-resolution prompt:", full_prompt)
+            print("Entity-resolution response:", response)
+
+            result_text = None
+            for item in response.output:
+                if item.type == "message" and hasattr(item, "content"):
+                    for content_item in item.content:
+                        if content_item.type == "output_text":
+                            result_text = content_item.text
+                            break
+                if result_text:
+                    break
+
+            print("Entity-resolution response:", result_text or response)
+            return result_text
+        except Exception as e:
+            logger.warning(f"Entity-resolution step failed (non-fatal): {e}")
+            return None
+
     def _process_embeddings(self, job_id, flattened_json_url):
         """
         Background task to process embeddings
@@ -315,6 +445,28 @@ class DocumentProcessingService:
             # job.upsert_json_to_db(category_results)
             job.update_embedding_status("COMPLETED")
             logger.info(f"Updated job status to COMPLETED")
+
+            entity_resolution_result = self.run_entity_resolution_for_deal(
+                str(job_id))
+            if entity_resolution_result:
+                parsed = self.parse_entity_resolution_response(
+                    entity_resolution_result
+                )
+                if parsed:
+                    job.parent_aliases = parsed["parent_aliases"]
+                    job.target_aliases = parsed["target_aliases"]
+                    job.updatedAt = datetime.utcnow()
+                    job.save()
+                    logger.info(
+                        "Saved entity-resolution aliases to job "
+                        "(parent_aliases=%d, target_aliases=%d).",
+                        len(job.parent_aliases),
+                        len(job.target_aliases),
+                    )
+                else:
+                    logger.warning(
+                        "Could not parse entity-resolution result for save."
+                    )
 
             # Send completion event if sec_filing_id exists
             if job.sec_filing_id:
