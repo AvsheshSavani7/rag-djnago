@@ -468,6 +468,177 @@ Respond only with valid JSON.
             filing_data['following'] = False
             return filing_data
 
+    def analyze_ex99_1_document_with_gpt(self, document_text: str, company_name: str) -> Dict[str, Any]:
+        """Analyze EX-99.1 document with GPT to determine if it's related to a new merger.
+        Returns is_merger_related, confidence, and reasoning."""
+        try:
+            if not self.openai_client.api_key:
+                logger.error("OpenAI API key not configured")
+                return {
+                    'is_merger_related': None,
+                    'confidence': 0,
+                    'reasoning': 'OpenAI API key not configured',
+                    'error': 'API key missing'
+                }
+
+            prompt = f"""
+You are an expert in analyzing SEC filings and M&A documents.
+
+You are reviewing an EX-99.1 exhibit attached to Form 8-K. 
+
+Company: {company_name}
+
+Document excerpt:
+{document_text}
+
+Task:
+Determine whether this document discloses a NEW merger, acquisition, or business combination transaction.
+
+Definition of NEW:
+A transaction that the company has just entered into, signed, or agreed to,
+even if it has not yet closed.
+
+This includes:
+- Signing a merger agreement
+- Entering into a definitive acquisition agreement
+- Announcing intent to merge with binding agreement
+- Signing an LOI (if transaction-specific)
+- Agreeing to be acquired
+- Agreeing to acquire another company
+
+This does NOT include:
+- Completion of previously announced deal
+- Historical references to past acquisitions
+- Earnings releases mentioning old acquisitions
+- General M&A strategy commentary
+- Partnerships without equity acquisition
+- Joint ventures without acquisition
+
+Respond ONLY with valid JSON:
+
+```json
+{{
+  "is_merger_related": boolean,
+  "confidence": number (0-100),
+  "reasoning": "brief explanation"
+}}
+```
+
+Respond ONLY with valid JSON.
+"""
+
+            response = self.openai_client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[
+                    {"role": "system", "content": "You are an expert SEC filing analyst. Respond only with valid JSON."},
+                    {"role": "user", "content": prompt}
+                ],
+                max_tokens=400,
+                temperature=0.1,
+                response_format={"type": "json_object"}
+            )
+
+            result_text = response.choices[0].message.content.strip()
+
+            print(f"GPT Response for EX-99.1: {result_text}")
+
+            result = json.loads(result_text)
+
+            analysis_result = {
+                'is_merger_related': result.get('is_merger_related'),
+                'confidence': result.get('confidence', 0),
+                'reasoning': result.get('reasoning', ''),
+                'raw_response': result_text
+            }
+
+            logger.info(
+                f"GPT EX-99.1 Analysis Result: is_merger_related={result.get('is_merger_related')} "
+                f"(confidence: {result.get('confidence', 0)}%)")
+            return analysis_result
+
+        except json.JSONDecodeError as e:
+            logger.error(f"Error parsing GPT JSON response for EX-99.1: {e}")
+            return {
+                'is_merger_related': None,
+                'confidence': 0,
+                'reasoning': 'Failed to parse GPT response',
+                'error': str(e)
+            }
+        except Exception as e:
+            logger.error(f"Error analyzing EX-99.1 document with GPT: {e}")
+            return {
+                'is_merger_related': None,
+                'confidence': 0,
+                'reasoning': 'GPT analysis failed',
+                'error': str(e)
+            }
+
+    def analyze_ex99_1_filing(self, filing_data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Analyze an 8-K filing that has EX-99.1 (press release/material exhibit).
+        Uses LLM to determine if the document is related to a new merger.
+        Returns updated filing_data with is_merger_related, ex99_1_confidence, ex99_1_reasoning.
+        """
+        try:
+            if filing_data.get('form_type') != '8-K':
+                logger.info("Skipping EX-99.1 analysis - not an 8-K filing")
+                return filing_data
+
+            xbrl_files = filing_data.get('xbrl_files', [])
+            ex99_1_files = [
+                file for file in xbrl_files
+                if ('EX-99.1' in file.get('type', '') or 'EX-99.1' in file.get('description', ''))
+                and file.get('url', '').endswith('.htm')
+            ]
+
+            if not ex99_1_files:
+                logger.info(
+                    "Skipping EX-99.1 analysis - no EX-99.1 HTM files found")
+                filing_data['is_merger_related'] = None
+                filing_data['ex99_1_confidence'] = 0
+                return filing_data
+
+            ex99_1_file = ex99_1_files[0]
+            htm_url = ex99_1_file.get('url')
+
+            logger.info(f"Analyzing EX-99.1 file: {htm_url}")
+
+            html_content = self.download_htm_file(htm_url)
+            if not html_content:
+                logger.error("Failed to download EX-99.1 HTM file")
+                filing_data['is_merger_related'] = None
+                filing_data['ex99_1_confidence'] = 0
+                return filing_data
+
+            document_text = self.extract_document_pages(
+                html_content, max_pages=5)
+            if not document_text:
+                logger.error("Failed to extract EX-99.1 document text")
+                filing_data['is_merger_related'] = None
+                filing_data['ex99_1_confidence'] = 0
+                return filing_data
+
+            analysis = self.analyze_ex99_1_document_with_gpt(
+                document_text,
+                filing_data.get('company_name', 'Unknown Company')
+            )
+
+            print(f"EX-99.1 Analysis: {analysis}")
+
+            filing_data['is_merger_related'] = analysis.get(
+                'is_merger_related')
+            filing_data['ex99_1_confidence'] = analysis.get('confidence', 0)
+            filing_data['ex99_1_reasoning'] = analysis.get('reasoning', '')
+
+            return filing_data
+
+        except Exception as e:
+            logger.error(f"Error in analyze_ex99_1_filing: {e}")
+            filing_data['is_merger_related'] = None
+            filing_data['ex99_1_confidence'] = 0
+
+            return filing_data
+
     def analyze_def14a_document_with_gpt(self, document_text: str, company_name: str) -> Dict[str, Any]:
         """Analyze DEF 14A document with GPT to determine document kind based on checkbox text"""
         try:

@@ -303,7 +303,8 @@ class DocumentProcessingService:
     def run_entity_resolution_for_deal(self, deal_id: str) -> str | None:
         """
         Run M&A entity-resolution (parent/target aliases) using Exhibit 2.1 preamble
-        from Pinecone and GPT with web search. Callable for testing or after embedding completion.
+        from Pinecone and GPT with web search. If no preamble in Pinecone, uses
+        deal's sec_url; if no sec_url, uses target_name and acquire_name from the deal.
 
         Args:
             deal_id: Processing job / deal ID (used to fetch chunks from Pinecone).
@@ -318,12 +319,9 @@ Return exhaustive alias lists for:
 1) TARGET (the operating company being acquired)
 2) The Acquirer side (ultimate parents + fund managers + acquisition vehicles) so we can match foreign regulator filings (e.g., SAMR China, CMA UK, EC EU). Foreign filings often mention ultimate parents (e.g., “Blackstone”, “TPG”) instead of merger SPVs (e.g., “Hopper Parent Inc.”).
 
-Use TWO inputs:
-A) Exhibit 2.1 excerpt (preamble ) pasted below
-B) Public internet research (SEC filings, official investor relations press releases, reputable news, and regulator case pages)
+Use the input provided below plus public internet research (SEC filings, official investor relations press releases, reputable news, and regulator case pages).
 
 Critical rules
-- Do NOT rely only on the Exhibit 2.1 preamble.
 - You MUST expand aliases using internet sources.
 - Prefer authoritative sources (SEC, investor relations, regulator sites, top-tier financial news).
 - Include:
@@ -336,7 +334,7 @@ Critical rules
   - "parent_aliases"
   - "target_aliases"
 - Remove duplicates (case-insensitive), but keep meaningful variants (e.g., "Hologic, Inc." and "Hologic Inc").
-- Do not include unrelated "Hooper/ Hopper" spelling guesses unless you can support it from the Exhibit text or web sources.
+- Do not include unrelated spelling guesses unless you can support them from the given input or web sources.
 
 Output JSON format (ONLY this)
 {
@@ -344,24 +342,73 @@ Output JSON format (ONLY this)
   "target_aliases": ["..."]
 }
 
-Exhibit 2.1 excerpt
-
 """
         try:
+            # Load deal for sec_url, target_name, acquire_name fallbacks
+            job = None
+            try:
+                object_id = ObjectId(deal_id)
+                job = ProcessingJob.objects.get(id=object_id)
+            except (Exception, DoesNotExist):
+                try:
+                    job = ProcessingJob.objects.get(_id=object_id)
+                except (Exception, DoesNotExist):
+                    pass
+
+            sec_url = (getattr(job, "sec_url", None)
+                       or "").strip() if job else ""
+            target_name = (getattr(job, "target_name", None)
+                           or "").strip() if job else ""
+            acquire_name = (getattr(job, "acquire_name", None)
+                            or "").strip() if job else ""
+
             fetcher = PineconeSectionFetcher()
             all_chunks = fetcher.get_all_chunks_for_deal(deal_id)
             preamble_data = fetcher.extract_preamble_from_chunks(all_chunks)
-            preamble_text = preamble_data.get("preamble_text", "") or ""
-            print("Preamble text:", preamble_text)
+            preamble_text = (preamble_data.get("preamble_text") or "").strip()
+            if preamble_text:
+                print("Preamble text: found (length %d)" % len(preamble_text))
+            else:
+                print("Preamble text: not found in Pinecone")
 
-            full_prompt = ENTITY_RESOLUTION_PROMPT + (
-                preamble_text if preamble_text else "(No preamble text available)"
-            )
+            # Build input block: preamble > sec_url > deal names
+            if preamble_text:
+                input_block = (
+                    "Exhibit 2.1 excerpt (preamble) pasted below.\n\n" +
+                    preamble_text
+                )
+            elif sec_url:
+                input_block = (
+                    "No Exhibit 2.1 preamble available. Use this SEC filing URL and web search "
+                    "to identify the acquirer and target and their aliases:\n\n" + sec_url
+                )
+            elif target_name or acquire_name:
+                # When only one side is known, extract aliases for that side only
+                lines = [
+                    "No Exhibit 2.1 preamble or SEC URL available. Use the deal name(s) below and web search to find exhaustive alias lists."
+                ]
+                if acquire_name:
+                    lines.append("- Acquirer (parent): %s" % acquire_name)
+                if target_name:
+                    lines.append("- Target: %s" % target_name)
+                if not acquire_name:
+                    lines.append("Return only target_aliases; set parent_aliases to [].")
+                elif not target_name:
+                    lines.append("Return only parent_aliases; set target_aliases to [].")
+                input_block = "\n".join(lines)
+            else:
+                logger.warning(
+                    "Entity-resolution: no preamble, no sec_url, no target_name/acquire_name for deal %s",
+                    deal_id,
+                )
+                return None
+
+            full_prompt = ENTITY_RESOLUTION_PROMPT + "Input:\n\n" + input_block
 
             openai_client = openai.OpenAI(
                 api_key=os.environ.get("OPENAI_API_KEY"))
             response = openai_client.responses.create(
-                model="gpt-5",
+                model="gpt-5.2",
                 tools=[{"type": "web_search"}],
                 input=full_prompt,
                 reasoning={"effort": "low"}
