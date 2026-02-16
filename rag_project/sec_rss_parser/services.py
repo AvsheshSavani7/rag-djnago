@@ -9,6 +9,7 @@ import logging
 import asyncio
 import re
 import os
+import tempfile
 import threading
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin
@@ -17,7 +18,7 @@ from django.core.mail import send_mail, EmailMultiAlternatives
 from django.conf import settings
 from bson import ObjectId
 from mongoengine.errors import NotUniqueError
-from .models import SECFiling, SECFeedStatus, LastCronJob, AccessionLookedUp
+from .models import SECFiling, SECFeedStatus, LastCronJob, AccessionLookedUp, EightKSummary, Ex99_1Summary
 from .document_analyzer import SECDocumentAnalyzer
 from .websocket_service import SECWebSocketService
 from .email_templates import (
@@ -25,6 +26,8 @@ from .email_templates import (
     generate_ex99_1_merger_email_html,
     generate_8k_summary_email_html,
 )
+
+from .Eight_k_summary import summarize_8k_filing
 from document_processor.models import ProcessingJob
 from document_processor.services import DocumentProcessingService, SummaryGenerationService
 from proxy_processor.views import process_sec_document_helper
@@ -36,7 +39,8 @@ logger = logging.getLogger(__name__)
 # Constants
 N8N_WEBHOOK_URL_8K_SUMMARY = "https://n8n-xwx1.onrender.com/webhook/b3007d21-6845-47b5-aece-7b26583758bc"  # to avs/kd/josh
 N8N_WEBHOOK_URL_FILING = "https://n8n-xwx1.onrender.com/webhook/3ff1b0ea-7114-4dda-940e-95ce81e08017"  # to all
-# N8N_WEBHOOK_URL_FILING = "https://n8n-xwx1.onrender.com/webhook/80830c6d-ff5b-45e3-9ef3-a061db1fbf0c" #only avshesh
+N8N_WEBHOOK_URL_FOR_TESTING = "https://n8n-xwx1.onrender.com/webhook/80830c6d-ff5b-45e3-9ef3-a061db1fbf0c" #only avshesh
+
 SEC_BASE_URL = "https://www.sec.gov"
 ATOM_NAMESPACE = "http://www.w3.org/2005/Atom"
 CIK_LENGTH = 10
@@ -47,36 +51,6 @@ FORM_TYPES = ["8-k", "DEFM14A", "DEFM14C", "PREM14A", "PREM14C", "S-4",
 PROXY_FORM_TYPES = ["DEFM14A", "DEFM14C", "PREM14A", "PREM14C", "S-4", "F-4"]
 PERIODIC_FORM_TYPES = ["8-K", "8-K/A", "10-Q", "10-K"]
 
-PROXY_WATCHER_DATA = [
-    {"target_name": "CIVITAS RESOURCES, INC", "acquire_name": "SM Energy Company",
-        "target_cik": "0001509589", "acquirer_cik": "0000893538"},
-    {"target_name": "Forge Global, Inc.", "acquire_name": "SCHWAB CHARLES CORP",
-        "target_cik": "0001827821", "acquirer_cik": "000316709"},
-    {"target_name": "Semrush Holdings, Inc.", "acquire_name": "Adobe Inc.",
-        "target_cik": "0001831840", "acquirer_cik": "0000796343"},
-    {"target_name": "HOLOGIC INC", "acquire_name": "Blackstone Inc. and TPG",
-        "target_cik": "0000859737", "acquirer_cik": "0001393818"},
-    {"target_name": "Brighthouse Financial, Inc.", "acquire_name": None,
-        "target_cik": "0001685040", "acquirer_cik": None},
-    {"target_name": "Exact Sciences Corporation", "acquire_name": "Abbott Laboratories",
-        "target_cik": "0001124140", "acquirer_cik": "0000001800"},
-    {"target_name": "Axalta Coating Systems Ltd.", "acquire_name": "AKZO NOBEL NV",
-        "target_cik": "0001616862", "acquirer_cik": "0000003124"},
-    {"target_name": "Sealed Air Corporation",
-        "acquire_name": "Clayton, Dubilier & Rice (CD&R) affiliated funds", "target_cik": "0001012100", "acquirer_cik": ""},
-    {"target_name": "TreeHouse Foods, Inc.", "acquire_name": "Investindustrial",
-        "target_cik": "0001320695", "acquirer_cik": ""},
-    {"target_name": "Alexander & Baldwin, Inc.", "acquire_name": "Blackstone Inc.",
-        "target_cik": "0001545654", "acquirer_cik": "0001393818"},
-    {"target_name": "Confluent, Inc.", "acquire_name": "International Business Machines Corporation",
-        "target_cik": "0001699838", "acquirer_cik": "0000051143"},
-    {"target_name": "Warner Bros. Discovery, Inc.", "acquire_name": "Netflix, Inc.",
-        "target_cik": "0001210476", "acquirer_cik": "0001065280"},
-    {"target_name": "Blue Foundry Bancorp", "acquire_name": "Fulton Financial Corporation",
-        "target_cik": "0001846017", "acquirer_cik": "0000700564"},
-    {"target_name": "Eventbrite, Inc.", "acquire_name": "Bending Spoons",
-        "target_cik": "0001475115", "acquirer_cik": ""},
-]
 
 ALLOWED_FILING_FIELDS = {
     'title', 'link', 'guid', 'description', 'pubDate',
@@ -185,6 +159,35 @@ def send_webhook_notification(webhook_url, payload, notification_type="notificat
         if hasattr(e, 'response') and e.response is not None:
             log_and_print(
                 f"❌ Response status: {e.response.status_code}, Response body: {e.response.text[:200]}", 'error')
+        raise
+
+
+def send_summary_email_via_webhook(summary_doc_url, company_name, form_type, cik_number, sec_url, accession_number, summary_kind="8-K"):
+    """Generate 8-K/EX-99.1 summary email HTML and send via N8N testing webhook (includes .docx URL to view summary)."""
+    try:
+        subject, html_email = generate_8k_summary_email_html(
+            company_name=company_name,
+            form_type=form_type,
+            summary_doc_url=summary_doc_url,
+            cik_number=cik_number,
+            sec_url=sec_url or "",
+            accession_number=accession_number or "",
+        )
+        payload = {
+            "subject": subject,
+            "html": html_email,
+            "company_name": company_name,
+            "form_type": form_type,
+            "summary_doc_url": summary_doc_url,
+            "accession_number": accession_number,
+            "cik_number": cik_number,
+            "sec_url": sec_url,
+        }
+        send_webhook_notification(
+            N8N_WEBHOOK_URL_FOR_TESTING, payload, f"{summary_kind} summary email"
+        )
+    except Exception as e:
+        log_and_print(f"❌ Failed to send {summary_kind} summary email via webhook: {e}", "error")
         raise
 
 
@@ -494,7 +497,6 @@ class SECRSSParser:
         }
 
         self.form_types = FORM_TYPES
-        self.proxy_watcher = PROXY_WATCHER_DATA
         self.feed_url = None
         self.set_feed_url(self.form_type)
 
@@ -857,6 +859,9 @@ class SECRSSParser:
             has_ex99_1 = any('EX-99.1' in file.get('type', '') or 'EX-99.1' in file.get(
                 'description', '') for file in xbrl_files) if form_type == "8-K" else False
 
+            has_8k_document = any('8-K' in file.get('type', '') or '8-K' in file.get(
+                'description', '') for file in xbrl_files) if form_type == "8-K" else False
+
             # Fallback extraction for missing required fields
             if not form_type:
                 log_and_print(
@@ -899,7 +904,8 @@ class SECRSSParser:
                 **company_data,
                 'xbrl_files': xbrl_files,
                 'has_ex21': has_ex21,
-                'has_ex99_1': has_ex99_1
+                'has_ex99_1': has_ex99_1,
+                'has_8k_document': has_8k_document
             }
         except Exception as e:
             log_and_print(
@@ -1028,7 +1034,7 @@ class SECFeedProcessor:
                         item_data.update(html_data)
 
                         # Skip 8-K without EX-2.1 or EX-99.1
-                        if item_data.get('form_type') == '8-K' and (not item_data.get('has_ex21') and not item_data.get('has_ex99_1')):
+                        if item_data.get('form_type') == '8-K' and (not item_data.get('has_ex21') and not item_data.get('has_ex99_1') and not item_data.get('has_8k_document')):
                             print(
                                 f"Skipping 8-K filing without both EX-2.1 and EX-99.1: {item_data.get('accession_number')}")
                             continue
@@ -1040,6 +1046,7 @@ class SECFeedProcessor:
 
             print(
                 f"Processing {len(processed_items)} items after HTML parsing and filtering for {form_type}")
+
             new_items_count = sum(
                 1 for item in processed_items if self.save_filing(item))
 
@@ -1528,6 +1535,120 @@ class SECFeedProcessor:
 
             # Analyze document based on form type
             form_type = item_data.get('form_type', '')
+
+            if form_type == "8-K" and (item_data.get('has_8k_document') or item_data.get('has_ex99_1')):
+                xbrl_files = item_data.get('xbrl_files', [])
+                output_dir = tempfile.mkdtemp()
+
+                if summarize_8k_filing and item_data.get('has_8k_document'):
+                    file_8k = find_file_by_type(xbrl_files, '8-K')
+                    if file_8k and file_8k.get('url'):
+                        url_8k = build_full_sec_url(
+                            file_8k.get('url')) or file_8k.get('url')
+                        try:
+                            result_8k = summarize_8k_filing(
+                                url_8k,
+                                output_dir,
+                                upload_to_s3=True,
+                                s3_folder="8k",
+                                verbose=False,
+                            )
+                            if result_8k.get('s3_url'):
+                                log_and_print(
+                                    f"✅ 8-K summary uploaded to S3: {result_8k['s3_url']}")
+                                try:
+                                    doc_8k = EightKSummary(
+                                        accession_number=accession_number,
+                                        company_name=item_data.get(
+                                            'company_name'),
+                                        cik_number=item_data.get('cik_number'),
+                                        sec_document_url=url_8k,
+                                        s3_docx_url=result_8k.get('s3_url'),
+                                        s3_json_url=result_8k.get(
+                                            's3_json_url'),
+                                        ticker=result_8k.get('ticker'),
+                                        filing_date=result_8k.get(
+                                            'filing_date'),
+                                        items_reported=result_8k.get(
+                                            'items_reported') or [],
+                                    )
+                                    doc_8k.save()
+                                    log_and_print(
+                                        f"💾 8-K summary saved to DB (8k_summary)")
+                                    try:
+                                        send_summary_email_via_webhook(
+                                            summary_doc_url=doc_8k.s3_docx_url,
+                                            company_name=item_data.get('company_name') or '',
+                                            form_type='8-K',
+                                            cik_number=item_data.get('cik_number') or '',
+                                            sec_url=item_data.get('link') or url_8k,
+                                            accession_number=accession_number,
+                                            summary_kind='8-K',
+                                        )
+                                        log_and_print(f"📧 8-K summary email sent via webhook (docx link included)")
+                                    except Exception as email_e:
+                                        log_and_print(f"❌ Failed to send 8-K summary email: {email_e}", 'error')
+                                except Exception as db_e:
+                                    log_and_print(
+                                        f"❌ Failed to save 8-K summary to DB: {db_e}", 'error')
+                        except Exception as e:
+                            log_and_print(
+                                f"❌ 8-K summary failed: {e}", 'error')
+
+                if summarize_8k_filing and item_data.get('has_ex99_1'):
+                    file_ex99 = find_file_by_type(xbrl_files, 'EX-99.1')
+                    if file_ex99 and file_ex99.get('url'):
+                        url_ex99 = build_full_sec_url(
+                            file_ex99.get('url')) or file_ex99.get('url')
+                        try:
+                            result_99 = summarize_8k_filing(
+                                url_ex99,
+                                output_dir,
+                                upload_to_s3=True,
+                                s3_folder="99_1",
+                                verbose=False,
+                            )
+                            if result_99.get('s3_url'):
+                                log_and_print(
+                                    f"✅ EX-99.1 summary uploaded to S3: {result_99['s3_url']}")
+                                try:
+                                    doc_99 = Ex99_1Summary(
+                                        accession_number=accession_number,
+                                        company_name=item_data.get(
+                                            'company_name'),
+                                        cik_number=item_data.get('cik_number'),
+                                        sec_document_url=url_ex99,
+                                        s3_docx_url=result_99.get('s3_url'),
+                                        s3_json_url=result_99.get(
+                                            's3_json_url'),
+                                        ticker=result_99.get('ticker'),
+                                        filing_date=result_99.get(
+                                            'filing_date'),
+                                        items_reported=result_99.get(
+                                            'items_reported') or [],
+                                    )
+                                    doc_99.save()
+                                    log_and_print(
+                                        f"💾 EX-99.1 summary saved to DB (99_1_summary)")
+                                    try:
+                                        send_summary_email_via_webhook(
+                                            summary_doc_url=doc_99.s3_docx_url,
+                                            company_name=item_data.get('company_name') or '',
+                                            form_type='8-K (EX-99.1)',
+                                            cik_number=item_data.get('cik_number') or '',
+                                            sec_url=item_data.get('link') or url_ex99,
+                                            accession_number=accession_number,
+                                            summary_kind='EX-99.1',
+                                        )
+                                        log_and_print(f"📧 EX-99.1 summary email sent via webhook (docx link included)")
+                                    except Exception as email_e:
+                                        log_and_print(f"❌ Failed to send EX-99.1 summary email: {email_e}", 'error')
+                                except Exception as db_e:
+                                    log_and_print(
+                                        f"❌ Failed to save EX-99.1 summary to DB: {db_e}", 'error')
+                        except Exception as e:
+                            log_and_print(
+                                f"❌ EX-99.1 summary failed: {e}", 'error')
 
             if form_type == '8-K' and (item_data.get('has_ex21') or item_data.get('has_ex99_1')):
                 result = self._analyze_8k_filing(item_data)

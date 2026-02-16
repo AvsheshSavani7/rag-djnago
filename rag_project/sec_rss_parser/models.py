@@ -179,3 +179,65 @@ class AccessionLookedUp(Document):
 
     def __str__(self):
         return f"AccessionLookedUp - {self.accession_number}"
+
+
+class EightKSummary(Document):
+    """Summary of an 8-K document (main 8-K filing document)."""
+    _id = StringField(primary_key=True, default=generate_object_id)
+
+    accession_number = StringField(required=True, max_length=50)
+    company_name = StringField(required=False, max_length=255, null=True)
+    cik_number = StringField(required=False, max_length=20, null=True)
+    sec_document_url = URLField(required=True, max_length=1000)
+    s3_docx_url = URLField(required=False, max_length=1000, null=True)
+    s3_json_url = URLField(required=False, max_length=1000, null=True)
+
+    ticker = StringField(required=False, max_length=20, null=True)
+    filing_date = StringField(required=False, max_length=20, null=True)
+    items_reported = ListField(StringField(max_length=50), default=[])
+
+    created_at = DateTimeField(default=datetime.utcnow)
+    updated_at = DateTimeField(default=datetime.utcnow)
+
+    meta = {
+        'collection': '8k_summary',
+        'indexes': ['accession_number', 'cik_number', 'created_at'],
+    }
+
+    def save(self, *args, **kwargs):
+        self.updated_at = datetime.utcnow()
+        return super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"8K Summary - {self.accession_number} - {self.ticker or 'N/A'}"
+
+
+class Ex99_1Summary(Document):
+    """Summary of an EX-99.1 document (exhibit to 8-K)."""
+    _id = StringField(primary_key=True, default=generate_object_id)
+
+    accession_number = StringField(required=True, max_length=50)
+    company_name = StringField(required=False, max_length=255, null=True)
+    cik_number = StringField(required=False, max_length=20, null=True)
+    sec_document_url = URLField(required=True, max_length=1000)
+    s3_docx_url = URLField(required=False, max_length=1000, null=True)
+    s3_json_url = URLField(required=False, max_length=1000, null=True)
+
+    ticker = StringField(required=False, max_length=20, null=True)
+    filing_date = StringField(required=False, max_length=20, null=True)
+    items_reported = ListField(StringField(max_length=50), default=[])
+
+    created_at = DateTimeField(default=datetime.utcnow)
+    updated_at = DateTimeField(default=datetime.utcnow)
+
+    meta = {
+        'collection': '99_1_summary',
+        'indexes': ['accession_number', 'cik_number', 'created_at'],
+    }
+
+    def save(self, *args, **kwargs):
+        self.updated_at = datetime.utcnow()
+        return super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"99.1 Summary - {self.accession_number} - {self.ticker or 'N/A'}"

@@ -127,7 +127,8 @@ def _build_company_details_rows(company_details):
         <td style="padding:8px; color:{listed_color}; font-weight:bold;">{escape_html(listed_text)}</td>
       </tr>
 """
-    is_cap_gt_100m = company_details.get('is_target_market_cap_greater_than_100m')
+    is_cap_gt_100m = company_details.get(
+        'is_target_market_cap_greater_than_100m')
     if is_cap_gt_100m is not None:
         cap_text = "✓ Yes (> $100M)" if is_cap_gt_100m else "✗ No (< $100M)"
         cap_color = "#28a745" if is_cap_gt_100m else "#dc3545"
@@ -405,20 +406,8 @@ def generate_8k_summary_email_html(company_name: str, form_type: str, summary_do
       </a>
     </div>
 
-    <div style="margin-top:30px; padding:15px; background-color:#e8f4f8; border-radius:5px; border-left:4px solid #4a90e2;">
-      <p style="margin:0; color:#555; font-size:14px;">
-        <strong>Note:</strong> This document contains the summary generated from the 8-K filing.
-      </p>
-    </div>
-
-    <div style="margin-top:30px; padding-top:20px; border-top:1px solid #e0e0e0; text-align:center; color:#999; font-size:12px;">
-      <p>This is an automated email notification for 8-K summary document generation.</p>
-      <p style="margin-top:5px;">
-        <a href="{escape_html(summary_doc_url)}" style="color:#4a90e2; text-decoration:none; word-break:break-all;">
-          {escape_html(summary_doc_url)}
-        </a>
-      </p>
-    </div>
+   
+    
   </div>
 </body>
 </html>
