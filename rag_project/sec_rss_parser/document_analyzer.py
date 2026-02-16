@@ -482,37 +482,46 @@ Respond only with valid JSON.
                 }
 
             prompt = f"""
-You are an expert in analyzing SEC filings and M&A documents.
+You are an expert in analyzing SEC filings and M&A disclosures.
 
-You are reviewing an EX-99.1 exhibit attached to Form 8-K. 
+You are reviewing an EX-99.1 exhibit attached to Form 8-K.
 
 Company: {company_name}
 
 Document excerpt:
 {document_text}
 
-Task:
-Determine whether this document discloses a NEW merger, acquisition, or business combination transaction.
+Objective:
+Determine whether THIS specific press release is announcing that the company has JUST entered into (or just signed) a NEW merger, acquisition, or business combination agreement.
 
-Definition of NEW:
-A transaction that the company has just entered into, signed, or agreed to,
-even if it has not yet closed.
+Core Question:
+Is this document announcing a newly signed or newly entered transaction?
 
-This includes:
-- Signing a merger agreement
-- Entering into a definitive acquisition agreement
-- Announcing intent to merge with binding agreement
-- Signing an LOI (if transaction-specific)
-- Agreeing to be acquired
-- Agreeing to acquire another company
+A "NEW transaction" means:
+- The company has signed a merger agreement
+- The company has entered into a definitive acquisition agreement
+- The company has agreed to acquire another company
+- The company has agreed to be acquired
+- A binding LOI has been executed
+- The agreement was entered into as of the date of this press release
 
-This does NOT include:
-- Completion of previously announced deal
-- Historical references to past acquisitions
-- Earnings releases mentioning old acquisitions
-- General M&A strategy commentary
-- Partnerships without equity acquisition
-- Joint ventures without acquisition
+Important:
+The transaction may not yet be closed.
+It may be subject to regulatory or shareholder approval.
+It may be expected to close in the future.
+These still qualify as NEW if the agreement was just entered into.
+
+Do NOT classify as NEW if the document:
+- Announces closing of a previously announced deal
+- Provides updates on an earlier transaction
+- References past acquisitions
+- Discusses general M&A strategy
+- Announces partnerships without equity acquisition
+- Announces joint ventures without change of control
+- Is an earnings release referencing prior deals
+
+Decision Standard:
+Only return true if the press release clearly indicates that a new merger or acquisition agreement has just been signed or entered into.
 
 Respond ONLY with valid JSON:
 
