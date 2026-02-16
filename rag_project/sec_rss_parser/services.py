@@ -1354,8 +1354,20 @@ class SECFeedProcessor:
             }
 
             # Send via webhook
-            send_webhook_notification(N8N_WEBHOOK_URL_FILING, payload, "email")
-
+            if email_type == 'ex99_1_merger':
+                try:
+                    send_webhook_notification(
+                        N8N_WEBHOOK_URL_8K_SUMMARY, payload, "email")
+                except Exception as e:
+                    log_and_print(
+                        f"❌ Error sending 8-K summary email: {e}", 'error')
+            else:
+                try:
+                    send_webhook_notification(
+                        N8N_WEBHOOK_URL_FILING, payload, "email")
+                except Exception as e:
+                    log_and_print(
+                        f"❌ Error sending filing email: {e}", 'error')
             return True
         except Exception as e:
             log_and_print(f"❌ Error sending email notification: {e}", 'error')
