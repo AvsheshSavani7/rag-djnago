@@ -1658,7 +1658,10 @@ class SECFeedProcessor:
                     print(f"📝 Generated email subject: {subject}")
 
                     # Send email via n8n webhook
-                    webhook_url = "https://n8n-xwx1.onrender.com/webhook/3ff1b0ea-7114-4dda-940e-95ce81e08017"
+                    if email_type == 'ex99_1_merger':
+                        webhook_url = "https://n8n-xwx1.onrender.com/webhook/b3007d21-6845-47b5-aece-7b26583758bc"
+                    else:
+                        webhook_url = "https://n8n-xwx1.onrender.com/webhook/3ff1b0ea-7114-4dda-940e-95ce81e08017"
                     logger.info(
                         f"📤 Sending email via n8n webhook: {webhook_url}")
                     print(
