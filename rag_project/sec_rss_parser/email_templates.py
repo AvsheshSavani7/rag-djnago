@@ -346,7 +346,7 @@ def generate_ex99_1_merger_email_html(filing_data, doc_files):
     return subject, html_email
 
 
-def generate_8k_summary_email_html(company_name: str, form_type: str, summary_doc_url: str, cik_number: str, sec_url: str, accession_number: str) -> tuple:
+def generate_8k_summary_email_html(company_name: str, form_type: str, summary_doc_url: str, cik_number: str, sec_url: str, accession_number: str, summary_kind: str = "8-K") -> tuple:
     """
     Generate HTML email for 8-K summary document notification.
 
@@ -360,7 +360,7 @@ def generate_8k_summary_email_html(company_name: str, form_type: str, summary_do
     Returns:
         tuple: (subject, html_email)
     """
-    subject = f"New 8-K Summary Document – {form_type} – {company_name}"
+    subject = f"New {summary_kind} Summary Document – {form_type} – {company_name}"
 
     html_email = f"""
 <!DOCTYPE html>
@@ -372,12 +372,12 @@ def generate_8k_summary_email_html(company_name: str, form_type: str, summary_do
 <body style="margin:0; padding:0; font-family:Arial,sans-serif; background-color:#f4f4f4;">
   <div style="max-width:700px; margin:20px auto; background-color:#ffffff; padding:30px; border-radius:8px; box-shadow:0 2px 4px rgba(0,0,0,0.1);">
     <h2 style="color:#333; text-align:center; margin-top:0; padding-bottom:20px; border-bottom:3px solid #4a90e2;">
-      New 8-K Summary Document
+      New {summary_kind} Summary Document
     </h2>
 
     <div style="margin-bottom:30px;">
       <p style="color:#333; font-size:16px; line-height:1.6;">
-        The 8-K summary document has been successfully generated for:
+        The {summary_kind} summary document has been successfully generated for:
       </p>
 
       <div style="background-color:#f9f9f9; padding:15px; border-radius:5px; margin:20px 0;">

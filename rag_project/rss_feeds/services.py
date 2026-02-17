@@ -1,11 +1,73 @@
 from datetime import datetime
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Any
+import logging
+import requests
+
 from .models import Feed, FeedItem, Author
 from .serializers import FeedItemCreateSerializer
 from .websocket_service import RSSWebSocketService
-import logging
+from .email_templates import generate_rss_feed_update_email_html
 
 logger = logging.getLogger(__name__)
+
+# N8N webhook for RSS feed update emails (testing – same as sec_rss_parser)
+N8N_WEBHOOK_URL_FOR_TESTING = (
+    "https://n8n-xwx1.onrender.com/webhook/80830c6d-ff5b-45e3-9ef3-a061db1fbf0c"
+)
+
+
+def _parse_date_published(value: Any) -> datetime:
+    """Parse date_published from RSS.app webhook (ISO 8601 string) to datetime."""
+    if isinstance(value, datetime):
+        return value
+    if isinstance(value, str):
+        # RSS.app sends e.g. "2024-09-12T17:52:59.000Z"
+        normalized = value.replace("Z", "+00:00")
+        return datetime.fromisoformat(normalized)
+    raise ValueError(f"Invalid date_published: {value!r}")
+
+
+def _send_rss_feed_email_via_webhook(
+    webhook_url: str,
+    subject: str,
+    html_email: str,
+    feed_title: str,
+    items_count: int,
+    feed_source_url: str = "",
+) -> bool:
+    """Send RSS feed update email via N8N webhook (same payload shape as sec_rss_parser)."""
+    try:
+        payload = {
+            "subject": subject,
+            "html": html_email,
+            "feed_title": feed_title,
+            "items_count": items_count,
+            "feed_source_url": feed_source_url,
+        }
+        logger.info(
+            "Sending RSS feed update email via webhook: %s", webhook_url)
+        response = requests.post(
+            webhook_url,
+            json=payload,
+            headers={"Content-Type": "application/json"},
+            timeout=30,
+        )
+        response.raise_for_status()
+        logger.info(
+            "RSS feed update email sent successfully (status=%s)", response.status_code
+        )
+        return True
+    except requests.exceptions.RequestException as e:
+        logger.warning(
+            "Failed to send RSS feed update email via webhook: %s", e)
+        if hasattr(e, "response") and e.response is not None:
+            logger.warning(
+                "Webhook response: %s %s",
+                getattr(e.response, "status_code", ""),
+                (e.response.text[:200] if getattr(
+                    e.response, "text", None) else ""),
+            )
+        return False
 
 
 class RSSFeedService:
@@ -136,13 +198,14 @@ class RSSFeedService:
                         author = Author(name=author_data.get('name', ''))
                         authors.append(author)
 
-                # Create feed item
+                # Create feed item (RSS.app sends date_published as ISO string; thumbnail can be null)
                 feed_item = FeedItem(
                     url=item_data['url'],
                     title=item_data['title'],
-                    description_text=item_data.get('description_text', ''),
-                    thumbnail=item_data.get('thumbnail', ''),
-                    date_published=item_data['date_published'],
+                    description_text=item_data.get('description_text') or '',
+                    thumbnail=item_data.get('thumbnail') or '',
+                    date_published=_parse_date_published(
+                        item_data['date_published']),
                     authors=authors,
                     rss_feed_id=feed_id
                 )
@@ -181,7 +244,7 @@ class RSSFeedService:
             # Create feed items
             created_items = RSSFeedService.create_feed_items(
                 str(feed.id), items_new)
-            print("created_items", created_items)
+            logger.debug("Webhook created_items count: %s", len(created_items))
 
             # Emit WebSocket notification for new feed items
             if created_items:
@@ -205,6 +268,36 @@ class RSSFeedService:
                 thread = threading.Thread(target=emit_websocket)
                 thread.daemon = True
                 thread.start()
+
+            # Generate single HTML email and send via N8N testing webhook
+            if items_new:
+                logger.info(f"Payload received: {payload}")
+                logger.info(f"Feed data: {feed_data}")
+                logger.info(f"Items new: {items_new}")
+                logger.info(
+                    f"Feed title: {feed_data.get('title') or feed.title}")
+                logger.info(
+                    f"Feed source url: {feed_data.get('source_url') or getattr(feed, 'source_url', '') or ''}")
+                logger.info(f"Items count: {len(items_new)}")
+                logger.info(
+                    f"Feed source url: {feed_data.get('source_url') or getattr(feed, 'source_url', '') or ''}")
+                try:
+                    subject, html_email = generate_rss_feed_update_email_html(
+                        feed_data, items_new
+                    )
+                    _send_rss_feed_email_via_webhook(
+                        N8N_WEBHOOK_URL_FOR_TESTING,
+                        subject=subject,
+                        html_email=html_email,
+                        feed_title=feed_data.get("title") or feed.title,
+                        items_count=len(items_new),
+                        feed_source_url=feed_data.get("source_url") or getattr(
+                            feed, "source_url", "") or "",
+                    )
+                except Exception as e:
+                    logger.warning(
+                        "Could not generate/send RSS feed update email: %s", e
+                    )
 
             return {
                 'success': True,
