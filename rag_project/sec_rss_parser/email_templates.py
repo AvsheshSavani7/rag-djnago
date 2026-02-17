@@ -264,6 +264,7 @@ def generate_ex99_1_merger_email_html(filing_data, doc_files):
     cik = filing_data.get('cik_number', 'N/A')
     filing_url = filing_data.get('link', '')
     confidence = filing_data.get('ex99_1_confidence', 0)
+    is_merger_related = filing_data.get('is_merger_related', False)
     reasoning = filing_data.get('ex99_1_reasoning', '')
 
     subject = f"8-K EX-99.1 M&A-Related – {form_type} – {company_name}"
@@ -321,6 +322,10 @@ def generate_ex99_1_merger_email_html(filing_data, doc_files):
       <tr style="background-color:#f9f9f9;">
         <td style="padding:8px; font-weight:bold; color:#555;">Confidence:</td>
         <td style="padding:8px;">{confidence_badge}</td>
+      </tr>
+      <tr>
+        <td style="padding:8px; font-weight:bold; color:#555;">Is Merger Related:</td>
+        <td style="padding:8px; color:#333;">{escape_html(is_merger_related)}</td>
       </tr>
       <tr>
         <td style="padding:8px; font-weight:bold; color:#555;">Company:</td>

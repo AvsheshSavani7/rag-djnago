@@ -492,36 +492,38 @@ Document excerpt:
 {document_text}
 
 Objective:
-Determine whether THIS specific press release is announcing that the company has JUST entered into (or just signed) a NEW merger, acquisition, or business combination agreement.
+Determine whether THIS press release announces that the company has JUST entered into (or just signed) a NEW merger, acquisition, or business combination agreement involving corporate ownership or control.
 
 Core Question:
-Is this document announcing a newly signed or newly entered transaction?
+Is this document announcing that the company has just signed a binding agreement that results in:
 
-A "NEW transaction" means:
-- The company has signed a merger agreement
-- The company has entered into a definitive acquisition agreement
-- The company has agreed to acquire another company
-- The company has agreed to be acquired
-- A binding LOI has been executed
-- The agreement was entered into as of the date of this press release
+Acquisition of another company’s equity or voting control
+Being acquired by another company
+A statutory merger
+A business combination
+A change of control transaction
+A reverse merger
+A stock purchase or share exchange resulting in control
 
-Important:
+IMPORTANT:
 The transaction may not yet be closed.
 It may be subject to regulatory or shareholder approval.
-It may be expected to close in the future.
-These still qualify as NEW if the agreement was just entered into.
+These still qualify as NEW if just signed.
 
-Do NOT classify as NEW if the document:
-- Announces closing of a previously announced deal
-- Provides updates on an earlier transaction
-- References past acquisitions
-- Discusses general M&A strategy
-- Announces partnerships without equity acquisition
-- Announces joint ventures without change of control
-- Is an earnings release referencing prior deals
+DO NOT classify as NEW if the document announces:
+Asset sales
+Divestitures
+Sale of business units or portfolios
+Infrastructure sales
+Sale of towers, properties, assets, or subsidiaries
+Strategic partnerships without equity acquisition
+Financing transactions
+Debt repayment plans
+Previously announced deals
+Closing of prior deals
 
-Decision Standard:
-Only return true if the press release clearly indicates that a new merger or acquisition agreement has just been signed or entered into.
+Decision Rule:
+Return true ONLY if a newly signed agreement results in a merger, acquisition of equity control, or business combination between corporate entities.
 
 Respond ONLY with valid JSON:
 
@@ -529,7 +531,7 @@ Respond ONLY with valid JSON:
 {{
   "is_merger_related": boolean,
   "confidence": number (0-100),
-  "reasoning": "brief explanation"
+  "reasoning": "concise explanation"
 }}
 ```
 
