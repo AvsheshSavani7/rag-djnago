@@ -1568,8 +1568,13 @@ class SECFeedProcessor:
                     if summarize_8k_filing and item_data.get('has_8k_document'):
                         file_8k = find_file_by_type(xbrl_files, '8-K')
                         if file_8k and file_8k.get('url'):
-                            url_8k = build_full_sec_url(
-                                file_8k.get('url')) or file_8k.get('url')
+                            url_8k = (
+                                build_full_sec_url(file_8k.get('url'))
+                                or file_8k.get('url')
+                            )
+                            # Use direct document URL (strip ix?doc=/ wrapper)
+                            if url_8k and 'ix?doc=/' in url_8k:
+                                url_8k = url_8k.replace('ix?doc=/', '', 1)
                             try:
                                 result_8k = summarize_8k_filing(
                                     url_8k,
