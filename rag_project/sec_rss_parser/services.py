@@ -1207,6 +1207,7 @@ class SECFeedProcessor:
                 elif item_data.get('is_merger_related') is False:
                     log_and_print(
                         f"📝 EX-99.1 not merger-related (confidence: {item_data.get('ex99_1_confidence', 0)}%): {item_data.get('company_name')}")
+                    return False
                 else:
                     log_and_print(
                         f"❓ EX-99.1 analysis inconclusive: {item_data.get('company_name')}")
