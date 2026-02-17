@@ -11,8 +11,11 @@ from .email_templates import generate_rss_feed_update_email_html
 logger = logging.getLogger(__name__)
 
 # N8N webhook for RSS feed update emails (testing – same as sec_rss_parser)
+# N8N_WEBHOOK_URL_FOR_TESTING = (
+#     "https://n8n-xwx1.onrender.com/webhook/80830c6d-ff5b-45e3-9ef3-a061db1fbf0c"
+# )
 N8N_WEBHOOK_URL_FOR_TESTING = (
-    "https://n8n-xwx1.onrender.com/webhook/80830c6d-ff5b-45e3-9ef3-a061db1fbf0c"
+    "https://n8n-xwx1.onrender.com/webhook/b3007d21-6845-47b5-aece-7b26583758bc"
 )
 
 
