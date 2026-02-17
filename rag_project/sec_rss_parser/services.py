@@ -544,7 +544,6 @@ class SECRSSParser:
                 response = self.session.get(
                     self.feed_url, headers=self.headers, timeout=30)
                 response.raise_for_status()
-                print("response.text[:1200]", response.text[:1200])
                 return response.text
             except Exception as e:
                 log_and_print(
@@ -952,10 +951,12 @@ class SECFeedProcessor:
             by_target = ProcessingJob.objects(cik=cik_normalized).first()
             if by_target:
                 return True
-            by_acquirer = ProcessingJob.objects(acquirer_cik=cik_normalized).first()
+            by_acquirer = ProcessingJob.objects(
+                acquirer_cik=cik_normalized).first()
             return by_acquirer is not None
         except Exception as e:
-            log_and_print(f"Error checking CIK in deals (target/acquirer): {e}", 'error')
+            log_and_print(
+                f"Error checking CIK in deals (target/acquirer): {e}", 'error')
             return False
 
     def _filter_unique_items(self, items):
@@ -1584,9 +1585,11 @@ class SECFeedProcessor:
                                             accession_number=accession_number,
                                             company_name=item_data.get(
                                                 'company_name'),
-                                            cik_number=item_data.get('cik_number'),
+                                            cik_number=item_data.get(
+                                                'cik_number'),
                                             sec_document_url=url_8k,
-                                            s3_docx_url=result_8k.get('s3_url'),
+                                            s3_docx_url=result_8k.get(
+                                                's3_url'),
                                             s3_json_url=result_8k.get(
                                                 's3_json_url'),
                                             ticker=result_8k.get('ticker'),
@@ -1644,9 +1647,11 @@ class SECFeedProcessor:
                                             accession_number=accession_number,
                                             company_name=item_data.get(
                                                 'company_name'),
-                                            cik_number=item_data.get('cik_number'),
+                                            cik_number=item_data.get(
+                                                'cik_number'),
                                             sec_document_url=url_ex99,
-                                            s3_docx_url=result_99.get('s3_url'),
+                                            s3_docx_url=result_99.get(
+                                                's3_url'),
                                             s3_json_url=result_99.get(
                                                 's3_json_url'),
                                             ticker=result_99.get('ticker'),
