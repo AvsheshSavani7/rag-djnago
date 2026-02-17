@@ -50,7 +50,8 @@ def generate_rss_feed_update_email_html(
         desc = escape_html(desc)
         date_pub = item.get("date_published") or ""
         authors = item.get("authors") or []
-        author_names = ", ".join(a.get("name", "") for a in authors if a.get("name"))
+        author_names = ", ".join(a.get("name", "")
+                                 for a in authors if a.get("name"))
         author_line = f"<p style=\"margin:4px 0 0 0; font-size:12px; color:#888;\">{escape_html(author_names)}</p>" if author_names else ""
 
         items_html_parts.append(f"""
@@ -65,7 +66,7 @@ def generate_rss_feed_update_email_html(
 """)
 
     items_table = "".join(items_html_parts) if items_html_parts else """
-    <tr><td style="padding:12px; color:#666;">No new items in this update.</td></tr>
+    <tr><td style="padding:12px; color:#666;">No new news in this update.</td></tr>
 """
 
     html_email = f"""
@@ -94,7 +95,7 @@ def generate_rss_feed_update_email_html(
     <table style="width:100%; border-collapse:collapse; margin-top:16px;">
       <thead>
         <tr style="background-color:#f5f5f5;">
-          <th style="padding:10px; border:1px solid #ddd; text-align:left;">New items</th>
+          <th style="padding:10px; border:1px solid #ddd; text-align:left;">New news</th>
         </tr>
       </thead>
       <tbody>
