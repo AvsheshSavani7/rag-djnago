@@ -6,7 +6,7 @@ import requests
 from .models import Feed, FeedItem, Author
 from .serializers import FeedItemCreateSerializer
 from .websocket_service import RSSWebSocketService
-from .email_templates import generate_rss_feed_update_email_html
+from .email_templates import generate_rss_feed_item_email_html
 
 logger = logging.getLogger(__name__)
 
@@ -272,34 +272,25 @@ class RSSFeedService:
                 thread.daemon = True
                 thread.start()
 
-            # Generate single HTML email and send via N8N testing webhook
-            if items_new:
-                logger.info(f"Payload received: {payload}")
-                logger.info(f"Feed data: {feed_data}")
-                logger.info(f"Items new: {items_new}")
-                logger.info(
-                    f"Feed title: {feed_data.get('title') or feed.title}")
-                logger.info(
-                    f"Feed source url: {feed_data.get('source_url') or getattr(feed, 'source_url', '') or ''}")
-                logger.info(f"Items count: {len(items_new)}")
-                logger.info(
-                    f"Feed source url: {feed_data.get('source_url') or getattr(feed, 'source_url', '') or ''}")
+            # Send one email per new item via N8N testing webhook (subject: "PR News : {item title}")
+            feed_title_str = feed_data.get("title") or feed.title
+            feed_source_url_str = feed_data.get("source_url") or getattr(feed, "source_url", "") or ""
+            for item in items_new:
                 try:
-                    subject, html_email = generate_rss_feed_update_email_html(
-                        feed_data, items_new
+                    subject, html_email = generate_rss_feed_item_email_html(
+                        feed_data, item
                     )
                     _send_rss_feed_email_via_webhook(
                         N8N_WEBHOOK_URL_FOR_TESTING,
                         subject=subject,
                         html_email=html_email,
-                        feed_title=feed_data.get("title") or feed.title,
-                        items_count=len(items_new),
-                        feed_source_url=feed_data.get("source_url") or getattr(
-                            feed, "source_url", "") or "",
+                        feed_title=feed_title_str,
+                        items_count=1,
+                        feed_source_url=feed_source_url_str,
                     )
                 except Exception as e:
                     logger.warning(
-                        "Could not generate/send RSS feed update email: %s", e
+                        "Could not generate/send RSS feed item email: %s", e
                     )
 
             return {

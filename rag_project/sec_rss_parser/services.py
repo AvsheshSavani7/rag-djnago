@@ -185,7 +185,7 @@ def send_summary_email_via_webhook(summary_doc_url, company_name, form_type, cik
             "sec_url": sec_url,
         }
         send_webhook_notification(
-            N8N_WEBHOOK_URL_FOR_TESTING, payload, f"{summary_kind} summary email"
+            N8N_WEBHOOK_URL_8K_SUMMARY, payload, f"{summary_kind} summary email"
         )
     except Exception as e:
         log_and_print(

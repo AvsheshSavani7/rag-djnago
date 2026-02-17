@@ -539,13 +539,13 @@ Respond ONLY with valid JSON.
 """
 
             response = self.openai_client.chat.completions.create(
-                model="gpt-4o-mini",
+                model="gpt-5-mini-2025-08-07",
                 messages=[
                     {"role": "system", "content": "You are an expert SEC filing analyst. Respond only with valid JSON."},
                     {"role": "user", "content": prompt}
                 ],
-                max_tokens=400,
-                temperature=0.1,
+                max_completion_tokens=400,
+                temperature=1,
                 response_format={"type": "json_object"}
             )
 
