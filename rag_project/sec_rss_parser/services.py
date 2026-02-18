@@ -1708,11 +1708,14 @@ class SECFeedProcessor:
             # Prepare data for database
             item_data = self._prepare_filing_data(item_data)
 
-            # Capture EX-99.1 fields before filtering
+            # Capture EX-99.1 fields before filtering (for email and logic)
             has_ex99_1 = item_data.get('has_ex99_1')
             is_merger_related = item_data.get('is_merger_related')
             ex99_1_confidence = item_data.get('ex99_1_confidence')
             ex99_1_reasoning = item_data.get('ex99_1_reasoning')
+            ex99_1_is_target_us_listed = item_data.get('is_target_us_listed')
+            ex99_1_is_target_market_cap_gt_100m = item_data.get(
+                'is_target_market_cap_greater_than_100m')
 
             # Filter allowed fields
             item_data = {k: v for k, v in item_data.items()
@@ -1772,11 +1775,13 @@ class SECFeedProcessor:
                     filing_data, analysis_result)
 
             # Email notification logic
-            # Restore EX-99.1 fields for email check
+            # Restore EX-99.1 fields for email check and email content
             item_data['has_ex99_1'] = has_ex99_1
             item_data['is_merger_related'] = is_merger_related
             item_data['ex99_1_confidence'] = ex99_1_confidence
             item_data['ex99_1_reasoning'] = ex99_1_reasoning
+            item_data['is_target_us_listed'] = ex99_1_is_target_us_listed
+            item_data['is_target_market_cap_greater_than_100m'] = ex99_1_is_target_market_cap_gt_100m
 
             should_send_email, email_type, matched_deal = self._should_send_email(
                 item_data)
