@@ -1391,8 +1391,16 @@ class SECFeedProcessor:
                         f"❌ Error sending 8-K summary email: {e}", 'error')
             else:
                 try:
-                    send_webhook_notification(
-                        N8N_WEBHOOK_URL_FILING, payload, "email")
+                    company_details = item_data.get('company_details') or {}
+                    use_filing_webhook = (
+                        company_details.get('is_target_us_listed') and
+                        company_details.get('is_target_market_cap_greater_than_100m')
+                    )
+                    webhook_url = (
+                        N8N_WEBHOOK_URL_FILING if use_filing_webhook
+                        else N8N_WEBHOOK_URL_8K_SUMMARY
+                    )
+                    send_webhook_notification(webhook_url, payload, "email")
                 except Exception as e:
                     log_and_print(
                         f"❌ Error sending filing email: {e}", 'error')
