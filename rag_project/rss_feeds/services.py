@@ -30,6 +30,18 @@ def _parse_date_published(value: Any) -> datetime:
     raise ValueError(f"Invalid date_published: {value!r}")
 
 
+def _normalize_thumbnail(value: Any) -> Optional[str]:
+    """Return a valid thumbnail URL or None. URLField rejects empty string."""
+    if value is None:
+        return None
+    s = (value or "").strip()
+    if not s:
+        return None
+    if s.startswith("http://") or s.startswith("https://"):
+        return s
+    return None
+
+
 def _send_rss_feed_email_via_webhook(
     webhook_url: str,
     subject: str,
@@ -180,6 +192,10 @@ class RSSFeedService:
 
         try:
             for item_data in items_data:
+                # Normalize thumbnail so empty/invalid URLs don't fail URLField validation
+                item_data = dict(item_data)
+                item_data["thumbnail"] = _normalize_thumbnail(item_data.get("thumbnail"))
+
                 # Validate item data
                 serializer = FeedItemCreateSerializer(data=item_data)
                 if not serializer.is_valid():
@@ -201,12 +217,12 @@ class RSSFeedService:
                         author = Author(name=author_data.get('name', ''))
                         authors.append(author)
 
-                # Create feed item (RSS.app sends date_published as ISO string; thumbnail can be null)
+                # Create feed item (thumbnail None when missing/invalid; URLField rejects '')
                 feed_item = FeedItem(
                     url=item_data['url'],
                     title=item_data['title'],
                     description_text=item_data.get('description_text') or '',
-                    thumbnail=item_data.get('thumbnail') or '',
+                    thumbnail=item_data.get('thumbnail'),
                     date_published=_parse_date_published(
                         item_data['date_published']),
                     authors=authors,

@@ -469,8 +469,8 @@ Respond only with valid JSON.
             return filing_data
 
     def analyze_ex99_1_document_with_gpt(self, document_text: str, company_name: str) -> Dict[str, Any]:
-        """Analyze EX-99.1 document with GPT to determine if it's related to a new merger.
-        Returns is_merger_related, confidence, and reasoning."""
+        """Analyze EX-99.1 document with GPT (with web search) to determine if it's merger-related.
+        Returns is_merger_related, confidence, reasoning, is_target_us_listed, is_target_market_cap_greater_than_100m."""
         try:
             if not self.openai_client.api_key:
                 logger.error("OpenAI API key not configured")
@@ -478,21 +478,25 @@ Respond only with valid JSON.
                     'is_merger_related': None,
                     'confidence': 0,
                     'reasoning': 'OpenAI API key not configured',
+                    'is_target_us_listed': None,
+                    'is_target_market_cap_greater_than_100m': None,
                     'error': 'API key missing'
                 }
 
             prompt = f"""
-You are an expert in analyzing SEC filings and M&A disclosures.
+You are an expert in analyzing SEC filings and M&A disclosures with web search access.
 
 You are reviewing an EX-99.1 exhibit attached to Form 8-K.
 
-Company: {company_name}
+Company (filer): {company_name}
 
 Document excerpt:
 {document_text}
 
 Objective:
-Determine whether THIS press release announces that the company has JUST entered into (or just signed) a NEW merger, acquisition, or business combination agreement involving corporate ownership or control.
+1. Determine whether THIS press release announces that the company has JUST entered into (or just signed) a NEW merger, acquisition, or business combination agreement involving corporate ownership or control.
+2. If it is merger-related, identify the TARGET company (the company being acquired) from the document.
+3. USE WEB SEARCH to verify the target's US listing status and market cap.
 
 Core Question:
 Is this document announcing that the company has just signed a binding agreement that results in:
@@ -525,31 +529,68 @@ Closing of prior deals
 Decision Rule:
 Return true ONLY if a newly signed agreement results in a merger, acquisition of equity control, or business combination between corporate entities.
 
+For is_target_us_listed and is_target_market_cap_greater_than_100m:
+- First identify the target company name from the document.
+- USE WEB SEARCH to verify if the target is currently listed on a US stock exchange (NYSE, NASDAQ, etc.). Set is_target_us_listed to true if listed, false if not listed or delisted, null if cannot determine.
+- USE WEB SEARCH to find the current market capitalization of the target company. Set is_target_market_cap_greater_than_100m to true if market cap is greater than $100 million USD, false if less than $100M, null if cannot determine.
+- Search for "[target company name] stock exchange listing" and "[target company name] market cap"
+- If the document is NOT merger-related, set both to null.
+
 Respond ONLY with valid JSON:
 
 ```json
 {{
   "is_merger_related": boolean,
   "confidence": number (0-100),
-  "reasoning": "concise explanation"
+  "reasoning": "concise explanation",
+  "is_target_us_listed": boolean or null,
+  "is_target_market_cap_greater_than_100m": boolean or null
 }}
 ```
 
 Respond ONLY with valid JSON.
 """
 
-            response = self.openai_client.chat.completions.create(
-                model="gpt-5-mini-2025-08-07",
-                messages=[
-                    {"role": "system", "content": "You are an expert SEC filing analyst. Respond only with valid JSON."},
-                    {"role": "user", "content": prompt}
-                ],
-                max_completion_tokens=400,
-                temperature=1,
-                response_format={"type": "json_object"}
+            response = self.openai_client.responses.create(
+                model="gpt-5",
+                tools=[{"type": "web_search"}],
+                input=prompt,
+                reasoning={"effort": "low"}
             )
 
-            result_text = response.choices[0].message.content.strip()
+            result_text = None
+            for item in response.output:
+                if item.type == 'message' and hasattr(item, 'content'):
+                    for content_item in item.content:
+                        if content_item.type == 'output_text':
+                            result_text = content_item.text
+                            break
+                if result_text:
+                    break
+
+            if not result_text:
+                raise ValueError("No text output found in response")
+
+            result_text = result_text.strip()
+
+            # Remove markdown code blocks if present
+            if result_text.startswith('```'):
+                lines = result_text.split('\n')
+                json_lines = []
+                in_code_block = False
+                for line in lines:
+                    if line.strip().startswith('```'):
+                        in_code_block = not in_code_block
+                        continue
+                    if in_code_block:
+                        json_lines.append(line)
+                result_text = '\n'.join(json_lines).strip()
+
+            if not result_text.startswith('{'):
+                start = result_text.find('{')
+                end = result_text.rfind('}')
+                if start != -1 and end != -1:
+                    result_text = result_text[start:end+1]
 
             print(f"GPT Response for EX-99.1: {result_text}")
 
@@ -559,12 +600,16 @@ Respond ONLY with valid JSON.
                 'is_merger_related': result.get('is_merger_related'),
                 'confidence': result.get('confidence', 0),
                 'reasoning': result.get('reasoning', ''),
+                'is_target_us_listed': result.get('is_target_us_listed'),
+                'is_target_market_cap_greater_than_100m': result.get('is_target_market_cap_greater_than_100m'),
                 'raw_response': result_text
             }
 
             logger.info(
                 f"GPT EX-99.1 Analysis Result: is_merger_related={result.get('is_merger_related')} "
-                f"(confidence: {result.get('confidence', 0)}%)")
+                f"(confidence: {result.get('confidence', 0)}%) "
+                f"is_target_us_listed={result.get('is_target_us_listed')} "
+                f"is_target_market_cap_greater_than_100m={result.get('is_target_market_cap_greater_than_100m')}")
             return analysis_result
 
         except json.JSONDecodeError as e:
@@ -573,6 +618,8 @@ Respond ONLY with valid JSON.
                 'is_merger_related': None,
                 'confidence': 0,
                 'reasoning': 'Failed to parse GPT response',
+                'is_target_us_listed': None,
+                'is_target_market_cap_greater_than_100m': None,
                 'error': str(e)
             }
         except Exception as e:
@@ -581,6 +628,8 @@ Respond ONLY with valid JSON.
                 'is_merger_related': None,
                 'confidence': 0,
                 'reasoning': 'GPT analysis failed',
+                'is_target_us_listed': None,
+                'is_target_market_cap_greater_than_100m': None,
                 'error': str(e)
             }
 
@@ -640,6 +689,8 @@ Respond ONLY with valid JSON.
                 'is_merger_related')
             filing_data['ex99_1_confidence'] = analysis.get('confidence', 0)
             filing_data['ex99_1_reasoning'] = analysis.get('reasoning', '')
+            filing_data['is_target_us_listed'] = analysis.get('is_target_us_listed')
+            filing_data['is_target_market_cap_greater_than_100m'] = analysis.get('is_target_market_cap_greater_than_100m')
 
             return filing_data
 

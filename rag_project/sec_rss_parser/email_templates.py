@@ -266,6 +266,13 @@ def generate_ex99_1_merger_email_html(filing_data, doc_files):
     confidence = filing_data.get('ex99_1_confidence', 0)
     is_merger_related = filing_data.get('is_merger_related', False)
     reasoning = filing_data.get('ex99_1_reasoning', '')
+    is_target_us_listed = filing_data.get('is_target_us_listed')
+    is_target_market_cap_greater_than_100m = filing_data.get('is_target_market_cap_greater_than_100m')
+
+    def _fmt_bool(val):
+        if val is None:
+            return 'N/A'
+        return 'Yes' if val else 'No'
 
     subject = f"8-K EX-99.1 M&A-Related – {form_type} – {company_name}"
     confidence_badge = f"<span style='background:#28a745;color:white;padding:2px 8px;border-radius:4px;'>{confidence}% confidence</span>" if confidence else ""
@@ -334,6 +341,14 @@ def generate_ex99_1_merger_email_html(filing_data, doc_files):
       <tr style="background-color:#f9f9f9;">
         <td style="padding:8px; font-weight:bold; color:#555;">CIK:</td>
         <td style="padding:8px; color:#333;">{escape_html(cik)}</td>
+      </tr>
+      <tr>
+        <td style="padding:8px; font-weight:bold; color:#555;">Target US Listed:</td>
+        <td style="padding:8px; color:#333;">{escape_html(_fmt_bool(is_target_us_listed))}</td>
+      </tr>
+      <tr style="background-color:#f9f9f9;">
+        <td style="padding:8px; font-weight:bold; color:#555;">Target Market Cap &gt; $100M:</td>
+        <td style="padding:8px; color:#333;">{escape_html(_fmt_bool(is_target_market_cap_greater_than_100m))}</td>
       </tr>
 {reasoning_html}{filing_url_html}
     </table>
