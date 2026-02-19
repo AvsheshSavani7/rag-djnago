@@ -32,6 +32,7 @@ class ProcessingJobSerializer(serializers.Serializer):
         required=False, allow_null=True)
     target_ticker = serializers.CharField(required=False, allow_null=True)
     acquirer_ticker = serializers.CharField(required=False, allow_null=True)
+    deal_status = serializers.JSONField(required=False, allow_null=True)
 
     schema_results = serializers.JSONField(required=False, allow_null=True)
     schema_processing_completed = serializers.BooleanField()
