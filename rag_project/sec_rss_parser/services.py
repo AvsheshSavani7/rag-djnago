@@ -344,11 +344,14 @@ def process_8k_document_async(ex21_url, cik_number, company_name, sec_filing_id,
         log_and_print(
             f"🚀 Starting 8-K document processing for: {company_name}")
 
-        # Prepare data for Node API
-        target_cik = company_details.get('target_cik', '')
-        target_name = company_details.get('target_name', '')
-        acquirer_cik = company_details.get('acquirer_cik', '')
-        acquirer_name = company_details.get('acquirer_name', '')
+        # Prepare data for Node API (company_details includes target_ticker, acquirer_ticker from document_analyzer)
+        cd = company_details or {}
+        target_cik = cd.get('target_cik', '')
+        target_name = cd.get('target_name', '')
+        acquirer_cik = cd.get('acquirer_cik', '')
+        acquirer_name = cd.get('acquirer_name', '')
+        target_ticker = (cd.get('target_ticker') or '').strip() if cd.get('target_ticker') else ''
+        acquirer_ticker = (cd.get('acquirer_ticker') or '').strip() if cd.get('acquirer_ticker') else ''
         announce_data = filing_date.strftime(
             '%Y-%m-%d') if isinstance(filing_date, datetime) else str(filing_date)
 
@@ -361,6 +364,8 @@ def process_8k_document_async(ex21_url, cik_number, company_name, sec_filing_id,
             "url": ex21_url,
             "sec_filing_id": sec_filing_id,
             "company_details": company_details,
+            "target_ticker": target_ticker,
+            "acquirer_ticker": acquirer_ticker,
         }
 
         # Validate required fields
@@ -393,6 +398,8 @@ def process_8k_document_async(ex21_url, cik_number, company_name, sec_filing_id,
                 "acquired_name": data.get('acquirer_name', ''),
                 "sec_filing_id": sec_filing_id,
                 "acquirer_cik": data.get('acquirer_cik', ''),
+                "target_ticker": data.get('target_ticker', ''),
+                "acquirer_ticker": data.get('acquirer_ticker', ''),
                 "is_from_ui": False
             }
         )

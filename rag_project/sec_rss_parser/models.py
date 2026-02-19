@@ -69,7 +69,8 @@ class SECFiling(Document):
     following_status = StringField(default="Not Started", max_length=20)
 
     company_details = DynamicField(required=False, null=True)
-
+    target_ticker = StringField(required=False, max_length=20, null=True)
+    acquirer_ticker = StringField(required=False, max_length=20, null=True)
     # Timestamps
     created_at = DateTimeField(default=datetime.utcnow)
     updated_at = DateTimeField(default=datetime.utcnow)

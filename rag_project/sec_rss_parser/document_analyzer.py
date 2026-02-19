@@ -264,11 +264,13 @@ Respond with a JSON object containing:
 4. "acquirer_cik" (string): The SEC CIK of the acquirer. Output digits only; it will be normalized to 10 digits with leading zeros elsewhere.
 5. "is_target_us_listed" (boolean): USE WEB SEARCH to verify if the target is currently listed on a US stock exchange (NYSE, NASDAQ, etc.). Set to true if listed, false if not listed or delisted, null if cannot determine.
 6. "is_target_market_cap_greater_than_100m" (boolean): USE WEB SEARCH to find the current market capitalization of the target company. Set to true if market cap is greater than $100 million USD, false if less than $100M, null if cannot determine.
+7."target_ticker" (string): USE WEB SEARCH to find the current ticker symbol of the target company.
+8. "acquirer_ticker" (string): USE WEB SEARCH to find the current ticker symbol of the acquirer company.
 
 IMPORTANT:
 - Extract target_name and acquirer_name from the document excerpt above
 - For acquirer_cik, target_cik, is_target_us_listed and is_target_market_cap_greater_than_100m, you MUST perform web searches to get current, accurate information
-- Search for "[target company name] stock exchange listing" and "[target company name] market cap"
+- Search for "[target company name] stock exchange listing" and "[target company name] market cap" and "[target company name] ticker symbol"
 - If information cannot be found in document, use empty string "" for strings and null for booleans
 
 Respond only with valid JSON.
@@ -342,6 +344,8 @@ Respond only with valid JSON.
                 'acquirer_cik': self._normalize_cik(acquirer_cik),
                 'is_target_us_listed': result.get('is_target_us_listed'),
                 'is_target_market_cap_greater_than_100m': result.get('is_target_market_cap_greater_than_100m'),
+                'target_ticker': result.get('target_ticker', ''),
+                'acquirer_ticker': result.get('acquirer_ticker', ''),
             }
 
             logger.info(
@@ -357,6 +361,8 @@ Respond only with valid JSON.
                 'acquirer_cik': '',
                 'is_target_us_listed': None,
                 'is_target_market_cap_greater_than_100m': None,
+                'target_ticker': '',
+                'acquirer_ticker': '',
                 'error': str(e)
             }
         except Exception as e:
@@ -368,6 +374,8 @@ Respond only with valid JSON.
                 'acquirer_cik': '',
                 'is_target_us_listed': None,
                 'is_target_market_cap_greater_than_100m': None,
+                'target_ticker': '',
+                'acquirer_ticker': '',
                 'error': str(e)
             }
 
@@ -689,8 +697,10 @@ Respond ONLY with valid JSON.
                 'is_merger_related')
             filing_data['ex99_1_confidence'] = analysis.get('confidence', 0)
             filing_data['ex99_1_reasoning'] = analysis.get('reasoning', '')
-            filing_data['is_target_us_listed'] = analysis.get('is_target_us_listed')
-            filing_data['is_target_market_cap_greater_than_100m'] = analysis.get('is_target_market_cap_greater_than_100m')
+            filing_data['is_target_us_listed'] = analysis.get(
+                'is_target_us_listed')
+            filing_data['is_target_market_cap_greater_than_100m'] = analysis.get(
+                'is_target_market_cap_greater_than_100m')
 
             return filing_data
 
