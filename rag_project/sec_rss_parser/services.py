@@ -51,6 +51,9 @@ FORM_TYPES = ["8-k", "DEFM14A", "DEFM14C", "PREM14A", "PREM14C", "S-4",
 PROXY_FORM_TYPES = ["DEFM14A", "DEFM14C", "PREM14A", "PREM14C", "S-4", "F-4"]
 PERIODIC_FORM_TYPES = ["8-K", "8-K/A", "10-Q", "10-K"]
 
+# Only consider deals with status Open or Unknown (or null/not set) when matching by CIK
+DEAL_STATUS_OPEN_OR_UNKNOWN = ["Open", "Unknown"]
+
 
 ALLOWED_FILING_FIELDS = {
     'title', 'link', 'guid', 'description', 'pubDate',
@@ -939,7 +942,9 @@ class SECFeedProcessor:
                 return False
 
             deal_exists = ProcessingJob.objects(
-                cik=cik_number).first() is not None
+                cik=cik_number,
+                deal_status__in=DEAL_STATUS_OPEN_OR_UNKNOWN,
+            ).first() is not None
             log_and_print(
                 f"CIK {cik_number} {'found' if deal_exists else 'not found'} in Deals collection")
             return deal_exists
@@ -955,11 +960,16 @@ class SECFeedProcessor:
             return False
         cik_normalized = normalize_cik(cik_number)
         try:
-            by_target = ProcessingJob.objects(cik=cik_normalized).first()
+            by_target = ProcessingJob.objects(
+                cik=cik_normalized,
+                deal_status__in=DEAL_STATUS_OPEN_OR_UNKNOWN,
+            ).first()
             if by_target:
                 return True
             by_acquirer = ProcessingJob.objects(
-                acquirer_cik=cik_normalized).first()
+                acquirer_cik=cik_normalized,
+                deal_status__in=DEAL_STATUS_OPEN_OR_UNKNOWN,
+            ).first()
             return by_acquirer is not None
         except Exception as e:
             log_and_print(
@@ -1311,7 +1321,9 @@ class SECFeedProcessor:
 
             try:
                 matched_deal = ProcessingJob.objects(
-                    cik=cik_normalized).first()
+                    cik=cik_normalized,
+                    deal_status__in=DEAL_STATUS_OPEN_OR_UNKNOWN,
+                ).first()
                 if matched_deal:
                     return True, 'standard', matched_deal
                 else:
@@ -1330,10 +1342,14 @@ class SECFeedProcessor:
 
             try:
                 matched_deal = ProcessingJob.objects(
-                    cik=cik_normalized).first()
+                    cik=cik_normalized,
+                    deal_status__in=DEAL_STATUS_OPEN_OR_UNKNOWN,
+                ).first()
                 if not matched_deal:
                     matched_deal = ProcessingJob.objects(
-                        acquirer_cik=cik_normalized).first()
+                        acquirer_cik=cik_normalized,
+                        deal_status__in=DEAL_STATUS_OPEN_OR_UNKNOWN,
+                    ).first()
 
                 if matched_deal:
                     log_and_print(
@@ -1495,12 +1511,17 @@ class SECFeedProcessor:
             f"🔍 Checking for CIK match in deals collection for: {item_data.get('company_name')}")
         cik_normalized = normalize_cik(cik_number)
 
-        # Check deals collection
+        # Check deals collection (only Open or Unknown status)
         try:
-            matched_deal = ProcessingJob.objects(cik=cik_normalized).first()
+            matched_deal = ProcessingJob.objects(
+                cik=cik_normalized,
+                deal_status__in=DEAL_STATUS_OPEN_OR_UNKNOWN,
+            ).first()
             if not matched_deal:
                 matched_deal = ProcessingJob.objects(
-                    acquirer_cik=cik_normalized).first()
+                    acquirer_cik=cik_normalized,
+                    deal_status__in=DEAL_STATUS_OPEN_OR_UNKNOWN,
+                ).first()
 
             if matched_deal:
                 deal_id = str(matched_deal.id)
