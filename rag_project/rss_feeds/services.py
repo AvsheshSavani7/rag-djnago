@@ -302,7 +302,7 @@ class RSSFeedService:
                         feed_data, item
                     )
                     if feed_title_str == "News - Globes" or feed_title_str == "JPost.com - Business & Innovation | The Jerusalem Post":
-                        webhook_url = N8N_WEBHOOK_URL_FOR_TESTING_ME
+                        webhook_url = N8N_WEBHOOK_URL_FOR_TESTING
                     else:
                         webhook_url = N8N_WEBHOOK_URL_FOR_TESTING
                     _send_rss_feed_email_via_webhook(
