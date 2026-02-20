@@ -11,9 +11,9 @@ from .email_templates import generate_rss_feed_item_email_html
 logger = logging.getLogger(__name__)
 
 # N8N webhook for RSS feed update emails (testing – same as sec_rss_parser)
-# N8N_WEBHOOK_URL_FOR_TESTING = (
-#     "https://n8n-xwx1.onrender.com/webhook/80830c6d-ff5b-45e3-9ef3-a061db1fbf0c"
-# )
+N8N_WEBHOOK_URL_FOR_TESTING_ME = (
+    "https://n8n-xwx1.onrender.com/webhook/80830c6d-ff5b-45e3-9ef3-a061db1fbf0c"
+)
 N8N_WEBHOOK_URL_FOR_TESTING = (
     "https://n8n-xwx1.onrender.com/webhook/b3007d21-6845-47b5-aece-7b26583758bc"
 )
@@ -194,7 +194,8 @@ class RSSFeedService:
             for item_data in items_data:
                 # Normalize thumbnail so empty/invalid URLs don't fail URLField validation
                 item_data = dict(item_data)
-                item_data["thumbnail"] = _normalize_thumbnail(item_data.get("thumbnail"))
+                item_data["thumbnail"] = _normalize_thumbnail(
+                    item_data.get("thumbnail"))
 
                 # Validate item data
                 serializer = FeedItemCreateSerializer(data=item_data)
@@ -256,6 +257,9 @@ class RSSFeedService:
             feed_data = payload.get('feed', {})
             data = payload.get('data', {})
             items_new = data.get('items_new', [])
+            logger.info(f"items_new: {items_new}")
+            logger.info(f"feed_data: {feed_data}")
+            logger.info(f"data: {data}")
 
             # Create or update feed
             feed = RSSFeedService.create_or_update_feed(feed_data)
@@ -290,19 +294,24 @@ class RSSFeedService:
 
             # Send one email per new item via N8N testing webhook (subject: "PR News : {item title}")
             feed_title_str = feed_data.get("title") or feed.title
-            feed_source_url_str = feed_data.get("source_url") or getattr(feed, "source_url", "") or ""
+            feed_source_url_str = feed_data.get(
+                "source_url") or getattr(feed, "source_url", "") or ""
             for item in items_new:
                 try:
                     subject, html_email = generate_rss_feed_item_email_html(
                         feed_data, item
                     )
+                    if feed_title_str == "Israel with filter":
+                        webhook_url = N8N_WEBHOOK_URL_FOR_TESTING_ME
+                    else:
+                        webhook_url = N8N_WEBHOOK_URL_FOR_TESTING
                     _send_rss_feed_email_via_webhook(
-                        N8N_WEBHOOK_URL_FOR_TESTING,
+                        webhook_url,
                         subject=subject,
                         html_email=html_email,
                         feed_title=feed_title_str,
                         items_count=1,
-                        feed_source_url=feed_source_url_str,
+                        feed_source_url=feed_source_url_str
                     )
                 except Exception as e:
                     logger.warning(
