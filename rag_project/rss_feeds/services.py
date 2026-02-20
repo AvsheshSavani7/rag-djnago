@@ -301,7 +301,7 @@ class RSSFeedService:
                     subject, html_email = generate_rss_feed_item_email_html(
                         feed_data, item
                     )
-                    if feed_title_str == "Israel with filter":
+                    if feed_title_str == "News - Globes" or feed_title_str == "JPost.com - Business & Innovation | The Jerusalem Post":
                         webhook_url = N8N_WEBHOOK_URL_FOR_TESTING_ME
                     else:
                         webhook_url = N8N_WEBHOOK_URL_FOR_TESTING
