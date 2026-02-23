@@ -3,12 +3,13 @@ import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 import xml.etree.ElementTree as ET
-from datetime import datetime
+from datetime import datetime, timedelta
 import time
 import logging
 import asyncio
 import re
 import os
+import json
 import tempfile
 import threading
 from bs4 import BeautifulSoup
@@ -25,7 +26,9 @@ from .email_templates import (
     generate_filing_email_html,
     generate_ex99_1_merger_email_html,
     generate_8k_summary_email_html,
+    generate_sec_filings_email_html,
 )
+from .sec_Last_Year import print_filings as fetch_sec_filings
 
 from .Eight_k_summary import summarize_8k_filing
 from document_processor.models import ProcessingJob
@@ -33,6 +36,11 @@ from document_processor.services import DocumentProcessingService, SummaryGenera
 from proxy_processor.views import process_sec_document_helper
 from node_proxy.utils import call_node_api
 from node_proxy.views import AnnouncementWithUrlView
+
+try:
+    import openai
+except ImportError:
+    openai = None
 
 logger = logging.getLogger(__name__)
 
@@ -105,6 +113,70 @@ def parse_filing_date(filing_date_str):
 
     log_and_print(f"Could not parse filing_date: {filing_date_str}", 'warning')
     return None
+
+
+def _extract_announce_date_with_llm(company_details_str):
+    """
+    Call LLM with web search to extract M&A deal announcement date from company details.
+    company_details_str: plain text with company names, CIKs, target/acquirer if available.
+    Returns datetime.date or None. On any failure or if not found, returns None.
+    """
+    if not openai or not os.environ.get("OPENAI_API_KEY"):
+        return None
+    prompt = f"""You are a financial research assistant. Use web search to find the **deal announcement date** (the date the merger/acquisition was first publicly announced) for this company/deal.
+
+Company/Deal details:
+{company_details_str}
+
+Return **only** valid JSON in this exact format:
+{{ "announce_date": "YYYY-MM-DD" }}
+
+If you cannot find a reliable announcement date, return: {{ "announce_date": null }}
+
+Use only the date of the initial public announcement (e.g. press release, 8-K filing date of the deal announcement), not closing or other dates.
+"""
+    try:
+        client = openai.OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+        response = client.responses.create(
+            model="gpt-5",
+            tools=[{"type": "web_search"}],
+            input=prompt,
+            reasoning={"effort": "low"},
+        )
+        result_text = None
+        for item in response.output:
+            if getattr(item, "type", None) == "message" and hasattr(item, "content"):
+                for content_item in item.content:
+                    if getattr(content_item, "type", None) == "output_text":
+                        result_text = getattr(content_item, "text", None)
+                        break
+            if result_text:
+                break
+        if not result_text:
+            return None
+        result_text = result_text.strip()
+        if result_text.startswith("```"):
+            lines = result_text.split("\n")
+            json_lines = []
+            in_block = False
+            for line in lines:
+                if line.strip().startswith("```"):
+                    in_block = not in_block
+                    continue
+                if in_block:
+                    json_lines.append(line)
+            result_text = "\n".join(json_lines).strip()
+        start, end = result_text.find("{"), result_text.rfind("}")
+        if start != -1 and end != -1:
+            result_text = result_text[start: end + 1]
+        data = json.loads(result_text)
+        raw = data.get("announce_date")
+        if not raw:
+            return None
+        return parse_filing_date(raw)
+    except Exception as e:
+        log_and_print(f"LLM announce date extraction failed: {e}", "warning")
+        return None
 
 
 def build_full_sec_url(url):
@@ -353,8 +425,10 @@ def process_8k_document_async(ex21_url, cik_number, company_name, sec_filing_id,
         target_name = cd.get('target_name', '')
         acquirer_cik = cd.get('acquirer_cik', '')
         acquirer_name = cd.get('acquirer_name', '')
-        target_ticker = (cd.get('target_ticker') or '').strip() if cd.get('target_ticker') else ''
-        acquirer_ticker = (cd.get('acquirer_ticker') or '').strip() if cd.get('acquirer_ticker') else ''
+        target_ticker = (cd.get('target_ticker') or '').strip(
+        ) if cd.get('target_ticker') else ''
+        acquirer_ticker = (cd.get('acquirer_ticker') or '').strip(
+        ) if cd.get('acquirer_ticker') else ''
         announce_data = filing_date.strftime(
             '%Y-%m-%d') if isinstance(filing_date, datetime) else str(filing_date)
 
@@ -1370,6 +1444,7 @@ class SECFeedProcessor:
     def _send_filing_email(self, item_data, email_type, matched_deal, filing):
         """Send email notification for filing"""
         try:
+            form_type = item_data.get('form_type', 'N/A')
             if matched_deal:
                 log_and_print(
                     f"📧 Preparing to send email for matched deal: {getattr(matched_deal, 'target_name', 'Unknown')}")
@@ -1417,13 +1492,151 @@ class SECFeedProcessor:
                     company_details = item_data.get('company_details') or {}
                     use_filing_webhook = (
                         company_details.get('is_target_us_listed') and
-                        company_details.get('is_target_market_cap_greater_than_100m')
+                        company_details.get(
+                            'is_target_market_cap_greater_than_100m')
                     )
                     webhook_url = (
                         N8N_WEBHOOK_URL_FILING if use_filing_webhook
                         else N8N_WEBHOOK_URL_8K_SUMMARY
                     )
                     send_webhook_notification(webhook_url, payload, "email")
+
+                    # After 2.1 email: fetch all SEC form filings (1 year before announce date), build HTML table, send to testing webhook
+
+                    if email_type == 'ex21_merger' and form_type == '8-K':
+                        try:
+                            cik_number = item_data.get('cik_number')
+                            filing_date = item_data.get('filing_date')
+                            if cik_number and filing_date:
+                                if not isinstance(filing_date, datetime):
+                                    filing_date = parse_filing_date(
+                                        filing_date)
+                                if filing_date:
+                                    start_date = (
+                                        filing_date - timedelta(days=365)).strftime('%Y-%m-%d')
+                                    filings = fetch_sec_filings(
+                                        str(cik_number), start_date=start_date)
+                                    company_name = item_data.get(
+                                        'company_name', 'Unknown Company')
+                                    sec_subject, sec_html = generate_sec_filings_email_html(
+                                        company_name, filings, form_type="8-K(EX-2.1)")
+                                    sec_payload = {
+                                        'subject': sec_subject,
+                                        'html': sec_html,
+                                        'company_name': company_name,
+                                        'email_type': 'sec_filings_last_year',
+                                    }
+                                    send_webhook_notification(
+                                        N8N_WEBHOOK_URL_8K_SUMMARY, sec_payload, "email"
+                                    )
+                                    log_and_print(
+                                        f"📤 Sent SEC form filings (last year) email: {len(filings)} filings for {company_name}"
+                                    )
+                        except Exception as sec_e:
+                            log_and_print(
+                                f"❌ Error fetching/sending SEC form filings email: {sec_e}", 'error'
+                            )
+
+                    elif form_type in ('10-K', '10-Q') and email_type == 'standard':
+                        # 10-K/10-Q: use deal's announce date (match by CIK in DB), filter by form type
+                        try:
+                            cik_number = item_data.get('cik_number')
+                            if not cik_number:
+                                log_and_print(
+                                    "⏭️ Skipping SEC form filings email for 10-K/10-Q: no CIK", 'warning'
+                                )
+                            else:
+                                # Get announce date from deal matching CIK (matched_deal or DB lookup)
+                                announce_date = None
+                                deal = None
+                                if matched_deal and getattr(matched_deal, 'announce_date', None):
+                                    announce_date = matched_deal.announce_date
+                                if not announce_date:
+                                    cik_normalized = normalize_cik(cik_number)
+                                    deal = ProcessingJob.objects(
+                                        cik=cik_normalized,
+                                        deal_status__in=DEAL_STATUS_OPEN_OR_UNKNOWN,
+                                    ).first()
+                                    if not deal:
+                                        deal = ProcessingJob.objects(
+                                            acquirer_cik=cik_normalized,
+                                            deal_status__in=DEAL_STATUS_OPEN_OR_UNKNOWN,
+                                        ).first()
+                                    if deal and getattr(deal, 'announce_date', None):
+                                        announce_date = deal.announce_date
+                                if announce_date and not isinstance(announce_date, datetime):
+                                    announce_date = parse_filing_date(
+                                        announce_date.strftime(
+                                            '%Y-%m-%d') if hasattr(announce_date, 'strftime') else str(announce_date)
+                                    )
+
+                                # If still no announce date: LLM + web search with company details
+                                if not announce_date:
+                                    deal_for_llm = matched_deal or deal
+                                    parts = [
+                                        f"Company (filing registrant): {item_data.get('company_name', '') or 'N/A'}",
+                                        f"CIK: {cik_number}",
+                                    ]
+                                    if deal_for_llm:
+                                        parts.append(
+                                            f"Target: {getattr(deal_for_llm, 'target_name', '') or 'N/A'}"
+                                        )
+                                        parts.append(
+                                            f"Acquirer: {getattr(deal_for_llm, 'acquire_name', '') or 'N/A'}"
+                                        )
+                                        sec_url = getattr(
+                                            deal_for_llm, 'sec_url', None)
+                                        if sec_url:
+                                            parts.append(f"SEC URL: {sec_url}")
+                                    company_details_str = "\n".join(parts)
+                                    log_and_print(
+                                        "🔍 No deal announce date in DB; trying LLM + web search..."
+                                    )
+                                    announce_date = _extract_announce_date_with_llm(
+                                        company_details_str
+                                    )
+                                    if announce_date:
+                                        log_and_print(
+                                            f"✅ LLM extracted announce date: {announce_date.strftime('%Y-%m-%d')}"
+                                        )
+
+                                company_name = item_data.get(
+                                    'company_name', 'Unknown Company')
+                                start_date = None
+                                if announce_date:
+                                    start_date = (
+                                        announce_date - timedelta(days=365)
+                                    ).strftime('%Y-%m-%d')
+                                else:
+                                    log_and_print(
+                                        "⏭️ No announce date (DB or LLM); using start_date=None (1 year before today)"
+                                    )
+                                filings = fetch_sec_filings(
+                                    str(cik_number),
+                                    start_date=start_date,
+                                    form_types=["10-K", "10-Q"],
+                                )
+                                sec_subject, sec_html = generate_sec_filings_email_html(
+                                    company_name, filings, form_type=form_type
+                                )
+                                sec_payload = {
+                                    'subject': sec_subject,
+                                    'html': sec_html,
+                                    'company_name': company_name,
+                                    'email_type': 'sec_filings_last_year',
+                                }
+                                send_webhook_notification(
+                                    N8N_WEBHOOK_URL_8K_SUMMARY, sec_payload, "email"
+                                )
+                                log_and_print(
+                                    f"📤 Sent SEC form filings (last year) email: {len(filings)} {form_type} filings for {company_name}"
+                                    + (" (deal announce date)" if announce_date else " (start_date=None)")
+                                )
+                        except Exception as sec_e:
+                            log_and_print(
+                                f"❌ Error fetching/sending SEC form filings email (10-K/10-Q): {sec_e}", 'error'
+                            )
+
                 except Exception as e:
                     log_and_print(
                         f"❌ Error sending filing email: {e}", 'error')

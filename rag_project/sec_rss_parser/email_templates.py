@@ -267,7 +267,8 @@ def generate_ex99_1_merger_email_html(filing_data, doc_files):
     is_merger_related = filing_data.get('is_merger_related', False)
     reasoning = filing_data.get('ex99_1_reasoning', '')
     is_target_us_listed = filing_data.get('is_target_us_listed')
-    is_target_market_cap_greater_than_100m = filing_data.get('is_target_market_cap_greater_than_100m')
+    is_target_market_cap_greater_than_100m = filing_data.get(
+        'is_target_market_cap_greater_than_100m')
 
     def _fmt_bool(val):
         if val is None:
@@ -428,6 +429,73 @@ def generate_8k_summary_email_html(company_name: str, form_type: str, summary_do
 
    
     
+  </div>
+</body>
+</html>
+"""
+    return subject, html_email
+
+
+def build_sec_filings_table(filings):
+    """
+    Build HTML table for SEC form filings list (e.g. from sec_Last_Year.print_filings).
+    Each item: filing_date, form, accession_number, primary_document, url.
+    """
+    if not filings or len(filings) == 0:
+        return "<p><em>No SEC filings found in the period.</em></p>"
+
+    rows = []
+    for idx, f in enumerate(filings):
+        bg = "#ffffff" if idx % 2 == 0 else "#f9f9f9"
+        filing_date = escape_html(f.get('filing_date', ''))
+        form = escape_html(f.get('form', ''))
+        accession = escape_html(f.get('accession_number', ''))
+        primary_doc = escape_html(f.get('primary_document', ''))
+        url = f.get('url', '')
+        if url:
+            link_html = f'<a href="{escape_html(url)}" style="color:#4a90e2; text-decoration:none;" target="_blank">{primary_doc or "Link"}</a>'
+        else:
+            link_html = primary_doc
+
+        rows.append(f"""
+      <tr style="background-color:{bg};">
+        <td style="padding:8px; border:1px solid #ddd;">{filing_date}</td>
+        <td style="padding:8px; border:1px solid #ddd;">{form}</td>
+        <td style="padding:8px; border:1px solid #ddd;">{link_html}</td>
+      </tr>
+""")
+    rows_html = "".join(rows)
+    return f"""
+    <table style="width:100%; border-collapse:collapse; margin-top:10px;">
+      <thead>
+        <tr style="background-color:#f5f5f5;">
+          <th style="padding:8px; border:1px solid #ddd; text-align:left;">Filing Date</th>
+          <th style="padding:8px; border:1px solid #ddd; text-align:left;">Form</th>
+         
+          <th style="padding:8px; border:1px solid #ddd; text-align:left;">Document</th>
+        </tr>
+      </thead>
+      <tbody>
+{rows_html}
+      </tbody>
+    </table>
+"""
+
+
+def generate_sec_filings_email_html(company_name, filings, form_type):
+    """Generate full email HTML for SEC form filings (last year) table. Returns (subject, html).
+    form_type identifies which email is for which (e.g. '8-K(EX-2.1)', '10-K', '10-Q')."""
+    subject = f"SEC Form Filings ({escape_html(form_type)}) – {escape_html(company_name)}"
+    table_html = build_sec_filings_table(filings)
+    html_email = f"""
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><title>SEC Filings</title></head>
+<body style="font-family: Arial, sans-serif; margin: 20px;">
+  <div style="max-width:900px;">
+    <h2 style="color:#333;">SEC Form Filings – {escape_html(form_type)}</h2>
+    <p style="color:#555;">Company: <strong>{escape_html(company_name)}</strong></p>
+    {table_html}
   </div>
 </body>
 </html>
