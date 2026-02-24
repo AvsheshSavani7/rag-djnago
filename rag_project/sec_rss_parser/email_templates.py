@@ -436,6 +436,86 @@ def generate_8k_summary_email_html(company_name: str, form_type: str, summary_do
     return subject, html_email
 
 
+def generate_8k_99_1_summary_email_html(company_name: str, form_type: str, summary_doc_url: str, cik_number: str, sec_url: str, accession_number: str, summary_kind: str = "8-K", l1_headline: str = None) -> tuple:
+    """
+    Generate HTML email for 8-K summary document notification.
+
+    Args:
+        company_name: Name of the company
+        form_type: Form type (e.g., 8-K)
+        summary_doc_url: URL of the generated summary document
+        cik_number: CIK number
+        sec_url: URL of the SEC filing
+        accession_number: SEC accession number
+        summary_kind: Summary type label (e.g. "8-K", "EX-99.1")
+        l1_headline: Optional L1 headline from the summary doc (shown so user can see content without opening doc)
+    Returns:
+        tuple: (subject, html_email)
+    """
+    subject = f"New {summary_kind} Summary Document – {form_type} – {company_name}"
+
+    headline_block = ""
+    if l1_headline and l1_headline.strip():
+        headline_block = f"""
+    <div style="margin-bottom:24px; padding:16px; background-color:#f0f7ff; border-left:4px solid #4a90e2; border-radius:4px;">
+      <p style="margin:0 0 6px 0; font-size:12px; font-weight:bold; color:#4a90e2; text-transform:uppercase; letter-spacing:0.5px;">L1 — Headline</p>
+      <p style="margin:0; font-size:15px; font-weight:bold; color:#003366; line-height:1.5;">{escape_html(l1_headline.strip())}</p>
+    </div>
+"""
+
+    html_email = f"""
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>{escape_html(subject)}</title>
+</head>
+<body style="margin:0; padding:0; font-family:Arial,sans-serif; background-color:#f4f4f4;">
+  <div style="max-width:700px; margin:20px auto; background-color:#ffffff; padding:30px; border-radius:8px; box-shadow:0 2px 4px rgba(0,0,0,0.1);">
+    <h2 style="color:#333; text-align:center; margin-top:0; padding-bottom:20px; border-bottom:3px solid #4a90e2;">
+      New {summary_kind} Summary Document
+    </h2>
+
+    <div style="margin-bottom:30px;">
+      <p style="color:#333; font-size:16px; line-height:1.6;">
+        The {summary_kind} summary document has been successfully generated for:
+      </p>
+
+      <div style="background-color:#f9f9f9; padding:15px; border-radius:5px; margin:20px 0;">
+        <p style="margin:8px 0; color:#555;">
+          <strong style="color:#333;">Company:</strong> {escape_html(company_name)}
+        </p>
+        <p style="margin:8px 0; color:#555;">
+          <strong style="color:#333;">Form Type:</strong> {escape_html(form_type)}
+        </p>
+        <p style="margin:8px 0; color:#555;">
+          <strong style="color:#333;">CIK Number:</strong> {escape_html(cik_number)}
+        </p>
+        <p style="margin:8px 0; color:#555;">
+          <strong style="color:#333;">Accession Number:</strong> {escape_html(accession_number)}
+        </p>
+        <p style="margin:8px 0; color:#555;">
+          <strong style="color:#333;">SEC URL:</strong> <a href="{escape_html(sec_url)}" style="color:#4a90e2; text-decoration:none;" target="_blank">{escape_html(sec_url)}</a>
+        </p>
+      </div>
+    </div>
+{headline_block}
+    <div style="text-align:center; margin:30px 0;">
+      <a href="{escape_html(summary_doc_url)}"
+         style="display:inline-block; background-color:#4a90e2; color:#ffffff; padding:15px 30px; text-decoration:none; border-radius:5px; font-size:16px; font-weight:bold; box-shadow:0 2px 4px rgba(0,0,0,0.2);">
+        Download Summary Document
+      </a>
+    </div>
+
+   
+    
+  </div>
+</body>
+</html>
+"""
+    return subject, html_email
+
+
 def build_sec_filings_table(filings):
     """
     Build HTML table for SEC form filings list (e.g. from sec_Last_Year.print_filings).

@@ -27,6 +27,7 @@ from .email_templates import (
     generate_ex99_1_merger_email_html,
     generate_8k_summary_email_html,
     generate_sec_filings_email_html,
+    generate_8k_99_1_summary_email_html,
 )
 from .sec_Last_Year import print_filings as fetch_sec_filings
 
@@ -237,17 +238,18 @@ def send_webhook_notification(webhook_url, payload, notification_type="notificat
         raise
 
 
-def send_summary_email_via_webhook(summary_doc_url, company_name, form_type, cik_number, sec_url, accession_number, summary_kind: str):
-    """Generate 8-K/EX-99.1 summary email HTML and send via N8N testing webhook (includes .docx URL to view summary)."""
+def send_summary_email_via_webhook(summary_doc_url, company_name, form_type, cik_number, sec_url, accession_number, summary_kind: str, l1_headline: str = None):
+    """Generate 8-K/EX-99.1 summary email HTML and send via N8N testing webhook (includes .docx URL and L1 headline so user can see content without opening doc)."""
     try:
-        subject, html_email = generate_8k_summary_email_html(
+        subject, html_email = generate_8k_99_1_summary_email_html(
             company_name=company_name,
             form_type=form_type,
             summary_doc_url=summary_doc_url,
             cik_number=cik_number,
             sec_url=sec_url or "",
             accession_number=accession_number or "",
-            summary_kind=summary_kind
+            summary_kind=summary_kind,
+            l1_headline=l1_headline,
         )
         payload = {
             "subject": subject,
@@ -1868,6 +1870,7 @@ class SECFeedProcessor:
                                                     'link') or url_8k,
                                                 accession_number=accession_number,
                                                 summary_kind='8-K',
+                                                l1_headline=result_8k.get('L1_headline'),
                                             )
                                             log_and_print(
                                                 f"📧 8-K summary email sent via webhook (docx link included)")
@@ -1930,6 +1933,7 @@ class SECFeedProcessor:
                                                     'link') or url_ex99,
                                                 accession_number=accession_number,
                                                 summary_kind='EX-99.1',
+                                                l1_headline=result_99.get('L1_headline'),
                                             )
                                             log_and_print(
                                                 f"📧 EX-99.1 summary email sent via webhook (docx link included)")
