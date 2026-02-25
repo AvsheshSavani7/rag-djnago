@@ -1606,9 +1606,10 @@ class SECFeedProcessor:
                                     'company_name', 'Unknown Company')
                                 start_date = None
                                 if announce_date:
-                                    start_date = (
-                                        announce_date - timedelta(days=365)
-                                    ).strftime('%Y-%m-%d')
+                                    start_date = announce_date.strftime('%Y-%m-%d')
+                                    log_and_print(
+                                        f"📅 Using announce date as start_date: {start_date}"
+                                    )
                                 else:
                                     log_and_print(
                                         "⏭️ No announce date (DB or LLM); using start_date=None (1 year before today)"
@@ -1631,8 +1632,8 @@ class SECFeedProcessor:
                                     N8N_WEBHOOK_URL_8K_SUMMARY, sec_payload, "email"
                                 )
                                 log_and_print(
-                                    f"📤 Sent SEC form filings (last year) email: {len(filings)} {form_type} filings for {company_name}"
-                                    + (" (deal announce date)" if announce_date else " (start_date=None)")
+                                    f"📤 Sent SEC form filings email: {len(filings)} {form_type} filings for {company_name}"
+                                    + (f" (from announce date: {start_date})" if announce_date else " (from 1 year before today)")
                                 )
                         except Exception as sec_e:
                             log_and_print(
