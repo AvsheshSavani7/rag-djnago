@@ -548,3 +548,97 @@ class RedditPost(Document):
         new_post.save()
 
         return new_post, True
+
+
+class MAEAnalysis(Document):
+    """Model to store Material Adverse Effect (MAE) pipeline analysis results"""
+
+    # Deal identification (unique)
+    deal_id = StringField(required=True, unique=True,
+                          help_text="Unique deal identifier")
+    deal_name = StringField(required=True, max_length=255,
+                            help_text="Name of the deal")
+
+    # Pipeline execution metadata
+    pipeline_timestamp = DateTimeField(required=True,
+                                       help_text="When the pipeline was executed")
+
+    # Analysis results (stored as dynamic fields to handle complex nested JSON)
+    classification = DynamicField(
+        required=False, null=True,
+        help_text="Clause classification results from step 2"
+    )
+    risk_assessment = DynamicField(
+        required=False, null=True,
+        help_text="Risk assessment results from step 3"
+    )
+    compliance = DynamicField(
+        required=False, null=True,
+        help_text="Compliance check results from step 4"
+    )
+
+    # Timestamps
+    created_at = DateTimeField(default=datetime.utcnow)
+    updated_at = DateTimeField(default=datetime.utcnow)
+
+    meta = {
+        'collection': 'mae_analyses',
+        'ordering': ['-created_at'],
+        'indexes': [
+            'deal_id',  # Unique index on deal_id
+            'deal_name',
+            'pipeline_timestamp',
+            'created_at'
+        ]
+    }
+
+    def __str__(self):
+        return f"MAEAnalysis: {self.deal_name} (Deal ID: {self.deal_id}) - {self.pipeline_timestamp}"
+
+    def save(self, *args, **kwargs):
+        """Override save to update the updated_at timestamp"""
+        self.updated_at = datetime.utcnow()
+        return super(MAEAnalysis, self).save(*args, **kwargs)
+
+    @classmethod
+    def save_or_update(cls, deal_id: str, analysis_data: dict):
+        """
+        Save or update MAE analysis for a deal.
+        If deal_id exists, update the record; otherwise create a new one.
+
+        Args:
+            deal_id (str): Unique deal identifier
+            analysis_data (dict): Complete analysis results
+
+        Returns:
+            MAEAnalysis: The saved/updated MAE analysis object
+        """
+        # Check if analysis already exists for this deal
+        existing_analysis = cls.objects(deal_id=deal_id).first()
+
+        if existing_analysis:
+            # Update existing record
+            existing_analysis.deal_name = analysis_data.get(
+                'deal_name', existing_analysis.deal_name)
+            existing_analysis.pipeline_timestamp = analysis_data.get(
+                'pipeline_timestamp', existing_analysis.pipeline_timestamp)
+            existing_analysis.classification = analysis_data.get('classification')
+            existing_analysis.risk_assessment = analysis_data.get(
+                'risk_assessment')
+            existing_analysis.compliance = analysis_data.get('compliance')
+
+            existing_analysis.save()
+            return existing_analysis
+        else:
+            # Create new record
+            new_analysis = cls(
+                deal_id=deal_id,
+                deal_name=analysis_data.get('deal_name', ''),
+                pipeline_timestamp=analysis_data.get('pipeline_timestamp'),
+                classification=analysis_data.get('classification'),
+                risk_assessment=analysis_data.get('risk_assessment'),
+                compliance=analysis_data.get('compliance')
+            )
+
+            new_analysis.save()
+            return new_analysis
