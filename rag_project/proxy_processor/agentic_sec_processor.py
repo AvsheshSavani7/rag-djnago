@@ -278,11 +278,11 @@ class AgenticSECProcessor:
                 name="clean_chunk_tables",
                 description="Clean and format tables in text content using GPT. Detects tables and reformats them into clean Markdown format for better readability."
             ),
-            FunctionTool.from_defaults(
-                fn=self.clean_all_tables_final,
-                name="clean_all_tables_final",
-                description="Clean and format all tables in the extracted sections using parallel processing. This runs only once at the end after all other processing is complete. Use this as the final step before completion."
-            )
+            # FunctionTool.from_defaults(
+            #     fn=self.clean_all_tables_final,
+            #     name="clean_all_tables_final",
+            #     description="Clean and format all tables in the extracted sections using parallel processing. This runs only once at the end after all other processing is complete. Use this as the final step before completion."
+            # )
         ]
 
         # Create memory buffer
@@ -540,7 +540,7 @@ Do not reply with anything except true or false."""},
             user_message = "Extract the table of contents from the uploaded PDF and output ONLY the JSON array, no other text."
 
             response = openai.chat.completions.create(
-                model="gpt-4.1",
+                model="gpt-5.2",
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": [{
@@ -665,7 +665,10 @@ Do not reply with anything except true or false."""},
             return "Error: TOC file not available"
 
         try:
-            from .extract_sections_html_class import SECDocumentProcessor
+            try:
+                from .extract_sections_html_class import SECDocumentProcessor
+            except ImportError:
+                from extract_sections_html_class import SECDocumentProcessor
             processor = SECDocumentProcessor(self.sec_url, self.toc_path)
             sections = processor.process_document()
 
@@ -1509,7 +1512,7 @@ if __name__ == "__main__":
         sys.exit(1)
 
     # Example usage
-    sec_url = "https://www.sec.gov/Archives/edgar/data/1163302/000110465924033546/tm243679-12_defm14a.htm"
+    sec_url = "https://www.sec.gov/Archives/edgar/data/1509589/000110465925123530/tm2533879-1_defm14a.htm"
     logger.info(f"Processing SEC document: {sec_url}")
 
     try:
@@ -1524,9 +1527,6 @@ if __name__ == "__main__":
         logger.info("=" * 60)
         logger.info("AGENTIC SEC PROCESSING COMPLETED SUCCESSFULLY")
         logger.info("=" * 60)
-        logger.info(f"PDF Document: {results['pdf_path']}")
-        logger.info(f"Table of Contents: {results['toc_path']}")
-        logger.info(f"Extracted Sections: {results['sections_path']}")
         logger.info(
             f"Empty Content Percentage: {results['empty_percentage']:.1f}%")
         logger.info("S3 URLs:")
@@ -1538,9 +1538,6 @@ if __name__ == "__main__":
         print("\n" + "="*50)
         print("AGENTIC SEC PROCESSING COMPLETED")
         print("="*50)
-        print(f"PDF Document: {results['pdf_path']}")
-        print(f"Table of Contents: {results['toc_path']}")
-        print(f"Extracted Sections: {results['sections_path']}")
         print(f"Empty Content Percentage: {results['empty_percentage']:.1f}%")
         print("S3 URLs:")
         for key, url in results['s3_urls'].items():
