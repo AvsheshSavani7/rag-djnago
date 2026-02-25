@@ -105,7 +105,8 @@ class ProxySummaryService:
             filters = [
                 {"title": {"$eq": "Background of the Mergers"}},
                 {"title": {"$eq": "Background of the Transaction"}},
-                {"title": {"$eq": "Background of the Merger"}}
+                {"title": {"$eq": "Background of the Merger"}},
+                {"title": {"$eq": "Background of the Transactions"}},
             ]
 
             # Use a dummy vector for filter-only search

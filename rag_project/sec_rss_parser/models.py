@@ -197,12 +197,14 @@ class EightKSummary(Document):
     filing_date = StringField(required=False, max_length=20, null=True)
     items_reported = ListField(StringField(max_length=50), default=[])
 
+    deal_id = StringField(required=False, max_length=50, null=True)
+
     created_at = DateTimeField(default=datetime.utcnow)
     updated_at = DateTimeField(default=datetime.utcnow)
 
     meta = {
         'collection': '8k_summary',
-        'indexes': ['accession_number', 'cik_number', 'created_at'],
+        'indexes': ['accession_number', 'cik_number', 'created_at', 'deal_id'],
     }
 
     def save(self, *args, **kwargs):
@@ -228,12 +230,14 @@ class Ex99_1Summary(Document):
     filing_date = StringField(required=False, max_length=20, null=True)
     items_reported = ListField(StringField(max_length=50), default=[])
 
+    deal_id = StringField(required=False, max_length=50, null=True)
+
     created_at = DateTimeField(default=datetime.utcnow)
     updated_at = DateTimeField(default=datetime.utcnow)
 
     meta = {
         'collection': '99_1_summary',
-        'indexes': ['accession_number', 'cik_number', 'created_at'],
+        'indexes': ['accession_number', 'cik_number', 'created_at', 'deal_id'],
     }
 
     def save(self, *args, **kwargs):

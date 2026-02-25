@@ -1814,6 +1814,18 @@ class SECFeedProcessor:
                     log_and_print(
                         f"⏭️ Skipping 8-K/EX-99.1 summary - CIK {item_data.get('cik_number') or 'N/A'} not in deals (target or acquirer)")
                 else:
+                    cik_normalized = normalize_cik(item_data.get('cik_number') or '')
+                    matched_deal = ProcessingJob.objects(
+                        cik=cik_normalized,
+                        deal_status__in=DEAL_STATUS_OPEN_OR_UNKNOWN,
+                    ).first()
+                    if not matched_deal:
+                        matched_deal = ProcessingJob.objects(
+                            acquirer_cik=cik_normalized,
+                            deal_status__in=DEAL_STATUS_OPEN_OR_UNKNOWN,
+                        ).first()
+                    deal_id_str = str(matched_deal.id) if matched_deal else None
+
                     xbrl_files = item_data.get('xbrl_files', [])
                     output_dir = tempfile.mkdtemp()
 
@@ -1855,6 +1867,7 @@ class SECFeedProcessor:
                                                 'filing_date'),
                                             items_reported=result_8k.get(
                                                 'items_reported') or [],
+                                            deal_id=deal_id_str,
                                         )
                                         doc_8k.save()
                                         log_and_print(
@@ -1918,6 +1931,7 @@ class SECFeedProcessor:
                                                 'filing_date'),
                                             items_reported=result_99.get(
                                                 'items_reported') or [],
+                                            deal_id=deal_id_str,
                                         )
                                         doc_99.save()
                                         log_and_print(
