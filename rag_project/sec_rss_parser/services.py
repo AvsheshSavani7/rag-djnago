@@ -19,7 +19,7 @@ from django.core.mail import send_mail, EmailMultiAlternatives
 from django.conf import settings
 from bson import ObjectId
 from mongoengine.errors import NotUniqueError
-from .models import SECFiling, SECFeedStatus, LastCronJob, AccessionLookedUp, EightKSummary, Ex99_1Summary
+from .models import SECFiling, SECFeedStatus, LastCronJob, AccessionLookedUp, EightKSummary, Ex99_1Summary, TenKTenQSummary
 from .document_analyzer import SECDocumentAnalyzer
 from .websocket_service import SECWebSocketService
 from .email_templates import (
@@ -1619,6 +1619,33 @@ class SECFeedProcessor:
                                     start_date=start_date,
                                     form_types=["10-K", "10-Q"],
                                 )
+                                # Persist each filing to 10k_10Q_Summary if not already present
+                                deal_for_summary = deal or matched_deal
+                                deal_id_str = str(deal_for_summary.id) if deal_for_summary else None
+                                for f in filings:
+                                    acc = f.get("accession_number")
+                                    if not acc:
+                                        continue
+                                    if TenKTenQSummary.objects(accession_number=acc).first() is None:
+                                        try:
+                                            TenKTenQSummary(
+                                                sec_document_url=f.get("url", ""),
+                                                deal_id=deal_id_str,
+                                                s3_json_url=None,
+                                                s3_docx_url=None,
+                                                cik_number=str(cik_number),
+                                                accession_number=acc,
+                                                filing_date=f.get("filing_date"),
+                                            ).save()
+                                            log_and_print(
+                                                f"📥 Saved 10-K/10-Q record: {acc}"
+                                            )
+                                        except (NotUniqueError, Exception) as save_e:
+                                            log_and_print(
+                                                f"⚠️ Could not save 10k_10Q_Summary {acc}: {save_e}",
+                                                "warning",
+                                            )
+
                                 sec_subject, sec_html = generate_sec_filings_email_html(
                                     company_name, filings, form_type=form_type
                                 )

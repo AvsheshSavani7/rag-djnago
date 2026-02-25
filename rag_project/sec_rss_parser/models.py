@@ -246,3 +246,32 @@ class Ex99_1Summary(Document):
 
     def __str__(self):
         return f"99.1 Summary - {self.accession_number} - {self.ticker or 'N/A'}"
+
+
+class TenKTenQSummary(Document):
+    """Summary record for 10-K/10-Q filings (tracking for processing)."""
+    _id = StringField(primary_key=True, default=generate_object_id)
+
+    sec_document_url = URLField(required=True, max_length=1000)
+    deal_id = StringField(required=False, max_length=50, null=True)
+    s3_json_url = URLField(required=False, max_length=1000, null=True)
+    s3_docx_url = URLField(required=False, max_length=1000, null=True)
+
+    cik_number = StringField(required=True, max_length=20)
+    accession_number = StringField(required=True, max_length=50, unique=True)
+    filing_date = StringField(required=False, max_length=20, null=True)
+
+    created_at = DateTimeField(default=datetime.utcnow)
+    updated_at = DateTimeField(default=datetime.utcnow)
+
+    meta = {
+        'collection': '10k_10Q_Summary',
+        'indexes': ['accession_number', 'cik_number', 'deal_id', 'filing_date'],
+    }
+
+    def save(self, *args, **kwargs):
+        self.updated_at = datetime.utcnow()
+        return super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"10K/10Q Summary - {self.accession_number} - {self.cik_number}"
