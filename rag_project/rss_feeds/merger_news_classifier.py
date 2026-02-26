@@ -478,7 +478,7 @@ def resolve_rss_item_flow(
         article_html=html or "", article_url=source_url, article_title=article_title)
     merger_related = p1.get("merger_related", False)
     is_self_announce = p1.get("is_self_announce_new_merger", False)
-    logger.debug(
+    logger.info(
         "merger_related: %s, is_self_announce: %s", merger_related, is_self_announce
     )
     if not merger_related:
@@ -493,7 +493,7 @@ def resolve_rss_item_flow(
         article_title=article_title,
         deals_record_string=deals_record_string,
     )
-    logger.debug("deal_id: %s", deal_id)
+    logger.info("deal_id: %s", deal_id)
 
     if deal_id:
         result["deal_id"] = deal_id
@@ -506,7 +506,7 @@ def resolve_rss_item_flow(
     # Prompt 3: extract deal info (deal not in DB)
     extracted = extract_new_deal_with_web_search(
         article_html=html or "", article_url=source_url)
-    logger.debug("extracted: %s", extracted)
+    logger.info("extracted: %s", extracted)
     if is_self_announce and not dry_run:
         new_deal = create_deal_from_extracted(extracted)
         if new_deal:
@@ -522,5 +522,5 @@ def resolve_rss_item_flow(
     else:
         result["deal_info"] = deal_info_from_extracted(extracted, in_db=False)
         result["email_note"] = "new_deal_not_in_db"
-    logger.debug("result: %s", result)
+    logger.info("result: %s", result)
     return result
