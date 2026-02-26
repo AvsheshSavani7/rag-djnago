@@ -244,19 +244,46 @@ def prompt_2_match_deal_id(
     return str(did).strip() or None
 
 
-EXTRACT_NEW_DEAL_PROMPT = """You are extracting M&A deal information from a news article. Use web search to open and read the article at this URL, and to find official details (SEC filing, company names, CIKs, announcement date) if needed.
+EXTRACT_NEW_DEAL_PROMPT = """You are extracting M&A deal information from a news article. 
+
+Use web search to open and read the article at this URL. 
+If necessary, also search SEC EDGAR and official filings to verify deal details.
 
 ARTICLE URL: {article_url}
 
-Extract the following. Use web search to read the article and to find SEC filing and CIKs when possible. Return ONLY a JSON object with these exact keys (use null for unknown):
-- "target_name": target company name (being acquired)
-- "acquire_name": acquirer/parent/buyer company name (acquiring)
-- "cik": target company CIK (10 digits, leading zeros)
-- "acquirer_cik": acquirer company CIK (10 digits, leading zeros)
-- "sec_url": URL of main SEC filing for this deal (e.g. merger agreement or EX-2.1), or null
-- "announce_date": announcement date in YYYY-MM-DD format, or null
+Extract the following information. Return ONLY a JSON object with these exact keys (use null for unknown):
 
-Return only the JSON object, no other text."""
+- "target_name": Legal name of the company being acquired.
+- "acquire_name": Legal name of the acquiring company / parent / buyer.
+- "cik": Target company CIK (10 digits, leading zeros).
+- "acquirer_cik": Acquirer company CIK (10 digits, leading zeros).
+
+- "announce_date": 
+    The official deal announcement date or signing date of the merger/acquisition.
+    This must be the date the transaction was publicly announced or signed.
+    • Do NOT use the article publish date unless it clearly states the deal was announced that same day.
+    • Prefer the date stated in the press release body (e.g., "Company A announced on March 5, 2026...")
+    • If available, prefer the date from the SEC filing (e.g., 8-K filing date describing entry into merger agreement).
+    • Format strictly as YYYY-MM-DD.
+    • If unclear, return null.
+
+- "sec_url": 
+    Direct URL to SEC Exhibit 2.1 (EX-2.1) merger agreement document.
+
+    Rules:
+    1. The URL must be on sec.gov.
+    2. The filing must include document type EX-2.1.
+    3. Return the direct exhibit document link (e.g., ex2-1.htm or similar).
+    4. Do NOT return:
+        - 8-K index pages
+        - S-4 cover pages
+        - Press releases
+        - Investor relations pages
+        - Non-SEC domains
+        - EX-99.1
+    5. If EX-2.1 cannot be found, return null.
+
+Return ONLY the JSON object and no additional text."""
 
 
 def _parse_extract_response(text: str) -> Dict[str, Any]:
