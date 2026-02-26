@@ -161,16 +161,6 @@ If the article is about ONE of the deals in the list above, return that deal's d
 Return ONLY a JSON object: {{"deal_id": "<id>"|null}}"""
 
 
-def _truncate_html(html: str, max_chars: int = 12000) -> str:
-    """Truncate HTML for the prompt to avoid token limits."""
-    if not html:
-        return ""
-    text = re.sub(r"\s+", " ", html).strip()
-    if len(text) <= max_chars:
-        return text
-    return text[:max_chars] + "... [truncated]"
-
-
 def _call_llm_json_with_web_search(
     prompt: str, model: str = "gpt-5.2"
 ) -> Optional[Dict[str, Any]]:
@@ -254,14 +244,11 @@ def prompt_2_match_deal_id(
     return str(did).strip() or None
 
 
-EXTRACT_NEW_DEAL_PROMPT = """You are extracting M&A deal information from a news article. Use web search if needed to find official details (SEC filing, company names, CIKs, announcement date).
+EXTRACT_NEW_DEAL_PROMPT = """You are extracting M&A deal information from a news article. Use web search to open and read the article at this URL, and to find official details (SEC filing, company names, CIKs, announcement date) if needed.
 
 ARTICLE URL: {article_url}
 
-ARTICLE HTML (excerpt):
-{article_html_excerpt}
-
-Extract the following. Use web search to find SEC filing and CIKs when possible. Return ONLY a JSON object with these exact keys (use null for unknown):
+Extract the following. Use web search to read the article and to find SEC filing and CIKs when possible. Return ONLY a JSON object with these exact keys (use null for unknown):
 - "target_name": target company name (being acquired)
 - "acquire_name": acquirer/parent/buyer company name (acquiring)
 - "cik": target company CIK (10 digits, leading zeros)
@@ -310,6 +297,7 @@ def extract_new_deal_with_web_search(
 ) -> Dict[str, Any]:
     """
     Use LLM with web search to extract target/acquirer names, CIKs, SEC URL, announce date.
+    Reads the article via web search (article_url only; article_html is unused).
 
     Returns:
         Dict with keys: target_name, acquire_name, cik, acquirer_cik, sec_url, announce_date (strings or None).
@@ -324,11 +312,7 @@ def extract_new_deal_with_web_search(
             "announce_date": None,
         }
 
-    excerpt = _truncate_html(article_html or "", max_chars=10000)
-    prompt = EXTRACT_NEW_DEAL_PROMPT.format(
-        article_url=article_url or "",
-        article_html_excerpt=excerpt or "(no content)",
-    )
+    prompt = EXTRACT_NEW_DEAL_PROMPT.format(article_url=article_url or "")
 
     try:
         client = openai.OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
