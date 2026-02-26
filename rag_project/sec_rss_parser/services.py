@@ -1895,6 +1895,7 @@ class SECFeedProcessor:
                                             items_reported=result_8k.get(
                                                 'items_reported') or [],
                                             deal_id=deal_id_str,
+                                            one_line_summary=result_8k.get('L1_headline'),
                                         )
                                         doc_8k.save()
                                         log_and_print(
@@ -1959,6 +1960,7 @@ class SECFeedProcessor:
                                             items_reported=result_99.get(
                                                 'items_reported') or [],
                                             deal_id=deal_id_str,
+                                            one_line_summary=result_99.get('L1_headline'),
                                         )
                                         doc_99.save()
                                         log_and_print(

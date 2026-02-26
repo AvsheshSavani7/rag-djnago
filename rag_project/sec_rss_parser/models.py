@@ -198,6 +198,7 @@ class EightKSummary(Document):
     items_reported = ListField(StringField(max_length=50), default=[])
 
     deal_id = StringField(required=False, max_length=50, null=True)
+    one_line_summary = StringField(required=False, max_length=1000, null=True)
 
     created_at = DateTimeField(default=datetime.utcnow)
     updated_at = DateTimeField(default=datetime.utcnow)
@@ -231,6 +232,7 @@ class Ex99_1Summary(Document):
     items_reported = ListField(StringField(max_length=50), default=[])
 
     deal_id = StringField(required=False, max_length=50, null=True)
+    one_line_summary = StringField(required=False, max_length=1000, null=True)
 
     created_at = DateTimeField(default=datetime.utcnow)
     updated_at = DateTimeField(default=datetime.utcnow)
