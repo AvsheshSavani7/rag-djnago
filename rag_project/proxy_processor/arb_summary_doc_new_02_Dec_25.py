@@ -205,7 +205,9 @@ class QueryProcessor:
                                    for i, r in enumerate(results)])
 
             # Construct the prompt
-            prompt = f"""Based on the following content from an SEC filing document, please answer the question.
+            prompt = f"""You are a merger arbitrage analyst at a hedge fund reviewing an SEC proxy filing. Answer questions with the specificity a risk arb analyst needs: exact dates, dollar amounts, bid trajectories, and factors material to deal completion risk and timeline.
+            
+            Based on the following content from an SEC filing document, please answer the question.
 If the answer cannot be fully determined from the provided content, please mention that.
 
 Question: {query}

@@ -187,6 +187,8 @@ STAGE_2A_STRICT_SUMMARY_PROMPT = """You are a financial analyst creating a chron
 
 Using the detailed extraction provided, create a summary following this EXACT format:
 
+If any individual consortium member made an earlier informal approach prior to the formal starting point, this must be noted in the opening context sentences as it establishes prior buyer interest.
+
 # CRITICAL FORMATTING RULES:
 1. Start with 1-2 sentences summarizing events BEFORE the starting point (no header)
 2. Then provide numbered points in chronological order
@@ -199,57 +201,58 @@ Using the detailed extraction provided, create a summary following this EXACT fo
 
 **Point 1: Sales Process Metrics**
 IF there was a sales process, include ALL of:
-- When it occurred (date range)
-- How many parties contacted
-- Breakdown (financial vs. strategic)
-- How many signed CAs/NDAs
-- How many submitted IOIs or received data room access
+When it occurred (date range)
+How many parties contacted
+Breakdown (financial vs. strategic)
+How many signed CAs/NDAs
+How many submitted IOIs or received data room access
 
 IF no formal process, state:
-- Whether negotiations were exclusive (formal or informal)
-- Why board didn't conduct market check
+Whether negotiations were exclusive (formal or informal)
+Why board didn't conduct market check
 
 **Point 2: Exclusivity (if no sales process)**
 Only include if there was NO sales process. Otherwise SKIP.
 
 **Point 3: Final Bidders**
 IF multiple bidders, include:
-- Who submitted final bids
-- DESCRIPTION of each party (e.g., "large global pharmaceutical company")
-- Amount of each final bid
+Who submitted final bids
+DESCRIPTION of each party (e.g., "large global pharmaceutical company")
+Amount of each final bid
 
 **Point 4: Board Selection Rationale**
 Summarize why board selected the acquirer's bid:
-- Focus on PRIMARY reasons (price, timing, certainty)
-- Note if they did NOT select highest offer
-- Keep regulatory details for Point 5
+Focus on PRIMARY reasons (price, timing, certainty)
+Note if they did NOT select highest offer
+Keep regulatory details for Point 5
 
 **Point 5: Regulatory Considerations**
 IF antitrust/regulatory was a factor, include:
-- How regulatory considerations differentiated bidders
-- Specific terms (reverse termination fees, approval obligations)
-- How this factored into the decision
+How regulatory considerations differentiated bidders
+Specific terms (reverse termination fees, approval obligations)
+How this factored into the decision
 SKIP if not applicable.
 
 **Point 6: Financing Considerations**
 IF financing certainty was a factor, include:
-- How financing differentiated bidders
-- How this factored into the decision
+How financing differentiated bidders
+How this factored into the decision
 SKIP if not applicable.
 
 **Point 7: Press Leaks**
 IF process leaked to press, indicate when.
 SKIP if no leak.
 
-**Point 8: Up-Bid/Down-Bid Analysis**
-State:
-- Whether final accepted offer was higher/lower than that party's previous offers
-- Whether final round was "up-bid" or "down-bid"
+**Point 8: Bid Trajectory**
+
+TWO SENTENCES ALLOWED FOR THIS POINT ONLY.
+Sentence 1: Describe any bid withdrawals, re-submissions, or down-bids including the date and stated reason.
+Sentence 2: State the final accepted offer relative to that party’s initial proposal and characterize overall as up-bid or down-bid.
 
 **Point 9: Other Parties**
 IF not captured above, list other buyers with:
-- Detailed descriptions
-- What happened with them
+Detailed descriptions
+What happened with them
 
 # EXAMPLE (CORRECT FORMAT):
 
@@ -266,12 +269,12 @@ Following preliminary 2023 discussions at conferences, Company executed NDAs wit
 8. Party A's final $52/share offer increased 18% from its prior $44/share bid, and the final round represented a strong up-bid.
 
 # CRITICAL REMINDERS:
-- NO bold headers (just "1. [sentence]")
-- Maximum 35 words per sentence
-- Skip inapplicable numbers
-- Include ALL sales process metrics in Point 1
-- Include party DESCRIPTIONS in Point 3
-- Separate board rationale (Point 4) from regulatory details (Point 5)
+NO bold headers (just "1. [sentence]")
+Maximum 35 words per sentence
+Skip inapplicable numbers
+Include ALL sales process metrics in Point 1
+Include party DESCRIPTIONS in Point 3
+Separate board rationale (Point 4) from regulatory details (Point 5)
 
 Now create your summary."""
 
@@ -372,13 +375,14 @@ Keep each item concise (1-2 sentences). Focus on factors material to deal comple
 # Enhanced DOCX Formatter Class with Professional Tables
 # -----------------------------------------------------------------------------
 
+
 class DOCXFormatter:
     """Handles all DOCX formatting with professional styling including proper tables."""
-    
+
     def __init__(self, doc: Document):
         self.doc = doc
         self._setup_styles()
-    
+
     def _setup_styles(self):
         """Set up document-wide styles."""
         style = self.doc.styles['Normal']
@@ -386,7 +390,7 @@ class DOCXFormatter:
         style.font.size = Pt(11)
         style.paragraph_format.space_after = Pt(8)
         style.paragraph_format.line_spacing_rule = WD_LINE_SPACING.SINGLE
-        
+
         h1_style = self.doc.styles['Heading 1']
         h1_style.font.name = 'Calibri'
         h1_style.font.size = Pt(16)
@@ -394,7 +398,7 @@ class DOCXFormatter:
         h1_style.font.color.rgb = RGBColor(0, 70, 127)
         h1_style.paragraph_format.space_before = Pt(18)
         h1_style.paragraph_format.space_after = Pt(12)
-        
+
         h2_style = self.doc.styles['Heading 2']
         h2_style.font.name = 'Calibri'
         h2_style.font.size = Pt(13)
@@ -402,14 +406,14 @@ class DOCXFormatter:
         h2_style.font.color.rgb = RGBColor(0, 70, 127)
         h2_style.paragraph_format.space_before = Pt(12)
         h2_style.paragraph_format.space_after = Pt(6)
-    
+
     def add_title(self, title: str):
         """Add document title."""
         title_para = self.doc.add_heading(title, 0)
         title_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
         title_para.runs[0].font.color.rgb = RGBColor(0, 70, 127)
         title_para.runs[0].font.size = Pt(24)
-    
+
     def add_subtitle(self, subtitle: str):
         """Add document subtitle."""
         para = self.doc.add_paragraph()
@@ -419,97 +423,100 @@ class DOCXFormatter:
         run.font.color.rgb = RGBColor(0, 70, 127)
         run.italic = True
         para.paragraph_format.space_after = Pt(12)
-    
+
     def add_metadata(self, model: str):
         """Add metadata section."""
         metadata = self.doc.add_paragraph()
         metadata.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        
-        date_run = metadata.add_run(f"Generated: {time.strftime('%Y-%m-%d %H:%M:%S')}")
+
+        date_run = metadata.add_run(
+            f"Generated: {time.strftime('%Y-%m-%d %H:%M:%S')}")
         date_run.italic = True
         date_run.font.size = Pt(9)
         date_run.font.color.rgb = RGBColor(89, 89, 89)
-        
+
         metadata.add_run("\n")
-        
+
         model_run = metadata.add_run(f"Model: {model}")
         model_run.italic = True
         model_run.font.size = Pt(9)
         model_run.font.color.rgb = RGBColor(89, 89, 89)
-        
+
         metadata.paragraph_format.space_after = Pt(24)
-    
+
     def add_document_purpose(self, purpose_text: str):
         """Add document purpose box."""
         para = self.doc.add_paragraph()
         para.paragraph_format.space_after = Pt(16)
         para.paragraph_format.left_indent = Inches(0.5)
         para.paragraph_format.right_indent = Inches(0.5)
-        
+
         run = para.add_run(purpose_text)
         run.italic = True
         run.font.size = Pt(10)
         run.font.color.rgb = RGBColor(89, 89, 89)
-        
+
         shading_elm = OxmlElement('w:shd')
         shading_elm.set(qn('w:fill'), 'F0F0F0')
         para._element.get_or_add_pPr().append(shading_elm)
-    
+
     def add_horizontal_line(self):
         """Add a horizontal line separator."""
         para = self.doc.add_paragraph()
         para.paragraph_format.space_before = Pt(6)
         para.paragraph_format.space_after = Pt(6)
-        
+
         pPr = para._element.get_or_add_pPr()
         pBdr = OxmlElement('w:pBdr')
         pPr.insert_element_before(pBdr,
-            'w:shd', 'w:tabs', 'w:suppressAutoHyphens', 'w:kinsoku', 'w:wordWrap',
-            'w:overflowPunct', 'w:topLinePunct', 'w:autoSpaceDE', 'w:autoSpaceDN',
-            'w:bidi', 'w:adjustRightInd', 'w:snapToGrid', 'w:spacing', 'w:ind',
-            'w:contextualSpacing', 'w:mirrorIndents', 'w:suppressOverlap', 'w:jc',
-            'w:textDirection', 'w:textAlignment', 'w:textboxTightWrap',
-            'w:outlineLvl', 'w:divId', 'w:cnfStyle', 'w:rPr', 'w:sectPr',
-            'w:pPrChange'
-        )
+                                  'w:shd', 'w:tabs', 'w:suppressAutoHyphens', 'w:kinsoku', 'w:wordWrap',
+                                  'w:overflowPunct', 'w:topLinePunct', 'w:autoSpaceDE', 'w:autoSpaceDN',
+                                  'w:bidi', 'w:adjustRightInd', 'w:snapToGrid', 'w:spacing', 'w:ind',
+                                  'w:contextualSpacing', 'w:mirrorIndents', 'w:suppressOverlap', 'w:jc',
+                                  'w:textDirection', 'w:textAlignment', 'w:textboxTightWrap',
+                                  'w:outlineLvl', 'w:divId', 'w:cnfStyle', 'w:rPr', 'w:sectPr',
+                                  'w:pPrChange'
+                                  )
         bottom = OxmlElement('w:bottom')
         bottom.set(qn('w:val'), 'single')
         bottom.set(qn('w:sz'), '6')
         bottom.set(qn('w:space'), '1')
         bottom.set(qn('w:color'), 'CCCCCC')
         pBdr.append(bottom)
-    
+
     def add_professional_table(self, text: str):
         """Convert markdown table to professional Word table."""
-        lines = [line.strip() for line in text.split('\n') if line.strip() and '|' in line]
-        
+        lines = [line.strip() for line in text.split('\n')
+                 if line.strip() and '|' in line]
+
         if len(lines) < 2:
             return
-        
-        data_lines = [line for line in lines if not re.match(r'^\|[\s\-:]+\|$', line)]
-        
+
+        data_lines = [line for line in lines if not re.match(
+            r'^\|[\s\-:]+\|$', line)]
+
         if len(data_lines) < 2:
             return
-        
+
         def parse_row(line):
             return [cell.strip() for cell in line.split('|') if cell.strip()]
-        
+
         header = parse_row(data_lines[0])
         rows = [parse_row(line) for line in data_lines[1:]]
-        
+
         num_cols = len(header)
         num_rows = len(rows)
-        
+
         if num_cols == 0 or num_rows == 0:
             return
-        
+
         table = self.doc.add_table(rows=num_rows + 1, cols=num_cols)
         table.style = 'Light Grid Accent 1'
-        
+
         for row in table.rows:
             for cell in row.cells:
                 cell.width = Inches(6.5 / num_cols)
-        
+
         header_cells = table.rows[0].cells
         for i, header_text in enumerate(header):
             if i < len(header_cells):
@@ -522,7 +529,7 @@ class DOCXFormatter:
                 shading_elm = OxmlElement('w:shd')
                 shading_elm.set(qn('w:fill'), 'D9E2F3')
                 cell._element.get_or_add_tcPr().append(shading_elm)
-        
+
         for row_idx, row_data in enumerate(rows):
             cells = table.rows[row_idx + 1].cells
             for col_idx, cell_text in enumerate(row_data):
@@ -531,10 +538,10 @@ class DOCXFormatter:
                     for paragraph in cells[col_idx].paragraphs:
                         for run in paragraph.runs:
                             run.font.size = Pt(9)
-        
+
         para = self.doc.add_paragraph()
         para.paragraph_format.space_before = Pt(12)
-    
+
     def add_shaded_box(self, title: str, content: str, color: Tuple[int, int, int] = (240, 240, 240)):
         """Add a shaded text box with title and content."""
         title_para = self.doc.add_paragraph()
@@ -544,36 +551,37 @@ class DOCXFormatter:
         title_run.bold = True
         title_run.font.size = Pt(11)
         title_run.font.color.rgb = RGBColor(0, 70, 127)
-        
+
         content_para = self.doc.add_paragraph()
         content_para.paragraph_format.left_indent = Inches(0.25)
         content_para.paragraph_format.space_after = Pt(8)
         content_run = content_para.add_run(content)
         content_run.font.size = Pt(10)
-        
+
         shading_elm = OxmlElement('w:shd')
         shading_elm.set(qn('w:fill'), '%02x%02x%02x' % color)
         content_para._element.get_or_add_pPr().append(shading_elm)
-        
+
         pBdr = OxmlElement('w:pBdr')
         for border_name in ['top', 'left', 'bottom', 'right']:
             border = OxmlElement(f'w:{border_name}')
             border.set(qn('w:val'), 'single')
             border.set(qn('w:sz'), '4')
             border.set(qn('w:space'), '0')
-            border.set(qn('w:color'), '%02x%02x%02x' % tuple(max(0, c - 30) for c in color))
+            border.set(qn('w:color'), '%02x%02x%02x' %
+                       tuple(max(0, c - 30) for c in color))
             pBdr.append(border)
         content_para._element.get_or_add_pPr().append(pBdr)
-    
+
     def add_simple_numbered_summary(self, text: str):
         """Add summary in simple numbered format (no bold headers)."""
         lines = text.split('\n')
-        
+
         for line in lines:
             line = line.strip()
             if not line:
                 continue
-            
+
             if re.match(r'^\d+\.', line):
                 para = self.doc.add_paragraph(line)
                 para.paragraph_format.left_indent = Inches(0.25)
@@ -581,28 +589,28 @@ class DOCXFormatter:
             else:
                 para = self.doc.add_paragraph(line)
                 para.paragraph_format.space_after = Pt(8)
-    
+
     def add_formatted_text(self, text: str, parse_structure: bool = True):
         """Add text with proper formatting."""
         text = self._clean_markdown(text)
-        
+
         if not parse_structure:
             paragraphs = text.split('\n\n')
             for para_text in paragraphs:
                 if para_text.strip():
                     self.doc.add_paragraph(para_text.strip())
             return
-        
+
         lines = text.split('\n')
-        
+
         for line in lines:
             line = line.strip()
             if not line:
                 continue
-            
+
             para = self.doc.add_paragraph(line)
             para.paragraph_format.space_after = Pt(6)
-    
+
     def _clean_markdown(self, text: str) -> str:
         """Remove markdown formatting."""
         text = text.replace('**', '')
@@ -614,42 +622,44 @@ class DOCXFormatter:
 # Main Analyzer Class
 # -----------------------------------------------------------------------------
 
+
 class ProxyBackgroundAnalyzer:
     def __init__(self, api_key: str = None):
         self.client = anthropic.Anthropic(
             api_key=api_key or os.environ.get("ANTHROPIC_API_KEY")
         )
         self.model = MODEL_NAME
-    
+
     def stage_1_extraction(self, document_text: str, max_retries: int = 2) -> Dict[str, Any]:
         """Stage 1: Deep extraction of all structured data and details."""
-        
+
         print("\n" + "="*80)
         print("STAGE 1: DEEP EXTRACTION")
         print("="*80)
-        
+
         for attempt in range(1, max_retries + 1):
             try:
-                print(f"\n🔍 Running extraction (attempt {attempt}/{max_retries})...")
-                
+                print(
+                    f"\n🔍 Running extraction (attempt {attempt}/{max_retries})...")
+
                 t0 = time.time()
                 response = self.client.messages.create(
                     model=self.model,
                     max_tokens=16000,
                     messages=[{
-                        "role": "user", 
+                        "role": "user",
                         "content": f"{STAGE_1_EXTRACTION_PROMPT}\n\n# DOCUMENT TO ANALYZE:\n\n{document_text}"
                     }],
                     temperature=0,
                     timeout=500
                 )
                 elapsed = time.time() - t0
-                
+
                 extraction = response.content[0].text.strip()
-                
+
                 print(f"✅ Extraction completed in {elapsed:.1f}s")
                 print(f"📊 Extraction length: {len(extraction):,} characters")
-                
+
                 return {
                     "extraction_text": extraction,
                     "response_time_seconds": round(elapsed, 2),
@@ -657,35 +667,37 @@ class ProxyBackgroundAnalyzer:
                     "attempt": attempt,
                     "success": True
                 }
-                
+
             except Exception as e:
                 error_msg = str(e)
                 print(f"❌ Error on attempt {attempt}: {error_msg}")
-                
+
                 if attempt < max_retries:
                     wait_time = 10 * attempt
                     print(f"⏳ Waiting {wait_time} seconds before retry...")
                     time.sleep(wait_time)
                 else:
-                    print(f"❌ All {max_retries} attempts failed for extraction")
+                    print(
+                        f"❌ All {max_retries} attempts failed for extraction")
                     return {
                         "extraction_text": None,
                         "error": error_msg,
                         "attempts": max_retries,
                         "success": False
                     }
-    
+
     def stage_2a_strict_summary(self, extraction_text: str, max_retries: int = 2) -> Dict[str, Any]:
         """Stage 2a: Create strict simple numbered summary."""
-        
+
         print("\n" + "="*80)
         print("STAGE 2A: STRICT CHRONOLOGICAL SUMMARY")
         print("="*80)
-        
+
         for attempt in range(1, max_retries + 1):
             try:
-                print(f"\n📝 Generating strict summary (attempt {attempt}/{max_retries})...")
-                
+                print(
+                    f"\n📝 Generating strict summary (attempt {attempt}/{max_retries})...")
+
                 t0 = time.time()
                 response = self.client.messages.create(
                     model=self.model,
@@ -698,15 +710,16 @@ class ProxyBackgroundAnalyzer:
                     timeout=180
                 )
                 elapsed = time.time() - t0
-                
+
                 summary = response.content[0].text.strip()
-                
+
                 print(f"✅ Strict summary completed in {elapsed:.1f}s")
                 print(f"📊 Summary length: {len(summary):,} characters")
-                
+
                 validation = self._validate_strict_summary(summary)
-                print(f"📋 Format validation: {validation['score']}/{validation['total']} checks passed")
-                
+                print(
+                    f"📋 Format validation: {validation['score']}/{validation['total']} checks passed")
+
                 return {
                     "summary_text": summary,
                     "response_time_seconds": round(elapsed, 2),
@@ -715,35 +728,37 @@ class ProxyBackgroundAnalyzer:
                     "validation": validation,
                     "success": True
                 }
-                
+
             except Exception as e:
                 error_msg = str(e)
                 print(f"❌ Error on attempt {attempt}: {error_msg}")
-                
+
                 if attempt < max_retries:
                     wait_time = 10 * attempt
                     print(f"⏳ Waiting {wait_time} seconds before retry...")
                     time.sleep(wait_time)
                 else:
-                    print(f"❌ All {max_retries} attempts failed for strict summary")
+                    print(
+                        f"❌ All {max_retries} attempts failed for strict summary")
                     return {
                         "summary_text": None,
                         "error": error_msg,
                         "attempts": max_retries,
                         "success": False
                     }
-    
+
     def stage_2b_narrative_summary(self, extraction_text: str, max_retries: int = 2) -> Dict[str, Any]:
         """Stage 2b: Create narrative flowing summary."""
-        
+
         print("\n" + "="*80)
         print("STAGE 2B: NARRATIVE SUMMARY")
         print("="*80)
-        
+
         for attempt in range(1, max_retries + 1):
             try:
-                print(f"\n📝 Generating narrative summary (attempt {attempt}/{max_retries})...")
-                
+                print(
+                    f"\n📝 Generating narrative summary (attempt {attempt}/{max_retries})...")
+
                 t0 = time.time()
                 response = self.client.messages.create(
                     model=self.model,
@@ -756,12 +771,12 @@ class ProxyBackgroundAnalyzer:
                     timeout=180
                 )
                 elapsed = time.time() - t0
-                
+
                 summary = response.content[0].text.strip()
-                
+
                 print(f"✅ Narrative summary completed in {elapsed:.1f}s")
                 print(f"📊 Summary length: {len(summary):,} characters")
-                
+
                 return {
                     "summary_text": summary,
                     "response_time_seconds": round(elapsed, 2),
@@ -769,35 +784,37 @@ class ProxyBackgroundAnalyzer:
                     "attempt": attempt,
                     "success": True
                 }
-                
+
             except Exception as e:
                 error_msg = str(e)
                 print(f"❌ Error on attempt {attempt}: {error_msg}")
-                
+
                 if attempt < max_retries:
                     wait_time = 10 * attempt
                     print(f"⏳ Waiting {wait_time} seconds before retry...")
                     time.sleep(wait_time)
                 else:
-                    print(f"❌ All {max_retries} attempts failed for narrative summary")
+                    print(
+                        f"❌ All {max_retries} attempts failed for narrative summary")
                     return {
                         "summary_text": None,
                         "error": error_msg,
                         "attempts": max_retries,
                         "success": False
                     }
-    
+
     def stage_3_red_flags(self, extraction_text: str, summary_text: str, max_retries: int = 2) -> Dict[str, Any]:
         """Stage 3: Identify red flags and risk factors."""
-        
+
         print("\n" + "="*80)
         print("STAGE 3: RED FLAGS & RISK ANALYSIS")
         print("="*80)
-        
+
         for attempt in range(1, max_retries + 1):
             try:
-                print(f"\n🚩 Analyzing risks (attempt {attempt}/{max_retries})...")
-                
+                print(
+                    f"\n🚩 Analyzing risks (attempt {attempt}/{max_retries})...")
+
                 t0 = time.time()
                 response = self.client.messages.create(
                     model=self.model,
@@ -810,12 +827,12 @@ class ProxyBackgroundAnalyzer:
                     timeout=180
                 )
                 elapsed = time.time() - t0
-                
+
                 red_flags = response.content[0].text.strip()
-                
+
                 print(f"✅ Risk analysis completed in {elapsed:.1f}s")
                 print(f"📊 Analysis length: {len(red_flags):,} characters")
-                
+
                 return {
                     "red_flags_text": red_flags,
                     "response_time_seconds": round(elapsed, 2),
@@ -823,11 +840,11 @@ class ProxyBackgroundAnalyzer:
                     "attempt": attempt,
                     "success": True
                 }
-                
+
             except Exception as e:
                 error_msg = str(e)
                 print(f"❌ Error on attempt {attempt}: {error_msg}")
-                
+
                 if attempt < max_retries:
                     wait_time = 10 * attempt
                     print(f"⏳ Waiting {wait_time} seconds before retry...")
@@ -840,7 +857,7 @@ class ProxyBackgroundAnalyzer:
                         "attempts": max_retries,
                         "success": False
                     }
-    
+
     def _validate_strict_summary(self, summary_text: str) -> Dict[str, Any]:
         """Validate that strict summary follows required format."""
         checks = {
@@ -849,9 +866,10 @@ class ProxyBackgroundAnalyzer:
             "no_n_a_responses": "N/A" not in summary_text and "Not applicable" not in summary_text.lower(),
             "starts_with_context": not summary_text.startswith('1.') and not summary_text.startswith('**'),
         }
-        
+
         # Check sentence length
-        numbered_items = re.findall(r'^\d+\.\s+(.+)$', summary_text, re.MULTILINE)
+        numbered_items = re.findall(
+            r'^\d+\.\s+(.+)$', summary_text, re.MULTILINE)
         sentence_length_ok = True
         max_words = 0
         for item in numbered_items:
@@ -859,77 +877,83 @@ class ProxyBackgroundAnalyzer:
             max_words = max(max_words, word_count)
             if word_count > 40:
                 sentence_length_ok = False
-        
+
         checks["sentence_length_compliant"] = sentence_length_ok
         checks["max_sentence_length"] = max_words
-        
-        score = sum(1 for k, v in checks.items() if k not in ['max_sentence_length'] and v)
+
+        score = sum(1 for k, v in checks.items() if k not in [
+                    'max_sentence_length'] and v)
         checks["score"] = score
-        checks["total"] = len([k for k in checks.keys() if k not in ['score', 'total', 'max_sentence_length']])
+        checks["total"] = len([k for k in checks.keys() if k not in [
+                              'score', 'total', 'max_sentence_length']])
         checks["passed"] = score >= checks["total"] - 1
-        
+
         return checks
-    
+
     def create_document_a(self, extraction_result: Dict, strict_summary_result: Dict, output_path: str):
         """Create Document A: Client Deliverables Only."""
-        
+
         print(f"\n📝 Creating Document A (Client Deliverables)...")
-        
+
         doc = Document()
         formatter = DOCXFormatter(doc)
-        
+
         # Title
         formatter.add_title('Merger Proxy Background Analysis')
         formatter.add_subtitle('Client Deliverables Package')
         formatter.add_metadata(self.model)
-        
+
         # Document purpose
         purpose = ("This document contains the specific deliverables requested in your specifications: "
-                  "chronological summary (numbered format), complete bidder census, bid timeline, "
-                  "sales process metrics, and supporting documentation.\n\n"
-                  "For additional strategic analysis and insights, see companion document: "
-                  "\"Supplemental Analysis & Insights\"")
+                   "chronological summary (numbered format), complete bidder census, bid timeline, "
+                   "sales process metrics, and supporting documentation.\n\n"
+                   "For additional strategic analysis and insights, see companion document: "
+                   "\"Supplemental Analysis & Insights\"")
         formatter.add_document_purpose(purpose)
-        
+
         # =====================================================================
         # SECTION 1: CHRONOLOGICAL SUMMARY
         # =====================================================================
         doc.add_page_break()
         doc.add_heading('Chronological Summary', 1)
-        
+
         if strict_summary_result.get('success'):
-            formatter.add_simple_numbered_summary(strict_summary_result['summary_text'])
-            
+            formatter.add_simple_numbered_summary(
+                strict_summary_result['summary_text'])
+
             # Validation
             if 'validation' in strict_summary_result:
                 formatter.add_horizontal_line()
                 val_para = doc.add_paragraph()
                 val_para.paragraph_format.space_before = Pt(6)
-                
-                val_color = RGBColor(0, 128, 0) if strict_summary_result['validation']['passed'] else RGBColor(255, 0, 0)
-                
+
+                val_color = RGBColor(
+                    0, 128, 0) if strict_summary_result['validation']['passed'] else RGBColor(255, 0, 0)
+
                 val_run = val_para.add_run(
                     f"✓ Format Validation: {strict_summary_result['validation']['score']}/{strict_summary_result['validation']['total']} checks passed"
                 )
                 val_run.font.size = Pt(9)
                 val_run.font.color.rgb = val_color
-                
+
                 if 'max_sentence_length' in strict_summary_result['validation']:
-                    val_para.add_run(f" | Max sentence: {strict_summary_result['validation']['max_sentence_length']} words")
+                    val_para.add_run(
+                        f" | Max sentence: {strict_summary_result['validation']['max_sentence_length']} words")
         else:
-            doc.add_paragraph(f"❌ Error: {strict_summary_result.get('error', 'Unknown error')}")
-        
+            doc.add_paragraph(
+                f"❌ Error: {strict_summary_result.get('error', 'Unknown error')}")
+
         # =====================================================================
         # EXTRACT REQUIRED SECTIONS FROM EXTRACTION
         # =====================================================================
         if extraction_result.get('success'):
             extraction_text = extraction_result['extraction_text']
             sections = self._parse_extraction_for_document_a(extraction_text)
-            
+
             for section_title, section_content in sections:
                 doc.add_page_break()
                 doc.add_heading(section_title, 1)
-                
+
                 # Check if it's a table
                 if self._is_table(section_content):
                     formatter.add_professional_table(section_content)
@@ -938,39 +962,40 @@ class ProxyBackgroundAnalyzer:
                     paragraphs = section_content.split('\n\n')
                     for para in paragraphs:
                         if para.strip():
-                            clean_para = formatter._clean_markdown(para.strip())
+                            clean_para = formatter._clean_markdown(
+                                para.strip())
                             doc.add_paragraph(clean_para)
-        
+
         doc.save(output_path)
         print(f"✅ Document A saved: {output_path}")
-    
-    def create_document_b(self, extraction_result: Dict, narrative_summary_result: Dict, 
-                         red_flags_result: Dict, output_path: str):
+
+    def create_document_b(self, extraction_result: Dict, narrative_summary_result: Dict,
+                          red_flags_result: Dict, output_path: str):
         """Create Document B: Supplemental Analysis."""
-        
+
         print(f"\n📝 Creating Document B (Supplemental Analysis)...")
-        
+
         doc = Document()
         formatter = DOCXFormatter(doc)
-        
+
         # Title
         formatter.add_title('Merger Proxy Background Analysis')
         formatter.add_subtitle('Supplemental Analysis & Insights')
         formatter.add_metadata(self.model)
-        
+
         # Document purpose
         purpose = ("This document provides additional analysis and strategic perspective beyond the client-requested deliverables. "
-                  "It includes: narrative summary for executive consumption, risk analysis framework for merger arbitrage assessment, "
-                  "and process insights.\n\n"
-                  "This analysis is based on the same source material documented in the \"Client Deliverables Package.\"")
+                   "It includes: narrative summary for executive consumption, risk analysis framework for merger arbitrage assessment, "
+                   "and process insights.\n\n"
+                   "This analysis is based on the same source material documented in the \"Client Deliverables Package.\"")
         formatter.add_document_purpose(purpose)
-        
+
         # =====================================================================
         # SECTION 1: NARRATIVE SUMMARY
         # =====================================================================
         doc.add_page_break()
         doc.add_heading('Executive Narrative', 1)
-        
+
         note_para = doc.add_paragraph()
         note_para.paragraph_format.space_after = Pt(12)
         note_run = note_para.add_run(
@@ -979,20 +1004,22 @@ class ProxyBackgroundAnalyzer:
         note_run.italic = True
         note_run.font.size = Pt(9)
         note_run.font.color.rgb = RGBColor(89, 89, 89)
-        
+
         formatter.add_horizontal_line()
-        
+
         if narrative_summary_result.get('success'):
-            formatter.add_formatted_text(narrative_summary_result['summary_text'], parse_structure=False)
+            formatter.add_formatted_text(
+                narrative_summary_result['summary_text'], parse_structure=False)
         else:
-            doc.add_paragraph(f"❌ Error: {narrative_summary_result.get('error', 'Unknown error')}")
-        
+            doc.add_paragraph(
+                f"❌ Error: {narrative_summary_result.get('error', 'Unknown error')}")
+
         # =====================================================================
         # SECTION 2: RISK ANALYSIS
         # =====================================================================
         doc.add_page_break()
         doc.add_heading('Risk Analysis Framework', 1)
-        
+
         note_para = doc.add_paragraph()
         note_para.paragraph_format.space_after = Pt(12)
         note_run = note_para.add_run(
@@ -1001,64 +1028,72 @@ class ProxyBackgroundAnalyzer:
         note_run.italic = True
         note_run.font.size = Pt(9)
         note_run.font.color.rgb = RGBColor(89, 89, 89)
-        
+
         formatter.add_horizontal_line()
-        
+
         if red_flags_result.get('success'):
-            sections = self._parse_red_flags_sections(red_flags_result['red_flags_text'])
-            
+            sections = self._parse_red_flags_sections(
+                red_flags_result['red_flags_text'])
+
             for section_type, section_content in sections:
                 if section_type == 'high_risk':
-                    formatter.add_shaded_box('🔴 HIGH RISK FLAGS', section_content, (255, 230, 230))
+                    formatter.add_shaded_box(
+                        '🔴 HIGH RISK FLAGS', section_content, (255, 230, 230))
                 elif section_type == 'medium_risk':
-                    formatter.add_shaded_box('🟡 MEDIUM RISK FLAGS', section_content, (255, 255, 230))
+                    formatter.add_shaded_box(
+                        '🟡 MEDIUM RISK FLAGS', section_content, (255, 255, 230))
                 elif section_type == 'positive':
-                    formatter.add_shaded_box('🟢 POSITIVE SIGNALS', section_content, (230, 255, 230))
+                    formatter.add_shaded_box(
+                        '🟢 POSITIVE SIGNALS', section_content, (230, 255, 230))
                 elif section_type == 'overall':
                     formatter.add_horizontal_line()
                     overall_para = doc.add_paragraph()
                     overall_para.paragraph_format.space_before = Pt(12)
-                    overall_run = overall_para.add_run('OVERALL RISK ASSESSMENT')
+                    overall_run = overall_para.add_run(
+                        'OVERALL RISK ASSESSMENT')
                     overall_run.bold = True
                     overall_run.font.size = Pt(12)
                     overall_run.font.color.rgb = RGBColor(0, 70, 127)
-                    
+
                     content_para = doc.add_paragraph(section_content)
                     content_para.paragraph_format.left_indent = Inches(0.25)
         else:
-            doc.add_paragraph(f"❌ Error: {red_flags_result.get('error', 'Unknown error')}")
-        
+            doc.add_paragraph(
+                f"❌ Error: {red_flags_result.get('error', 'Unknown error')}")
+
         # =====================================================================
         # SECTION 3: PROCESS INSIGHTS
         # =====================================================================
         if extraction_result.get('success'):
             extraction_text = extraction_result['extraction_text']
-            supplemental_sections = self._parse_extraction_for_document_b(extraction_text)
-            
+            supplemental_sections = self._parse_extraction_for_document_b(
+                extraction_text)
+
             if supplemental_sections:
                 doc.add_page_break()
                 doc.add_heading('Process Insights', 1)
-                
+
                 for section_title, section_content in supplemental_sections:
                     doc.add_heading(section_title, 2)
-                    
+
                     paragraphs = section_content.split('\n\n')
                     for para in paragraphs:
                         if para.strip():
-                            clean_para = formatter._clean_markdown(para.strip())
+                            clean_para = formatter._clean_markdown(
+                                para.strip())
                             doc.add_paragraph(clean_para)
-        
+
         doc.save(output_path)
         print(f"✅ Document B saved: {output_path}")
-    
+
     def _is_table(self, text: str) -> bool:
         """Check if text appears to be a table."""
         lines = text.split('\n')
         pipe_lines = [line for line in lines if '|' in line]
-        
+
         # If more than 50% of lines have pipes, and we have at least 3 lines, it's probably a table
         return len(pipe_lines) >= 3 and len(pipe_lines) / max(len(lines), 1) > 0.5
-    
+
     def _parse_extraction_for_document_a(self, extraction_text: str) -> List[Tuple[str, str]]:
         """Extract only sections needed for Document A (client deliverables)."""
         required_sections = {
@@ -1073,16 +1108,17 @@ class ProxyBackgroundAnalyzer:
             '10. Risk Analysis - Financing': [],
             '13. Key Dates Summary': []
         }
-        
+
         lines = extraction_text.split('\n')
         current_section = None
         current_content = []
-        
+
         for line in lines:
             if line.startswith('## '):
                 if current_section and current_section in required_sections:
-                    required_sections[current_section] = '\n'.join(current_content)
-                
+                    required_sections[current_section] = '\n'.join(
+                        current_content)
+
                 section_name = line.replace('##', '').strip()
                 if section_name in required_sections:
                     current_section = section_name
@@ -1091,28 +1127,29 @@ class ProxyBackgroundAnalyzer:
                     current_section = None
             elif current_section:
                 current_content.append(line)
-        
+
         if current_section and current_section in required_sections:
             required_sections[current_section] = '\n'.join(current_content)
-        
+
         return [(k, v) for k, v in required_sections.items() if v]
-    
+
     def _parse_extraction_for_document_b(self, extraction_text: str) -> List[Tuple[str, str]]:
         """Extract supplemental sections for Document B."""
         supplemental_sections = {
             '11. Merger Agreement Negotiations': [],
             '12. Process Events and Timeline': []
         }
-        
+
         lines = extraction_text.split('\n')
         current_section = None
         current_content = []
-        
+
         for line in lines:
             if line.startswith('## '):
                 if current_section and current_section in supplemental_sections:
-                    supplemental_sections[current_section] = '\n'.join(current_content)
-                
+                    supplemental_sections[current_section] = '\n'.join(
+                        current_content)
+
                 section_name = line.replace('##', '').strip()
                 if section_name in supplemental_sections:
                     current_section = section_name
@@ -1121,21 +1158,21 @@ class ProxyBackgroundAnalyzer:
                     current_section = None
             elif current_section:
                 current_content.append(line)
-        
+
         if current_section and current_section in supplemental_sections:
             supplemental_sections[current_section] = '\n'.join(current_content)
-        
+
         return [(k, v) for k, v in supplemental_sections.items() if v]
-    
+
     def _parse_red_flags_sections(self, text: str) -> List[Tuple[str, str]]:
         """Parse red flags text into categorized sections."""
         sections = []
         current_type = None
         current_content = []
-        
+
         for line in text.split('\n'):
             line = line.strip()
-            
+
             if 'HIGH RISK' in line.upper():
                 if current_type and current_content:
                     sections.append((current_type, '\n'.join(current_content)))
@@ -1158,44 +1195,48 @@ class ProxyBackgroundAnalyzer:
                 current_content = []
             elif line and current_type:
                 current_content.append(line)
-        
+
         if current_type and current_content:
             sections.append((current_type, '\n'.join(current_content)))
-        
+
         return sections
-    
+
     def run(self, input_file: str, output_file: str, output_docx_a: str, output_docx_b: str):
         """Run the complete analysis workflow creating both documents."""
-        
+
         print("="*80)
         print("PROXY BACKGROUND ANALYZER - FINAL COMPLETE VERSION")
         print("="*80)
-        
+
         # Load input
         print(f"\n📂 Loading input file: {input_file}")
         if not os.path.exists(input_file):
             print(f"❌ File not found: {input_file}")
             return
-        
+
         with open(input_file, "r", encoding="utf-8") as f:
             document_text = f.read()
         print(f"✅ Loaded document: {len(document_text):,} characters")
-        
+
         # Stage 1: Deep extraction
         extraction_result = self.stage_1_extraction(document_text)
-        
+
         # Stage 2a: Strict summary
         if extraction_result.get('success'):
-            strict_summary_result = self.stage_2a_strict_summary(extraction_result['extraction_text'])
+            strict_summary_result = self.stage_2a_strict_summary(
+                extraction_result['extraction_text'])
         else:
-            strict_summary_result = {"summary_text": None, "error": "Extraction failed", "success": False}
-        
+            strict_summary_result = {"summary_text": None,
+                                     "error": "Extraction failed", "success": False}
+
         # Stage 2b: Narrative summary
         if extraction_result.get('success'):
-            narrative_summary_result = self.stage_2b_narrative_summary(extraction_result['extraction_text'])
+            narrative_summary_result = self.stage_2b_narrative_summary(
+                extraction_result['extraction_text'])
         else:
-            narrative_summary_result = {"summary_text": None, "error": "Extraction failed", "success": False}
-        
+            narrative_summary_result = {
+                "summary_text": None, "error": "Extraction failed", "success": False}
+
         # Stage 3: Red flags
         if extraction_result.get('success') and strict_summary_result.get('success'):
             red_flags_result = self.stage_3_red_flags(
@@ -1203,15 +1244,18 @@ class ProxyBackgroundAnalyzer:
                 strict_summary_result['summary_text']
             )
         else:
-            red_flags_result = {"red_flags_text": None, "error": "Prior stage failed", "success": False}
-        
+            red_flags_result = {"red_flags_text": None,
+                                "error": "Prior stage failed", "success": False}
+
         # Create both documents
         if extraction_result.get('success') and strict_summary_result.get('success'):
-            self.create_document_a(extraction_result, strict_summary_result, output_docx_a)
-        
+            self.create_document_a(
+                extraction_result, strict_summary_result, output_docx_a)
+
         if extraction_result.get('success') and narrative_summary_result.get('success') and red_flags_result.get('success'):
-            self.create_document_b(extraction_result, narrative_summary_result, red_flags_result, output_docx_b)
-        
+            self.create_document_b(
+                extraction_result, narrative_summary_result, red_flags_result, output_docx_b)
+
         # Save JSON
         output = {
             "input_file": input_file,
@@ -1222,63 +1266,69 @@ class ProxyBackgroundAnalyzer:
             "stage_2b_narrative_summary": narrative_summary_result,
             "stage_3_red_flags": red_flags_result
         }
-        
+
         print(f"\n💾 Saving JSON output to: {output_file}")
         with open(output_file, "w", encoding="utf-8") as f:
             json.dump(output, f, indent=2, ensure_ascii=False)
         print(f"✅ JSON saved!")
-        
+
         # Save individual text files
         if extraction_result.get('success'):
             extraction_file = output_file.replace(".json", "_extraction.txt")
             with open(extraction_file, "w", encoding="utf-8") as f:
                 f.write(extraction_result['extraction_text'])
             print(f"✅ Extraction text saved: {extraction_file}")
-        
+
         if strict_summary_result.get('success'):
             strict_file = output_file.replace(".json", "_strict_summary.txt")
             with open(strict_file, "w", encoding="utf-8") as f:
                 f.write(strict_summary_result['summary_text'])
             print(f"✅ Strict summary saved: {strict_file}")
-        
+
         if narrative_summary_result.get('success'):
-            narrative_file = output_file.replace(".json", "_narrative_summary.txt")
+            narrative_file = output_file.replace(
+                ".json", "_narrative_summary.txt")
             with open(narrative_file, "w", encoding="utf-8") as f:
                 f.write(narrative_summary_result['summary_text'])
             print(f"✅ Narrative summary saved: {narrative_file}")
-        
+
         if red_flags_result.get('success'):
             red_flags_file = output_file.replace(".json", "_red_flags.txt")
             with open(red_flags_file, "w", encoding="utf-8") as f:
                 f.write(red_flags_result['red_flags_text'])
             print(f"✅ Red flags saved: {red_flags_file}")
-        
+
         # Print summary
         print("\n" + "="*80)
         print("EXECUTION SUMMARY")
         print("="*80)
-        
+
         total_time = 0
-        
+
         if extraction_result.get('success'):
-            print(f"\n✅ Stage 1 (Extraction): SUCCESS - {extraction_result['response_time_seconds']}s")
+            print(
+                f"\n✅ Stage 1 (Extraction): SUCCESS - {extraction_result['response_time_seconds']}s")
             total_time += extraction_result['response_time_seconds']
-        
+
         if strict_summary_result.get('success'):
-            print(f"✅ Stage 2a (Strict Summary): SUCCESS - {strict_summary_result['response_time_seconds']}s")
-            print(f"   Validation: {strict_summary_result['validation']['score']}/{strict_summary_result['validation']['total']}, Max: {strict_summary_result['validation']['max_sentence_length']} words")
+            print(
+                f"✅ Stage 2a (Strict Summary): SUCCESS - {strict_summary_result['response_time_seconds']}s")
+            print(
+                f"   Validation: {strict_summary_result['validation']['score']}/{strict_summary_result['validation']['total']}, Max: {strict_summary_result['validation']['max_sentence_length']} words")
             total_time += strict_summary_result['response_time_seconds']
-        
+
         if narrative_summary_result.get('success'):
-            print(f"✅ Stage 2b (Narrative): SUCCESS - {narrative_summary_result['response_time_seconds']}s")
+            print(
+                f"✅ Stage 2b (Narrative): SUCCESS - {narrative_summary_result['response_time_seconds']}s")
             total_time += narrative_summary_result['response_time_seconds']
-        
+
         if red_flags_result.get('success'):
-            print(f"✅ Stage 3 (Red Flags): SUCCESS - {red_flags_result['response_time_seconds']}s")
+            print(
+                f"✅ Stage 3 (Red Flags): SUCCESS - {red_flags_result['response_time_seconds']}s")
             total_time += red_flags_result['response_time_seconds']
-        
+
         print(f"\n⏱️  Total: {total_time:.1f}s")
-        
+
         print("\n" + "="*80)
         print("OUTPUT FILES:")
         print("="*80)
