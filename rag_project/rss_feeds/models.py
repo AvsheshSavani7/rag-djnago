@@ -33,6 +33,9 @@ class FeedItem(Document):
     # Reference to parent feed
     rss_feed_id = StringField(required=True, max_length=50)
 
+    # Optional link to deal (when article is merger-related and matched or created)
+    deal_id = StringField(required=False, max_length=50, null=True)
+
     # Timestamps
     created_at = DateTimeField(default=datetime.utcnow)
     updated_at = DateTimeField(default=datetime.utcnow)

@@ -6,7 +6,11 @@ import requests
 from .models import Feed, FeedItem, Author
 from .serializers import FeedItemCreateSerializer
 from .websocket_service import RSSWebSocketService
-from .email_templates import generate_rss_feed_item_email_html
+from .email_templates import generate_rss_feed_item_email_html, FEED_TITLE_DISPLAY_NAMES
+from .merger_news_classifier import (
+    get_deals_record_string,
+    resolve_rss_item_flow,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -227,7 +231,8 @@ class RSSFeedService:
                     date_published=_parse_date_published(
                         item_data['date_published']),
                     authors=authors,
-                    rss_feed_id=feed_id
+                    rss_feed_id=feed_id,
+                    deal_id=item_data.get('deal_id') or None,
                 )
                 feed_item.save()
                 created_items.append(feed_item)
@@ -264,59 +269,125 @@ class RSSFeedService:
             # Create or update feed
             feed = RSSFeedService.create_or_update_feed(feed_data)
 
-            # Create feed items
-            created_items = RSSFeedService.create_feed_items(
-                str(feed.id), items_new)
-            logger.debug("Webhook created_items count: %s", len(created_items))
-
-            # Emit WebSocket notification for new feed items
-            if created_items:
-                # Use background task for WebSocket emission
-                import asyncio
-                import threading
-
-                def emit_websocket():
-                    try:
-                        # Create new event loop for this thread
-                        loop = asyncio.new_event_loop()
-                        asyncio.set_event_loop(loop)
-                        loop.run_until_complete(
-                            RSSWebSocketService.emit_new_feed_items(created_items, feed))
-                        loop.close()
-                    except Exception as e:
-                        logger.warning(
-                            f"Could not emit WebSocket notification: {str(e)}")
-
-                # Run in background thread
-                thread = threading.Thread(target=emit_websocket)
-                thread.daemon = True
-                thread.start()
-
-            # Send one email per new item via N8N testing webhook (subject: "PR News : {item title}")
             feed_title_str = feed_data.get("title") or feed.title
             feed_source_url_str = feed_data.get(
                 "source_url") or getattr(feed, "source_url", "") or ""
-            for item in items_new:
-                try:
-                    subject, html_email = generate_rss_feed_item_email_html(
-                        feed_data, item
-                    )
-                    if feed_title_str == "News - Globes" or feed_title_str == "JPost.com - Business & Innovation | The Jerusalem Post":
-                        webhook_url = N8N_WEBHOOK_URL_FOR_TESTING
-                    else:
-                        webhook_url = N8N_WEBHOOK_URL_FOR_TESTING
-                    _send_rss_feed_email_via_webhook(
-                        webhook_url,
-                        subject=subject,
-                        html_email=html_email,
-                        feed_title=feed_title_str,
-                        items_count=1,
-                        feed_source_url=feed_source_url_str
-                    )
-                except Exception as e:
-                    logger.warning(
-                        "Could not generate/send RSS feed item email: %s", e
-                    )
+
+            # Use 3-prompt merger flow only for feeds in FEED_TITLE_DISPLAY_NAMES; otherwise old way (save all, email all)
+            use_merger_flow = feed_title_str in FEED_TITLE_DISPLAY_NAMES
+
+            if use_merger_flow:
+                # New process: 3-prompt flow, save and email only merger-related items, attach deal_id
+                deals_record_string = get_deals_record_string()
+                flow_results = []
+                for item in items_new:
+                    try:
+                        result = resolve_rss_item_flow(
+                            item, deals_record_string)
+                        flow_results.append((item, result))
+                    except Exception as e:
+                        logger.warning(
+                            "RSS item flow failed for %s: %s", item.get("url"), e)
+                        flow_results.append(
+                            (item, {"skip_email": True, "deal_id": None, "deal_info": None, "email_note": None}))
+
+                items_to_save = []
+                for item, result in flow_results:
+                    if result.get("skip_email"):
+                        continue
+                    item_with_deal = dict(item)
+                    if result.get("deal_id"):
+                        item_with_deal["deal_id"] = result["deal_id"]
+                    items_to_save.append(item_with_deal)
+                created_items = RSSFeedService.create_feed_items(
+                    str(feed.id), items_to_save)
+                logger.debug(
+                    "Webhook created_items count (merger flow): %s", len(created_items))
+
+                if created_items:
+                    import asyncio
+                    import threading
+
+                    def emit_websocket():
+                        try:
+                            loop = asyncio.new_event_loop()
+                            asyncio.set_event_loop(loop)
+                            loop.run_until_complete(
+                                RSSWebSocketService.emit_new_feed_items(created_items, feed))
+                            loop.close()
+                        except Exception as e:
+                            logger.warning(
+                                f"Could not emit WebSocket notification: {str(e)}")
+
+                    thread = threading.Thread(target=emit_websocket)
+                    thread.daemon = True
+                    thread.start()
+
+                for item, result in flow_results:
+                    if result.get("skip_email"):
+                        continue
+                    try:
+                        subject, html_email = generate_rss_feed_item_email_html(
+                            feed_data,
+                            item,
+                            deal_info=result.get("deal_info"),
+                            email_note=result.get("email_note"),
+                        )
+                        _send_rss_feed_email_via_webhook(
+                            N8N_WEBHOOK_URL_FOR_TESTING,
+                            subject=subject,
+                            html_email=html_email,
+                            feed_title=feed_title_str,
+                            items_count=1,
+                            feed_source_url=feed_source_url_str
+                        )
+                    except Exception as e:
+                        logger.warning(
+                            "Could not generate/send RSS feed item email: %s", e
+                        )
+            else:
+                # Old way: save all items, send email for every item (no deal logic)
+                created_items = RSSFeedService.create_feed_items(
+                    str(feed.id), items_new)
+                logger.debug("Webhook created_items count: %s",
+                             len(created_items))
+
+                if created_items:
+                    import asyncio
+                    import threading
+
+                    def emit_websocket():
+                        try:
+                            loop = asyncio.new_event_loop()
+                            asyncio.set_event_loop(loop)
+                            loop.run_until_complete(
+                                RSSWebSocketService.emit_new_feed_items(created_items, feed))
+                            loop.close()
+                        except Exception as e:
+                            logger.warning(
+                                f"Could not emit WebSocket notification: {str(e)}")
+
+                    thread = threading.Thread(target=emit_websocket)
+                    thread.daemon = True
+                    thread.start()
+
+                for item in items_new:
+                    try:
+                        subject, html_email = generate_rss_feed_item_email_html(
+                            feed_data, item
+                        )
+                        _send_rss_feed_email_via_webhook(
+                            N8N_WEBHOOK_URL_FOR_TESTING,
+                            subject=subject,
+                            html_email=html_email,
+                            feed_title=feed_title_str,
+                            items_count=1,
+                            feed_source_url=feed_source_url_str
+                        )
+                    except Exception as e:
+                        logger.warning(
+                            "Could not generate/send RSS feed item email: %s", e
+                        )
 
             return {
                 'success': True,
