@@ -1,0 +1,58 @@
+{
+  "Complex Consideration": {
+    "Complete_Effects_on_Capital_Stock": [
+      "forms_of_consideration_used",
+      "conversion_ratios",
+      "proration_calculation_method",
+      "consideration_election_mechanics",
+      "cvr_terms_summary",
+      "contingent_payment_conditions",
+      "fractional_share_handling"
+    ],
+    "Merger_Agreement_Details": [
+      "consideration_structure_type",
+      "maximum_cash_cap",
+      "maximum_stock_cap",
+      "proration_formula_summary",
+      "earnout_cap_or_ceiling",
+      "cvr_trigger_events",
+      "election_deadline",
+      "adjustment_for_acquirer_dividends"
+    ]
+  },
+
+  "Go-Shop Terms": {
+    "No_Solicitation": [
+      "go_shop_period_included",
+      "go_shop_duration_and_conditions",
+      "termination_right_for_superior_proposal"
+    ],
+    "Timeline": ["marketing_period_end_date"],
+    "Best_Efforts": ["match_right_period"],
+    "Covenants": ["go_shop_fee_discount"]
+  },
+
+  "Unusual Closing Conditions": {
+    "Conditions_to_Closing": [
+      "buyer_no_target_mae_condition",
+      "buyer_officer_certificate_condition",
+      "buyer_target_compliance_with_covenants_condition",
+      "target_officer_certificate_condition",
+      "target_parent_representations_and_warranties_true_condition",
+      "target_no_parent_mae_condition",
+      "other_mutual_conditions_condition",
+      "absence_of_material_adverse_effect_condition",
+      "financing_condition",
+      "unusual_or_deal_specific_closing_conditions",
+      "material_customer_or_supplier_condition",
+      "employee_retention_condition",
+      "no_governmental_inquiry_condition",
+      "conditions_with_subjective_language"
+    ],
+    "Closing": [
+      "pre_closing_obligations_or_conditions",
+      "conditions_tied_to_stock_price_or_rating"
+    ],
+    "Financing": ["financing_required_for_closing"]
+  }
+}

@@ -1,8 +1,11 @@
 from django.urls import path
-from .views import ProcessView, ItemsListView
+from .views import ProcessView, ItemsListView, AnnouncementView, AnnouncementWithUrlView
 
 urlpatterns = [
     path('process/', ProcessView.as_view(), name='process'),
+    path('announcement/', AnnouncementView.as_view(), name='announcement'),
+    path('announcement/with-url/', AnnouncementWithUrlView.as_view(),
+         name='announcement_with_url'),
     # path('items/', ItemsListView.as_view(), name='items'),
 ]
 

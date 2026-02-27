@@ -1,25 +1,30 @@
-from django.db import models
-from djongo import models as djongo_models
+from mongoengine import (
+    Document,
+    StringField,
+    DateTimeField,
+)
 from bson import ObjectId
+from datetime import datetime
 
 
 def generate_object_id():
     return str(ObjectId())
 
 
-class Thread(djongo_models.Model):
-    _id = djongo_models.CharField(primary_key=True, max_length=24,
-                                  default=generate_object_id, editable=False)
-    user_id = djongo_models.CharField(max_length=100)
-    openai_thread_id = djongo_models.CharField(max_length=100)
-    name = djongo_models.CharField(max_length=255)
-    created_at = djongo_models.DateTimeField(auto_now_add=True)
+class Thread(Document):
+    _id = StringField(primary_key=True, default=generate_object_id, max_length=24)
+    user_id = StringField(required=True, max_length=100)
+    openai_thread_id = StringField(required=True, max_length=100)
+    name = StringField(required=True, max_length=255)
+    created_at = DateTimeField(default=datetime.utcnow)
 
-    class Meta:
-        db_table = 'threads'
-        indexes = [
-            djongo_models.Index(fields=['user_id']),
-        ]
+    meta = {
+        'collection': 'threads',
+        'indexes': [
+            'user_id'
+        ],
+        'ordering': ['-created_at']
+    }
 
     def __str__(self):
         return f"Thread {self.name} ({self._id})"

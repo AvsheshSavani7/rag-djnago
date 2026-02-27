@@ -1,0 +1,900 @@
+{
+  "termination_clauses": {
+    "Mutual Consent": [
+      {
+        "section": "termination_clauses",
+        "field_name": "trigger",
+        "answer": "by mutual written consent of each of Parent and the Company",
+        "confidence": 1.0,
+        "reason": "The clause explicitly states that termination can occur by mutual written consent of both parties.",
+        "clause_text": "Notwithstanding anything contained in this Agreement to the contrary, this Agreement may be terminated at any time prior to the Effective Time, whether before or after the Company Stockholder Approval is obtained (except as otherwise expressly noted), as follows: (a) by mutual written consent of each of Parent and the Company;",
+        "reference_section": "ARTICLE Article VII TERMINATION, AMENDMENT AND WAIVER > Section 7.1 Termination > (a)"
+      },
+      {
+        "section": "termination_clauses",
+        "field_name": "who",
+        "answer": "Either party (by mutual consent)",
+        "confidence": 0.9,
+        "reason": "The clause specifies that the agreement may be terminated by mutual written consent of each of Parent and the Company, indicating that both parties must agree in writing.",
+        "clause_text": "Notwithstanding anything contained in this Agreement to the contrary, this Agreement may be terminated at any time prior to the Effective Time, whether before or after the Company Stockholder Approval is obtained (except as otherwise expressly noted), as follows: (a) by mutual written consent of each of Parent and the Company;",
+        "reference_section": "ARTICLE Article VII TERMINATION, AMENDMENT AND WAIVER > Section 7.1 Termination > (a)"
+      },
+      {
+        "section": "termination_clauses",
+        "field_name": "fee_required",
+        "answer": "No",
+        "confidence": 1.0,
+        "reason": "",
+        "clause_text": "by mutual written consent of each of Parent and the Company;",
+        "reference_section": "ARTICLE Article VII TERMINATION, AMENDMENT AND WAIVER > Section 7.1 Termination > (a)"
+      },
+      {
+        "section": "termination_clauses",
+        "field_name": "fee_amount",
+        "answer": "NA",
+        "confidence": 1.0,
+        "reason": "",
+        "clause_text": "",
+        "reference_section": ""
+      },
+      {
+        "section": "termination_clauses",
+        "field_name": "cure_period",
+        "answer": "None",
+        "confidence": 1.0,
+        "reason": "",
+        "clause_text": "",
+        "reference_section": ""
+      },
+      {
+        "section": "termination_clauses",
+        "field_name": "notice_required",
+        "answer": "Yes",
+        "confidence": 1.0,
+        "reason": "The mutual consent clause explicitly requires written consent from both parties to effectuate termination.",
+        "clause_text": "Notwithstanding anything contained in this Agreement to the contrary, this Agreement may be terminated at any time prior to the Effective Time, whether before or after the Company Stockholder Approval is obtained (except as otherwise expressly noted), as follows: (a) by mutual written consent of each of Parent and the Company;",
+        "reference_section": "ARTICLE Article VII TERMINATION, AMENDMENT AND WAIVER > Section 7.1 Termination > (a)"
+      },
+      {
+        "section": "termination_clauses",
+        "field_name": "structured_summary",
+        "answer": "The mutual consent termination clause allows the agreement to be terminated at any time prior to the Effective Time by mutual written consent of both Parent and the Company. No specific fees or conditions are mentioned for this type of termination, but written notice is required.",
+        "confidence": 0.9,
+        "reason": "The clause explicitly states that termination can occur by mutual written consent of both parties, implying that both parties must agree to terminate. The requirement for written notice is also specified.",
+        "clause_text": "Notwithstanding anything contained in this Agreement to the contrary, this Agreement may be terminated at any time prior to the Effective Time, whether before or after the Company Stockholder Approval is obtained (except as otherwise expressly noted), as follows: (a) by mutual written consent of each of Parent and the Company;",
+        "reference_section": "ARTICLE Article VII TERMINATION, AMENDMENT AND WAIVER > Section 7.1 Termination > (a)"
+      },
+      {
+        "section": "termination_clauses",
+        "field_name": "clause_summary_bullets",
+        "answer": "- The agreement can be terminated by mutual written consent of both Parent and the Company.\n- Termination can occur at any time prior to the Effective Time, regardless of whether the Company Stockholder Approval has been obtained.\n- No specific notice period or fees are mentioned for termination by mutual consent.",
+        "confidence": 1.0,
+        "reason": "",
+        "clause_text": "Notwithstanding anything contained in this Agreement to the contrary, this Agreement may be terminated at any time prior to the Effective Time, whether before or after the Company Stockholder Approval is obtained (except as otherwise expressly noted), as follows: (a) by mutual written consent of each of Parent and the Company;",
+        "reference_section": "ARTICLE Article VII TERMINATION, AMENDMENT AND WAIVER > Section 7.1 Termination"
+      }
+    ],
+    "Outside Date": [
+      {
+        "section": "termination_clauses",
+        "field_name": "trigger",
+        "answer": "the Merger shall not have been consummated on or before 5:00 p.m. (Chicago, Illinois, United States time) on the twelve (12)-month anniversary of the date of this Agreement (the 'Termination Date'); provided that if, on the Termination Date, any of the conditions to Closing set forth in Section 6.1(d) or Section 6.1(e) (if the Restraint is in respect of an Antitrust Law) shall not have been satisfied, but all other conditions set forth in Section 6.1 through Section 6.3 shall have been satisfied or waived (other than those conditions that by their nature are to be satisfied at the Effective Time (if such conditions are capable of being satisfied were the Closing to occur at such time)), the Termination Date shall automatically, without any action on the part of the parties hereto, be extended for three (3) months",
+        "confidence": 1.0,
+        "reason": "The clause explicitly states the condition that triggers termination under the outside date clause, including the provision for automatic extension.",
+        "clause_text": "the Merger shall not have been consummated on or before 5:00 p.m. (Chicago, Illinois, United States time) on the twelve (12)-month anniversary of the date of this Agreement (the 'Termination Date'); provided that if, on the Termination Date, any of the conditions to Closing set forth in Section 6.1(d) or Section 6.1(e) (if the Restraint is in respect of an Antitrust Law) shall not have been satisfied, but all other conditions set forth in Section 6.1 through Section 6.3 shall have been satisfied or waived (other than those conditions that by their nature are to be satisfied at the Effective Time (if such conditions are capable of being satisfied were the Closing to occur at such time)), the Termination Date shall automatically, without any action on the part of the parties hereto, be extended for three (3) months",
+        "reference_section": "ARTICLE Article VII TERMINATION, AMENDMENT AND WAIVER > Section 7.1 Termination > (b)(i)"
+      },
+      {
+        "section": "termination_clauses",
+        "field_name": "who",
+        "answer": "Either Party",
+        "confidence": 1.0,
+        "reason": "The clause explicitly states that either Parent or the Company can terminate the agreement if the Merger is not consummated by the Termination Date.",
+        "clause_text": "by either Parent or the Company, if: (i) the Merger shall not have been consummated on or before 5:00 p.m. (Chicago, Illinois, United States time) on the twelve (12)-month anniversary of the date of this Agreement (the \"Termination Date\");",
+        "reference_section": "ARTICLE Article VII TERMINATION, AMENDMENT AND WAIVER > Section 7.1 Termination > (b) > (i)"
+      },
+      {
+        "section": "termination_clauses",
+        "field_name": "fee_required",
+        "answer": "Conditional",
+        "confidence": 0.9,
+        "reason": "The termination fee is triggered under specific conditions, such as the presence of an Acquisition Proposal and subsequent consummation or agreement within 12 months after termination.",
+        "clause_text": "(a) If this Agreement is terminated by: (i) (A) Parent pursuant to Section 7.1(d)(i) on the basis of a breach of a covenant or agreement contained in this Agreement or either Parent or the Company pursuant to Section 7.1(b)(i) or Section 7.1(b)(iii) and (B) in any such case (I) after the execution of this Agreement and prior to such termination (or prior to the Company Stockholders' Meeting, in the case of termination pursuant to Section 7.1(b)(iii)), an Acquisition Proposal shall have been publicly disclosed (or, in the case of termination pursuant to Section 7.1(b)(i) or Section 7.1(d)(i), otherwise made known to the Company Board) and not withdrawn (publicly, if publicly disclosed) and (II) within twelve (12) months after such termination, any Acquisition Proposal is consummated or the Company enters into a definitive agreement with respect to any Acquisition Proposal (regardless of when or whether such transaction is consummated)...",
+        "reference_section": "ARTICLE Article VII TERMINATION, AMENDMENT AND WAIVER > Section 7.3 Termination Amount > (a)"
+      },
+      {
+        "section": "termination_clauses",
+        "field_name": "fee_amount",
+        "answer": "272000000",
+        "confidence": 1.0,
+        "reason": "The document explicitly defines the Termination Amount as $272,000,000, which applies under the outside date clause.",
+        "clause_text": "Termination Amount shall mean $272,000,000.",
+        "reference_section": "Definition > Termination Amount"
+      },
+      {
+        "section": "termination_clauses",
+        "field_name": "cure_period",
+        "answer": "None",
+        "confidence": 1.0,
+        "reason": "",
+        "clause_text": "",
+        "reference_section": ""
+      },
+      {
+        "section": "termination_clauses",
+        "field_name": "notice_required",
+        "answer": "Yes",
+        "confidence": 0.9,
+        "reason": "The clause explicitly states that written notice must be given by the terminating party to the other party when the agreement is terminated.",
+        "clause_text": "In the event that this Agreement is terminated and the Merger abandoned pursuant to Section 7.1, written notice thereof shall be given by the terminating party to the other party, specifying the provisions hereof pursuant to which such termination is made, and this Agreement shall forthwith become null and void and of no effect without liability on the part of any party hereto, and all rights and obligations of any party hereto shall cease;",
+        "reference_section": "ARTICLE Article VII TERMINATION, AMENDMENT AND WAIVER > Section 7.2 Effect of Termination"
+      },
+      {
+        "section": "termination_clauses",
+        "field_name": "structured_summary",
+        "answer": "The outside date clause allows termination of the agreement if the merger is not consummated by 5:00 p.m. (Chicago time) on the twelve-month anniversary of the agreement date. An automatic three-month extension is allowed if certain antitrust-related conditions are not satisfied by the original termination date. Either Parent or the Company may terminate under these conditions, provided they are not in material breach causing the delay. A termination fee applies if the agreement is terminated under specific conditions related to acquisition proposals.",
+        "confidence": 0.9,
+        "reason": "The clause specifies the termination date, extension conditions, parties who may terminate, and conditions under which a fee applies.",
+        "clause_text": "by either Parent or the Company, if: (i) the Merger shall not have been consummated on or before 5:00 p.m. (Chicago, Illinois, United States time) on the twelve (12)-month anniversary of the date of this Agreement (the \"Termination Date\"); provided that if, on the Termination Date, any of the conditions to Closing set forth in Section 6.1(d) or Section 6.1(e) (if the Restraint is in respect of an Antitrust Law) shall not have been satisfied, but all other conditions set forth in Section 6.1 through Section 6.3 shall have been satisfied or waived... the Termination Date shall automatically, without any action on the part of the parties hereto, be extended for three (3) months...",
+        "reference_section": "ARTICLE Article VII TERMINATION, AMENDMENT AND WAIVER > Section 7.1 Termination > (b)(i)"
+      },
+      {
+        "section": "termination_clauses",
+        "field_name": "clause_summary_bullets",
+        "answer": "- The termination trigger date is the twelve-month anniversary of the agreement, with an automatic three-month extension if certain conditions are not met.\n- Either party can terminate if the merger is not consummated by the termination date, unless the failure is due to their own material breach.\n- A termination fee of $272,000,000 may apply under certain post-termination scenarios.",
+        "confidence": 1.0,
+        "reason": "",
+        "clause_text": "by either Parent or the Company, if: (i) the Merger shall not have been consummated on or before 5:00 p.m. (Chicago, Illinois, United States time) on the twelve (12)-month anniversary of the date of this Agreement (the \"Termination Date\"); provided that if, on the Termination Date, any of the conditions to Closing set forth in Section 6.1(d) or Section 6.1(e) (if the Restraint is in respect of an Antitrust Law) shall not have been satisfied, but all other conditions set forth in Section 6.1 through Section 6.3 shall have been satisfied or waived (other than those conditions that by their nature are to be satisfied at the Effective Time (if such conditions are capable of being satisfied were the Closing to occur at such time)), the Termination Date shall automatically, without any action on the part of the parties hereto, be extended for three (3) months, and such date as so extended shall be the \"Termination Date\" for all purposes hereunder; provided, further, that the right to terminate this Agreement pursuant to this Section 7.1(b)(i) shall not be available to any party if a material breach by such party of any of its obligations under this Agreement has been the principal cause of or principally resulted in the failure of the Closing to have occurred on or before the Termination Date;",
+        "reference_section": "ARTICLE Article VII TERMINATION, AMENDMENT AND WAIVER > Section 7.1 Termination"
+      }
+    ],
+    "Breach by Other Party": [
+      {
+        "section": "termination_clauses",
+        "field_name": "trigger",
+        "answer": "The specific condition that allows a party to terminate due to the other party's breach is a material breach of representations, warranties, covenants, or other agreements that would result in the failure of a condition set forth in Section 6.3(a) or Section 6.3(b) for Parent or Merger Sub, or Section 6.2(a) or Section 6.2(b) for the Company, and is not capable of being cured by the Termination Date or within thirty (30) calendar days following delivery of written notice of such breach.",
+        "confidence": 0.9,
+        "reason": "The document specifies that termination can occur if there is a breach that results in the failure of certain conditions and is not cured within a specified timeframe.",
+        "clause_text": "by the Company if: (i) Parent or Merger Sub shall have breached or failed to perform any of their respective representations, warranties, covenants or other agreements set forth in this Agreement, which breach or failure to perform (A) would result in the failure of a condition set forth in Section 6.3(a) or Section 6.3(b) and (B) is not capable of being cured by Parent or Merger Sub, as applicable, by the Termination Date or, if capable of being cured, shall not have been cured by Parent or Merger Sub on or before the earlier of (x) the Termination Date and (y) the date that is thirty (30) calendar days following the Company's delivery of written notice to Parent of such breach or failure to perform; provided, however, that the Company shall not have the right to terminate this Agreement pursuant to this Section 7.1(c)(i) if the Company is then in material breach of any of its obligations under this Agreement so as to result in the failure of a condition set forth in Section 6.2(b); or (ii) at any time prior to receipt of the Company Stockholder Approval, in order for the Company to enter into a definitive agreement with respect to a Superior Proposal to the extent permitted by, and subject to the applicable terms and conditions of, Section 5.6(d); provided that prior to or substantially concurrently with such termination, the Company pays or causes to be paid to Merger Sub (or a United States Affiliate of Merger Sub as Merger Sub may designate) the Termination Amount; or (d) by Parent if: (i) the Company shall have breached or failed to perform any of its representations, warranties, covenants or other agreements set forth in this Agreement, which breach or failure to perform (A) would result in the failure of a condition set forth in Section 6.2(a) or Section 6.2(b) and (B) is not capable of being cured by the Company by the Termination Date or, if capable of being cured, shall not have been cured by the Company on or before the earlier of (x) the Termination Date and (y) the date that is thirty (30) calendar days following Parent's delivery of written notice to the Company of such breach or failure to perform; provided, however, that Parent shall not have the right to terminate this Agreement pursuant to this Section 7.1(d)(i) if Parent or Merger Sub is then in material breach of any of its obligations under this Agreement so as to result in the failure of a condition set forth in Section 6.3(b);",
+        "reference_section": "ARTICLE Article VII TERMINATION, AMENDMENT AND WAIVER > Section 7.1 Termination"
+      },
+      {
+        "section": "termination_clauses",
+        "field_name": "who",
+        "answer": "Either Party",
+        "confidence": 0.9,
+        "reason": "Both Parent and Company have the right to terminate the agreement due to the other party's breach as specified in Section 7.1(b)(i) and Section 7.1(b)(ii).",
+        "clause_text": "by either Parent or the Company, if: (i) the Merger shall not have been consummated on or before 5:00 p.m. (Chicago, Illinois, United States time) on the twelve (12)-month anniversary of the date of this Agreement (the \"Termination Date\"); provided that if, on the Termination Date, any of the conditions to Closing set forth in Section 6.1(d) or Section 6.1(e) (if the Restraint is in respect of an Antitrust Law) shall not have been satisfied, but all other conditions set forth in Section 6.1 through Section 6.3 shall have been satisfied or waived (other than those conditions that by their nature are to be satisfied at the Effective Time (if such conditions are capable of being satisfied were the Closing to occur at such time)), the Termination Date shall automatically, without any action on the part of the parties hereto, be extended for three (3) months, and such date as so extended shall be the \"Termination Date\" for all purposes hereunder; provided, further, that the right to terminate this Agreement pursuant to this Section 7.1(b)(i) shall not be available to any party if a material breach by such party of any of its obligations under this Agreement has been the principal cause of or principally resulted in the failure of the Closing to have occurred on or before the Termination Date; (ii) prior to the Effective Time, any Restraint shall have been enacted or promulgated after the date of this Agreement that has the effect of permanently restraining, enjoining or otherwise prohibiting the Merger, and in the case of a Restraint that is an Order, such Order shall have become final and non-appealable; provided, however, that the right to terminate this Agreement under this Section 7.1(b)(ii) shall not be available to a party if a material breach by such party of its obligations under Section 5.4 has been the principal cause of or principally resulted in the issuance of such Restraint;",
+        "reference_section": "ARTICLE Article VII TERMINATION, AMENDMENT AND WAIVER > Section 7.1 Termination > (b)"
+      },
+      {
+        "section": "termination_clauses",
+        "field_name": "fee_required",
+        "answer": "Conditional",
+        "confidence": 0.9,
+        "reason": "The termination fee is required if the agreement is terminated due to a breach and an Acquisition Proposal is consummated or a definitive agreement is entered into within 12 months after such termination.",
+        "clause_text": "(a) If this Agreement is terminated by: (i) (A) Parent pursuant to Section 7.1(d)(i) on the basis of a breach of a covenant or agreement contained in this Agreement or either Parent or the Company pursuant to Section 7.1(b)(i) or Section 7.1(b)(iii) and (B) in any such case (I) after the execution of this Agreement and prior to such termination (or prior to the Company Stockholders' Meeting, in the case of termination pursuant to Section 7.1(b)(iii)), an Acquisition Proposal shall have been publicly disclosed (or, in the case of termination pursuant to Section 7.1(b)(i) or Section 7.1(d)(i), otherwise made known to the Company Board) and not withdrawn (publicly, if publicly disclosed) and (II) within twelve (12) months after such termination, any Acquisition Proposal is consummated or the Company enters into a definitive agreement with respect to any Acquisition Proposal (regardless of when or whether such transaction is consummated)...",
+        "reference_section": "ARTICLE Article VII TERMINATION, AMENDMENT AND WAIVER > Section 7.3 Termination Amount > (a)"
+      },
+      {
+        "section": "termination_clauses",
+        "field_name": "fee_amount",
+        "answer": "272000000",
+        "confidence": 1.0,
+        "reason": "The Termination Amount is explicitly defined as $272,000,000 in the document.",
+        "clause_text": "Termination Amount shall mean $272,000,000.",
+        "reference_section": "Definition > Termination Amount"
+      },
+      {
+        "section": "termination_clauses",
+        "field_name": "cure_period",
+        "answer": "30",
+        "confidence": 0.9,
+        "reason": "The document specifies a 30-day cure period for breaches that are capable of being cured.",
+        "clause_text": "by the Termination Date or, if capable of being cured, shall not have been cured by Parent or Merger Sub on or before the earlier of (x) the Termination Date and (y) the date that is thirty (30) calendar days following the Company's delivery of written notice to Parent of such breach or failure to perform;",
+        "reference_section": "ARTICLE Article VII TERMINATION, AMENDMENT AND WAIVER > Section 7.1 Termination > (c) > (i)"
+      },
+      {
+        "section": "termination_clauses",
+        "field_name": "notice_required",
+        "answer": "Yes",
+        "confidence": 0.9,
+        "reason": "The clause explicitly states that written notice must be given by the terminating party to the other party before termination can take effect.",
+        "clause_text": "In the event that this Agreement is terminated and the Merger abandoned pursuant to Section 7.1, written notice thereof shall be given by the terminating party to the other party, specifying the provisions hereof pursuant to which such termination is made, and this Agreement shall forthwith become null and void and of no effect without liability on the part of any party hereto, and all rights and obligations of any party hereto shall cease;",
+        "reference_section": "ARTICLE Article VII TERMINATION, AMENDMENT AND WAIVER > Section 7.2 Effect of Termination"
+      },
+      {
+        "section": "termination_clauses",
+        "field_name": "structured_summary",
+        "answer": "The breach termination clause allows either the Company or Parent to terminate the agreement if the other party breaches its obligations, provided the breach would result in the failure of certain conditions and is not cured within 30 days of notice or by the Termination Date. A termination fee of $272,000,000 may apply if the Company terminates for a Superior Proposal or if Parent terminates due to a breach by the Company under specific conditions. Written notice specifying the termination provision is required.",
+        "confidence": 0.9,
+        "reason": "The clause outlines the conditions under which either party can terminate the agreement due to a breach, including notice requirements and a cure period, and specifies when a termination fee is applicable.",
+        "clause_text": "by the Company if: (i) Parent or Merger Sub shall have breached or failed to perform any of their respective representations, warranties, covenants or other agreements set forth in this Agreement, which breach or failure to perform (A) would result in the failure of a condition set forth in Section 6.3(a) or Section 6.3(b) and (B) is not capable of being cured by Parent or Merger Sub, as applicable, by the Termination Date or, if capable of being cured, shall not have been cured by Parent or Merger Sub on or before the earlier of (x) the Termination Date and (y) the date that is thirty (30) calendar days following the Company's delivery of written notice to Parent of such breach or failure to perform; provided, however, that the Company shall not have the right to terminate this Agreement pursuant to this Section 7.1(c)(i) if the Company is then in material breach of any of its obligations under this Agreement so as to result in the failure of a condition set forth in Section 6.2(b); or (ii) at any time prior to receipt of the Company Stockholder Approval, in order for the Company to enter into a definitive agreement with respect to a Superior Proposal to the extent permitted by, and subject to the applicable terms and conditions of, Section 5.6(d); provided that prior to or substantially concurrently with such termination, the Company pays or causes to be paid to Merger Sub (or a United States Affiliate of Merger Sub as Merger Sub may designate) the Termination Amount; or (d) by Parent if: (i) the Company shall have breached or failed to perform any of its representations, warranties, covenants or other agreements set forth in this Agreement, which breach or failure to perform (A) would result in the failure of a condition set forth in Section 6.2(a) or Section 6.2(b) and (B) is not capable of being cured by the Company by the Termination Date or, if capable of being cured, shall not have been cured by the Company on or before the earlier of (x) the Termination Date and (y) the date that is thirty (30) calendar days following Parent's delivery of written notice to the Company of such breach or failure to perform; provided, however, that Parent shall not have the right to terminate this Agreement pursuant to this Section 7.1(d)(i) if Parent or Merger Sub is then in material breach of any of its obligations under this Agreement so as to result in the failure of a condition set forth in Section 6.3(b);",
+        "reference_section": "ARTICLE Article VII TERMINATION, AMENDMENT AND WAIVER > Section 7.1 Termination"
+      },
+      {
+        "section": "termination_clauses",
+        "field_name": "clause_summary_bullets",
+        "answer": "- Termination can occur due to a breach of representations, warranties, covenants, or agreements that cannot be cured by the Termination Date or within 30 days of notice.\n- Written notice specifying the breach is required for termination.\n- The breaching party may be liable for damages resulting from a knowing and intentional breach prior to termination.",
+        "confidence": 0.9,
+        "reason": "The clauses specify conditions under which termination can occur due to breach, including notice requirements and potential liability for intentional breaches.",
+        "clause_text": "by the Company if: (i) Parent or Merger Sub shall have breached or failed to perform any of their respective representations, warranties, covenants or other agreements set forth in this Agreement, which breach or failure to perform (A) would result in the failure of a condition set forth in Section 6.3(a) or Section 6.3(b) and (B) is not capable of being cured by Parent or Merger Sub, as applicable, by the Termination Date or, if capable of being cured, shall not have been cured by Parent or Merger Sub on or before the earlier of (x) the Termination Date and (y) the date that is thirty (30) calendar days following the Company's delivery of written notice to Parent of such breach or failure to perform; provided, however, that the Company shall not have the right to terminate this Agreement pursuant to this Section 7.1(c)(i) if the Company is then in material breach of any of its obligations under this Agreement so as to result in the failure of a condition set forth in Section 6.2(b);",
+        "reference_section": "ARTICLE Article VII TERMINATION, AMENDMENT AND WAIVER > Section 7.1 Termination > (c)(i)"
+      }
+    ],
+    "Permanent Restraint / Injunction": [
+      {
+        "section": "termination_clauses",
+        "field_name": "trigger",
+        "answer": "prior to the Effective Time, any Restraint shall have been enacted or promulgated after the date of this Agreement that has the effect of permanently restraining, enjoining or otherwise prohibiting the Merger, and in the case of a Restraint that is an Order, such Order shall have become final and non-appealable",
+        "confidence": 1.0,
+        "reason": "The clause explicitly states the condition that triggers termination under the permanent restraint clause, which is the enactment or promulgation of a Restraint that permanently prohibits the merger and is final and non-appealable.",
+        "clause_text": "prior to the Effective Time, any Restraint shall have been enacted or promulgated after the date of this Agreement that has the effect of permanently restraining, enjoining or otherwise prohibiting the Merger, and in the case of a Restraint that is an Order, such Order shall have become final and non-appealable",
+        "reference_section": "ARTICLE Article VII TERMINATION, AMENDMENT AND WAIVER > Section 7.1 Termination > (b)(ii)"
+      },
+      {
+        "section": "termination_clauses",
+        "field_name": "who",
+        "answer": "Either Party",
+        "confidence": 1.0,
+        "reason": "The agreement explicitly states that either Parent or the Company may terminate the agreement if a Restraint permanently prohibits the merger.",
+        "clause_text": "by either Parent or the Company, if: (ii) prior to the Effective Time, any Restraint shall have been enacted or promulgated after the date of this Agreement that has the effect of permanently restraining, enjoining or otherwise prohibiting the Merger, and in the case of a Restraint that is an Order, such Order shall have become final and non-appealable;",
+        "reference_section": "ARTICLE Article VII TERMINATION, AMENDMENT AND WAIVER > Section 7.1 Termination > (b)(ii)"
+      },
+      {
+        "section": "termination_clauses",
+        "field_name": "fee_required",
+        "answer": "Conditional",
+        "confidence": 1.0,
+        "reason": "The termination fee is required under specific conditions, such as when an Acquisition Proposal is involved or when certain sections are invoked for termination.",
+        "clause_text": "(a) If this Agreement is terminated by: (i) (A) Parent pursuant to Section 7.1(d)(i) on the basis of a breach of a covenant or agreement contained in this Agreement or either Parent or the Company pursuant to Section 7.1(b)(i) or Section 7.1(b)(iii) and (B) in any such case (I) after the execution of this Agreement and prior to such termination (or prior to the Company Stockholders' Meeting, in the case of termination pursuant to Section 7.1(b)(iii)), an Acquisition Proposal shall have been publicly disclosed (or, in the case of termination pursuant to Section 7.1(b)(i) or Section 7.1(d)(i), otherwise made known to the Company Board) and not withdrawn (publicly, if publicly disclosed) and (II) within twelve (12) months after such termination, any Acquisition Proposal is consummated or the Company enters into a definitive agreement with respect to any Acquisition Proposal (regardless of when or whether such transaction is consummated) (provided, however, that for purposes of this Section 7.3(a)(i)(B), the references to \"twenty percent (20%)\" in the definition of Acquisition Proposal shall be deemed to be references to \"fifty percent (50%)\"); (ii) the Company pursuant to Section 7.1(c)(ii); or (iii) Parent pursuant to Section 7.1(d)(ii); then, in any such case, the Company shall pay, or cause to be paid, to Merger Sub (or a United States Affiliate of Merger Sub as Merger Sub may designate) the Termination Amount.",
+        "reference_section": "ARTICLE Article VII TERMINATION, AMENDMENT AND WAIVER > Section 7.3 Termination Amount > (a)"
+      },
+      {
+        "section": "termination_clauses",
+        "field_name": "fee_amount",
+        "answer": "272000000",
+        "confidence": 1.0,
+        "reason": "The Termination Amount is explicitly defined as $272,000,000 in the document.",
+        "clause_text": "Termination Amount shall mean $272,000,000.",
+        "reference_section": "Definition > Termination Amount"
+      },
+      {
+        "section": "termination_clauses",
+        "field_name": "cure_period",
+        "answer": "None",
+        "confidence": 1.0,
+        "reason": "",
+        "clause_text": "",
+        "reference_section": ""
+      },
+      {
+        "section": "termination_clauses",
+        "field_name": "notice_required",
+        "answer": "Yes",
+        "confidence": 0.9,
+        "reason": "The clause explicitly states that written notice must be given by the terminating party to the other party before termination can take effect.",
+        "clause_text": "In the event that this Agreement is terminated and the Merger abandoned pursuant to Section 7.1, written notice thereof shall be given by the terminating party to the other party, specifying the provisions hereof pursuant to which such termination is made, and this Agreement shall forthwith become null and void and of no effect without liability on the part of any party hereto, and all rights and obligations of any party hereto shall cease;",
+        "reference_section": "ARTICLE Article VII TERMINATION, AMENDMENT AND WAIVER > Section 7.2 Effect of Termination"
+      },
+      {
+        "section": "termination_clauses",
+        "field_name": "structured_summary",
+        "answer": "The agreement allows either Parent or the Company to terminate if a legal restraint permanently prohibits the merger and becomes final and non-appealable. This right is not available if the terminating party's breach caused the restraint. A $272 million fee may apply if Parent terminates under certain related provisions.",
+        "confidence": 0.9,
+        "reason": "The agreement explicitly states the conditions under which termination is allowed due to a permanent legal restraint and specifies the fee applicable if Parent terminates under related provisions.",
+        "clause_text": "by either Parent or the Company, if: (ii) prior to the Effective Time, any Restraint shall have been enacted or promulgated after the date of this Agreement that has the effect of permanently restraining, enjoining or otherwise prohibiting the Merger, and in the case of a Restraint that is an Order, such Order shall have become final and non-appealable; provided, however, that the right to terminate this Agreement under this Section 7.1(b)(ii) shall not be available to a party if a material breach by such party of its obligations under Section 5.4 has been the principal cause of or principally resulted in the issuance of such Restraint;",
+        "reference_section": "ARTICLE Article VII TERMINATION, AMENDMENT AND WAIVER > Section 7.1 Termination > (b) > (ii)"
+      },
+      {
+        "section": "termination_clauses",
+        "field_name": "clause_summary_bullets",
+        "answer": "- Either Parent or the Company may terminate the agreement if a Restraint permanently prohibits the merger and becomes final and non-appealable.\n- Termination is not available if the terminating party's material breach caused the Restraint.\n- No specific termination fee applies under these conditions.",
+        "confidence": 0.9,
+        "reason": "The clause specifies that either party can terminate if a permanent Restraint is enacted, and no termination fee is mentioned for this scenario.",
+        "clause_text": "by either Parent or the Company, if: (ii) prior to the Effective Time, any Restraint shall have been enacted or promulgated after the date of this Agreement that has the effect of permanently restraining, enjoining or otherwise prohibiting the Merger, and in the case of a Restraint that is an Order, such Order shall have become final and non-appealable; provided, however, that the right to terminate this Agreement under this Section 7.1(b)(ii) shall not be available to a party if a material breach by such party of its obligations under Section 5.4 has been the principal cause of or principally resulted in the issuance of such Restraint;",
+        "reference_section": "ARTICLE Article VII TERMINATION, AMENDMENT AND WAIVER > Section 7.1 Termination > (b) > (ii)"
+      }
+    ],
+    "Failure to Obtain Stockholder Vote": [
+      {
+        "section": "termination_clauses",
+        "field_name": "trigger",
+        "answer": "the Company Stockholder Approval shall not have been obtained upon a vote taken thereon at the Company Stockholders' Meeting duly convened therefor or at any adjournment or postponement thereof",
+        "confidence": 1.0,
+        "reason": "The clause explicitly states that termination is triggered if the Company Stockholder Approval is not obtained at the Company Stockholders' Meeting or any adjournment or postponement.",
+        "clause_text": "the Company Stockholder Approval shall not have been obtained upon a vote taken thereon at the Company Stockholders' Meeting duly convened therefor or at any adjournment or postponement thereof",
+        "reference_section": "ARTICLE Article VII TERMINATION, AMENDMENT AND WAIVER > Section 7.1 Termination > (b)(iii)"
+      },
+      {
+        "section": "termination_clauses",
+        "field_name": "who",
+        "answer": "Either Party",
+        "confidence": 1.0,
+        "reason": "The clause explicitly states that either Parent or the Company can terminate the agreement if the Company Stockholder Approval is not obtained.",
+        "clause_text": "by either Parent or the Company, if: (iii) the Company Stockholder Approval shall not have been obtained upon a vote taken thereon at the Company Stockholders' Meeting duly convened therefor or at any adjournment or postponement thereof;",
+        "reference_section": "ARTICLE Article VII TERMINATION, AMENDMENT AND WAIVER > Section 7.1 Termination > (b) > (iii)"
+      },
+      {
+        "section": "termination_clauses",
+        "field_name": "fee_required",
+        "answer": "Conditional",
+        "confidence": 0.9,
+        "reason": "The termination fee is required under specific conditions, such as if an Acquisition Proposal is publicly disclosed and not withdrawn, and then consummated or a definitive agreement is entered into within twelve months after termination.",
+        "clause_text": "(a) If this Agreement is terminated by: (i) (A) Parent pursuant to Section 7.1(d)(i) on the basis of a breach of a covenant or agreement contained in this Agreement or either Parent or the Company pursuant to Section 7.1(b)(i) or Section 7.1(b)(iii) and (B) in any such case (I) after the execution of this Agreement and prior to such termination (or prior to the Company Stockholders' Meeting, in the case of termination pursuant to Section 7.1(b)(iii)), an Acquisition Proposal shall have been publicly disclosed (or, in the case of termination pursuant to Section 7.1(b)(i) or Section 7.1(d)(i), otherwise made known to the Company Board) and not withdrawn (publicly, if publicly disclosed) and (II) within twelve (12) months after such termination, any Acquisition Proposal is consummated or the Company enters into a definitive agreement with respect to any Acquisition Proposal (regardless of when or whether such transaction is consummated)...",
+        "reference_section": "ARTICLE Article VII TERMINATION, AMENDMENT AND WAIVER > Section 7.3 Termination Amount > (a)"
+      },
+      {
+        "section": "termination_clauses",
+        "field_name": "fee_amount",
+        "answer": "272000000",
+        "confidence": 1.0,
+        "reason": "The Termination Amount is explicitly defined as $272,000,000 in the document.",
+        "clause_text": "Termination Amount shall mean $272,000,000.",
+        "reference_section": "Definition > Termination Amount"
+      },
+      {
+        "section": "termination_clauses",
+        "field_name": "cure_period",
+        "answer": "None",
+        "confidence": 1.0,
+        "reason": "",
+        "clause_text": "",
+        "reference_section": ""
+      },
+      {
+        "section": "termination_clauses",
+        "field_name": "notice_required",
+        "answer": "Yes",
+        "confidence": 0.9,
+        "reason": "The agreement explicitly requires written notice to be given by the terminating party to the other party when the agreement is terminated and the merger is abandoned.",
+        "clause_text": "In the event that this Agreement is terminated and the Merger abandoned pursuant to Section 7.1, written notice thereof shall be given by the terminating party to the other party, specifying the provisions hereof pursuant to which such termination is made, and this Agreement shall forthwith become null and void and of no effect without liability on the part of any party hereto, and all rights and obligations of any party hereto shall cease;",
+        "reference_section": "ARTICLE Article VII TERMINATION, AMENDMENT AND WAIVER > Section 7.2 Effect of Termination"
+      },
+      {
+        "section": "termination_clauses",
+        "field_name": "structured_summary",
+        "answer": "If stockholder approval is not obtained after a vote, either Parent or the Company may terminate the agreement. Written notice is required for termination. A termination fee of $272M may apply if an Acquisition Proposal is publicly disclosed and not withdrawn before termination, and if an Acquisition Proposal is consummated or a definitive agreement is entered into within 12 months after termination.",
+        "confidence": 0.9,
+        "reason": "The clause specifies the conditions under which termination can occur and the circumstances that trigger the termination fee.",
+        "clause_text": "by either Parent or the Company, if: ... (iii) the Company Stockholder Approval shall not have been obtained upon a vote taken thereon at the Company Stockholders' Meeting duly convened therefor or at any adjournment or postponement thereof; ... If this Agreement is terminated by: ... either Parent or the Company pursuant to Section 7.1(b)(iii) and ... an Acquisition Proposal shall have been publicly disclosed ... and not withdrawn ... and ... within twelve (12) months after such termination, any Acquisition Proposal is consummated or the Company enters into a definitive agreement with respect to any Acquisition Proposal ... the Company shall pay ... the Termination Amount.",
+        "reference_section": "ARTICLE Article VII TERMINATION, AMENDMENT AND WAIVER > Section 7.1 Termination > (b) > (iii); ARTICLE Article VII TERMINATION, AMENDMENT AND WAIVER > Section 7.3 Termination Amount > (a)"
+      },
+      {
+        "section": "termination_clauses",
+        "field_name": "clause_summary_bullets",
+        "answer": "- The agreement can be terminated by either Parent or the Company if the Company Stockholder Approval is not obtained at the Company Stockholders' Meeting or any adjournment or postponement thereof.\n- Either party can terminate the agreement if the stockholder vote fails.\n- A termination fee (Termination Amount) applies if an Acquisition Proposal is publicly disclosed and not withdrawn before termination, and if an Acquisition Proposal is consummated or a definitive agreement is entered into within 12 months after termination.",
+        "confidence": 0.9,
+        "reason": "The clause specifies termination rights if the stockholder vote fails and outlines conditions under which a termination fee applies.",
+        "clause_text": "by either Parent or the Company, if: ... (iii) the Company Stockholder Approval shall not have been obtained upon a vote taken thereon at the Company Stockholders' Meeting duly convened therefor or at any adjournment or postponement thereof; ... If this Agreement is terminated by: ... either Parent or the Company pursuant to Section 7.1(b)(iii) and ... within twelve (12) months after such termination, any Acquisition Proposal is consummated or the Company enters into a definitive agreement with respect to any Acquisition Proposal ... the Company shall pay, or cause to be paid, to Merger Sub ... the Termination Amount.",
+        "reference_section": "ARTICLE Article VII TERMINATION, AMENDMENT AND WAIVER > Section 7.1 Termination > (b)(iii); ARTICLE Article VII TERMINATION, AMENDMENT AND WAIVER > Section 7.3 Termination Amount > (a)(i)"
+      }
+    ],
+    "Failure to Receive Required Approvals": [
+      {
+        "section": "termination_clauses",
+        "field_name": "trigger",
+        "answer": "the Merger shall not have been consummated on or before 5:00 p.m. (Chicago, Illinois, United States time) on the twelve (12)-month anniversary of the date of this Agreement (the 'Termination Date'); provided that if, on the Termination Date, any of the conditions to Closing set forth in Section 6.1(d) or Section 6.1(e) (if the Restraint is in respect of an Antitrust Law) shall not have been satisfied",
+        "confidence": 0.9,
+        "reason": "The clause specifies that the failure to obtain required regulatory approvals, such as those under the HSR Act, by the Termination Date allows for termination.",
+        "clause_text": "the Merger shall not have been consummated on or before 5:00 p.m. (Chicago, Illinois, United States time) on the twelve (12)-month anniversary of the date of this Agreement (the 'Termination Date'); provided that if, on the Termination Date, any of the conditions to Closing set forth in Section 6.1(d) or Section 6.1(e) (if the Restraint is in respect of an Antitrust Law) shall not have been satisfied, but all other conditions set forth in Section 6.1 through Section 6.3 shall have been satisfied or waived (other than those conditions that by their nature are to be satisfied at the Effective Time (if such conditions are capable of being satisfied were the Closing to occur at such time)), the Termination Date shall automatically, without any action on the part of the parties hereto, be extended for three (3) months, and such date as so extended shall be the 'Termination Date' for all purposes hereunder",
+        "reference_section": "ARTICLE Article VII TERMINATION, AMENDMENT AND WAIVER > Section 7.1 Termination > (b)(i)"
+      },
+      {
+        "section": "termination_clauses",
+        "field_name": "who",
+        "answer": "Either Party",
+        "confidence": 0.9,
+        "reason": "The agreement explicitly states that either Parent or the Company may terminate the agreement if the merger is not consummated by the Termination Date or if a Restraint permanently prohibits the merger.",
+        "clause_text": "by either Parent or the Company, if: (i) the Merger shall not have been consummated on or before 5:00 p.m. (Chicago, Illinois, United States time) on the twelve (12)-month anniversary of the date of this Agreement (the \"Termination Date\"); provided that if, on the Termination Date, any of the conditions to Closing set forth in Section 6.1(d) or Section 6.1(e) (if the Restraint is in respect of an Antitrust Law) shall not have been satisfied, but all other conditions set forth in Section 6.1 through Section 6.3 shall have been satisfied or waived (other than those conditions that by their nature are to be satisfied at the Effective Time (if such conditions are capable of being satisfied were the Closing to occur at such time)), the Termination Date shall automatically, without any action on the part of the parties hereto, be extended for three (3) months, and such date as so extended shall be the \"Termination Date\" for all purposes hereunder; provided, further, that the right to terminate this Agreement pursuant to this Section 7.1(b)(i) shall not be available to any party if a material breach by such party of any of its obligations under this Agreement has been the principal cause of or principally resulted in the failure of the Closing to have occurred on or before the Termination Date; (ii) prior to the Effective Time, any Restraint shall have been enacted or promulgated after the date of this Agreement that has the effect of permanently restraining, enjoining or otherwise prohibiting the Merger, and in the case of a Restraint that is an Order, such Order shall have become final and non-appealable; provided, however, that the right to terminate this Agreement under this Section 7.1(b)(ii) shall not be available to a party if a material breach by such party of its obligations under Section 5.4 has been the principal cause of or principally resulted in the issuance of such Restraint;",
+        "reference_section": "ARTICLE Article VII TERMINATION, AMENDMENT AND WAIVER > Section 7.1 Termination > (b)"
+      },
+      {
+        "section": "termination_clauses",
+        "field_name": "fee_required",
+        "answer": "Conditional",
+        "confidence": 0.95,
+        "reason": "The termination fee is required only if specific conditions are met, such as the presence of an Acquisition Proposal that results in a transaction post-termination.",
+        "clause_text": "(a) If this Agreement is terminated by: (i) (A) Parent pursuant to Section 7.1(d)(i) on the basis of a breach of a covenant or agreement contained in this Agreement or either Parent or the Company pursuant to Section 7.1(b)(i) or Section 7.1(b)(iii) and (B) in any such case (I) after the execution of this Agreement and prior to such termination (or prior to the Company Stockholders' Meeting, in the case of termination pursuant to Section 7.1(b)(iii)), an Acquisition Proposal shall have been publicly disclosed (or, in the case of termination pursuant to Section 7.1(b)(i) or Section 7.1(d)(i), otherwise made known to the Company Board) and not withdrawn (publicly, if publicly disclosed) and (II) within twelve (12) months after such termination, any Acquisition Proposal is consummated or the Company enters into a definitive agreement with respect to any Acquisition Proposal (regardless of when or whether such transaction is consummated) (provided, however, that for purposes of this Section 7.3(a)(i)(B), the references to 'twenty percent (20%)' in the definition of Acquisition Proposal shall be deemed to be references to 'fifty percent (50%)'); (ii) the Company pursuant to Section 7.1(c)(ii); or (iii) Parent pursuant to Section 7.1(d)(ii); then, in any such case, the Company shall pay, or cause to be paid, to Merger Sub (or a United States Affiliate of Merger Sub as Merger Sub may designate) the Termination Amount.",
+        "reference_section": "ARTICLE Article VII TERMINATION, AMENDMENT AND WAIVER > Section 7.3 Termination Amount > (a)"
+      },
+      {
+        "section": "termination_clauses",
+        "field_name": "fee_amount",
+        "answer": "272000000",
+        "confidence": 1.0,
+        "reason": "",
+        "clause_text": "Termination Amount shall mean $272,000,000.",
+        "reference_section": "Definition > Termination Amount"
+      },
+      {
+        "section": "termination_clauses",
+        "field_name": "cure_period",
+        "answer": "30",
+        "confidence": 0.9,
+        "reason": "The clause specifies a 30-day cure period following the delivery of written notice for breaches that are capable of being cured.",
+        "clause_text": "which breach or failure to perform (A) would result in the failure of a condition set forth in Section 6.3(a) or Section 6.3(b) and (B) is not capable of being cured by Parent or Merger Sub, as applicable, by the Termination Date or, if capable of being cured, shall not have been cured by Parent or Merger Sub on or before the earlier of (x) the Termination Date and (y) the date that is thirty (30) calendar days following the Company's delivery of written notice to Parent of such breach or failure to perform;",
+        "reference_section": "ARTICLE Article VII TERMINATION, AMENDMENT AND WAIVER > Section 7.1 Termination > (c) > (i)"
+      },
+      {
+        "section": "termination_clauses",
+        "field_name": "notice_required",
+        "answer": "Yes",
+        "confidence": 0.9,
+        "reason": "The agreement explicitly requires written notice to be given by the terminating party to the other party when the agreement is terminated.",
+        "clause_text": "In the event that this Agreement is terminated and the Merger abandoned pursuant to Section 7.1, written notice thereof shall be given by the terminating party to the other party, specifying the provisions hereof pursuant to which such termination is made, and this Agreement shall forthwith become null and void and of no effect without liability on the part of any party hereto, and all rights and obligations of any party hereto shall cease;",
+        "reference_section": "ARTICLE Article VII TERMINATION, AMENDMENT AND WAIVER > Section 7.2 Effect of Termination"
+      },
+      {
+        "section": "termination_clauses",
+        "field_name": "structured_summary",
+        "answer": "Either party may terminate the agreement if required approvals are not obtained by the Termination Date, which may automatically extend by three months if certain conditions are not met. A termination fee may apply if an Acquisition Proposal is involved and certain conditions are met.",
+        "confidence": 0.9,
+        "reason": "The clause explicitly states that either party can terminate if approvals are not obtained by the Termination Date, which can extend automatically. It also outlines conditions under which a termination fee applies.",
+        "clause_text": "by either Parent or the Company, if: (i) the Merger shall not have been consummated on or before 5:00 p.m. (Chicago, Illinois, United States time) on the twelve (12)-month anniversary of the date of this Agreement (the \"Termination Date\"); provided that if, on the Termination Date, any of the conditions to Closing set forth in Section 6.1(d) or Section 6.1(e) (if the Restraint is in respect of an Antitrust Law) shall not have been satisfied, but all other conditions set forth in Section 6.1 through Section 6.3 shall have been satisfied or waived (other than those conditions that by their nature are to be satisfied at the Effective Time (if such conditions are capable of being satisfied were the Closing to occur at such time)), the Termination Date shall automatically, without any action on the part of the parties hereto, be extended for three (3) months, and such date as so extended shall be the \"Termination Date\" for all purposes hereunder; provided, further, that the right to terminate this Agreement pursuant to this Section 7.1(b)(i) shall not be available to any party if a material breach by such party of any of its obligations under this Agreement has been the principal cause of or principally resulted in the failure of the Closing to have occurred on or before the Termination Date; (ii) prior to the Effective Time, any Restraint shall have been enacted or promulgated after the date of this Agreement that has the effect of permanently restraining, enjoining or otherwise prohibiting the Merger, and in the case of a Restraint that is an Order, such Order shall have become final and non-appealable; provided, however, that the right to terminate this Agreement under this Section 7.1(b)(ii) shall not be available to a party if a material breach by such party of its obligations under Section 5.4 has been the principal cause of or principally resulted in the issuance of such Restraint; or (iii) the Company Stockholder Approval shall not have been obtained upon a vote taken thereon at the Company Stockholders' Meeting duly convened therefor or at any adjournment or postponement thereof;",
+        "reference_section": "ARTICLE Article VII TERMINATION, AMENDMENT AND WAIVER > Section 7.1 Termination"
+      },
+      {
+        "section": "termination_clauses",
+        "field_name": "clause_summary_bullets",
+        "answer": "- Either party can terminate the agreement if the merger is not consummated by the Termination Date, which is 12 months from the agreement date, with a possible automatic 3-month extension if certain conditions are met.\n- Termination is not allowed if the party seeking termination is in material breach of the agreement.\n- No specific termination fee is mentioned for failure to receive required approvals, but a Termination Amount may apply under certain conditions related to Acquisition Proposals.",
+        "confidence": 0.9,
+        "reason": "The clause outlines the conditions under which the agreement can be terminated due to failure to consummate the merger by the Termination Date, including an automatic extension and breach conditions.",
+        "clause_text": "by either Parent or the Company, if: (i) the Merger shall not have been consummated on or before 5:00 p.m. (Chicago, Illinois, United States time) on the twelve (12)-month anniversary of the date of this Agreement (the \"Termination Date\"); provided that if, on the Termination Date, any of the conditions to Closing set forth in Section 6.1(d) or Section 6.1(e) (if the Restraint is in respect of an Antitrust Law) shall not have been satisfied, but all other conditions set forth in Section 6.1 through Section 6.3 shall have been satisfied or waived (other than those conditions that by their nature are to be satisfied at the Effective Time (if such conditions are capable of being satisfied were the Closing to occur at such time)), the Termination Date shall automatically, without any action on the part of the parties hereto, be extended for three (3) months, and such date as so extended shall be the \"Termination Date\" for all purposes hereunder; provided, further, that the right to terminate this Agreement pursuant to this Section 7.1(b)(i) shall not be available to any party if a material breach by such party of any of its obligations under this Agreement has been the principal cause of or principally resulted in the failure of the Closing to have occurred on or before the Termination Date;",
+        "reference_section": "ARTICLE Article VII TERMINATION, AMENDMENT AND WAIVER > Section 7.1 Termination > (b)(i)"
+      }
+    ],
+    "Superior Proposal / Fiduciary Out": [
+      {
+        "section": "termination_clauses",
+        "field_name": "trigger",
+        "answer": "at any time prior to receipt of the Company Stockholder Approval, in order for the Company to enter into a definitive agreement with respect to a Superior Proposal to the extent permitted by, and subject to the applicable terms and conditions of, Section 5.6(d); provided that prior to or substantially concurrently with such termination, the Company pays or causes to be paid to Merger Sub (or a United States Affiliate of Merger Sub as Merger Sub may designate) the Termination Amount",
+        "confidence": 1.0,
+        "reason": "",
+        "clause_text": "at any time prior to receipt of the Company Stockholder Approval, in order for the Company to enter into a definitive agreement with respect to a Superior Proposal to the extent permitted by, and subject to the applicable terms and conditions of, Section 5.6(d); provided that prior to or substantially concurrently with such termination, the Company pays or causes to be paid to Merger Sub (or a United States Affiliate of Merger Sub as Merger Sub may designate) the Termination Amount",
+        "reference_section": "ARTICLE Article VII TERMINATION, AMENDMENT AND WAIVER > Section 7.1 Termination > (c) > (ii)"
+      },
+      {
+        "section": "termination_clauses",
+        "field_name": "who",
+        "answer": "Company",
+        "confidence": 0.9,
+        "reason": "The clause explicitly states that the Company has the right to terminate the agreement prior to receipt of the Company Stockholder Approval in order to enter into a definitive agreement with respect to a Superior Proposal.",
+        "clause_text": "by the Company if: (ii) at any time prior to receipt of the Company Stockholder Approval, in order for the Company to enter into a definitive agreement with respect to a Superior Proposal to the extent permitted by, and subject to the applicable terms and conditions of, Section 5.6(d); provided that prior to or substantially concurrently with such termination, the Company pays or causes to be paid to Merger Sub (or a United States Affiliate of Merger Sub as Merger Sub may designate) the Termination Amount;",
+        "reference_section": "ARTICLE Article VII TERMINATION, AMENDMENT AND WAIVER > Section 7.1 Termination > (c) > (ii)"
+      },
+      {
+        "section": "termination_clauses",
+        "field_name": "fee_required",
+        "answer": "Conditional",
+        "confidence": 0.9,
+        "reason": "The termination fee is required if the Company terminates the agreement to enter into a Superior Proposal, but it is contingent upon procedural conditions such as the timing of the termination and payment.",
+        "clause_text": "If this Agreement is terminated by: ... (ii) the Company pursuant to Section 7.1(c)(ii); ... then, in any such case, the Company shall pay, or cause to be paid, to Merger Sub ... the Termination Amount. Any payments required to be made under this Section 7.3(a) shall be made by wire transfer of same-day funds ... (B) in the case of clause (ii) above, immediately prior to or substantially concurrently with such termination ...",
+        "reference_section": "ARTICLE Article VII TERMINATION, AMENDMENT AND WAIVER > Section 7.3 Termination Amount > (a)"
+      },
+      {
+        "section": "termination_clauses",
+        "field_name": "fee_amount",
+        "answer": "$272,000,000",
+        "confidence": 1.0,
+        "reason": "The document explicitly defines 'Termination Amount' as $272,000,000.",
+        "clause_text": "Termination Amount shall mean $272,000,000.",
+        "reference_section": "Definition > Termination Amount"
+      },
+      {
+        "section": "termination_clauses",
+        "field_name": "cure_period",
+        "answer": "4",
+        "confidence": 0.9,
+        "reason": "The agreement provides a four (4) Business Day period for the Parent to negotiate modifications to the terms and conditions of the Agreement in response to a Superior Proposal.",
+        "clause_text": "If, after the date of this Agreement and prior to the receipt of the Company Stockholder Approval, the Company Board receives a bona fide written Acquisition Proposal that the Company Board determines in good faith, after consultation with its outside financial advisors and outside legal counsel, constitutes a Superior Proposal... (C) for a period of four (4) Business Days following the notice delivered pursuant to clause (A) of this Section 5.6(d), the Company shall have discussed and negotiated in good faith (in each case only if Parent desires to negotiate) with Parent's Representatives any proposed modifications to the terms and conditions of this Agreement...",
+        "reference_section": "ARTICLE V – Covenants and Agreements > Section 5.6 – No Solicitation by the Company > (d)"
+      },
+      {
+        "section": "termination_clauses",
+        "field_name": "notice_required",
+        "answer": "Yes",
+        "confidence": 0.9,
+        "reason": "The agreement requires the Company to notify Parent in writing before terminating the agreement for a Superior Proposal.",
+        "clause_text": "If, after the date of this Agreement and prior to the receipt of the Company Stockholder Approval, the Company Board receives a bona fide written Acquisition Proposal that the Company Board determines in good faith, after consultation with its outside financial advisors and outside legal counsel, constitutes a Superior Proposal... (A) the Company has notified Parent in writing that the Company Board intends to effect an Adverse Recommendation Change pursuant to this Section 5.6(d) or terminate this Agreement pursuant to Section 7.1(c)(ii)...",
+        "reference_section": "ARTICLE V – Covenants and Agreements > Section 5.6 – No Solicitation by the Company > (d)"
+      },
+      {
+        "section": "termination_clauses",
+        "field_name": "structured_summary",
+        "answer": "The Company may terminate the agreement prior to obtaining stockholder approval to enter into a Superior Proposal, consistent with its fiduciary obligations. A termination fee applies, and the Parent is entitled to a cure or match period before termination.",
+        "confidence": 0.95,
+        "reason": "The document specifies that the Company can terminate the agreement for a Superior Proposal before stockholder approval, subject to fiduciary duties, and must pay a termination fee. It also provides a negotiation period for Parent to match the proposal.",
+        "clause_text": "If, after the date of this Agreement and prior to the receipt of the Company Stockholder Approval, the Company Board receives a bona fide written Acquisition Proposal that the Company Board determines in good faith, after consultation with its outside financial advisors and outside legal counsel, constitutes a Superior Proposal... the Company Board may (i) effect an Adverse Recommendation Change or (ii) cause the Company to terminate this Agreement pursuant to Section 7.1(c)(ii) in order to enter into a definitive agreement providing for such Superior Proposal... provided that any purported termination of this Agreement pursuant to this sentence shall be void and of no force and effect unless the Company shall have paid Merger Sub (or a United States Affiliate of Merger Sub as Merger Sub may designate) the Termination Amount in accordance with Section 7.3(a) prior to or substantially concurrently with such termination.",
+        "reference_section": "ARTICLE V – Covenants and Agreements > Section 5.6 – No Solicitation by the Company > (d)"
+      },
+      {
+        "section": "termination_clauses",
+        "field_name": "clause_summary_bullets",
+        "answer": "- The Company may terminate the agreement prior to the receipt of the Company Stockholder Approval to enter into a definitive agreement with respect to a Superior Proposal.\n- The Company must pay a Termination Amount of $272,000,000 to Merger Sub prior to or substantially concurrently with such termination.\n- A match/cure period of four Business Days is provided for the Parent to negotiate modifications to the agreement to counter the Superior Proposal.",
+        "confidence": 1.0,
+        "reason": "",
+        "clause_text": "by the Company if: (ii) at any time prior to receipt of the Company Stockholder Approval, in order for the Company to enter into a definitive agreement with respect to a Superior Proposal to the extent permitted by, and subject to the applicable terms and conditions of, Section 5.6(d); provided that prior to or substantially concurrently with such termination, the Company pays or causes to be paid to Merger Sub (or a United States Affiliate of Merger Sub as Merger Sub may designate) the Termination Amount; ... If, after the date of this Agreement and prior to the receipt of the Company Stockholder Approval, the Company Board receives a bona fide written Acquisition Proposal that the Company Board determines in good faith, after consultation with its outside financial advisors and outside legal counsel, constitutes a Superior Proposal ... (C) for a period of four (4) Business Days following the notice delivered pursuant to clause (A) of this Section 5.6(d), the Company shall have discussed and negotiated in good faith (in each case only if Parent desires to negotiate) with Parent's Representatives any proposed modifications to the terms and conditions of this Agreement or the transactions contemplated by this Agreement so that the Acquisition Proposal is no longer a Superior Proposal",
+        "reference_section": "ARTICLE Article VII TERMINATION, AMENDMENT AND WAIVER > Section 7.1 Termination > (c) > (ii); ARTICLE Article V COVENANTS AND AGREEMENTS > Section 5.6 No Solicitation by the Company > (d)"
+      }
+    ],
+    "Board Recommendation Withdrawal": [
+      {
+        "section": "termination_clauses",
+        "field_name": "trigger",
+        "answer": "The Company Board shall have made an Adverse Recommendation Change, failed to include in the Proxy Statement the Company Recommendation, materially violated or breached any of its obligations under Section 5.6(a), failed to publicly reaffirm the Company Recommendation within ten (10) Business Days of receipt of a written request by Parent following receipt by the Company of an Acquisition Proposal, or failed to recommend against any Acquisition Proposal that is a tender or exchange offer.",
+        "confidence": 1.0,
+        "reason": "",
+        "clause_text": "at any time prior to the receipt of the Company Stockholder Approval, (A) the Company Board shall have made an Adverse Recommendation Change, (B) the Company or the Company Board shall have failed to include in the Proxy Statement the Company Recommendation or (C) the Company or the Company Board, as applicable, shall have (I) materially violated or breached any of its obligations under Section 5.6(a), (II) failed to publicly reaffirm the Company Recommendation within ten (10) Business Days of receipt of a written request by Parent to provide such reaffirmation following receipt by the Company of an Acquisition Proposal that is publicly announced and not publicly withdrawn (which request by Parent may only be given once with respect to each such Acquisition Proposal; provided that Parent may make another written request to which this clause (II) shall apply in the event of any publicly disclosed change to the price or other material terms of such Acquisition Proposal) or (III) failed to recommend against any Acquisition Proposal that is a tender or exchange offer subject to Regulation 14D under the Exchange Act (in a Solicitation/Recommendation Statement on Schedule 14D-9, if such statement is required to be filed or is otherwise filed), within ten (10) Business Days after the commencement (within the meaning of Rule 14d-2 under the Exchange Act) of such tender or exchange offer.",
+        "reference_section": "ARTICLE Article VII TERMINATION, AMENDMENT AND WAIVER > Section 7.1 Termination > (d) > (ii)"
+      },
+      {
+        "section": "termination_clauses",
+        "field_name": "who",
+        "answer": "Parent",
+        "confidence": 0.9,
+        "reason": "The clause explicitly states that Parent has the right to terminate the agreement if the Company Board makes an Adverse Recommendation Change.",
+        "clause_text": "by Parent if: (ii) at any time prior to the receipt of the Company Stockholder Approval, (A) the Company Board shall have made an Adverse Recommendation Change, (B) the Company or the Company Board shall have failed to include in the Proxy Statement the Company Recommendation or (C) the Company or the Company Board, as applicable, shall have (I) materially violated or breached any of its obligations under Section 5.6(a), (II) failed to publicly reaffirm the Company Recommendation within ten (10) Business Days of receipt of a written request by Parent to provide such reaffirmation following receipt by the Company of an Acquisition Proposal that is publicly announced and not publicly withdrawn (which request by Parent may only be given once with respect to each such Acquisition Proposal; provided that Parent may make another written request to which this clause (II) shall apply in the event of any publicly disclosed change to the price or other material terms of such Acquisition Proposal) or (III) failed to recommend against any Acquisition Proposal that is a tender or exchange offer subject to Regulation 14D under the Exchange Act (in a Solicitation/Recommendation Statement on Schedule 14D-9, if such statement is required to be filed or is otherwise filed), within ten (10) Business Days after the commencement (within the meaning of Rule 14d-2 under the Exchange Act) of such tender or exchange offer.",
+        "reference_section": "ARTICLE Article VII TERMINATION, AMENDMENT AND WAIVER > Section 7.1 Termination > (d) > (ii)"
+      },
+      {
+        "section": "termination_clauses",
+        "field_name": "fee_required",
+        "answer": "Conditional",
+        "confidence": 0.9,
+        "reason": "The termination fee is required if the Parent terminates due to the Company Board withdrawing or changing its recommendation, but it is conditional on the occurrence of an Acquisition Proposal being consummated or a definitive agreement being entered into within twelve months after such termination.",
+        "clause_text": "If this Agreement is terminated by: ... (iii) Parent pursuant to Section 7.1(d)(ii); then, in any such case, the Company shall pay, or cause to be paid, to Merger Sub (or a United States Affiliate of Merger Sub as Merger Sub may designate) the Termination Amount.",
+        "reference_section": "ARTICLE Article VII TERMINATION, AMENDMENT AND WAIVER > Section 7.3 Termination Amount > (a)"
+      },
+      {
+        "section": "termination_clauses",
+        "field_name": "fee_amount",
+        "answer": "272000000",
+        "confidence": 1.0,
+        "reason": "",
+        "clause_text": "Termination Amount shall mean $272,000,000.",
+        "reference_section": "Definition > Termination Amount"
+      },
+      {
+        "section": "termination_clauses",
+        "field_name": "cure_period",
+        "answer": "None",
+        "confidence": 1.0,
+        "reason": "",
+        "clause_text": "If this Agreement is terminated by: (i) (A) Parent pursuant to Section 7.1(d)(i) on the basis of a breach of a covenant or agreement contained in this Agreement or either Parent or the Company pursuant to Section 7.1(b)(i) or Section 7.1(b)(iii) and (B) in any such case (I) after the execution of this Agreement and prior to such termination (or prior to the Company Stockholders' Meeting, in the case of termination pursuant to Section 7.1(b)(iii)), an Acquisition Proposal shall have been publicly disclosed (or, in the case of termination pursuant to Section 7.1(b)(i) or Section 7.1(d)(i), otherwise made known to the Company Board) and not withdrawn (publicly, if publicly disclosed) and (II) within twelve (12) months after such termination, any Acquisition Proposal is consummated or the Company enters into a definitive agreement with respect to any Acquisition Proposal (regardless of when or whether such transaction is consummated) (provided, however, that for purposes of this Section 7.3(a)(i)(B), the references to 'twenty percent (20%)' in the definition of Acquisition Proposal shall be deemed to be references to 'fifty percent (50%)');",
+        "reference_section": "ARTICLE Article VII TERMINATION, AMENDMENT AND WAIVER > Section 7.3 Termination Amount > (a) > (i)"
+      },
+      {
+        "section": "termination_clauses",
+        "field_name": "notice_required",
+        "answer": "Yes",
+        "confidence": 0.9,
+        "reason": "The agreement explicitly requires written notice to be given by the terminating party to the other party when terminating the agreement.",
+        "clause_text": "In the event that this Agreement is terminated and the Merger abandoned pursuant to Section 7.1, written notice thereof shall be given by the terminating party to the other party, specifying the provisions hereof pursuant to which such termination is made, and this Agreement shall forthwith become null and void and of no effect without liability on the part of any party hereto, and all rights and obligations of any party hereto shall cease;",
+        "reference_section": "ARTICLE VII – Termination, Amendment and Waiver > Section 7.2 – Effect of Termination"
+      },
+      {
+        "section": "termination_clauses",
+        "field_name": "structured_summary",
+        "answer": "The Parent may terminate the agreement if the Company Board makes an Adverse Recommendation Change, fails to include the Company Recommendation in the Proxy Statement, materially violates or breaches obligations under Section 5.6(a), fails to publicly reaffirm the Company Recommendation within ten Business Days of a written request by Parent following a publicly announced Acquisition Proposal, or fails to recommend against a tender or exchange offer. If terminated under these conditions, the Company must pay the Termination Amount to Merger Sub.",
+        "confidence": 0.9,
+        "reason": "The clause specifies conditions under which the Parent can terminate the agreement related to changes in the Company Board's recommendation and outlines the requirement for the Company to pay a termination fee.",
+        "clause_text": "by Parent if: (ii) at any time prior to the receipt of the Company Stockholder Approval, (A) the Company Board shall have made an Adverse Recommendation Change, (B) the Company or the Company Board shall have failed to include in the Proxy Statement the Company Recommendation or (C) the Company or the Company Board, as applicable, shall have (I) materially violated or breached any of its obligations under Section 5.6(a), (II) failed to publicly reaffirm the Company Recommendation within ten (10) Business Days of receipt of a written request by Parent to provide such reaffirmation following receipt by the Company of an Acquisition Proposal that is publicly announced and not publicly withdrawn (which request by Parent may only be given once with respect to each such Acquisition Proposal; provided that Parent may make another written request to which this clause (II) shall apply in the event of any publicly disclosed change to the price or other material terms of such Acquisition Proposal) or (III) failed to recommend against any Acquisition Proposal that is a tender or exchange offer subject to Regulation 14D under the Exchange Act (in a Solicitation/Recommendation Statement on Schedule 14D-9, if such statement is required to be filed or is otherwise filed), within ten (10) Business Days after the commencement (within the meaning of Rule 14d-2 under the Exchange Act) of such tender or exchange offer.",
+        "reference_section": "ARTICLE Article VII TERMINATION, AMENDMENT AND WAIVER > Section 7.1 Termination > (d) > (ii)"
+      },
+      {
+        "section": "termination_clauses",
+        "field_name": "clause_summary_bullets",
+        "answer": "- The agreement can be terminated by Parent if the Company Board makes an Adverse Recommendation Change.\n- Parent can terminate if the Company Board fails to include the Company Recommendation in the Proxy Statement.\n- A termination fee (Termination Amount) applies if Parent terminates due to an Adverse Recommendation Change.",
+        "confidence": 0.9,
+        "reason": "The clause specifies conditions under which Parent can terminate the agreement due to changes in the board's recommendation, and it mentions the requirement of a termination fee.",
+        "clause_text": "by Parent if: (i) the Company shall have breached or failed to perform any of its representations, warranties, covenants or other agreements set forth in this Agreement, which breach or failure to perform (A) would result in the failure of a condition set forth in Section 6.2(a) or Section 6.2(b) and (B) is not capable of being cured by the Company by the Termination Date or, if capable of being cured, shall not have been cured by the Company on or before the earlier of (x) the Termination Date and (y) the date that is thirty (30) calendar days following Parent's delivery of written notice to the Company of such breach or failure to perform; provided, however, that Parent shall not have the right to terminate this Agreement pursuant to this Section 7.1(d)(i) if Parent or Merger Sub is then in material breach of any of its obligations under this Agreement so as to result in the failure of a condition set forth in Section 6.3(b); or (ii) at any time prior to the receipt of the Company Stockholder Approval, (A) the Company Board shall have made an Adverse Recommendation Change, (B) the Company or the Company Board shall have failed to include in the Proxy Statement the Company Recommendation or (C) the Company or the Company Board, as applicable, shall have (I) materially violated or breached any of its obligations under Section 5.6(a), (II) failed to publicly reaffirm the Company Recommendation within ten (10) Business Days of receipt of a written request by Parent to provide such reaffirmation following receipt by the Company of an Acquisition Proposal that is publicly announced and not publicly withdrawn (which request by Parent may only be given once with respect to each such Acquisition Proposal; provided that Parent may make another written request to which this clause (II) shall apply in the event of any publicly disclosed change to the price or other material terms of such Acquisition Proposal) or (III) failed to recommend against any Acquisition Proposal that is a tender or exchange offer subject to Regulation 14D under the Exchange Act (in a Solicitation/Recommendation Statement on Schedule 14D-9, if such statement is required to be filed or is otherwise filed), within ten (10) Business Days after the commencement (within the meaning of Rule 14d-2 under the Exchange Act) of such tender or exchange offer.",
+        "reference_section": "ARTICLE Article VII TERMINATION, AMENDMENT AND WAIVER > Section 7.1 Termination > (d) > (ii)"
+      }
+    ],
+    "Failure to Close Conditions": [
+      {
+        "section": "termination_clauses",
+        "field_name": "trigger",
+        "answer": "the Merger shall not have been consummated on or before 5:00 p.m. (Chicago, Illinois, United States time) on the twelve (12)-month anniversary of the date of this Agreement (the 'Termination Date')",
+        "confidence": 1.0,
+        "reason": "The clause explicitly states that the agreement may be terminated if the merger is not consummated by the specified Termination Date.",
+        "clause_text": "by either Parent or the Company, if: (i) the Merger shall not have been consummated on or before 5:00 p.m. (Chicago, Illinois, United States time) on the twelve (12)-month anniversary of the date of this Agreement (the 'Termination Date');",
+        "reference_section": "ARTICLE Article VII TERMINATION, AMENDMENT AND WAIVER > Section 7.1 Termination > (b) > (i)"
+      },
+      {
+        "section": "termination_clauses",
+        "field_name": "who",
+        "answer": "Not found",
+        "confidence": 1.0,
+        "reason": "",
+        "clause_text": "",
+        "reference_section": ""
+      },
+      {
+        "section": "termination_clauses",
+        "field_name": "fee_required",
+        "answer": "Conditional",
+        "confidence": 0.9,
+        "reason": "The termination fee is required only if certain conditions are met, such as the presence of an Acquisition Proposal and its consummation or entry into a definitive agreement within twelve months after termination.",
+        "clause_text": "(a) If this Agreement is terminated by: (i) (A) Parent pursuant to Section 7.1(d)(i) on the basis of a breach of a covenant or agreement contained in this Agreement or either Parent or the Company pursuant to Section 7.1(b)(i) or Section 7.1(b)(iii) and (B) in any such case (I) after the execution of this Agreement and prior to such termination (or prior to the Company Stockholders' Meeting, in the case of termination pursuant to Section 7.1(b)(iii)), an Acquisition Proposal shall have been publicly disclosed (or, in the case of termination pursuant to Section 7.1(b)(i) or Section 7.1(d)(i), otherwise made known to the Company Board) and not withdrawn (publicly, if publicly disclosed) and (II) within twelve (12) months after such termination, any Acquisition Proposal is consummated or the Company enters into a definitive agreement with respect to any Acquisition Proposal (regardless of when or whether such transaction is consummated) (provided, however, that for purposes of this Section 7.3(a)(i)(B), the references to 'twenty percent (20%)' in the definition of Acquisition Proposal shall be deemed to be references to 'fifty percent (50%)'); (ii) the Company pursuant to Section 7.1(c)(ii); or (iii) Parent pursuant to Section 7.1(d)(ii); then, in any such case, the Company shall pay, or cause to be paid, to Merger Sub (or a United States Affiliate of Merger Sub as Merger Sub may designate) the Termination Amount.",
+        "reference_section": "ARTICLE Article VII TERMINATION, AMENDMENT AND WAIVER > Section 7.3 Termination Amount > (a)"
+      },
+      {
+        "section": "termination_clauses",
+        "field_name": "fee_amount",
+        "answer": "$272,000,000",
+        "confidence": 1.0,
+        "reason": "The document explicitly defines 'Termination Amount' as $272,000,000, which is applicable under the termination clause.",
+        "clause_text": "Termination Amount shall mean $272,000,000.",
+        "reference_section": "Definition > Termination Amount"
+      },
+      {
+        "section": "termination_clauses",
+        "field_name": "cure_period",
+        "answer": "30",
+        "confidence": 0.9,
+        "reason": "The clause specifies a 30-day period for curing a breach or failure to perform before termination can occur.",
+        "clause_text": "which breach or failure to perform (A) would result in the failure of a condition set forth in Section 6.3(a) or Section 6.3(b) and (B) is not capable of being cured by Parent or Merger Sub, as applicable, by the Termination Date or, if capable of being cured, shall not have been cured by Parent or Merger Sub on or before the earlier of (x) the Termination Date and (y) the date that is thirty (30) calendar days following the Company's delivery of written notice to Parent of such breach or failure to perform;",
+        "reference_section": "ARTICLE Article VII TERMINATION, AMENDMENT AND WAIVER > Section 7.1 Termination > (c) > (i)"
+      },
+      {
+        "section": "termination_clauses",
+        "field_name": "notice_required",
+        "answer": "Yes",
+        "confidence": 1.0,
+        "reason": "The agreement explicitly requires written notice to be given by the terminating party to the other party before termination can take effect.",
+        "clause_text": "In the event that this Agreement is terminated and the Merger abandoned pursuant to Section 7.1, written notice thereof shall be given by the terminating party to the other party, specifying the provisions hereof pursuant to which such termination is made, and this Agreement shall forthwith become null and void and of no effect without liability on the part of any party hereto, and all rights and obligations of any party hereto shall cease;",
+        "reference_section": "ARTICLE Article VII TERMINATION, AMENDMENT AND WAIVER > Section 7.2 Effect of Termination"
+      },
+      {
+        "section": "termination_clauses",
+        "field_name": "structured_summary",
+        "answer": "Triggers include breach of agreement, failure to obtain stockholder approval, or adverse recommendation change; termination by Parent or Company; a fee of $272,000,000 applies.",
+        "confidence": 1.0,
+        "reason": "",
+        "clause_text": "(a) If this Agreement is terminated by: (i) (A) Parent pursuant to Section 7.1(d)(i) on the basis of a breach of a covenant or agreement contained in this Agreement or either Parent or the Company pursuant to Section 7.1(b)(i) or Section 7.1(b)(iii) and (B) in any such case (I) after the execution of this Agreement and prior to such termination (or prior to the Company Stockholders' Meeting, in the case of termination pursuant to Section 7.1(b)(iii)), an Acquisition Proposal shall have been publicly disclosed (or, in the case of termination pursuant to Section 7.1(b)(i) or Section 7.1(d)(i), otherwise made known to the Company Board) and not withdrawn (publicly, if publicly disclosed) and (II) within twelve (12) months after such termination, any Acquisition Proposal is consummated or the Company enters into a definitive agreement with respect to any Acquisition Proposal (regardless of when or whether such transaction is consummated) (provided, however, that for purposes of this Section 7.3(a)(i)(B), the references to \"twenty percent (20%)\" in the definition of Acquisition Proposal shall be deemed to be references to \"fifty percent (50%)\"); (ii) the Company pursuant to Section 7.1(c)(ii); or (iii) Parent pursuant to Section 7.1(d)(ii); then, in any such case, the Company shall pay, or cause to be paid, to Merger Sub (or a United States Affiliate of Merger Sub as Merger Sub may designate) the Termination Amount.",
+        "reference_section": "ARTICLE Article VII TERMINATION, AMENDMENT AND WAIVER > Section 7.3 Termination Amount > (a)"
+      },
+      {
+        "section": "termination_clauses",
+        "field_name": "clause_summary_bullets",
+        "answer": "- Either party may terminate if the merger isn't consummated by the Termination Date.\n- Termination requires written notice specifying the termination provision.",
+        "confidence": 1.0,
+        "reason": "",
+        "clause_text": "Notwithstanding anything contained in this Agreement to the contrary, this Agreement may be terminated at any time prior to the Effective Time, whether before or after the Company Stockholder Approval is obtained (except as otherwise expressly noted), as follows: (a) by mutual written consent of each of Parent and the Company; (b) by either Parent or the Company, if: (i) the Merger shall not have been consummated on or before 5:00 p.m. (Chicago, Illinois, United States time) on the twelve (12)-month anniversary of the date of this Agreement (the \"Termination Date\"); provided that if, on the Termination Date, any of the conditions to Closing set forth in Section 6.1(d) or Section 6.1(e) (if the Restraint is in respect of an Antitrust Law) shall not have been satisfied, but all other conditions set forth in Section 6.1 through Section 6.3 shall have been satisfied or waived (other than those conditions that by their nature are to be satisfied at the Effective Time (if such conditions are capable of being satisfied were the Closing to occur at such time)), the Termination Date shall automatically, without any action on the part of the parties hereto, be extended for three (3) months, and such date as so extended shall be the \"Termination Date\" for all purposes hereunder; provided, further, that the right to terminate this Agreement pursuant to this Section 7.1(b)(i) shall not be available to any party if a material breach by such party of any of its obligations under this Agreement has been the principal cause of or principally resulted in the failure of the Closing to have occurred on or before the Termination Date;",
+        "reference_section": "ARTICLE Article VII TERMINATION, AMENDMENT AND WAIVER > Section 7.1 Termination"
+      }
+    ],
+    "Intervening Event (Target)": [
+      {
+        "section": "termination_clauses",
+        "field_name": "trigger",
+        "answer": "a material event or circumstance that was not known to the Company Board on the date of this Agreement (or if known, the consequences of which were not known to the Company Board as of the date of this Agreement), which event or circumstance, or any consequence thereof, becomes known to the Company Board prior to the Company Stockholder Approval",
+        "confidence": 1.0,
+        "reason": "",
+        "clause_text": "Intervening Event shall mean a material event or circumstance that was not known to the Company Board on the date of this Agreement (or if known, the consequences of which were not known to the Company Board as of the date of this Agreement), which event or circumstance, or any consequence thereof, becomes known to the Company Board prior to the Company Stockholder Approval; provided that in no event shall any inquiry, offer or proposal that constitutes or would reasonably be expected to lead to an Acquisition Proposal constitute an Intervening Event.",
+        "reference_section": "Definition > Intervening Event"
+      },
+      {
+        "section": "termination_clauses",
+        "field_name": "who",
+        "answer": "Company",
+        "confidence": 0.9,
+        "reason": "The Company has the right to terminate the agreement prior to receipt of the Company Stockholder Approval to enter into a definitive agreement with respect to a Superior Proposal.",
+        "clause_text": "by the Company if: (ii) at any time prior to receipt of the Company Stockholder Approval, in order for the Company to enter into a definitive agreement with respect to a Superior Proposal to the extent permitted by, and subject to the applicable terms and conditions of, Section 5.6(d); provided that prior to or substantially concurrently with such termination, the Company pays or causes to be paid to Merger Sub (or a United States Affiliate of Merger Sub as Merger Sub may designate) the Termination Amount;",
+        "reference_section": "ARTICLE Article VII TERMINATION, AMENDMENT AND WAIVER > Section 7.1 Termination > (c) > (ii)"
+      },
+      {
+        "section": "termination_clauses",
+        "field_name": "fee_required",
+        "answer": "Conditional",
+        "confidence": 0.95,
+        "reason": "The termination fee is required under specific conditions, such as if an Acquisition Proposal is consummated or a definitive agreement is entered into within twelve months after termination.",
+        "clause_text": "(a) If this Agreement is terminated by: (i) (A) Parent pursuant to Section 7.1(d)(i) on the basis of a breach of a covenant or agreement contained in this Agreement or either Parent or the Company pursuant to Section 7.1(b)(i) or Section 7.1(b)(iii) and (B) in any such case (I) after the execution of this Agreement and prior to such termination (or prior to the Company Stockholders' Meeting, in the case of termination pursuant to Section 7.1(b)(iii)), an Acquisition Proposal shall have been publicly disclosed (or, in the case of termination pursuant to Section 7.1(b)(i) or Section 7.1(d)(i), otherwise made known to the Company Board) and not withdrawn (publicly, if publicly disclosed) and (II) within twelve (12) months after such termination, any Acquisition Proposal is consummated or the Company enters into a definitive agreement with respect to any Acquisition Proposal (regardless of when or whether such transaction is consummated)...",
+        "reference_section": "ARTICLE Article VII TERMINATION, AMENDMENT AND WAIVER > Section 7.3 Termination Amount > (a)"
+      },
+      {
+        "section": "termination_clauses",
+        "field_name": "fee_amount",
+        "answer": "$272,000,000",
+        "confidence": 1.0,
+        "reason": "The document explicitly defines the Termination Amount as $272,000,000.",
+        "clause_text": "Termination Amount shall mean $272,000,000.",
+        "reference_section": "Definition > Termination Amount"
+      },
+      {
+        "section": "termination_clauses",
+        "field_name": "cure_period",
+        "answer": "30",
+        "confidence": 0.9,
+        "reason": "The document specifies a 30-day cure period for breaches that are capable of being cured.",
+        "clause_text": "which breach or failure to perform (A) would result in the failure of a condition set forth in Section 6.3(a) or Section 6.3(b) and (B) is not capable of being cured by Parent or Merger Sub, as applicable, by the Termination Date or, if capable of being cured, shall not have been cured by Parent or Merger Sub on or before the earlier of (x) the Termination Date and (y) the date that is thirty (30) calendar days following the Company's delivery of written notice to Parent of such breach or failure to perform;",
+        "reference_section": "ARTICLE Article VII TERMINATION, AMENDMENT AND WAIVER > Section 7.1 Termination > (c) > (i)"
+      },
+      {
+        "section": "termination_clauses",
+        "field_name": "notice_required",
+        "answer": "Yes",
+        "confidence": 0.9,
+        "reason": "The agreement explicitly requires written notice to be given by the terminating party to the other party when the agreement is terminated.",
+        "clause_text": "In the event that this Agreement is terminated and the Merger abandoned pursuant to Section 7.1, written notice thereof shall be given by the terminating party to the other party, specifying the provisions hereof pursuant to which such termination is made, and this Agreement shall forthwith become null and void and of no effect without liability on the part of any party hereto, and all rights and obligations of any party hereto shall cease;",
+        "reference_section": "ARTICLE Article VII TERMINATION, AMENDMENT AND WAIVER > Section 7.2 Effect of Termination"
+      },
+      {
+        "section": "termination_clauses",
+        "field_name": "structured_summary",
+        "answer": "The Company may terminate the agreement in response to a material intervening event that causes the board to reassess its fiduciary duties. The Company must notify Parent in writing and engage in a four-business-day negotiation period. No termination fee is specified for an Intervening Event.",
+        "confidence": 0.9,
+        "reason": "The clause specifies that the Company Board may take action in response to an Intervening Event if it determines that failure to do so would be inconsistent with its fiduciary duties, and it outlines a notice and negotiation process.",
+        "clause_text": "Other than in connection with a Superior Proposal (which shall be subject to Section 5.6(d) and shall not be subject to this Section 5.6(e)), prior to obtaining the Company Stockholder Approval, the Company Board may, in response to an Intervening Event, take any action prohibited by clause (i) of Section 5.6(c), only if (i) the Company Board determines in good faith, after consultation with its outside financial advisors and outside legal counsel, that the failure to take such action would be inconsistent with its fiduciary duties under applicable Law, (ii) the Company has notified Parent in writing that the Company Board intends to effect such an Adverse Recommendation Change pursuant to this Section 5.6(e) (which notice shall specify the facts and circumstances providing the basis of the Intervening Event and for the Company Board's determination to effect such an Adverse Recommendation Change in reasonable detail), (iii) for a period of four (4) Business Days following the notice delivered pursuant to clause (ii) of this Section 5.6(e), the Company shall have discussed and negotiated in good faith (in each case only if Parent desires to negotiate) with Parent's Representatives any proposed modifications to the terms and conditions of this Agreement or the transactions contemplated by this Agreement so that the failure to take such action would no longer be inconsistent with the Company Board's fiduciary duties under applicable Law (it being understood and agreed that any material change to the relevant facts and circumstances shall require a new notice and a new negotiation period that shall expire on the later to occur of (A) two (2) Business Days following delivery of such new notice from the Company to Parent and (B) the expiration of the original four (4) Business Day period described above in this clause (iii)), and (iv) no earlier than the end of such negotiation period, the Company Board shall have determined in good faith, after consultation with its outside financial advisors and outside legal counsel, and after considering the terms of any proposed amendment or modification to this Agreement, that the failure to take such action would still be inconsistent with its fiduciary duties under applicable Law.",
+        "reference_section": "ARTICLE V COVENANTS AND AGREEMENTS > Section 5.6 No Solicitation by the Company > (e)"
+      },
+      {
+        "section": "termination_clauses",
+        "field_name": "clause_summary_bullets",
+        "answer": [
+          "Intervening Event means a material event not known to the Company Board on the date of this Agreement.",
+          "Consequences of the event must also have been unknown to the Company Board as of the date of this Agreement.",
+          "An Acquisition Proposal or related inquiry does not constitute an Intervening Event."
+        ],
+        "confidence": 1.0,
+        "reason": "",
+        "clause_text": "",
+        "reference_section": ""
+      }
+    ],
+    "Regulatory Block / Clearance Failure": [
+      {
+        "section": "termination_clauses",
+        "field_name": "trigger",
+        "answer": "(i) a final, non-appealable order or injunction restraining or prohibiting the merger, or (ii) the failure to obtain required regulatory approval under the HSR Act",
+        "confidence": 1.0,
+        "reason": "The document explicitly states that termination can be triggered by a Restraint that is an Order which becomes final and non-appealable, or by the failure to satisfy conditions related to the HSR Act.",
+        "clause_text": "if: (i) the Merger shall not have been consummated on or before 5:00 p.m. (Chicago, Illinois, United States time) on the twelve (12)-month anniversary of the date of this Agreement (the \"Termination Date\"); provided that if, on the Termination Date, any of the conditions to Closing set forth in Section 6.1(d) or Section 6.1(e) (if the Restraint is in respect of an Antitrust Law) shall not have been satisfied, but all other conditions set forth in Section 6.1 through Section 6.3 shall have been satisfied or waived (other than those conditions that by their nature are to be satisfied at the Effective Time (if such conditions are capable of being satisfied were the Closing to occur at such time)), the Termination Date shall automatically, without any action on the part of the parties hereto, be extended for three (3) months, and such date as so extended shall be the \"Termination Date\" for all purposes hereunder; provided, further, that the right to terminate this Agreement pursuant to this Section 7.1(b)(i) shall not be available to any party if a material breach by such party of any of its obligations under this Agreement has been the principal cause of or principally resulted in the failure of the Closing to have occurred on or before the Termination Date; (ii) prior to the Effective Time, any Restraint shall have been enacted or promulgated after the date of this Agreement that has the effect of permanently restraining, enjoining or otherwise prohibiting the Merger, and in the case of a Restraint that is an Order, such Order shall have become final and non-appealable;",
+        "reference_section": "ARTICLE Article VII TERMINATION, AMENDMENT AND WAIVER > Section 7.1 Termination > (b) > (i) and (ii)"
+      },
+      {
+        "section": "termination_clauses",
+        "field_name": "who",
+        "answer": "Either Party",
+        "confidence": 0.9,
+        "reason": "The clause allows either Parent or the Company to terminate the agreement if a Restraint permanently prohibits the Merger.",
+        "clause_text": "by either Parent or the Company, if: ... (ii) prior to the Effective Time, any Restraint shall have been enacted or promulgated after the date of this Agreement that has the effect of permanently restraining, enjoining or otherwise prohibiting the Merger, and in the case of a Restraint that is an Order, such Order shall have become final and non-appealable; provided, however, that the right to terminate this Agreement under this Section 7.1(b)(ii) shall not be available to a party if a material breach by such party of its obligations under Section 5.4 has been the principal cause of or principally resulted in the issuance of such Restraint;",
+        "reference_section": "ARTICLE Article VII TERMINATION, AMENDMENT AND WAIVER > Section 7.1 Termination > (b) > (ii)"
+      },
+      {
+        "section": "termination_clauses",
+        "field_name": "fee_required",
+        "answer": "Conditional",
+        "confidence": 0.9,
+        "reason": "The termination fee applies under specific conditions, such as if an Acquisition Proposal has been publicly disclosed and not withdrawn, and is consummated or a definitive agreement is entered into within twelve months after termination.",
+        "clause_text": "(a) If this Agreement is terminated by: (i) (A) Parent pursuant to Section 7.1(d)(i) on the basis of a breach of a covenant or agreement contained in this Agreement or either Parent or the Company pursuant to Section 7.1(b)(i) or Section 7.1(b)(iii) and (B) in any such case (I) after the execution of this Agreement and prior to such termination (or prior to the Company Stockholders' Meeting, in the case of termination pursuant to Section 7.1(b)(iii)), an Acquisition Proposal shall have been publicly disclosed (or, in the case of termination pursuant to Section 7.1(b)(i) or Section 7.1(d)(i), otherwise made known to the Company Board) and not withdrawn (publicly, if publicly disclosed) and (II) within twelve (12) months after such termination, any Acquisition Proposal is consummated or the Company enters into a definitive agreement with respect to any Acquisition Proposal (regardless of when or whether such transaction is consummated)...",
+        "reference_section": "ARTICLE Article VII TERMINATION, AMENDMENT AND WAIVER > Section 7.3 Termination Amount > (a)"
+      },
+      {
+        "section": "termination_clauses",
+        "field_name": "fee_amount",
+        "answer": "$272,000,000",
+        "confidence": 1.0,
+        "reason": "",
+        "clause_text": "Termination Amount shall mean $272,000,000.",
+        "reference_section": "Definition > Termination Amount"
+      },
+      {
+        "section": "termination_clauses",
+        "field_name": "cure_period",
+        "answer": "None",
+        "confidence": 1.0,
+        "reason": "",
+        "clause_text": "",
+        "reference_section": ""
+      },
+      {
+        "section": "termination_clauses",
+        "field_name": "notice_required",
+        "answer": "Yes",
+        "confidence": 1.0,
+        "reason": "The agreement explicitly requires written notice to be given by the terminating party to the other party when the agreement is terminated and the merger is abandoned.",
+        "clause_text": "In the event that this Agreement is terminated and the Merger abandoned pursuant to Section 7.1, written notice thereof shall be given by the terminating party to the other party, specifying the provisions hereof pursuant to which such termination is made, and this Agreement shall forthwith become null and void and of no effect without liability on the part of any party hereto, and all rights and obligations of any party hereto shall cease;",
+        "reference_section": "ARTICLE Article VII TERMINATION, AMENDMENT AND WAIVER > Section 7.2 Effect of Termination"
+      },
+      {
+        "section": "termination_clauses",
+        "field_name": "structured_summary",
+        "answer": "If a regulatory block or clearance failure occurs, either Parent or the Company may terminate the agreement. A termination fee, referred to as the Termination Amount, applies if the termination is under certain conditions, such as a breach or failure to perform by the Company or if the Company enters into a Superior Proposal. Written notice is required for termination, and there are provisions for cure periods in the event of breaches.",
+        "confidence": 0.9,
+        "reason": "The agreement specifies conditions under which either party may terminate due to regulatory issues, and outlines the requirement for a termination fee and notice.",
+        "clause_text": "Notwithstanding anything contained in this Agreement to the contrary, this Agreement may be terminated at any time prior to the Effective Time, whether before or after the Company Stockholder Approval is obtained (except as otherwise expressly noted), as follows: (b) by either Parent or the Company, if: (ii) prior to the Effective Time, any Restraint shall have been enacted or promulgated after the date of this Agreement that has the effect of permanently restraining, enjoining or otherwise prohibiting the Merger, and in the case of a Restraint that is an Order, such Order shall have become final and non-appealable; provided, however, that the right to terminate this Agreement under this Section 7.1(b)(ii) shall not be available to a party if a material breach by such party of its obligations under Section 5.4 has been the principal cause of or principally resulted in the issuance of such Restraint;",
+        "reference_section": "ARTICLE Article VII TERMINATION, AMENDMENT AND WAIVER > Section 7.1 Termination > (b)(ii)"
+      },
+      {
+        "section": "termination_clauses",
+        "field_name": "clause_summary_bullets",
+        "answer": [
+          "Either party may terminate if the Merger isn't completed by the Termination Date; no fee applies.",
+          "Either party may terminate if a Restraint permanently prohibits the Merger; no fee applies.",
+          "Either party may terminate if Company Stockholder Approval isn't obtained; no fee applies."
+        ],
+        "confidence": 1.0,
+        "reason": "",
+        "clause_text": "",
+        "reference_section": ""
+      }
+    ],
+    "Company MAE": [
+      {
+        "section": "termination_clauses",
+        "field_name": "trigger",
+        "answer": "Not found",
+        "confidence": 1.0,
+        "reason": "",
+        "clause_text": "",
+        "reference_section": ""
+      },
+      {
+        "section": "termination_clauses",
+        "field_name": "who",
+        "answer": "Parent",
+        "confidence": 0.9,
+        "reason": "The termination right based on the Company's Material Adverse Effect is implied to be with the Parent, as the termination clause allows Parent to terminate if the Company breaches or fails to perform, which would include a Material Adverse Effect.",
+        "clause_text": "by Parent if: (i) the Company shall have breached or failed to perform any of its representations, warranties, covenants or other agreements set forth in this Agreement, which breach or failure to perform (A) would result in the failure of a condition set forth in Section 6.2(a) or Section 6.2(b) and (B) is not capable of being cured by the Company by the Termination Date or, if capable of being cured, shall not have been cured by the Company on or before the earlier of (x) the Termination Date and (y) the date that is thirty (30) calendar days following Parent's delivery of written notice to the Company of such breach or failure to perform;",
+        "reference_section": "ARTICLE Article VII TERMINATION, AMENDMENT AND WAIVER > Section 7.1 Termination > (d) > (i)"
+      },
+      {
+        "section": "termination_clauses",
+        "field_name": "fee_required",
+        "answer": "Conditional",
+        "confidence": 0.9,
+        "reason": "The termination fee is imposed if the Parent terminates the agreement due to a Company MAE, but only if an Acquisition Proposal has been publicly disclosed and not withdrawn, and is consummated or a definitive agreement is entered into within 12 months after such termination.",
+        "clause_text": "(a) If this Agreement is terminated by: (i) (A) Parent pursuant to Section 7.1(d)(i) on the basis of a breach of a covenant or agreement contained in this Agreement or either Parent or the Company pursuant to Section 7.1(b)(i) or Section 7.1(b)(iii) and (B) in any such case (I) after the execution of this Agreement and prior to such termination (or prior to the Company Stockholders' Meeting, in the case of termination pursuant to Section 7.1(b)(iii)), an Acquisition Proposal shall have been publicly disclosed (or, in the case of termination pursuant to Section 7.1(b)(i) or Section 7.1(d)(i), otherwise made known to the Company Board) and not withdrawn (publicly, if publicly disclosed) and (II) within twelve (12) months after such termination, any Acquisition Proposal is consummated or the Company enters into a definitive agreement with respect to any Acquisition Proposal (regardless of when or whether such transaction is consummated)...",
+        "reference_section": "ARTICLE Article VII TERMINATION, AMENDMENT AND WAIVER > Section 7.3 Termination Amount > (a)"
+      },
+      {
+        "section": "termination_clauses",
+        "field_name": "fee_amount",
+        "answer": "N/A",
+        "confidence": 1.0,
+        "reason": "",
+        "clause_text": "",
+        "reference_section": ""
+      },
+      {
+        "section": "termination_clauses",
+        "field_name": "cure_period",
+        "answer": "Not found",
+        "confidence": 1.0,
+        "reason": "",
+        "clause_text": "",
+        "reference_section": ""
+      },
+      {
+        "section": "termination_clauses",
+        "field_name": "notice_required",
+        "answer": "Yes",
+        "confidence": 0.9,
+        "reason": "The agreement requires Parent to deliver written notice to the Company before terminating the agreement due to a Company MAE, as indicated by the clause specifying the need for written notice in the event of termination.",
+        "clause_text": "In the event that this Agreement is terminated and the Merger abandoned pursuant to Section 7.1, written notice thereof shall be given by the terminating party to the other party, specifying the provisions hereof pursuant to which such termination is made, and this Agreement shall forthwith become null and void and of no effect without liability on the part of any party hereto, and all rights and obligations of any party hereto shall cease; provided that, except as otherwise provided in Section 7.3, no such termination shall relieve any party hereto of any liability or damages...",
+        "reference_section": "ARTICLE VII – Termination, Amendment and Waiver > Section 7.2 – Effect of Termination"
+      },
+      {
+        "section": "termination_clauses",
+        "field_name": "structured_summary",
+        "answer": "The Parent has the right to terminate the agreement if a Material Adverse Effect (MAE) occurs with respect to the Company. There is a requirement for a notice and a cure period of thirty (30) calendar days following the Parent's delivery of written notice to the Company of such breach or failure to perform. A termination fee, referred to as the Termination Amount, applies and is set at $272,000,000.",
+        "confidence": 0.9,
+        "reason": "The termination rights and conditions, including the notice and cure period, are outlined in the termination clauses, and the Termination Amount is specified in the definition.",
+        "clause_text": "by Parent if: (i) the Company shall have breached or failed to perform any of its representations, warranties, covenants or other agreements set forth in this Agreement, which breach or failure to perform (A) would result in the failure of a condition set forth in Section 6.2(a) or Section 6.2(b) and (B) is not capable of being cured by the Company by the Termination Date or, if capable of being cured, shall not have been cured by the Company on or before the earlier of (x) the Termination Date and (y) the date that is thirty (30) calendar days following Parent's delivery of written notice to the Company of such breach or failure to perform; provided, however, that Parent shall not have the right to terminate this Agreement pursuant to this Section 7.1(d)(i) if Parent or Merger Sub is then in material breach of any of its obligations under this Agreement so as to result in the failure of a condition set forth in Section 6.3(b);",
+        "reference_section": "ARTICLE Article VII TERMINATION, AMENDMENT AND WAIVER > Section 7.1 Termination > (d) > (i)"
+      },
+      {
+        "section": "termination_clauses",
+        "field_name": "clause_summary_bullets",
+        "answer": "- Parent can terminate for Company's breach under Section 7.1(d)(i) with MAE trigger.\n- Company can terminate for Superior Proposal under Section 7.1(c)(ii) with MAE trigger.\n- Termination fee of $272M applies, payable by Company.",
+        "confidence": 1.0,
+        "reason": "",
+        "clause_text": "If this Agreement is terminated by: (i) (A) Parent pursuant to Section 7.1(d)(i) on the basis of a breach of a covenant or agreement contained in this Agreement or either Parent or the Company pursuant to Section 7.1(b)(i) or Section 7.1(b)(iii) and (B) in any such case (I) after the execution of this Agreement and prior to such termination (or prior to the Company Stockholders' Meeting, in the case of termination pursuant to Section 7.1(b)(iii)), an Acquisition Proposal shall have been publicly disclosed (or, in the case of termination pursuant to Section 7.1(b)(i) or Section 7.1(d)(i), otherwise made known to the Company Board) and not withdrawn (publicly, if publicly disclosed) and (II) within twelve (12) months after such termination, any Acquisition Proposal is consummated or the Company enters into a definitive agreement with respect to any Acquisition Proposal (regardless of when or whether such transaction is consummated) (provided, however, that for purposes of this Section 7.3(a)(i)(B), the references to \"twenty percent (20%)\" in the definition of Acquisition Proposal shall be deemed to be references to \"fifty percent (50%)\"); (ii) the Company pursuant to Section 7.1(c)(ii); or (iii) Parent pursuant to Section 7.1(d)(ii); then, in any such case, the Company shall pay, or cause to be paid, to Merger Sub (or a United States Affiliate of Merger Sub as Merger Sub may designate) the Termination Amount.",
+        "reference_section": "ARTICLE Article VII TERMINATION, AMENDMENT AND WAIVER > Section 7.3 Termination Amount > (a)"
+      }
+    ]
+  }
+}

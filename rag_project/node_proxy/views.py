@@ -9,14 +9,17 @@ import os
 import logging
 import tempfile
 import requests
+import json
 from document_processor.services import DocumentProcessingService
 from django.conf import settings
-from document_processor.models import ProcessingJob
-from bson import ObjectId
 import math
-
+from openai import OpenAI
+from urllib.parse import urlparse
+from bs4 import BeautifulSoup
 
 logger = logging.getLogger(__name__)
+openai_client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+MODEL = "gpt-5-nano-2025-08-07"
 
 # Create your views here.
 
@@ -30,6 +33,7 @@ class ProcessView(APIView):
                 math.isnan(v) or math.isinf(v)) else v)
             for k, v in row.items()
         }
+    # This is not in use anymore
 
     def post(self, request, format=None):
         try:
@@ -50,8 +54,11 @@ class ProcessView(APIView):
             # Read Excel using pandas
             sheet_name = request.data.get("sheetName", 0)
             # Use dtype parameter to ensure CIK Number is read as string
+            print(f"sheet_name: {sheet_name}")
             df = pd.read_excel(tmp_path, sheet_name=sheet_name,
                                dtype={"CIK Number": str})
+
+            print(f"df: {df}")
             os.unlink(tmp_path)
 
             # Initialize document processing service
@@ -89,7 +96,7 @@ class ProcessView(APIView):
                     # Convert pandas Series to dict before sending to API
                     # row_dict = row.to_dict()
                     row_dict = ProcessView.sanitize_row_dict(row)
-
+                    print(f"row_dict: {row_dict}")
                     # Call Node API to get deal data
                     response = call_node_api(
                         endpoint="deal/process-single-deals-rag",  # Remove leading slash
@@ -120,6 +127,7 @@ class ProcessView(APIView):
                                     # Process document directly using the service
                                     process_result = doc_processor.process_document(
                                         file_url=file_url,
+                                        # file_url="https://rag-mna.s3.eu-north-1.amazonaws.com/parsed_jsons/spirit_airlines__inc__2022-07-28_original.json",
                                         deal_id=deal_id
                                     )
 
@@ -218,6 +226,8 @@ class ProcessView(APIView):
             logger.error(f"Unexpected error checking Node.js API: {e}")
             return {"connected": False, "message": str(e)}
 
+# This is not in use anymore
+
 
 class ItemsListView(APIView):
     """
@@ -234,6 +244,396 @@ class ItemsListView(APIView):
             return Response(response_data, status=status.HTTP_200_OK)
         except Exception as e:
             logger.error(f"Error in ItemsListView: {e}")
+            return Response(
+                {"error": str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+
+class AnnouncementView(APIView):
+    """
+    API endpoint to handle announcement data and forward it to Node API
+    """
+
+    def post(self, request, format=None):
+        try:
+            # Log the incoming request data
+            logger.info(f"Received request data: {request.data}")
+
+            # Extract data from request
+            announce_data = request.data.get('announce_data')
+            target_name = request.data.get('target_name')
+            acquirer_name = request.data.get('acquired_name')
+            target_cik = request.data.get('target_cik')
+
+            # Log the extracted values
+            logger.info(
+                f"Extracted values: announce_data={announce_data}, target_cik={target_cik}")
+
+            # Validate required fields
+            if not all([announce_data, target_cik]):
+                missing_fields = []
+                if not announce_data:
+                    missing_fields.append('announce_data')
+
+                if not target_cik:
+                    missing_fields.append('target_cik')
+
+                return Response({
+                    "error": f"Missing required fields: {', '.join(missing_fields)}"
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+            # Prepare data for Node API
+            data = {
+                "announce_data": announce_data,
+                "target_cik": target_cik
+            }
+
+            # Log the data being sent to Node API
+            logger.info(f"Sending data to Node API: {data}")
+
+            # Call Node API
+            response = call_node_api(
+                endpoint="deal/get-deal-sec-urls",
+                method="POST",
+                data=data
+            )
+
+            # Log the response from Node API
+            logger.info(f"Received response from Node API: {response}")
+
+            return Response(response, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            logger.error(f"Error in AnnouncementView: {e}")
+            return Response(
+                {"error": str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+
+class AnnouncementWithUrlView(APIView):
+    """
+    API endpoint to handle announcement data with URL and OpenAI integration
+    """
+
+    def extract_missing_fields_with_openai(self, url, existing_data):
+        """
+        Use OpenAI to extract missing fields from the document URL
+        """
+        try:
+            # Prepare the prompt for OpenAI
+            missing_fields = []
+            if not existing_data.get('target_cik'):
+                missing_fields.append('target_cik')
+            if not existing_data.get('announce_data'):
+                missing_fields.append('announce_data')
+            if not existing_data.get('target_name'):
+                missing_fields.append('target_name')
+            if not existing_data.get('acquirer_name'):
+                missing_fields.append('acquirer_name')
+            if not existing_data.get('acquirer_cik'):
+                missing_fields.append('acquirer_cik')
+
+            if not missing_fields:
+                return existing_data
+
+            logger.info(f"Extracting missing fields: {missing_fields}")
+
+            # Get document content directly from URL
+            try:
+                headers = {
+                    "User-Agent": "Avshesh/1.0 (avshesh.savani@teqnodux.com)",
+                    "Accept-Language": "en-US,en;q=0.9"
+                }
+                response = requests.get(url, headers=headers, timeout=30)
+                response.raise_for_status()  # Raise exception for bad status codes
+                # limit to first 100,000 characters
+                html_content = response.text[:100000]
+
+                # Parse HTML to clean text
+                soup = BeautifulSoup(html_content, "html.parser")
+                document_content = soup.get_text(separator="\n")
+
+            except Exception as e:
+                logger.error(f"Error fetching document content: {e}")
+                document_content = ""
+
+            fields_prompt = ", ".join(missing_fields)
+
+            # Create field-specific instructions based on what's missing
+            field_instructions = []
+            if 'announce_data' in missing_fields:
+                field_instructions.append(
+                    "For `announce_data`: Look for the date the deal was publicly announced, usually in the first paragraph or preamble (e.g., 'dated as of...'). Format: YYYY-MM-DD")
+
+            if 'target_cik' in missing_fields:
+                field_instructions.append(
+                    "For `target_cik`: The SEC CIK of the TARGET company (the company being acquired/sold). "
+                    "Look for the company that is being merged into, acquired by, or purchased by another company. "
+                    "This is usually the 'Company' in merger agreements. "
+                    "If not present in the document text, return an empty string. "
+                    "Rule: add zeros to the left of the CIK to make it 10 digits long. "
+                    "CRITICAL: This must be DIFFERENT from the acquirer_cik if both are present."
+                )
+
+            if 'target_name' in missing_fields:
+                field_instructions.append(
+                    "For `target_name`: The TARGET company name (the company being acquired/sold). "
+                    "This is the company that is being merged into, acquired, or purchased. "
+                    "Look for terms like 'Company', 'Target', 'being acquired', 'merging into', 'sold to'. "
+                    "CRITICAL: The target_name and acquirer_name MUST be DIFFERENT companies. "
+                    "If you cannot clearly identify two distinct companies, return an empty string rather than duplicating a name."
+                )
+            if 'acquirer_name' in missing_fields:
+                field_instructions.append(
+                    "For `acquirer_name`: The ACQUIRER company name (the company doing the acquiring/buying). "
+                    "This is the company that is acquiring, buying, or merging with the target. "
+                    "Look for terms like 'Parent', 'Buyer', 'Acquirer', 'Merger Sub', 'Holdings', 'acquiring', 'purchasing'. "
+                    "CRITICAL: The acquirer_name and target_name MUST be DIFFERENT companies. "
+                    "If you cannot clearly identify two distinct companies, return an empty string rather than duplicating a name."
+                )
+            if 'acquirer_cik' in missing_fields:
+                field_instructions.append(
+                    "For `acquirer_cik`: The SEC CIK of the ACQUIRER/BUYER company only if the acquirer is an SEC registrant; otherwise return an empty string. "
+                    "This is the company doing the acquiring. "
+                    "CRITICAL: Do NOT copy the target's CIK. The acquirer_cik and target_cik must be DIFFERENT if both are present. "
+                    "If the acquirer is a private company (like a Holdings entity), return an empty string. "
+                    "Rule: add zeros to the left of the CIK to make it 10 digits long."
+                )
+            instructions_text = "\n".join(field_instructions)
+
+            print(f"instructions_text: {instructions_text}")
+
+            prompt = f"""Extract the following information from the merger agreement document: {fields_prompt}
+            
+            {instructions_text}
+
+            IMPORTANT RULES:
+            - The TARGET is the company being acquired/sold (the one being merged into or purchased)
+            - The ACQUIRER is the company doing the acquiring/buying (the one purchasing or merging with the target)
+            - TARGET and ACQUIRER MUST be DIFFERENT companies - they cannot be the same
+            - Look for language like "merger of [Target] into [Acquirer]", "acquisition of [Target] by [Acquirer]", "purchase of [Target]"
+            - If you cannot identify two distinct companies, return empty strings rather than duplicating values
+            - Search CIK from websearch if not found in the document.
+            [https://www.sec.gov/files/company_tickers.json] is the list of all companies with their CIKs.
+            
+
+            Document url: {url}
+            
+            Here is the beginning of the document content:
+            {document_content}
+
+            Return ONLY a JSON object with the extracted fields. Example:
+            {{
+                "target_cik": "{{target_cik}}",
+                "announce_data": "{{announce_data}}",
+                "target_name": "{{target_name}}",
+                "acquirer_name": "{{acquirer_name}}",
+                "acquirer_cik": "{{acquirer_cik}}"
+            }}
+
+            Only include the fields that were requested. Do not include any other text or explanation.
+            """
+
+            # Call OpenAI API directly
+            try:
+                completion = openai_client.chat.completions.create(
+                    model=MODEL,
+                    messages=[
+                        {"role": "system",
+                            "content": "You are a helpful assistant that extracts specific information from merger agreement documents. CRITICAL: The target company (being acquired) and acquirer company (doing the acquiring) MUST be different entities. Never return the same company name or CIK for both target and acquirer. You only return JSON objects with the requested fields."},
+                        {"role": "user", "content": prompt}
+                    ],
+                    response_format={"type": "json_object"}
+                )
+
+                print(f"prompt: {prompt}")
+                print(f"completion: {completion}")
+
+                logger.info(f"completion: {completion}")
+                # Extract the JSON response, handling code blocks if present
+                content = completion.choices[0].message.content.strip()
+
+                print(f"content: {content}")
+                logger.info(f"content: {content}")
+
+                # Remove code block markers if present
+                if content.startswith('```') and content.endswith('```'):
+                    # Remove first line (```json or ```) and last line (```)
+                    content_lines = content.split('\n')
+                    content = '\n'.join(content_lines[1:-1])
+
+                # Parse the JSON
+                extracted_data = json.loads(content)
+
+                print(f"extracted_data: {extracted_data}")
+
+                # Validate that target and acquirer are different
+                target_name = extracted_data.get('target_name', '').strip()
+                acquirer_name = extracted_data.get('acquirer_name', '').strip()
+                target_cik = extracted_data.get('target_cik', '').strip()
+                acquirer_cik = extracted_data.get('acquirer_cik', '').strip()
+
+                # Check if names are the same
+                if target_name and acquirer_name and target_name.lower() == acquirer_name.lower():
+                    logger.warning(
+                        f"Target and acquirer names are the same: {target_name}. Clearing acquirer_name.")
+                    extracted_data['acquirer_name'] = ""
+
+                # Check if CIKs are the same
+                if target_cik and acquirer_cik and target_cik == acquirer_cik:
+                    logger.warning(
+                        f"Target and acquirer CIKs are the same: {target_cik}. Clearing acquirer_cik.")
+                    extracted_data['acquirer_cik'] = ""
+
+                return extracted_data
+
+            except Exception as e:
+                logger.error(f"Error calling OpenAI API: {e}")
+                logger.error(
+                    f"Raw content received: {completion.choices[0].message.content}")
+                raise Exception(
+                    f"Could not extract information using OpenAI: {str(e)}")
+
+        except Exception as e:
+            logger.error(f"Error extracting fields with OpenAI: {e}")
+            raise
+
+    def post(self, request, format=None):
+        try:
+            # Log the incoming request data
+            logger.info(f"Received request data: {request.data}")
+
+            # Extract data from request
+            url = request.data.get('url')
+            sec_filing_id = request.data.get('sec_filing_id')
+            print(f"url:1 {url}")
+            if not url:
+                return Response({
+                    "error": "URL is required"
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+            # Extract CIK from SEC URL if available
+            extracted_cik = None
+            if url and '/data/' in url:
+                try:
+                    # Extract CIK from URL path after /data/
+                    url_parts = url.split('/data/')
+                    if len(url_parts) > 1:
+                        cik_part = url_parts[1].split('/')[0]
+                        # Pad with leading zeros to make it 10 digits
+                        extracted_cik = cik_part.zfill(10)
+                        logger.info(f"Extracted CIK from URL: {extracted_cik}")
+                except Exception as e:
+                    logger.warning(f"Could not extract CIK from URL: {e}")
+
+            # Extract other fields
+            data = {
+                "target_cik": request.data.get('target_cik') or extracted_cik,
+                "announce_data": request.data.get('announce_data'),
+                "target_name": request.data.get('target_name'),
+                "acquirer_name": request.data.get('acquired_name'),
+                "url": url,
+                "sec_filing_id": request.data.get('sec_filing_id') if request.data.get('sec_filing_id') else None,
+                "acquirer_cik": ""
+            }
+
+            # Check if we have all required fields
+            has_all_fields = all([
+                data.get('target_cik'),
+                data.get('announce_data'),
+                data.get('target_name'),
+                data.get('acquirer_name'),
+                data.get('acquirer_cik')
+
+            ])
+
+            doc_processor = DocumentProcessingService()
+            doc_processor._send_sec_filing_event(sec_filing_id, "In Progress")
+
+            # If not all fields are present, try to extract them using OpenAI
+            if not has_all_fields:
+                logger.info(
+                    "Not all fields present, attempting to extract using OpenAI")
+                try:
+                    extracted_data = self.extract_missing_fields_with_openai(
+                        url, data)
+                    print(f"extracted_data: {extracted_data}")
+
+                    # Merge extracted data with existing data (only add missing fields)
+                    for key, value in extracted_data.items():
+                        # Only add if field is missing and has a value
+                        if not data.get(key) and value:
+                            data[key] = value
+                            logger.info(f"Added missing field {key}: {value}")
+
+                    print(f"merged data: {data}")
+                except Exception as e:
+                    logger.error(f"Error extracting missing fields: {e}")
+                    return Response({
+                        "error": f"Could not extract missing fields: {str(e)}"
+                    }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+            # Validate that we now have all required fields
+            missing_fields = []
+            if not data.get('target_cik'):
+                missing_fields.append('target_cik')
+            if not data.get('announce_data'):
+                missing_fields.append('announce_data')
+            if not data.get('target_name'):
+                missing_fields.append('target_name')
+            if not data.get('acquirer_name'):
+                missing_fields.append('acquirer_name')
+
+            if missing_fields:
+                doc_processor._send_sec_filing_event(
+                    sec_filing_id, "Fail", f"Could not obtain all required fields: {', '.join(missing_fields)}")
+                return Response({
+                    "error": f"Could not obtain all required fields: {', '.join(missing_fields)}"
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+            print(f"data1: {data}")
+
+            # Call Node API with complete data
+            response = call_node_api(
+                endpoint="deal/process-with-url",  # Using the correct endpoint for URL processing
+                method="POST",
+                data={
+                    "url": url,
+                    "target_cik": data.get('target_cik'),
+                    "announce_data": data.get('announce_data'),
+                    "target_name": data.get('target_name'),
+                    "acquired_name": data.get('acquirer_name'),
+                    "sec_filing_id": data.get('sec_filing_id') if data.get('sec_filing_id') else None,
+                    "acquirer_cik": data.get('acquirer_cik'),
+                    "is_from_ui": True
+                }
+            )
+
+            # Check if we got a successful response with jsonUrl
+            if response.get('status') and response.get('data', {}).get('jsonUrl'):
+                # Initialize document processing service
+                doc_processor = DocumentProcessingService()
+
+                print(f"response: {response}")
+
+                # Process the document using the JSON URL
+                process_result = doc_processor.process_document(
+                    file_url=response['data']['jsonUrl'],
+                    # file_url="https://rag-mna.s3.eu-north-1.amazonaws.com/parsed_jsons/spirit_airlines__inc__2022-07-28_original.json",
+                    # file_url="https://rag-embedding.s3.eu-north-1.amazonaws.com/parsed_jsons/spirit_airlines__inc__2022-07-28_original.json",
+                    deal_id=response['data']['deal_id'],
+                    sec_filing_id=data.get('sec_filing_id')
+                )
+
+                # Add processing result to response
+                response['processing_result'] = process_result
+
+            return Response(response, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            logger.error(f"Error in AnnouncementWithUrlView: {e}")
             return Response(
                 {"error": str(e)},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR

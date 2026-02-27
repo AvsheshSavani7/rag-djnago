@@ -1,0 +1,799 @@
+{
+  "termination_clauses": [
+    {
+      "question_query": "termination_clauses",
+      "field_name": "Mutual Consent",
+      "instructions": "Determine whether the agreement includes a clause that allows termination at any time by mutual written consent of both the Parent and the Company.If such a clause exists (e.g., stating that either party may terminate the agreement through mutual written consent), return true.If no such clause is present, return false.Respond strictly with true or false only.",
+      "recommended_prompt_type": "Precision-optimized",
+      "fields": [
+        {
+          "question_query": "termination_clauses",
+          "field_name": "trigger",
+          "instructions": "State the exact condition that enables termination under mutual consent. This should refer only to clauses that allow termination through written agreement of both parties. Do not refer to any external conditions, deadlines, or performance triggers."
+        },
+        {
+          "question_query": "termination_clauses",
+          "field_name": "who",
+          "instructions": "Identify which parties have the legal right to effect termination under the mutual consent clause. Valid answers may include 'Both', 'Parent and Company', or 'Either party (by mutual consent)', but must reflect that **both** must agree in writing."
+        },
+        {
+          "question_query": "termination_clauses",
+          "field_name": "fee_required",
+          "instructions": "Does the mutual consent clause require any termination fee? Answer only if the mutual consent clause itself mandates a fee. Exclude fees that arise under other termination types, such as for breach or fiduciary out. Valid answers: 'Yes', 'No', or 'Conditional'."
+        },
+        {
+          "question_query": "termination_clauses",
+          "field_name": "fee_amount",
+          "instructions": "Specify the amount of any termination fee that applies specifically to the mutual consent clause. If no fee applies under this clause, return 'N/A'. Do not infer from other termination types or assume 'Not found' if the clause is silent."
+        },
+        {
+          "question_query": "termination_clauses",
+          "field_name": "cure_period",
+          "instructions": "If the mutual consent clause allows one or both parties to cure a breach before termination can proceed, specify the number of days. If mutual consent termination does not involve any breach cure provisions, return 'None'."
+        },
+        {
+          "question_query": "termination_clauses",
+          "field_name": "notice_required",
+          "instructions": "Does the mutual consent clause explicitly or implicitly require written notice from both parties to effectuate termination? Focus only on requirements tied to mutual consent. Valid answers: 'Yes' or 'No'."
+        },
+        {
+          "question_query": "termination_clauses",
+          "field_name": "structured_summary",
+          "instructions": "Summarize how the mutual consent termination clause works, including when it applies, who can terminate, and whether any fees, notice, or conditions are mentioned or implied. If the clause is short or simple, still provide a brief but complete summary. Exclude content from unrelated termination scenarios.",
+          "recommended_prompt_type": "Inference-optimized"
+        },
+        {
+          "question_query": "termination_clauses",
+          "field_name": "clause_summary_bullets",
+          "instructions": "List 2–3 concise, plain-language bullet points summarizing the mutual consent termination clause. Even if the clause is brief, generate complete bullets that capture key points such as who may terminate, whether notice or fees apply, and any conditions. Do not refer to other types of termination.",
+          "recommended_prompt_type": "Inference-optimized"
+        }
+      ]
+    },
+    {
+      "question_query": "termination_clauses",
+      "field_name": "Outside Date",
+      "instructions": "Determine whether the agreement includes an 'outside date' clause — that is, a provision allowing either party to terminate the agreement if the merger has not been consummated by a specific date (commonly with optional extensions for regulatory or other delays).If such a clause is present, return true.If no such clause exists, return false.Respond strictly with true or false only.",
+      "fields": [
+        {
+          "question_query": "termination_clauses",
+          "field_name": "trigger",
+          "instructions": "State the condition that triggers termination under the outside date clause. This typically includes failure to consummate the transaction by a specific calendar period or anniversary date, and may include automatic extensions (e.g., for unresolved regulatory conditions)."
+        },
+        {
+          "question_query": "termination_clauses",
+          "field_name": "who",
+          "instructions": "Identify the party or parties who have the right to terminate the agreement under the outside date clause. Typical answers include 'Either Party', 'Parent', or 'Company'. Do not include parties associated with other grounds for termination."
+        },
+        {
+          "question_query": "termination_clauses",
+          "field_name": "fee_required",
+          "instructions": "Does the outside date termination clause trigger a termination fee? Return 'Yes', 'No', or 'Conditional'. Mark 'Conditional' if a fee applies only under specific follow-on conditions (e.g., presence of a prior acquisition proposal or post-termination transaction). Do not infer from other termination types."
+        },
+        {
+          "question_query": "termination_clauses",
+          "field_name": "fee_amount",
+          "instructions": "Specify the dollar amount of the termination fee if one applies under the outside date clause. If a fee applies conditionally, still return the amount (e.g., 372000000) if it is defined. If no fee applies in any case under this clause, return 'N/A'."
+        },
+        {
+          "question_query": "termination_clauses",
+          "field_name": "cure_period",
+          "instructions": "If the outside date clause provides a window to cure a failure before termination can proceed, state the number of days. If no such period is stated (i.e., deadline-based termination is immediate), return 'None'. Do not use cure periods tied to breach or performance-based clauses."
+        },
+        {
+          "question_query": "termination_clauses",
+          "field_name": "notice_required",
+          "instructions": "Does the outside date clause require written notice before termination takes effect? Return 'Yes' or 'No'. Focus only on procedural steps tied to this clause and do not infer from general termination procedures unless explicitly referenced."
+        },
+        {
+          "question_query": "termination_clauses",
+          "field_name": "structured_summary",
+          "instructions": "Summarize the operation of the outside date clause: include the key termination condition (e.g., failure to close by a specified date), whether an extension is allowed (e.g., for antitrust issues), who may terminate, and if a fee applies under specific conditions. Do not include terms from other types of termination clauses.",
+          "recommended_prompt_type": "Inference-optimized"
+        },
+        {
+          "question_query": "termination_clauses",
+          "field_name": "clause_summary_bullets",
+          "instructions": "List 2–3 concise plain-language bullet points summarizing the outside date clause. Cover the termination trigger date, any extension rights, and whether a fee may apply under post-termination scenarios. Always generate bullets even if the clause is brief.",
+          "recommended_prompt_type": "Inference-optimized"
+        }
+      ]
+    },
+    {
+      "question_query": "termination_clauses",
+      "field_name": "Breach by Other Party",
+      "instructions": "Determine whether the agreement includes a clause that allows one party to terminate the agreement if the other party materially breaches its representations, warranties, or covenants, and fails to cure the breach within a specified period.If such a clause is present, return true.If no such clause exists, return false.Respond strictly with true or false only.",
+      "recommended_prompt_type": "Precision-optimized",
+      "fields": [
+        {
+          "question_query": "termination_clauses",
+          "field_name": "trigger",
+          "instructions": "State the specific condition that allows a party to terminate due to the other party's breach. This typically involves a material breach of representations, warranties, or covenants, combined with a failure to cure within a defined cure period or by the outside date."
+        },
+        {
+          "question_query": "termination_clauses",
+          "field_name": "who",
+          "instructions": "Identify which party or parties have the contractual right to terminate the agreement due to the other party’s breach. Valid answers may include 'Parent', 'Company', or 'Either Party'. Only include parties with termination rights specifically tied to breach of obligations."
+        },
+        {
+          "question_query": "termination_clauses",
+          "field_name": "fee_required",
+          "instructions": "Indicate whether termination due to breach may require payment of a termination fee. Return 'Yes', 'No', or 'Conditional'. Choose 'Conditional' if the fee only applies under additional circumstances, such as when a competing transaction follows the breach."
+        },
+        {
+          "question_query": "termination_clauses",
+          "field_name": "fee_amount",
+          "instructions": "State the amount of any termination fee applicable under this clause. If the fee only applies conditionally (e.g., after a breach followed by a transaction), still return the defined amount. If no fee ever applies under this clause, return 'N/A'."
+        },
+        {
+          "question_query": "termination_clauses",
+          "field_name": "cure_period",
+          "instructions": "Specify the number of days the breaching party is given to cure the breach after written notice, before termination is permitted. If no cure period is provided in the breach clause, return 'None'."
+        },
+        {
+          "question_query": "termination_clauses",
+          "field_name": "notice_required",
+          "instructions": "Does the clause require written notice to the breaching party before termination for breach can take effect? Return 'Yes' or 'No'. Base your answer only on the breach termination clause, not general notice provisions."
+        },
+        {
+          "question_query": "termination_clauses",
+          "field_name": "structured_summary",
+          "instructions": "Summarize how the breach termination clause works. Include which party may terminate, the cure period, notice requirements, and if a fee may apply. Always generate a summary even if the clause is simple or the language is technical. Exclude non-breach triggers such as mutual consent or outside date.",
+          "recommended_prompt_type": "Inference-optimized"
+        },
+        {
+          "question_query": "termination_clauses",
+          "field_name": "clause_summary_bullets",
+          "instructions": "List 2–3 concise bullet points summarizing the breach termination clause. Focus on the breach trigger, cure rights, notice requirement, and any fee conditions. Always generate bullets, even if not explicitly formatted in the agreement.",
+          "recommended_prompt_type": "Inference-optimized"
+        }
+      ]
+    },
+    {
+      "question_query": "termination_clauses",
+      "field_name": "Permanent Restraint / Injunction",
+      "instructions": "Determine whether the agreement includes a clause that allows either party to terminate the agreement if a court or governmental authority issues a final, non-appealable order, injunction, or other legal restraint that permanently prevents the merger.If such a clause is present, return true.If no such clause exists, return false.Respond strictly with true or false only.",
+      "recommended_prompt_type": "Precision-optimized",
+      "fields": [
+        {
+          "question_query": "termination_clauses",
+          "field_name": "trigger",
+          "instructions": "State the condition that triggers termination under the permanent restraint clause. This should include a legal restraint, injunction, or governmental order that permanently prohibits the merger. The order must be final and non-appealable. Do not reference conditions like breach, failure to close, or fiduciary outs."
+        },
+        {
+          "question_query": "termination_clauses",
+          "field_name": "who",
+          "instructions": "Identify which party or parties may terminate the agreement under the permanent restraint clause. This should include only the parties explicitly granted the right to terminate if a final legal restraint prevents the merger. Valid answers include 'Parent', 'Company', or 'Either Party'."
+        },
+        {
+          "question_query": "termination_clauses",
+          "field_name": "fee_required",
+          "instructions": "Indicate whether a termination fee is required under this clause. Use 'Yes', 'No', or 'Conditional'. Choose 'Conditional' if the fee applies only under certain follow-on circumstances (e.g., when Parent terminates or an Acquisition Proposal is involved). Do not infer from unrelated clauses."
+        },
+        {
+          "question_query": "termination_clauses",
+          "field_name": "fee_amount",
+          "instructions": "State the amount of any termination fee applicable under this clause. If the fee is only payable under certain conditions, return the defined amount (e.g., 272000000) if stated. If no fee ever applies under this clause, return 'N/A'."
+        },
+        {
+          "question_query": "termination_clauses",
+          "field_name": "cure_period",
+          "instructions": "Return 'None' if no cure period is specified under this clause. Do not return 'NA' — this field is always applicable."
+        },
+        {
+          "question_query": "termination_clauses",
+          "field_name": "notice_required",
+          "instructions": "Does the clause require written notice to be given before termination under this clause can take effect? Return 'Yes' or 'No'. Base your response only on procedural language tied to the permanent restraint clause."
+        },
+        {
+          "question_query": "termination_clauses",
+          "field_name": "structured_summary",
+          "instructions": "The agreement allows either Parent or the Company to terminate if a legal restraint permanently prohibits the merger and becomes final and non-appealable. This right is not available if the terminating party's breach caused the restraint. A $272 million fee may apply if Parent terminates under certain related provisions.",
+          "recommended_prompt_type": "Inference-optimized"
+        },
+        {
+          "question_query": "termination_clauses",
+          "field_name": "clause_summary_bullets",
+          "instructions": "List 2–3 concise bullet points summarizing this clause. Include the termination trigger (i.e., a final legal restraint that blocks the merger), who may terminate, and whether any termination fee applies under specific conditions. Avoid referencing unrelated triggers like breach or superior proposals.",
+          "recommended_prompt_type": "Inference-optimized"
+        }
+      ]
+    },
+    {
+      "question_query": "termination_clauses",
+      "field_name": "Failure to Obtain Stockholder Vote",
+      "instructions": "Determine whether the agreement includes a clause that permits either party to terminate the agreement if the required stockholder approval is not obtained following a vote at the Company Stockholders’ Meeting (including adjournments or postponements).If such a clause is present, return true.If no such clause exists, return false.Respond strictly with true or false only.",
+      "recommended_prompt_type": "Precision-optimized",
+      "fields": [
+        {
+          "question_query": "termination_clauses",
+          "field_name": "trigger",
+          "instructions": "State the specific condition that triggers termination under this clause. This should be the failure to obtain the required stockholder approval after a vote at the Company Stockholders’ Meeting or any adjournment or postponement thereof. Do not include failure to close, breach, or other unrelated termination conditions."
+        },
+        {
+          "question_query": "termination_clauses",
+          "field_name": "who",
+          "instructions": "Identify which party or parties have the right to terminate the agreement if the required stockholder approval is not obtained. Valid answers include 'Parent', 'Company', or 'Either Party'. Only include parties with express rights under this clause."
+        },
+        {
+          "question_query": "termination_clauses",
+          "field_name": "fee_required",
+          "instructions": "Indicate whether a termination fee is required under this clause. Return 'Yes', 'No', or 'Conditional'. Choose 'Conditional' if the fee only applies under additional circumstances, such as a prior Acquisition Proposal that is later consummated following termination."
+        },
+        {
+          "question_query": "termination_clauses",
+          "field_name": "fee_amount",
+          "instructions": "Specify the amount of any termination fee that applies under this clause. If the fee is only conditionally triggered, still return the defined amount. If no fee applies in any scenario under this clause, return 'N/A'."
+        },
+        {
+          "question_query": "termination_clauses",
+          "field_name": "cure_period",
+          "instructions": "Indicate the number of days a party has to cure the issue before termination can occur. If the clause is based solely on a failed vote (not a breach), return 'None'."
+        },
+        {
+          "question_query": "termination_clauses",
+          "field_name": "notice_required",
+          "instructions": "Does the agreement require written notice to effect termination under this clause? Respond with 'Yes' or 'No'. Focus specifically on procedural notice for stockholder vote failure, not general termination notice language."
+        },
+        {
+          "question_query": "termination_clauses",
+          "field_name": "structured_summary",
+          "instructions": "Summarize how the clause operates: when stockholder approval is not obtained after a vote (including postponements), who may terminate, whether written notice is required, and whether a termination fee may apply. Mention the $272M fee only if it's conditionally triggered based on subsequent Acquisition Proposals.",
+          "recommended_prompt_type": "Inference-optimized"
+        },
+        {
+          "question_query": "termination_clauses",
+          "field_name": "clause_summary_bullets",
+          "instructions": "List 2–3 concise bullet points summarizing the clause. Include the trigger (failed stockholder vote), who can terminate, and whether a fee applies under certain follow-up conditions (e.g., Acquisition Proposal within 12 months). Avoid referencing unrelated termination grounds.",
+          "recommended_prompt_type": "Inference-optimized"
+        }
+      ]
+    },
+    {
+      "question_query": "termination_clauses",
+      "field_name": "Failure to Receive Required Approvals",
+      "instructions": "Determine whether the agreement includes a clause that permits either party to terminate the agreement if required regulatory or third-party consents or approvals necessary to close the transaction are not obtained.If such a clause is present, return true.If no such clause exists, return false.Respond strictly with true or false only.",
+      "recommended_prompt_type": "Precision-optimized",
+      "fields": [
+        {
+          "question_query": "termination_clauses",
+          "field_name": "trigger",
+          "instructions": "Identify the specific event or condition that allows termination under this clause. This should include the failure to obtain required regulatory or third-party approvals (such as HSR or antitrust clearance) necessary for the merger to close, typically by the Termination Date. Do not include conditions like shareholder votes, breaches, or injunctions."
+        },
+        {
+          "question_query": "termination_clauses",
+          "field_name": "who",
+          "instructions": "Specify which party or parties may terminate the agreement under this clause. Valid answers include 'Parent', 'Company', or 'Either Party'. Focus only on parties with explicit termination rights due to unmet regulatory or consent conditions."
+        },
+        {
+          "question_query": "termination_clauses",
+          "field_name": "fee_required",
+          "instructions": "Indicate whether a termination fee is required under this clause. Use 'Yes', 'No', or 'Conditional'. Choose 'Conditional' if the fee only applies when specific follow-on events occur, such as the presence of an Acquisition Proposal that results in a transaction post-termination."
+        },
+        {
+          "question_query": "termination_clauses",
+          "field_name": "fee_amount",
+          "instructions": "State the amount of the termination fee applicable under this clause. If the fee is only conditionally triggered (e.g., based on an Acquisition Proposal), return the stated amount. If no fee applies in any case, return 'N/A'."
+        },
+        {
+          "question_query": "termination_clauses",
+          "field_name": "cure_period",
+          "instructions": "If a cure period is provided to allow the failing party to resolve the issue before termination, specify the number of days. If this clause is based purely on the passage of a regulatory deadline (e.g., Termination Date) without breach, return 'None'."
+        },
+        {
+          "question_query": "termination_clauses",
+          "field_name": "notice_required",
+          "instructions": "Does the agreement require written notice before termination under this clause can take effect? Return 'Yes' or 'No'. Only consider the procedural requirements related to this clause, not general notice rules."
+        },
+        {
+          "question_query": "termination_clauses",
+          "field_name": "structured_summary",
+          "instructions": "Summarize how this clause works. Include that either party may terminate if required approvals are not obtained by the Termination Date, that the Termination Date may automatically extend in some cases (e.g., pending antitrust approvals), and whether a fee may apply under certain follow-up conditions. Keep the summary scoped to this clause only.",
+          "recommended_prompt_type": "Precision-optimized"
+        },
+        {
+          "question_query": "termination_clauses",
+          "field_name": "clause_summary_bullets",
+          "instructions": "Write 2–3 concise plain-English bullet points summarizing the clause. Focus on the approval failure trigger, extension mechanics (if any), party rights, and whether any fee applies. Do not include unrelated grounds like shareholder votes or mutual consent.",
+          "recommended_prompt_type": "Inference-optimized"
+        }
+      ]
+    },
+    {
+      "question_query": "termination_clauses",
+      "field_name": "Superior Proposal / Fiduciary Out",
+      "instructions": "Determine whether the agreement includes a clause that allows the Company to terminate the agreement in order to enter into a Superior Proposal, consistent with its fiduciary duties.If such a clause exists, return true.If no such clause exists, return false.Respond strictly with true or false only.",
+      "recommended_prompt_type": "Precision-optimized",
+      "fields": [
+        {
+          "question_query": "termination_clauses",
+          "field_name": "trigger",
+          "instructions": "State the specific condition that allows the Company to terminate the agreement under this clause. This typically includes the receipt of a Superior Proposal and the Company’s board determining in good faith, in accordance with its fiduciary duties, that it is necessary to terminate the agreement to enter into such proposal."
+        },
+        {
+          "question_query": "termination_clauses",
+          "field_name": "who",
+          "instructions": "Specify which party has the contractual right to terminate the agreement under this clause. The right is typically reserved for the 'Company' only, in order to act in accordance with its fiduciary duties."
+        },
+        {
+          "question_query": "termination_clauses",
+          "field_name": "fee_required",
+          "instructions": "Indicate whether a termination fee is required under this clause. Use 'Yes' if the Company must pay a fee to terminate in order to enter into a Superior Proposal, which is often the case. Use 'No' only if no fee applies. Use 'Conditional' if the fee is dependent on certain procedural conditions."
+        },
+        {
+          "question_query": "termination_clauses",
+          "field_name": "fee_amount",
+          "instructions": "Specify the dollar amount of any termination fee that applies if the Company terminates the agreement to pursue a Superior Proposal. If no fee applies under any circumstances, return 'N/A'."
+        },
+        {
+          "question_query": "termination_clauses",
+          "field_name": "cure_period",
+          "instructions": "If the agreement provides the other party (usually the Parent) a period to match or negotiate against the Superior Proposal before the Company may terminate, state the number of days. If no such opportunity is provided, return 'None'."
+        },
+        {
+          "question_query": "termination_clauses",
+          "field_name": "notice_required",
+          "instructions": "Does the agreement require the Company to give written notice to the Parent before termination under this clause can take effect? Respond with 'Yes' or 'No'. Focus on the procedural requirement tied to termination for a Superior Proposal."
+        },
+        {
+          "question_query": "termination_clauses",
+          "field_name": "structured_summary",
+          "instructions": "Summarize how the Superior Proposal clause works. Indicate that the Company may terminate the agreement prior to obtaining stockholder approval in order to enter into a Superior Proposal, consistent with its fiduciary obligations. State whether a termination fee applies and if the Parent is entitled to a cure or match period before termination.",
+          "recommended_prompt_type": "Precision-optimized"
+        },
+        {
+          "question_query": "termination_clauses",
+          "field_name": "clause_summary_bullets",
+          "instructions": "List 2–3 concise bullet points summarizing the key elements of this clause. Include the trigger (receipt of a Superior Proposal), which party may terminate (usually the Company), any required termination fee, and whether a match/cure period is provided.",
+          "recommended_prompt_type": "Precision-optimized"
+        }
+      ]
+    },
+    {
+      "question_query": "termination_clauses",
+      "field_name": "Board Recommendation Withdrawal",
+      "instructions": "Determine whether the agreement allows the Parent to terminate if the Company Board changes or withdraws its recommendation to stockholders.If such a clause exists, return true.If no such clause exists, return false.Respond strictly with true or false only.",
+      "recommended_prompt_type": "Precision-optimized",
+      "fields": [
+        {
+          "question_query": "termination_clauses",
+          "field_name": "trigger",
+          "instructions": "State the specific condition that triggers termination under this clause. This typically includes the Company Board (i) withdrawing or modifying its recommendation, (ii) failing to reaffirm the recommendation upon request, or (iii) recommending an alternative transaction."
+        },
+        {
+          "question_query": "termination_clauses",
+          "field_name": "who",
+          "instructions": "Specify which party has the right to terminate the agreement under this clause. Typically, this right belongs solely to the 'Parent'."
+        },
+        {
+          "question_query": "termination_clauses",
+          "field_name": "fee_required",
+          "instructions": "Indicate whether a termination fee is required if the Parent terminates due to the Company Board withdrawing or changing its recommendation. Use 'Yes', 'No', or 'Conditional'. Choose 'Conditional' if the fee depends on additional conditions like subsequent acceptance of a Superior Proposal."
+        },
+        {
+          "question_query": "termination_clauses",
+          "field_name": "fee_amount",
+          "instructions": "Specify the amount of any termination fee payable under this clause. If the agreement defines a fee for this scenario (e.g., under a defined 'Termination Amount'), provide the exact figure. If no fee applies, return 'N/A'."
+        },
+        {
+          "question_query": "termination_clauses",
+          "field_name": "cure_period",
+          "instructions": "If the Parent must give the Company an opportunity to reaffirm or correct its recommendation before terminating, provide the number of days. If the clause permits immediate termination or no cure period is defined, return 'None'."
+        },
+        {
+          "question_query": "termination_clauses",
+          "field_name": "notice_required",
+          "instructions": "Does the agreement require the Parent to provide written notice to the Company before terminating under this clause? Answer 'Yes' or 'No' based on explicit notice provisions tied to this clause."
+        },
+        {
+          "question_query": "termination_clauses",
+          "field_name": "structured_summary",
+          "instructions": "Provide a clear, concise summary of how this clause works. Indicate that the Parent may terminate if the Company Board changes, withdraws, or fails to reaffirm its recommendation. Include any applicable fee conditions and notice or cure requirements.",
+          "recommended_prompt_type": "Inference-optimized"
+        },
+        {
+          "question_query": "termination_clauses",
+          "field_name": "clause_summary_bullets",
+          "instructions": "List 2–3 concise bullet points summarizing this clause. Include the termination trigger (e.g., change or withdrawal of board recommendation), the terminating party (usually Parent), and whether a termination fee or notice/cure period applies.",
+          "recommended_prompt_type": "Inference-optimized"
+        }
+      ]
+    },
+    {
+      "question_query": "termination_clauses",
+      "field_name": "Failure to Close Conditions",
+      "instructions": "Determine whether the agreement allows termination if the closing conditions are not satisfied or waived by the applicable deadline.If such a clause exists, return true.If no such clause exists, return false.Respond strictly with true or false only.",
+      "recommended_prompt_type": "Precision-optimized",
+      "fields": [
+        {
+          "question_query": "termination_clauses",
+          "field_name": "trigger",
+          "instructions": "State the specific condition that allows for termination under this clause. This typically involves the failure to satisfy or waive one or more conditions required to complete the transaction by the agreed deadline (e.g., the closing date or termination date). Do not include conditions related to injunctions, superior proposals, breaches, or stockholder votes."
+        },
+        {
+          "question_query": "termination_clauses",
+          "field_name": "who",
+          "instructions": "Identify which party has the right to terminate the agreement due to the failure of a tender offer condition. Return only the party explicitly named (e.g., 'Parent' or 'Company'), not inferred from general termination rights."
+        },
+        {
+          "question_query": "termination_clauses",
+          "field_name": "fee_required",
+          "instructions": "Indicate whether a termination fee is required under this clause. Use 'Yes' if the agreement explicitly imposes a fee when termination occurs due to unsatisfied closing conditions. Use 'Conditional' if the fee only applies in the presence of additional factors (e.g., prior Acquisition Proposal). Use 'No' if no fee is ever required under this clause."
+        },
+        {
+          "question_query": "termination_clauses",
+          "field_name": "fee_amount",
+          "instructions": "Specify the dollar amount of any termination fee applicable under this clause. If the fee applies conditionally, still return the stated amount. If no fee is mentioned or required under this clause, return 'N/A'."
+        },
+        {
+          "question_query": "termination_clauses",
+          "field_name": "cure_period",
+          "instructions": "If a cure period is provided for failure to satisfy a closing condition, specify the number of days allowed to remedy the issue before termination can occur. If the clause does not permit any cure period or is triggered automatically at the deadline, return 'None'."
+        },
+        {
+          "question_query": "termination_clauses",
+          "field_name": "notice_required",
+          "instructions": "Does the agreement require written notice to be given before termination can take effect under this clause? Respond with 'Yes' or 'No', based on explicit requirements tied to this scenario (not general notice provisions)."
+        },
+        {
+          "question_query": "termination_clauses",
+          "field_name": "structured_summary",
+          "instructions": "Summarize in 1–2 sentences. Limit to 40 words max. Include only the trigger, who can terminate, and if a fee or notice applies. Do not explain background, definitions, or contingencies."
+        },
+        {
+          "question_query": "termination_clauses",
+          "field_name": "clause_summary_bullets",
+          "instructions": "Return up to 2 short bullet points summarizing the clause. Include the trigger, who may terminate, and whether a fee or notice is required. Keep each bullet under 20 words."
+        }
+      ]
+    },
+    {
+      "question_query": "termination_clauses",
+      "field_name": "Target Recommendation Violation",
+      "instructions": "Determine whether the agreement allows a party to terminate if any condition to the tender offer itself—such as minimum tender thresholds or regulatory clearances required for the offer to close—are not satisfied or waived before the offer expires. Do not infer from closing failures or stockholder vote outcomes. Respond strictly with true or false.",
+      "recommended_prompt_type": "Precision-optimized",
+      "fields": [
+        {
+          "question_query": "termination_clauses",
+          "field_name": "trigger",
+          "instructions": "State the specific condition that allows for termination under this clause. This typically includes the Company Board failing to reaffirm its recommendation, changing its recommendation, recommending an alternative transaction, or breaching covenants requiring support for the existing recommendation."
+        },
+        {
+          "question_query": "termination_clauses",
+          "field_name": "who",
+          "instructions": "Specify which party has the contractual right to terminate the agreement due to the Company’s failure to maintain or reaffirm its recommendation. Typically, this right belongs to the 'Parent'. Return only the relevant party or parties."
+        },
+        {
+          "question_query": "termination_clauses",
+          "field_name": "fee_required",
+          "instructions": "Indicate whether a termination fee is required under this clause. Use 'Yes' if a fee is required, 'No' if not, and 'Conditional' if the fee depends on follow-up events (e.g., entry into or consummation of an Acquisition Proposal after termination)."
+        },
+        {
+          "question_query": "termination_clauses",
+          "field_name": "fee_amount",
+          "instructions": "Specify the amount of any termination fee that applies if this clause is triggered. Return the defined dollar amount if applicable. If no fee applies under any circumstances, return 'N/A'."
+        },
+        {
+          "question_query": "termination_clauses",
+          "field_name": "cure_period",
+          "instructions": "If the agreement provides the Company with a period to cure the failure or breach of the recommendation covenant before termination, specify the number of days. If no cure period is allowed or applicable, return 'None'."
+        },
+        {
+          "question_query": "termination_clauses",
+          "field_name": "notice_required",
+          "instructions": "Does the agreement require written notice before termination for a recommendation-related violation can take effect? Respond 'Yes' or 'No' based on the procedural language of the clause.",
+          "recommended_prompt_type": "Inference-optimized"
+        },
+        {
+          "question_query": "termination_clauses",
+          "field_name": "structured_summary",
+          "instructions": "Summarize how this clause operates. Include whether the Parent may terminate if the Company Board fails to reaffirm, withdraws, or modifies its recommendation, or violates any related covenants. Indicate if a termination fee is required and whether any notice or cure period applies."
+        },
+        {
+          "question_query": "termination_clauses",
+          "field_name": "clause_summary_bullets",
+          "instructions": "List 2–3 concise plain-English bullet points summarizing the clause. Include the trigger (e.g., change or failure to reaffirm recommendation), who may terminate, and any applicable termination fee or procedural requirements."
+        }
+      ]
+    },
+    {
+      "question_query": "termination_clauses",
+      "field_name": "Tender Offer Conditions Fail",
+      "instructions": "Determine whether the agreement contains an express clause that allows termination if **any condition specific to the tender offer** is not satisfied or waived before the offer expires. Do not infer from general merger closing conditions, failure to obtain stockholder vote, or outside date triggers. Respond only if the clause explicitly references the tender offer and its failure as a standalone basis for termination. Respond strictly with true or false.",
+      "recommended_prompt_type": "Precision-optimized",
+      "fields": [
+        {
+          "question_query": "termination_clauses",
+          "field_name": "trigger",
+          "instructions": "State the specific event that allows termination under this clause. Limit your response to failure of one or more **conditions to the tender offer** by its expiration. Exclude failure of closing conditions, stockholder votes, or outside date deadlines unless tied directly to the tender offer’s completion."
+        },
+        {
+          "question_query": "termination_clauses",
+          "field_name": "who",
+          "instructions": "Specify which party or parties have the contractual right to terminate the agreement if the tender offer conditions are not satisfied or waived. Valid responses include 'Parent', 'Company', or 'Either Party'. Return only the party or parties explicitly granted this right."
+        },
+        {
+          "question_query": "termination_clauses",
+          "field_name": "fee_required",
+          "instructions": "Indicate whether a termination fee is required under this clause. Use 'Yes' if a fee is clearly required, 'No' if no fee applies, or 'Conditional' if a fee may apply only under certain conditions (e.g., a subsequent Acquisition Proposal or specific triggering events)."
+        },
+        {
+          "question_query": "termination_clauses",
+          "field_name": "fee_amount",
+          "instructions": "If a termination fee applies under this clause, state the dollar amount. If the fee is conditional but still defined, include the specified amount. If no fee applies under any circumstances, return 'N/A'."
+        },
+        {
+          "question_query": "termination_clauses",
+          "field_name": "cure_period",
+          "instructions": "Specify the number of days allowed to remedy the failure before termination is permitted, if applicable. If no cure period applies or is explicitly excluded (e.g., the clause is triggered automatically upon expiration), return 'None'."
+        },
+        {
+          "question_query": "termination_clauses",
+          "field_name": "notice_required",
+          "instructions": "Does the agreement require written notice to the other party before termination under this clause can take effect? Respond 'Yes' or 'No' based on whether such notice is explicitly required in the context of this clause."
+        },
+        {
+          "question_query": "termination_clauses",
+          "field_name": "structured_summary",
+          "instructions": "Summarize how the tender offer failure clause operates. Indicate whether termination is permitted if any condition to the tender offer is not met by the expiration date, who may terminate, whether a fee applies, and whether any notice or cure period is required. Limit the summary to the tender offer context."
+        },
+        {
+          "question_query": "termination_clauses",
+          "field_name": "clause_summary_bullets",
+          "instructions": "List 2–3 clear, plain-English bullet points summarizing this clause. Mention the failure of tender offer conditions as the trigger, who may terminate, and whether a termination fee or procedural requirement (notice or cure) applies. Do not reference unrelated clauses like board recommendation or outside date."
+        }
+      ]
+    },
+    {
+      "question_query": "termination_clauses",
+      "field_name": "Failure to Commence Tender Offer",
+      "instructions": "Determine whether the agreement includes a clause allowing termination if the Buyer (or its acquisition subsidiary) fails to commence the tender offer within the timeframe specified in the agreement. Respond strictly with true or false only.",
+      "recommended_prompt_type": "Precision-optimized",
+      "fields": [
+        {
+          "question_query": "termination_clauses",
+          "field_name": "trigger",
+          "instructions": "Identify the exact conditions that allow the Company to act on an 'Intervening Event' as defined in the agreement. The Intervening Event must (i) not be a Superior Proposal, (ii) arise after signing, (iii) not be known (or its consequences not known) at signing, and (iv) be significant enough that failure to act would breach fiduciary duties. Do not mention Superior Proposal or general fiduciary out terms."
+        },
+        {
+          "question_query": "termination_clauses",
+          "field_name": "who",
+          "instructions": "Specify the party that has the contractual right to terminate the agreement in response to an Intervening Event. Only include 'Company', 'Parent', or 'Either Party' as per the agreement text. Focus only on who may act on an Intervening Event, not broader termination rights."
+        },
+        {
+          "question_query": "termination_clauses",
+          "field_name": "fee_required",
+          "instructions": "State whether the Company is required to pay a termination fee if it terminates the agreement due to an Intervening Event. Answer “Yes” if a fee is clearly triggered by this action, “No” if none is stated, and “Conditional” if the fee applies only under additional conditions (e.g., if a deal follows the termination)."
+        },
+        {
+          "question_query": "termination_clauses",
+          "field_name": "fee_amount",
+          "instructions": "Extract the dollar amount of any termination fee tied to an Intervening Event termination, if explicitly stated in the relevant clause. If the amount is defined elsewhere (e.g., as the “Termination Amount”), refer to that by label. If no fee applies, return “N/A”."
+        },
+        {
+          "question_query": "termination_clauses",
+          "field_name": "cure_period",
+          "instructions": "Identify whether the Parent is granted a specific number of days to negotiate, modify, or cure the terms in response to an Intervening Event notice before the Company may terminate. State the number of business days allowed. If no period is given, return “None”."
+        },
+        {
+          "question_query": "termination_clauses",
+          "field_name": "notice_required",
+          "instructions": "Determine whether the Company is explicitly required to provide written notice to the Parent before terminating the agreement due to an Intervening Event. Respond only “Yes” or “No” based on procedural requirements directly tied to this clause."
+        },
+        {
+          "question_query": "termination_clauses",
+          "field_name": "structured_summary",
+          "instructions": "Summarize the operation of the Intervening Event clause. Include the fact that the Company may terminate due to an unforeseen, material, non-Superior Proposal event that alters its fiduciary obligations. Mention the need for notice, negotiation period, and any associated termination fee. Use precise legal language without paraphrasing broadly.",
+          "recommended_prompt_type": "Inference-optimized"
+        },
+        {
+          "question_query": "termination_clauses",
+          "field_name": "clause_summary_bullets",
+          "instructions": "List 2–3 concise plain-English bullet points summarizing this clause. Include the trigger (failure to commence tender offer on time), the terminating party (usually the Company), and whether a fee or procedural requirement (notice, cure) applies.",
+          "recommended_prompt_type": "Inference-optimized"
+        }
+      ]
+    },
+    {
+      "question_query": "termination_clauses",
+      "field_name": "Intervening Event (Target)",
+      "instructions": "Determine whether the agreement includes a clause that allows the Company to terminate the agreement based on a material intervening event—distinct from a Superior Proposal—that arises after signing and alters the Company Board’s fiduciary obligations. Respond strictly with true or false.",
+      "recommended_prompt_type": "Precision-optimized",
+      "fields": [
+        {
+          "question_query": "termination_clauses",
+          "field_name": "trigger",
+          "instructions": "Identify the specific condition that permits the Company to respond to a material intervening event. This event must (1) not be a Superior Proposal, (2) arise after signing, and (3) be unforeseen and significant enough that the Company Board reasonably concludes it must change its recommendation to avoid breaching its fiduciary duties. Only include the event description or criteria that trigger this response. Do not include Superior Proposal references or general fiduciary out provisions."
+        },
+        {
+          "question_query": "termination_clauses",
+          "field_name": "who",
+          "instructions": "Specify which party has the right to terminate the agreement under this clause. This right is usually reserved for the 'Company'. Acceptable values: 'Parent', 'Company', or 'Either Party'."
+        },
+        {
+          "question_query": "termination_clauses",
+          "field_name": "fee_required",
+          "instructions": "Indicate whether a termination fee is required under this clause. Use 'Yes' if a fee clearly applies, 'No' if there is no fee, or 'Conditional' if the fee applies only under specific follow-up conditions (e.g., entry into a transaction within a set period after termination)."
+        },
+        {
+          "question_query": "termination_clauses",
+          "field_name": "fee_amount",
+          "instructions": "State the dollar amount of any termination fee applicable under this clause. If the amount is contingent but defined, still provide the figure. If no fee applies under any condition, return 'N/A'."
+        },
+        {
+          "question_query": "termination_clauses",
+          "field_name": "cure_period",
+          "instructions": "If the Parent is granted a right to negotiate, revise terms, or cure the effect of the intervening event before termination may proceed, specify the number of days allowed. If no such period is granted, return 'None'."
+        },
+        {
+          "question_query": "termination_clauses",
+          "field_name": "notice_required",
+          "instructions": "Does the agreement require the Company to give written notice before termination under this clause can take effect? Respond 'Yes' or 'No', based on explicit procedural language tied to this termination right."
+        },
+        {
+          "question_query": "termination_clauses",
+          "field_name": "structured_summary",
+          "instructions": "Summarize how the clause operates. Indicate that the Company may terminate the agreement in response to a material intervening event (distinct from a Superior Proposal) that causes the board to reassess its fiduciary duties. Include any required fee, cure period, and notice obligation."
+        },
+        {
+          "question_query": "termination_clauses",
+          "field_name": "clause_summary_bullets",
+          "instructions": "Extract up to 3 concise factual points from the Intervening Event clause. Each bullet should reflect a specific obligation, right, or procedure using language close to the agreement. Avoid summarizing with generalizations. Each point must be under 200 characters and presented as an array.",
+          "recommended_prompt_type": "Inference-optimized"
+        }
+      ]
+    },
+    {
+      "question_query": "termination_clauses",
+      "field_name": "Regulatory Block / Clearance Failure",
+      "instructions": "Determine whether the agreement includes a clause that allows termination if required regulatory approvals are denied, unattainable, or if any governmental or regulatory authority issues an order or decision that blocks or prohibits closing the transaction. Respond strictly with true or false.",
+      "recommended_prompt_type": "Precision-optimized",
+      "fields": [
+        {
+          "question_query": "termination_clauses",
+          "field_name": "trigger",
+          "instructions": "Identify the specific regulatory failure or governmental action that triggers the termination right. This must involve (i) a final, non-appealable order or injunction restraining or prohibiting the merger, or (ii) the failure to obtain required regulatory approval (e.g., under the HSR Act). Exclude references to voluntary withdrawal or expiration of deadlines unless directly tied to a regulatory block."
+        },
+        {
+          "question_query": "termination_clauses",
+          "field_name": "who",
+          "instructions": "Indicate which party (Company, Parent, or Either Party) is contractually allowed to terminate the agreement under this regulatory block clause. Only consider rights triggered by regulatory denial or prohibition—ignore rights arising from timing or business conditions."
+        },
+        {
+          "question_query": "termination_clauses",
+          "field_name": "fee_required",
+          "instructions": "State whether the agreement imposes a termination fee when the agreement is terminated due to a regulatory block or denial. Use:“Yes” if the fee always applies;“No” if no fee is triggered under this clause;“Conditional” only if the fee applies under clearly defined follow-up conditions (e.g., a prior Acquisition Proposal exists)."
+        },
+        {
+          "question_query": "termination_clauses",
+          "field_name": "fee_amount",
+          "instructions": "If a fee is required under this clause, provide the exact dollar amount or defined label (e.g., “Termination Amount”). If no fee is applicable under this clause in any case, respond with “N/A”."
+        },
+        {
+          "question_query": "termination_clauses",
+          "field_name": "cure_period",
+          "instructions": "State the number of days (if any) provided to a party to resolve the regulatory issue before termination is allowed. This includes any negotiation or remedy period granted before final termination. If no such cure or waiting period is specified, respond with “None”."
+        },
+        {
+          "question_query": "termination_clauses",
+          "field_name": "notice_required",
+          "instructions": "Determine whether the agreement explicitly requires written notice to be given before termination for regulatory denial. Respond with “Yes” if written notice is required as a condition to terminate under this clause; otherwise, return “No”."
+        },
+        {
+          "question_query": "termination_clauses",
+          "field_name": "structured_summary",
+          "instructions": "Provide a concise narrative explaining how this clause operates. Include the regulatory failure or government block as the trigger, identify which party may terminate, state whether a termination fee applies, and whether notice or cure periods are required. Use neutral, fact-based legal language—avoid paraphrasing the rest of the agreement.",
+          "recommended_prompt_type": "Inference-optimized"
+        },
+        {
+          "question_query": "termination_clauses",
+          "field_name": "clause_summary_bullets",
+          "instructions": "Create 2–3 short bullet points summarizing the clause in plain language. Each bullet should describe:the trigger event (e.g., regulatory denial or court block), who may terminate, and whether a fee or procedural requirement (notice or cure) applies. Each bullet should be under 200 characters and written as an array.",
+          "recommended_prompt_type": "Inference-optimized"
+        }
+      ]
+    },
+    {
+      "question_query": "termination_clauses",
+      "field_name": "Company MAE",
+      "instructions": "Determine whether the agreement includes a clause allowing the Parent to terminate the agreement if a Material Adverse Effect (MAE) occurs with respect to the Company. The MAE must be defined in the agreement and tied to the Company's business, financial condition, or operations. Respond strictly with true or false.",
+      "recommended_prompt_type": "Precision-optimized",
+      "fields": [
+        {
+          "question_query": "termination_clauses",
+          "field_name": "trigger",
+          "instructions": "Locate the clause where Parent may terminate due to a Material Adverse Effect (MAE) on the Company. Identify the specific condition or language that defines when this right can be exercised. This typically includes “would result in the failure of a condition” involving MAE. Do not summarize or infer—use only contract language that explicitly links MAE to a termination right.",
+          "recommended_prompt_type": "Inference-optimized"
+        },
+        {
+          "question_query": "termination_clauses",
+          "field_name": "who",
+          "instructions": "Identify which party has the termination right based on the Company’s Material Adverse Effect (MAE). Acceptable values: 'Parent', 'Company', or 'Either Party'. The answer must match the agreement’s explicit provision. Focus on the termination linked specifically to Company MAE, not general breach rights.",
+          "recommended_prompt_type": "Inference-optimized"
+        },
+        {
+          "question_query": "termination_clauses",
+          "field_name": "fee_required",
+          "instructions": "Indicate whether a termination fee is imposed if the Parent terminates the agreement specifically due to a Company MAE. Return: 'Yes' if a fee clearly applies; 'No' if no fee is tied to MAE termination; 'Conditional' if the fee only applies in conjunction with an Acquisition Proposal or other specified follow-on events."
+        },
+        {
+          "question_query": "termination_clauses",
+          "field_name": "fee_amount",
+          "instructions": "If a fee applies under this clause, state the dollar amount or clearly labeled reference (e.g., “Termination Amount”) from the agreement. If the fee is not triggered under any Company MAE scenario, return 'N/A'."
+        },
+        {
+          "question_query": "termination_clauses",
+          "field_name": "cure_period",
+          "instructions": "Specify whether the Company has a set number of days to cure or resolve the issue after receiving notice of the MAE from the Parent. If such a cure period exists, return the number of days. If no cure period is stated in the context of MAE, return None."
+        },
+        {
+          "question_query": "termination_clauses",
+          "field_name": "notice_required",
+          "instructions": "Indicate whether the Parent is explicitly required to deliver written notice before terminating the agreement due to a Company MAE. Respond Yes or No based on whether this procedural step is mandated by the agreement in the MAE termination context."
+        },
+        {
+          "question_query": "termination_clauses",
+          "field_name": "structured_summary",
+          "instructions": "Provide a concise summary explaining how the Company MAE clause operates. Your summary must include:The Parent’s right to terminate if a defined MAE occurs;Any notice or cure period requirements;Whether a termination fee applies. Use formal tone and contract-accurate language.",
+          "recommended_prompt_type": "Inference-optimized"
+        },
+        {
+          "question_query": "termination_clauses",
+          "field_name": "clause_summary_bullets",
+          "instructions": "Write 2–3 concise bullets summarizing this clause. Each bullet should:be under 200 characters,state the MAE trigger, the party with the right to terminate, and whether a fee, notice, or cure period applies.Avoid abstract summaries—use direct phrasing from the agreement where possible. Return bullet points only.",
+          "recommended_prompt_type": "Inference-optimized"
+        }
+      ]
+    },
+    {
+      "question_query": "termination_clauses",
+      "field_name": "Failure to Certify (FTC/DOJ)",
+      "instructions": "Determine whether the agreement includes a clause allowing termination if a party fails to comply with required certification procedures under U.S. antitrust laws—such as failure to certify substantial compliance with a Second Request from the FTC or DOJ. Respond strictly with true or false.",
+      "recommended_prompt_type": "Precision-optimized",
+      "fields": [
+        {
+          "question_query": "termination_clauses",
+          "field_name": "trigger",
+          "instructions": "State the specific condition that permits termination under this clause. This typically involves a failure by either party to certify substantial compliance with a Second Request issued by the FTC or DOJ under U.S. antitrust law. Only include certification-related failures—not general regulatory denials or outside dates."
+        },
+        {
+          "question_query": "termination_clauses",
+          "field_name": "who",
+          "instructions": "Specify which party has the contractual right to terminate if certification under antitrust review (e.g., in response to a Second Request) is not completed as required. Acceptable values are 'Parent', 'Company', or 'Either Party'."
+        },
+        {
+          "question_query": "termination_clauses",
+          "field_name": "fee_required",
+          "instructions": "Indicate whether a termination fee is triggered by failure to certify compliance with antitrust procedures. Use 'Yes' if a fee always applies, 'No' if no fee is applicable, or 'Conditional' if it depends on further actions (e.g., Acquisition Proposal or consummation of another deal)."
+        },
+        {
+          "question_query": "termination_clauses",
+          "field_name": "fee_amount",
+          "instructions": "Provide the dollar amount of any termination fee tied to this clause. If the amount is defined but applies conditionally, still return the value. If no fee applies in any case under this clause, return 'N/A'."
+        },
+        {
+          "question_query": "termination_clauses",
+          "field_name": "cure_period",
+          "instructions": "If the party that failed to certify is granted a grace period or opportunity to cure before termination can occur, specify the number of days. If the failure results in immediate termination rights or no cure is provided, return 'None'."
+        },
+        {
+          "question_query": "termination_clauses",
+          "field_name": "notice_required",
+          "instructions": "Does the agreement require written notice before termination can take effect under this clause? Answer 'Yes' or 'No' based on whether written notice is explicitly required to terminate for failure to certify under antitrust law."
+        },
+        {
+          "question_query": "termination_clauses",
+          "field_name": "structured_summary",
+          "instructions": "Summarize how this clause operates. Include the trigger (e.g., failure to certify compliance with a Second Request), the party with termination rights, whether any termination fee is required, and whether notice or a cure period applies.",
+          "recommended_prompt_type": "Inference-optimized"
+        },
+        {
+          "question_query": "termination_clauses",
+          "field_name": "clause_summary_bullets",
+          "instructions": "Write 2–3 plain-English bullet points summarizing the clause. Mention the failure to certify as the termination trigger, the party with termination rights, and whether a termination fee or procedural requirement applies.",
+          "recommended_prompt_type": "Inference-optimized"
+        }
+      ]
+    }
+  ]
+}

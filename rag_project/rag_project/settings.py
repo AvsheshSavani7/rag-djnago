@@ -13,11 +13,16 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 from datetime import timedelta
 from pathlib import Path
 import os
+import warnings
 from dotenv import load_dotenv
+from mongoengine import connect
+
+# Suppress timezone warnings from dateutil
+warnings.filterwarnings("ignore", category=UserWarning,
+                        module="dateutil.parser")
 
 # Load environment variables from .env file
 load_dotenv()
-print("MongoDB URI from .env:", os.environ.get("MONGODB_CONNECTION_STRING"))
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -43,17 +48,23 @@ INSTALLED_APPS = [
     "django.contrib.contenttypes",
     "django.contrib.sessions",
     "django.contrib.messages",
+    # Celery apps (removed for simple approach)
+    # 'django_celery_beat',
+    # 'django_celery_results',
     "django.contrib.staticfiles",
     # Third-party apps
     "rest_framework",
     "corsheaders",
-    "rest_framework_simplejwt",
-    "rest_framework_simplejwt.token_blacklist",
+    # "rest_framework_simplejwt",
+    # "rest_framework_simplejwt.token_blacklist",
     # Local apps
     "node_proxy",
     "document_processor",
     "user_auth",
     "gpt_chat",
+    "rss_feeds",
+    "sec_rss_parser",
+    "proxy_processor",
 ]
 
 MIDDLEWARE = [
@@ -98,23 +109,43 @@ WSGI_APPLICATION = "rag_project.wsgi.application"
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
 # Check if connection string is provided
-if os.environ.get('MONGODB_CONNECTION_STRING'):
-    print("MONGODB_NAME:",
-          os.environ.get('MONGODB_NAME'))
-    # Connection string method (for MongoDB Atlas or other MongoDB hosts)
-    DATABASES = {
-        'default': {
-            'ENGINE': 'djongo',
-            'NAME': os.environ.get('MONGODB_NAME', 'Deal_DB'),
-            'ENFORCE_SCHEMA': False,
-            'CLIENT': {
-                'host': os.environ.get('MONGODB_CONNECTION_STRING')
-            }
-        }
-    }
-else:
-    print("No MongoDB connection string provided")
+# if os.environ.get('MONGODB_CONNECTION_STRING'):
+#     print("MONGODB_NAME:",
+#           os.environ.get('MONGODB_NAME'))
+#     # Connection string method (for MongoDB Atlas or other MongoDB hosts)
+#     DATABASES = {
+#         'default': {
+#             'ENGINE': 'djongo',
+#             'NAME': os.environ.get('MONGODB_NAME', 'Deal_DB'),
+#             'ENFORCE_SCHEMA': False,
+#             'CLIENT': {
+#                 'host': os.environ.get('MONGODB_CONNECTION_STRING')
+#             }
+#         }
+#     }
+# else:
+#     print("No MongoDB connection string provided")
 
+# MongoDB Connection using MongoEngine
+MONGODB_URI = os.getenv("MONGODB_CONNECTION_STRING")
+MONGODB_NAME = os.getenv("MONGODB_NAME", "Deal_DB")
+
+if MONGODB_URI:
+    print("✅ MongoDB config detected.")
+    connect(
+        db=MONGODB_NAME,
+        host=MONGODB_URI,
+        alias="default"
+    )
+else:
+    print("❌ No MongoDB connection string found in environment.")
+
+# Dummy database setup required by Django to run management commands
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.dummy'
+    }
+}
 
 # Password validation - removed as auth is not used
 # https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators
@@ -138,17 +169,19 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/4.2/howto/static-files/
 
 STATIC_URL = "static/"
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
+DEFAULT_FROM_EMAIL = "ashish.kachadiya@teqnodux.com"
+SEC_FILING_NOTIFICATION_EMAIL = "avshesh.savani@teqnodux.com"
+
 # Node.js API settings
 NODE_API_BASE_URL = os.environ.get(
     'NODE_API_BASE_URL', 'http://192.168.1.4:3001/api')
-
-print("📡 NODE_API_BASE_URL1 =", NODE_API_BASE_URL)
 
 
 # AWS S3 settings
@@ -164,7 +197,8 @@ REST_FRAMEWORK = {
         'rest_framework.renderers.BrowsableAPIRenderer',
     ],
     'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework_simplejwt.authentication.JWTAuthentication',
+        'user_auth.authentication.CustomJWTAuthentication',
+        # 'rest_framework_simplejwt.authentication.JWTAuthentication',
     ],
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated',
@@ -173,23 +207,27 @@ REST_FRAMEWORK = {
 
 # JWT Settings
 
-SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(days=1),
-    'REFRESH_TOKEN_LIFETIME': timedelta(days=14),
-    'ROTATE_REFRESH_TOKENS': True,
-    'BLACKLIST_AFTER_ROTATION': False,
-    'ALGORITHM': 'HS256',
-    'SIGNING_KEY': SECRET_KEY,
-    'VERIFYING_KEY': None,
-    'AUTH_HEADER_TYPES': ('Bearer',),
-    'USER_ID_FIELD': 'email',
-    'USER_ID_CLAIM': 'email',
-    'AUTH_TOKEN_CLASSES': ('rest_framework_simplejwt.tokens.AccessToken',),
-    'TOKEN_TYPE_CLAIM': 'token_type',
-}
+# SIMPLE_JWT = {
+#     'ACCESS_TOKEN_LIFETIME': timedelta(days=1),
+#     'REFRESH_TOKEN_LIFETIME': timedelta(days=14),
+#     'ROTATE_REFRESH_TOKENS': True,
+#     'BLACKLIST_AFTER_ROTATION': False,
+#     'ALGORITHM': 'HS256',
+#     'SIGNING_KEY': SECRET_KEY,
+#     'VERIFYING_KEY': None,
+#     'AUTH_HEADER_TYPES': ('Bearer',),
+#     'USER_ID_FIELD': 'email',
+#     'USER_ID_CLAIM': 'email',
+#     'AUTH_TOKEN_CLASSES': ('rest_framework_simplejwt.tokens.AccessToken',),
+#     'TOKEN_TYPE_CLAIM': 'token_type',
+# }
+
+
+# JWT SECRET
+JWT_SECRET_KEY = os.environ.get("JWT_SECRET_KEY", 'KEEP_THIS_SECRET')
 
 # Custom authentication settings
-AUTH_USER_MODEL = 'user_auth.User'
+# AUTH_USER_MODEL = 'user_auth.User'
 
 # Add logging configuration
 LOGGING = {
@@ -231,3 +269,23 @@ LOGGING = {
         },
     },
 }
+
+# Celery Configuration (removed for simple approach)
+# CELERY_BROKER_URL = os.getenv('REDIS_URL', 'redis://localhost:6379/0')
+# CELERY_RESULT_BACKEND = os.getenv('REDIS_URL', 'redis://localhost:6379/0')
+# CELERY_ACCEPT_CONTENT = ['json']
+# CELERY_TASK_SERIALIZER = 'json'
+# CELERY_RESULT_SERIALIZER = 'json'
+# CELERY_TIMEZONE = 'UTC'
+# CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
+
+# Celery Beat Settings (removed for simple approach)
+# CELERY_BEAT_SCHEDULE = {
+#     'daily-reddit-scraper': {
+#         'task': 'document_processor.tasks.run_daily_reddit_scraper',
+#         'schedule': 86400.0,  # Run every 24 hours
+#         'options': {
+#             'timezone': 'UTC',
+#         }
+#     },
+# }

@@ -1,4 +1,5 @@
 venv/
+.venv/
 __pycache__/
 *.pyc
 *.pyo
@@ -8,4 +9,10 @@ __pycache__/
 *.pywz
 *.pyzw  
 
+.DS_Store
+
 .env
+.venv/
+rag_project/.streamlit/config.toml
+
+rag_project/document_processor/twitter_utils/twitter_search_results/

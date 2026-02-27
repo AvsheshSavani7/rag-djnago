@@ -4,24 +4,44 @@ from .views import (
     ProcessingJobDetailView,
     ProcessEmbeddingsView,
     ListAllDealsView,
+    ListAllDealsNoPaginationView,
     PineconeVectorListView,
     UpdatePineconeVectorView,
     ChatWithAIView,
-    SummaryGenerationView
+    SummaryGenerationView,
+    SummaryEngineView,
+    JobStatusView,
+    HighValueFollowersView,
+    TweetsView,
+    RedditPostsView,
+    RedditScraperTaskView
 )
 
 urlpatterns = [
     path('process/', ProcessFileView.as_view(), name='process_file'),
     path('embed/', ProcessEmbeddingsView.as_view(), name='process_embeddings'),
     path('deals/', ListAllDealsView.as_view(), name='list_deals'),
+    path('deals/all/', ListAllDealsNoPaginationView.as_view(), name='list_all_deals'),
     path('deals/<str:id>/',
          ProcessingJobDetailView.as_view(), name='job_detail'),
+    path('jobs/<str:job_id>/',
+         JobStatusView.as_view(), name='job_status'),
     path('vectors/<str:deal_id>/',
          PineconeVectorListView.as_view(), name='vector_list'),
     path('vectors/update/<str:vector_id>/',
          UpdatePineconeVectorView.as_view(), name='update_vector'),
     path('chat/', ChatWithAIView.as_view(), name='chat_with_ai'),
-    path('summary/', SummaryGenerationView.as_view(), name='generate_summary')
+    path('summary/', SummaryGenerationView.as_view(), name='generate_summary'),
+    path('summary/engine/', SummaryEngineView.as_view(),
+         name='generate_summary_engine'),
+    path('highvaluefollowers/<str:deal_id>/',
+         HighValueFollowersView.as_view(), name='high_value_followers'),
+    path('tweets/<str:deal_id>/',
+         TweetsView.as_view(), name='tweets'),
+    path('redditposts/<str:deal_id>/',
+         RedditPostsView.as_view(), name='reddit_posts'),
+    path('reddit-scraper/tasks/',
+         RedditScraperTaskView.as_view(), name='reddit_scraper_tasks')
 ]
 
 
@@ -33,3 +53,6 @@ urlpatterns = [
 # /api/v1/vectors/update/<str:vector_id>/  update vector by id
 # /api/v1/chat/  chat with ai by deal id
 # /api/v1/summary/  generate summary by deal id
+# /api/v1/highvaluefollowers/<str:deal_id>/  get high value followers for a deal
+# /api/v1/tweets/<str:deal_id>/  get tweets for a deal
+# /api/v1/redditposts/<str:deal_id>/  get reddit posts for a deal

@@ -143,7 +143,7 @@ The system then consolidates these sections to generate a comprehensive document
 
 7. Set up Pinecone
    - Create an account at https://www.pinecone.io/
-   - Create a new index with dimensions=1536 (for OpenAI embeddings)
+   - Create a new index with dimensions=3072 (for OpenAI embeddings)
    - Set the metric to "cosine"
 
 8. Run database migrations
@@ -242,3 +242,12 @@ gunicorn rag_project.wsgi:application --bind 0.0.0.0:8000 --workers 3
 
 
 python manage.py runserver 0.0.0.0:8000
+
+#for socket.io connection 
+uvicorn rag_project.asgi:application --host 0.0.0.0 --port 8000 --reload
+
+
+curl http://localhost:8000/api/sec/filings/
+curl http://localhost:8000/api/sec/8k-filings/
+curl http://localhost:8000/api/sec/stats/
+
