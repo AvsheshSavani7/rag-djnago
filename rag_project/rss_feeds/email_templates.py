@@ -42,7 +42,7 @@ def _deal_info_block(
     deal_info: Dict[str, Any],
     email_note: Optional[str] = None,
 ) -> str:
-    """Render deal details block for the email body."""
+    """Render deal details block for the email body. Shows US listed and Market cap > $100M when present."""
     note_line = ""
     if email_note and email_note in EMAIL_NOTE_LABELS:
         note_line = f'<p style="margin:0 0 8px 0; font-size:12px; font-weight:bold; color:#2c5282;">{escape_html(EMAIL_NOTE_LABELS[email_note])}</p>'
@@ -59,6 +59,20 @@ def _deal_info_block(
     if sec_url:
         sec_line = f'<p style="margin:4px 0 0 0; font-size:12px;">SEC: <a href="{escape_html(sec_url)}" style="color:#4a90e2;" target="_blank">Filing</a></p>'
 
+    us_listed_line = ""
+    if "is_target_us_listed" in deal_info:
+        val = deal_info["is_target_us_listed"]
+        text = "Yes" if val else "No"
+        color = "#28a745" if val else "#dc3545"
+        us_listed_line = f'<p style="margin:4px 0 0 0; font-size:12px; color:#555;">Target US listed: <span style="color:{color}; font-weight:bold;">{escape_html(text)}</span></p>'
+
+    market_cap_line = ""
+    if "is_target_market_cap_gt_100m" in deal_info:
+        val = deal_info["is_target_market_cap_gt_100m"]
+        text = "Yes (&gt; $100M)" if val else "No (&lt; $100M)"
+        color = "#28a745" if val else "#dc3545"
+        market_cap_line = f'<p style="margin:4px 0 0 0; font-size:12px; color:#555;">Target market cap &gt; $100M: <span style="color:{color}; font-weight:bold;">{escape_html(text)}</span></p>'
+
     return f"""
     <div style="margin:16px 0; padding:12px; background-color:#f8f9fa; border-left:4px solid #4a90e2; border-radius:4px;">
       {note_line}
@@ -67,6 +81,8 @@ def _deal_info_block(
       <p style="margin:4px 0 0 0; font-size:12px; color:#555;">Acquirer: <strong>{acquirer}</strong> (CIK: {acquirer_cik})</p>
       <p style="margin:4px 0 0 0; font-size:12px; color:#555;">Announce date: {announce}</p>
       {sec_line}
+      {us_listed_line}
+      {market_cap_line}
       {f'<p style="margin:4px 0 0 0; font-size:11px; color:#888;">Deal ID: {deal_id}</p>' if deal_id else ''}
     </div>"""
 

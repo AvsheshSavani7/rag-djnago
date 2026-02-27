@@ -127,38 +127,136 @@ def get_deals_record_string() -> str:
     return "\n".join(records)
 
 
-# --- Prompt 1: Is this merger-related? Is it a self-announce of a new merger? (web search to read article) ---
-PROMPT_1_MERGER_CHECK = """You are classifying a news article. Use web search or a browser to open and read the full article at this URL.
+# --- Prompt 1: Does this article say anything about a deal we follow? Return true+deal_id or false. ---
+PROMPT_1_DEAL_WE_FOLLOW = """We track specific M&A deals.
 
-ARTICLE URL: {article_url}
-ARTICLE TITLE: {article_title}
+Use web search or a browser to open and read the article at this URL.
 
-Then answer two questions. Return ONLY a JSON object with no other text.
+DEAL RECORDS WE FOLLOW (one per line, format:
+deal_id|target_name|acquirer_name|target_aliases|parent_aliases):
 
-1. "merger_related":
-   Is this article related to any merger, acquisition, divestiture, asset purchase, business purchase, corporate transaction, or strategic investment activity?
-   Include corporate acquisitions, business unit sales, property acquisitions, majority stake purchases, and buyouts.
-   true or false.
-
-2. "is_self_announce_new_merger":
-   Does this article ITSELF formally announce a specific new corporate merger or acquisition between companies?
-   Only return true if the primary purpose is to announce a company acquiring or merging with another company.
-   Exclude property-only purchases, financing transactions, internal restructurings, or commentary on past deals.
-
-Format: {{"merger_related": true|false, "is_self_announce_new_merger": true|false}}"""
-
-
-# --- Prompt 2: If merger-related, is this deal in our database? Return deal_id. (web search to read article) ---
-PROMPT_2_MATCH_DEAL_ID = """We have a merger-related article. Use web search to open and read the article, then check if the deal is in our database.
-
-DEAL RECORDS IN OUR DATABASE (one per line, format: deal_id|target_name|acquirer_name|target_aliases|parent_aliases).
 {deals_record}
 
 ARTICLE URL: {article_url}
-ARTICLE TITLE: {article_title}
 
-If the article is about ONE of the deals in the list above, return that deal's deal_id. If NOT in our database, return null for deal_id.
-Return ONLY a JSON object: {{"deal_id": "<id>"|null}}"""
+Determine whether this article is specifically about ONE of the tracked deals listed above.
+
+Strict matching rules:
+• A match requires BOTH sides of the same transaction (target AND acquirer, or their aliases) to be clearly referenced in the context of the same deal.
+• The article must refer to the same specific transaction (not a different deal between the same companies).
+• Use target_name, acquirer_name, target_aliases, and parent_aliases carefully.
+• Only match if the article discusses:
+    - Regulatory approval
+    - Deal closing
+    - Amendment
+    - Litigation tied to the deal
+    - Shareholder vote
+    - Financing directly tied to the deal
+    - Termination of the deal
+
+Do NOT match if:
+• The companies are mentioned independently but not as part of the same transaction.
+• The article refers to a past, unrelated deal.
+• The article discusses general M&A trends.
+• The article discusses a different transaction involving one of the companies.
+• Only one side (target or acquirer) is mentioned.
+
+If EXACTLY ONE tracked deal is clearly referenced, return:
+{{"match": true, "deal_id": "<matching_deal_id>"}}
+
+If no tracked deal is referenced, return:
+{{"match": false, "deal_id": null}}
+
+Return ONLY the JSON object. No explanation.
+"""
+
+# --- Prompt 2: Is this article a self-announce of a new merger? Extract deal fields. ---
+PROMPT_2_SELF_ANNOUNCE_EXTRACT = """Use web search or a browser to open and read the article at this URL.
+
+ARTICLE URL: {article_url}
+
+1. Determine whether this article is a formal announcement of a NEW merger or acquisition transaction.
+
+Return true ONLY if the primary purpose of the article is to announce:
+• A company acquiring another company,
+• A merger agreement between companies,
+• A company acquiring a meaningful business unit, core operating assets, or intellectual property of another company.
+
+Return false if the article is only about:
+• Real estate purchases unrelated to acquiring a business,
+• Partnerships or collaborations,
+• Financing or debt transactions,
+• Executive hires,
+• Product launches,
+• Growth strategy commentary,
+• Retrospective discussion of past deals,
+• Industry trend commentary,
+• Regulatory filings without a new transaction announcement.
+
+2. If and only if (1) is true, extract the deal details.
+
+Return ONLY a JSON object with these exact keys (use null for unknown):
+
+- "is_it_self_announce_merger": true or false
+- "target_name": Legal name of the company being acquired
+- "acquire_name": Legal name of the acquiring company / parent / buyer
+- "cik": Target company CIK (10 digits, leading zeros) if public; otherwise null
+- "acquirer_cik": Acquirer company CIK (10 digits, leading zeros) if public; otherwise null
+- "announce_date": Official transaction announcement or signing date in YYYY-MM-DD format
+    • This must be the deal announcement/signing date.
+    • Do NOT use article publish date unless explicitly stated as announcement date.
+    • If multiple dates exist, prefer the date of entry into the merger agreement.
+- "sec_ex_2_1_url": Direct URL to SEC EX-2.1 merger agreement document (.htm) on sec.gov
+    • Only return URL if document type is EX-2.1.
+    • Do NOT return 8-K index pages.
+    • Do NOT return S-4 cover pages.
+    • Do NOT return press releases.
+    • If no EX-2.1 exists, return null.
+
+Return only the JSON object. No explanation.
+"""
+
+# --- Prompt 3: Is target company US listed and market cap > $100M? ---
+PROMPT_3_US_LISTED_MARKET_CAP = """Use web search to determine listing and market capitalization information for the TARGET company.
+
+ARTICLE URL: {article_url}
+
+Company details (from the article):
+- Target company: {target_name}
+- Acquirer company: {acquire_name}
+
+Determine the following about the TARGET company (the one being acquired):
+
+1. "is_us_listed":
+   Return true ONLY if the target company itself (not its parent unless clearly the same entity) is publicly traded on a US exchange such as:
+   • NYSE
+   • NASDAQ
+   • NYSE American
+   • NYSE Arca
+   • OTC Markets (if publicly traded in the US)
+
+   Return false if:
+   • The company is private
+   • The company is listed only on a non-US exchange
+   • Only its parent company is US listed
+   • Listing cannot be confirmed
+
+2. "is_market_cap_gt_100m":
+   Return true ONLY if reliable sources confirm that the target company's current or most recently reported market capitalization exceeds USD $100,000,000.
+   • Use recent financial sources (exchange site, Yahoo Finance, SEC filings, etc.).
+   • If the company is not publicly traded, return false.
+   • If market cap cannot be reliably determined, return false.
+
+Important:
+• Verify the correct legal entity before answering.
+• Do not assume based on name similarity.
+• If uncertain, return false.
+
+Return ONLY a JSON object:
+{{"is_us_listed": true|false, "is_market_cap_gt_100m": true|false}}
+
+No explanation.
+"""
 
 
 def _call_llm_json_with_web_search(
@@ -195,53 +293,91 @@ def _call_llm_json_with_web_search(
     return None
 
 
-def prompt_1_merger_check(
-    article_html: str,
+def prompt_1_deal_we_follow(
     article_url: str,
-    article_title: str,
+    deals_record_string: str,
 ) -> Dict[str, Any]:
     """
-    Prompt 1: Is this merger-related? Is it a self-announce of a new merger?
-    Uses web search to read the article. Returns: { "merger_related": bool, "is_self_announce_new_merger": bool }
+    Prompt 1: Does this article say anything about a deal we follow?
+    Returns: { "match": bool, "deal_id": str|None }
     """
-    out = {"merger_related": False, "is_self_announce_new_merger": False}
+    out = {"match": False, "deal_id": None}
     parsed = _call_llm_json_with_web_search(
-        PROMPT_1_MERGER_CHECK.format(
+        PROMPT_1_DEAL_WE_FOLLOW.format(
+            deals_record=deals_record_string or "(no deals)",
             article_url=article_url or "",
-            article_title=article_title or "",
         )
     )
     if not parsed or not isinstance(parsed, dict):
         return out
-    out["merger_related"] = bool(parsed.get("merger_related"))
-    out["is_self_announce_new_merger"] = bool(
-        parsed.get("is_self_announce_new_merger"))
+    out["match"] = bool(parsed.get("match"))
+    did = parsed.get("deal_id")
+    if did is not None:
+        out["deal_id"] = str(did).strip() or None
     return out
 
 
-def prompt_2_match_deal_id(
-    article_html: str,
-    article_url: str,
-    article_title: str,
-    deals_record_string: str,
-) -> Optional[str]:
+def _normalize_p2_parsed(parsed: Dict[str, Any]) -> Dict[str, Any]:
+    """Normalize Prompt 2 parsed response: CIK padding, key names."""
+    out = {
+        "is_it_self_announce_merger": False,
+        "target_name": None,
+        "acquire_name": None,
+        "cik": None,
+        "acquirer_cik": None,
+        "announce_date": None,
+        "sec_ex_2_1_url": None,
+    }
+    if not parsed:
+        return out
+    out["is_it_self_announce_merger"] = bool(
+        parsed.get("is_it_self_announce_merger"))
+    for key in ("target_name", "acquire_name", "cik", "acquirer_cik", "announce_date", "sec_ex_2_1_url"):
+        if key in parsed and parsed[key] is not None:
+            out[key] = str(parsed[key]).strip() or None
+    if out["cik"]:
+        out["cik"] = re.sub(r"\D", "", out["cik"]).zfill(10)[:10]
+    if out["acquirer_cik"]:
+        out["acquirer_cik"] = re.sub(
+            r"\D", "", out["acquirer_cik"]).zfill(10)[:10]
+    return out
+
+
+def prompt_2_self_announce_extract(article_url: str) -> Dict[str, Any]:
     """
-    Prompt 2: If merger-related, is this deal in our database? Return deal_id or None.
-    Uses web search to read the article.
+    Prompt 2: Is this article a self-announce of a new merger? Extract deal fields.
+    Returns: is_it_self_announce_merger, target_name, acquire_name, cik, acquirer_cik, announce_date, sec_ex_2_1_url.
     """
     parsed = _call_llm_json_with_web_search(
-        PROMPT_2_MATCH_DEAL_ID.format(
-            deals_record=deals_record_string or "(no deals)",
+        PROMPT_2_SELF_ANNOUNCE_EXTRACT.format(article_url=article_url or "")
+    )
+    if not parsed or not isinstance(parsed, dict):
+        return _normalize_p2_parsed({})
+    return _normalize_p2_parsed(parsed)
+
+
+def prompt_3_us_listed_market_cap(
+    article_url: str,
+    target_name: str,
+    acquire_name: str,
+) -> Dict[str, Any]:
+    """
+    Prompt 3: Is target US listed and market cap > $100M?
+    Returns: { "is_us_listed": bool, "is_market_cap_gt_100m": bool }
+    """
+    out = {"is_us_listed": False, "is_market_cap_gt_100m": False}
+    parsed = _call_llm_json_with_web_search(
+        PROMPT_3_US_LISTED_MARKET_CAP.format(
             article_url=article_url or "",
-            article_title=article_title or "",
+            target_name=target_name or "—",
+            acquire_name=acquire_name or "—",
         )
     )
     if not parsed or not isinstance(parsed, dict):
-        return None
-    did = parsed.get("deal_id")
-    if did is None:
-        return None
-    return str(did).strip() or None
+        return out
+    out["is_us_listed"] = bool(parsed.get("is_us_listed"))
+    out["is_market_cap_gt_100m"] = bool(parsed.get("is_market_cap_gt_100m"))
+    return out
 
 
 EXTRACT_NEW_DEAL_PROMPT = """You are extracting M&A deal information from a news article. 
@@ -454,17 +590,41 @@ def get_deal_info_for_email(deal_id: str) -> Optional[Dict[str, Any]]:
     }
 
 
-def deal_info_from_extracted(extracted: Dict[str, Any], in_db: bool = False, deal_id: Optional[str] = None) -> Dict[str, Any]:
-    """Build deal_info dict from extracted fields (for email when deal not in DB or for display)."""
-    return {
+def deal_info_from_extracted(
+    extracted: Dict[str, Any],
+    in_db: bool = False,
+    deal_id: Optional[str] = None,
+    is_target_us_listed: Optional[bool] = None,
+    is_target_market_cap_gt_100m: Optional[bool] = None,
+) -> Dict[str, Any]:
+    """Build deal_info dict from extracted fields (for email). Optional US listed / market cap for display."""
+    sec_url = extracted.get("sec_url") or extracted.get("sec_ex_2_1_url") or ""
+    info = {
         "id": deal_id or "",
         "target_name": (extracted.get("target_name") or "").strip() or "—",
         "acquire_name": (extracted.get("acquire_name") or "").strip() or "—",
         "cik": extracted.get("cik") or "",
         "acquirer_cik": extracted.get("acquirer_cik") or "",
-        "sec_url": extracted.get("sec_url") or "",
+        "sec_url": sec_url,
         "announce_date": extracted.get("announce_date") or "",
         "in_db": in_db,
+    }
+    if is_target_us_listed is not None:
+        info["is_target_us_listed"] = is_target_us_listed
+    if is_target_market_cap_gt_100m is not None:
+        info["is_target_market_cap_gt_100m"] = is_target_market_cap_gt_100m
+    return info
+
+
+def _extracted_to_create_payload(p2: Dict[str, Any]) -> Dict[str, Any]:
+    """Convert Prompt 2 response to payload for create_deal_from_extracted (sec_ex_2_1_url -> sec_url)."""
+    return {
+        "target_name": p2.get("target_name"),
+        "acquire_name": p2.get("acquire_name"),
+        "cik": p2.get("cik"),
+        "acquirer_cik": p2.get("acquirer_cik"),
+        "announce_date": p2.get("announce_date"),
+        "sec_url": p2.get("sec_ex_2_1_url"),
     }
 
 
@@ -478,16 +638,13 @@ def resolve_rss_item_flow(
     """
     Run the 3-prompt flow for one RSS item.
 
-    When dry_run=True, never create a new deal in DB (still extract and return deal_info from extraction).
+    Prompt 1: Does article mention a deal we follow? -> true+deal_id → attach deal in email, save item with deal_id.
+    Prompt 2 (if False): Is it self-announce new merger? + extract deal fields. If not self-announce -> skip.
+    Prompt 3 (if self-announce): US listed and market cap > $100M? If true -> create deal, attach deal_id. If false -> no deal in DB but send email with deal info + US listed/market cap.
 
-    Returns dict with:
-      - skip_email: bool. If True, do not save item and do not send email.
-      - deal_id: Optional[str]. Set when matched or when we created a new deal (for saving on FeedItem).
-      - deal_info: Optional[dict]. For email template.
-      - email_note: "existing_deal" | "new_deal_in_db" | "new_deal_not_in_db" | None (when skip_email).
+    Returns: skip_email, deal_id, deal_info, email_note.
     """
     source_url = (item.get("url") or "").strip()
-    article_title = (item.get("title") or "").strip()
     result = {
         "skip_email": True,
         "deal_id": None,
@@ -497,57 +654,70 @@ def resolve_rss_item_flow(
     if not source_url:
         return result
 
-    # We always use web search to read the article (no HTML fetch)
-    html = ""
+    # Prompt 1: Does this article say anything about a deal we follow?
+    p1 = prompt_1_deal_we_follow(
+        article_url=source_url, deals_record_string=deals_record_string)
+    match = p1.get("match", False)
+    deal_id = p1.get("deal_id")
+    logger.info(f"Prompt 1 match: {match}, deal_id: {deal_id}")
 
-    # Prompt 1
-    p1 = prompt_1_merger_check(
-        article_html=html or "", article_url=source_url, article_title=article_title)
-    merger_related = p1.get("merger_related", False)
-    is_self_announce = p1.get("is_self_announce_new_merger", False)
-    logger.info(
-        "merger_related: %s, is_self_announce: %s", merger_related, is_self_announce
-    )
-    if not merger_related:
-        return result
-
-    result["skip_email"] = False
-
-    # Prompt 2: match deal in DB
-    deal_id = prompt_2_match_deal_id(
-        article_html=html or "",
-        article_url=source_url,
-        article_title=article_title,
-        deals_record_string=deals_record_string,
-    )
-    logger.info("deal_id: %s", deal_id)
-
-    if deal_id:
+    if match and deal_id:
+        result["skip_email"] = False
         result["deal_id"] = deal_id
         result["deal_info"] = get_deal_info_for_email(deal_id)
         result["email_note"] = "existing_deal"
         if result["deal_info"]:
             result["deal_info"]["in_db"] = True
+        logger.debug("Prompt 1 match deal_id: %s", deal_id)
         return result
 
-    # Prompt 3: extract deal info (deal not in DB)
-    extracted = extract_new_deal_with_web_search(
-        article_html=html or "", article_url=source_url)
-    logger.info("extracted: %s", extracted)
-    if is_self_announce and not dry_run:
-        new_deal = create_deal_from_extracted(extracted)
+    # Prompt 2: Is it self-announce new merger? Extract deal fields.
+    p2 = prompt_2_self_announce_extract(article_url=source_url)
+    logger.info(f"Prompt 2: {p2}")
+    is_self_announce = p2.get("is_it_self_announce_merger", False)
+    logger.debug(
+        "Prompt 2 is_it_self_announce_merger: %s, extracted: %s", is_self_announce, p2)
+
+    if not is_self_announce:
+        return result
+
+    result["skip_email"] = False
+
+    # Prompt 3: US listed and market cap > $100M?
+    p3 = prompt_3_us_listed_market_cap(
+        article_url=source_url,
+        target_name=p2.get("target_name") or "",
+        acquire_name=p2.get("acquire_name") or "",
+    )
+    is_us_listed = p3.get("is_us_listed", False)
+    is_market_cap_gt_100m = p3.get("is_market_cap_gt_100m", False)
+    logger.info("Prompt 3 is_us_listed: %s, is_market_cap_gt_100m: %s",
+                is_us_listed, is_market_cap_gt_100m)
+
+    if is_us_listed and is_market_cap_gt_100m and not dry_run:
+        payload = _extracted_to_create_payload(p2)
+        logger.info(f"Payload: {payload}")
+        new_deal = create_deal_from_extracted(payload)
+        logger.info(f"New deal: {new_deal}")
         if new_deal:
             result["deal_id"] = str(new_deal.id)
             result["deal_info"] = get_deal_info_for_email(str(new_deal.id))
             result["email_note"] = "new_deal_in_db"
             if result["deal_info"]:
                 result["deal_info"]["in_db"] = True
+                result["deal_info"]["is_target_us_listed"] = is_us_listed
+                result["deal_info"]["is_target_market_cap_gt_100m"] = is_market_cap_gt_100m
         else:
+            logger.info(f"New deal not in db")
             result["deal_info"] = deal_info_from_extracted(
-                extracted, in_db=False)
+                p2, in_db=False, is_target_us_listed=is_us_listed, is_target_market_cap_gt_100m=is_market_cap_gt_100m
+            )
             result["email_note"] = "new_deal_not_in_db"
     else:
-        result["deal_info"] = deal_info_from_extracted(extracted, in_db=False)
+        result["deal_info"] = deal_info_from_extracted(
+            p2, in_db=False, is_target_us_listed=is_us_listed, is_target_market_cap_gt_100m=is_market_cap_gt_100m
+        )
         result["email_note"] = "new_deal_not_in_db"
-    logger.info("result: %s", result)
+
+    logger.info(f"Final result: {result}")
     return result
