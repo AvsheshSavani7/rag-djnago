@@ -252,7 +252,7 @@ def _call_llm_json_with_web_search(
             model=model,
             tools=[{"type": "web_search"}],
             input=prompt,
-            reasoning={"effort": "low"},
+            reasoning={"effort": "medium"},
         )
         result_text = None
         for item in response.output:
