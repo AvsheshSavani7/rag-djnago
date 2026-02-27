@@ -1636,6 +1636,7 @@ class SECFeedProcessor:
                                                 cik_number=str(cik_number),
                                                 accession_number=acc,
                                                 filing_date=f.get("filing_date"),
+                                                form_type=f.get("form"),
                                             ).save()
                                             log_and_print(
                                                 f"📥 Saved 10-K/10-Q record: {acc}"

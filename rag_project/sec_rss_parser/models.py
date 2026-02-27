@@ -265,6 +265,7 @@ class TenKTenQSummary(Document):
 
     created_at = DateTimeField(default=datetime.utcnow)
     updated_at = DateTimeField(default=datetime.utcnow)
+    form_type = StringField(required=False, max_length=50, null=True)
 
     meta = {
         'collection': '10k_10Q_Summary',
