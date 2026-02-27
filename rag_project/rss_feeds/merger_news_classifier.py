@@ -128,46 +128,26 @@ def get_deals_record_string() -> str:
 
 
 # --- Prompt 1: Does this article say anything about a deal we follow? Return true+deal_id or false. ---
-PROMPT_1_DEAL_WE_FOLLOW = """We track specific M&A deals.
+PROMPT_1_DEAL_WE_FOLLOW = """We have a list of deals we follow.
 
-Use web search or a browser to open and read the article at this URL.
-
-DEAL RECORDS WE FOLLOW (one per line, format:
-deal_id|target_name|acquirer_name|target_aliases|parent_aliases):
-
-{deals_record}
-
-ARTICLE URL: {article_url}
-
-Determine whether this article is specifically about ONE of the tracked deals listed above.
-
-Strict matching rules:
-• A match requires BOTH sides of the same transaction (target AND acquirer, or their aliases) to be clearly referenced in the context of the same deal.
-• The article must refer to the same specific transaction (not a different deal between the same companies).
-• Use target_name, acquirer_name, target_aliases, and parent_aliases carefully.
-• Only match if the article discusses:
-    - Regulatory approval
-    - Deal closing
-    - Amendment
-    - Litigation tied to the deal
-    - Shareholder vote
-    - Financing directly tied to the deal
-    - Termination of the deal
-
-Do NOT match if:
-• The companies are mentioned independently but not as part of the same transaction.
-• The article refers to a past, unrelated deal.
-• The article discusses general M&A trends.
-• The article discusses a different transaction involving one of the companies.
-• Only one side (target or acquirer) is mentioned.
-
-If EXACTLY ONE tracked deal is clearly referenced, return:
-{{"match": true, "deal_id": "<matching_deal_id>"}}
-
-If no tracked deal is referenced, return:
-{{"match": false, "deal_id": null}}
-
-Return ONLY the JSON object. No explanation.
+ Use web search to open and read the article at this URL. 
+ 
+ DEAL RECORDS WE FOLLOW (one per line, 
+ format: deal_id|target_name|acquirer_name|target_aliases|parent_aliases):
+ 
+  {deals_record} 
+  
+  ARTICLE URL: {article_url} 
+  
+  Does this article say anything about any of these deals (e.g. news, update, or mention of one of these target/acquirer names or aliases)? 
+  
+  If YES, return the matching deal_id. 
+  
+  If NO, return match false. 
+  
+  Return ONLY a JSON object: {{"match": true|false, "deal_id": "<id>"|null}} 
+  
+  Use deal_id only when match is true.
 """
 
 # --- Prompt 2: Is this article a self-announce of a new merger? Extract deal fields. ---
