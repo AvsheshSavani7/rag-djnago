@@ -12,7 +12,8 @@ FEED_TITLE_DISPLAY_NAMES = {
     "Merger and Acquisition Breaking News and Press Releases": "Business wire",
     "All Acquisitions, Mergers and Takeovers News and Press Releases from PR Newswire": "PR News",
     "GlobeNewswire - Mergers and Acquisitions": "GlobeNewswire - Mergers and Acquisitions",
-    "GlobeNewswire - Press Releases": "GlobeNewswire - Press Releases"
+    "GlobeNewswire - Press Releases": "GlobeNewswire - Press Releases",
+    "news.cision.com": "Cision News"
 
 }
 
@@ -186,7 +187,8 @@ def generate_rss_feed_item_email_html(
     # Old email = old email HTML (no extra content)
     # New email = old email HTML + deal related info or not_merger_related flag
     if email_note == "not_merger_related":
-        note_label = EMAIL_NOTE_LABELS.get("not_merger_related", "Merger related: false")
+        note_label = EMAIL_NOTE_LABELS.get(
+            "not_merger_related", "Merger related: false")
         extra_content = (
             f'<div style="margin:16px 0; padding:12px; background-color:#f8f9fa; border-left:4px solid #6c757d; border-radius:4px;">'
             f'<p style="margin:0; font-size:12px; font-weight:bold; color:#555;">{escape_html(note_label)}</p>'

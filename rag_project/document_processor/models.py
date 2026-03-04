@@ -60,6 +60,8 @@ class ProcessingJob(Document):
     ec_cases = DynamicField(null=True)
     accc_cases = DynamicField(null=True)
     ftc_early_termination = DynamicField(null=True)
+    canada_competition_bureau_cases = DynamicField(null=True)
+    nz_cases = DynamicField(null=True)
     target_ticker = StringField(max_length=10, required=False, null=True)
     acquirer_ticker = StringField(max_length=10, required=False, null=True)
     deal_status = StringField(max_length=100, required=False, null=True)
@@ -622,7 +624,8 @@ class MAEAnalysis(Document):
                 'deal_name', existing_analysis.deal_name)
             existing_analysis.pipeline_timestamp = analysis_data.get(
                 'pipeline_timestamp', existing_analysis.pipeline_timestamp)
-            existing_analysis.classification = analysis_data.get('classification')
+            existing_analysis.classification = analysis_data.get(
+                'classification')
             existing_analysis.risk_assessment = analysis_data.get(
                 'risk_assessment')
             existing_analysis.compliance = analysis_data.get('compliance')
