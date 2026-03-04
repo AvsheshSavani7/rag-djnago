@@ -13,6 +13,8 @@ from .serializers import (
 from .services import RSSFeedService
 from .models import Feed, FeedItem
 import logging
+import threading
+import copy
 
 logger = logging.getLogger(__name__)
 
@@ -38,22 +40,27 @@ class WebhookView(APIView):
                     'details': serializer.errors
                 }, status=status.HTTP_400_BAD_REQUEST)
 
-            # Process the webhook payload
-            result = RSSFeedService.process_webhook_payload(request.data)
+            # Copy payload for use in background (request may be closed after response)
+            payload = copy.deepcopy(request.data)
 
-            if result['success']:
-                logger.info(f"Webhook processed successfully: {result}")
-                return Response({
-                    'success': True,
-                    'message': 'Webhook processed successfully',
-                    'data': result
-                }, status=status.HTTP_200_OK)
-            else:
-                logger.error(f"Webhook processing failed: {result['error']}")
-                return Response({
-                    'success': False,
-                    'error': result['error']
-                }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            def process_webhook_background():
+                try:
+                    result = RSSFeedService.process_webhook_payload(payload)
+                    if result.get('success'):
+                        logger.info(f"Webhook processed successfully (background): {result}")
+                    else:
+                        logger.error(f"Webhook processing failed (background): {result.get('error')}")
+                except Exception as e:
+                    logger.exception(f"Error in background webhook processing: {e}")
+
+            thread = threading.Thread(target=process_webhook_background)
+            thread.daemon = True
+            thread.start()
+
+            return Response({
+                'success': True,
+                'message': 'Webhook accepted, processing in background'
+            }, status=status.HTTP_200_OK)
 
         except Exception as e:
             logger.error(f"Unexpected error in webhook: {str(e)}")
