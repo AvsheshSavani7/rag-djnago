@@ -30,11 +30,12 @@ def escape_html(text: Any) -> str:
     return text
 
 
-# Label for email_note: existing_deal | new_deal_in_db | new_deal_not_in_db
+# Label for email_note: existing_deal | new_deal_in_db | new_deal_not_in_db | not_merger_related
 EMAIL_NOTE_LABELS = {
     "existing_deal": "Existing deal related article",
     "new_deal_in_db": "New deal ",
     "new_deal_not_in_db": "Deal we not follow",
+    "not_merger_related": "Merger related: false",
 }
 
 
@@ -183,8 +184,18 @@ def generate_rss_feed_item_email_html(
     source_url = feed_data.get("source_url") or ""
 
     # Old email = old email HTML (no extra content)
-    # New email = old email HTML + deal related info (extra_content = deal block)
-    deal_block = _deal_info_block(deal_info, email_note) if deal_info else ""
+    # New email = old email HTML + deal related info or not_merger_related flag
+    if email_note == "not_merger_related":
+        note_label = EMAIL_NOTE_LABELS.get("not_merger_related", "Merger related: false")
+        extra_content = (
+            f'<div style="margin:16px 0; padding:12px; background-color:#f8f9fa; border-left:4px solid #6c757d; border-radius:4px;">'
+            f'<p style="margin:0; font-size:12px; font-weight:bold; color:#555;">{escape_html(note_label)}</p>'
+            f"</div>"
+        )
+    elif deal_info:
+        extra_content = _deal_info_block(deal_info, email_note)
+    else:
+        extra_content = ""
     html_email = _old_email_html(
         subject=subject,
         feed_display_name_escaped=feed_display_name_escaped,
@@ -194,7 +205,7 @@ def generate_rss_feed_item_email_html(
         desc_escaped=desc_escaped,
         date_pub=date_pub,
         author_line=author_line,
-        extra_content=deal_block,
+        extra_content=extra_content,
     )
 
     return subject, html_email

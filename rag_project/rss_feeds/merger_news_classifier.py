@@ -619,7 +619,7 @@ def resolve_rss_item_flow(
     Run the 3-prompt flow for one RSS item.
 
     Prompt 1: Does article mention a deal we follow? -> true+deal_id → attach deal in email, save item with deal_id.
-    Prompt 2 (if False): Is it self-announce new merger? + extract deal fields. If not self-announce -> skip.
+    Prompt 2 (if False): Is it self-announce new merger? If not self-announce -> send email with not_merger_related, do not save, do not run Prompt 3.
     Prompt 3 (if self-announce): US listed and market cap > $100M? If true -> create deal, attach deal_id. If false -> no deal in DB but send email with deal info + US listed/market cap.
 
     Returns: skip_email, deal_id, deal_info, email_note.
@@ -659,6 +659,8 @@ def resolve_rss_item_flow(
         "Prompt 2 is_it_self_announce_merger: %s, extracted: %s", is_self_announce, p2)
 
     if not is_self_announce:
+        result["skip_email"] = False
+        result["email_note"] = "not_merger_related"
         return result
 
     result["skip_email"] = False

@@ -295,6 +295,8 @@ class RSSFeedService:
                 for item, result in flow_results:
                     if result.get("skip_email"):
                         continue
+                    if result.get("email_note") == "not_merger_related":
+                        continue
                     item_with_deal = dict(item)
                     if result.get("deal_id"):
                         item_with_deal["deal_id"] = result["deal_id"]
