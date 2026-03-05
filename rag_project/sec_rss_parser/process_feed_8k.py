@@ -564,15 +564,15 @@ class EightKFeedProcessor:
                 return
 
             # Send email
-            self._send_ex21_email(item_data, company_details, filing_entry=filing_entry)
-
-            # Send historical 8-K filings email (last 1 year)
-            self._send_historical_8k_email(item_data)
+            self._send_ex21_email(
+                item_data, company_details, filing_entry=filing_entry)
 
             # Process EX-2.1 via 8-K document helper (Node API) if US-related and market cap > $100M
             if is_us_listed and market_cap_gt_100m:
+                # Send historical 8-K filings email (last 1 year)
                 log_and_print(
                     "✅ Qualified for 8-K EX-2.1 document processing (US-listed + market cap > $100M)")
+                self._send_historical_8k_email(item_data)
                 self._process_ex21_via_8k_helper(item_data, filing)
                 self.ex21_processed_count += 1
             else:
@@ -774,7 +774,8 @@ class EightKFeedProcessor:
                 doc_files = item_data.get('xbrl_files') or []
 
             # Generate email HTML
-            subject, html_email = generate_filing_email_html(item_data, doc_files)
+            subject, html_email = generate_filing_email_html(
+                item_data, doc_files)
 
             # Prepare payload
             payload = {
@@ -845,7 +846,7 @@ class EightKFeedProcessor:
             filings = fetch_sec_filings(
                 str(cik_number),
                 start_date=start_date,
-                form_types=["8-K"]
+                form_types=None
             )
 
             if not filings:
