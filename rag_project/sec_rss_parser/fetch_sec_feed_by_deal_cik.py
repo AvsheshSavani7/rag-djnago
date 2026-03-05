@@ -321,7 +321,6 @@ def fetch_feed_for_cik(cik, session, headers=None):
     url = SEC_FEED_URL_TEMPLATE.format(cik=cik)
     for attempt in range(3):
         try:
-            time.sleep(2 + attempt)
             resp = session.get(
                 url, headers=headers or DEFAULT_HEADERS, timeout=30)
             resp.raise_for_status()
@@ -960,6 +959,8 @@ def run_fetch_sec_feed_by_deal_cik(
             for cik in ciks:
                 raw = fetch_feed_for_cik(cik, session)
                 feed_fetches += 1
+                if feed_fetches % 10 == 0:
+                    time.sleep(0.5)
                 if not raw:
                     errors.append({"cik": cik, "deal_id": deal_id,
                                   "message": "Failed to fetch feed"})
