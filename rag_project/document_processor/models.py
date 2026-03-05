@@ -62,6 +62,7 @@ class ProcessingJob(Document):
     ftc_early_termination = DynamicField(null=True)
     canada_competition_bureau_cases = DynamicField(null=True)
     nz_cases = DynamicField(null=True)
+    fs_ec_cases = DynamicField(null=True)
     target_ticker = StringField(max_length=10, required=False, null=True)
     acquirer_ticker = StringField(max_length=10, required=False, null=True)
     deal_status = StringField(max_length=100, required=False, null=True)

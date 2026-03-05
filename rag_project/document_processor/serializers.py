@@ -33,6 +33,7 @@ class ProcessingJobSerializer(serializers.Serializer):
     canada_competition_bureau_cases = serializers.JSONField(
         required=False, allow_null=True)
     nz_cases = serializers.JSONField(required=False, allow_null=True)
+    fs_ec_cases = serializers.JSONField(required=False, allow_null=True)
     target_ticker = serializers.CharField(required=False, allow_null=True)
     acquirer_ticker = serializers.CharField(required=False, allow_null=True)
     deal_status = serializers.JSONField(required=False, allow_null=True)
