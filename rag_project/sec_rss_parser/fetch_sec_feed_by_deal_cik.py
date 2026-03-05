@@ -196,7 +196,6 @@ def fetch_and_parse_html_by_form_type(html_url, form_type_from_feed=None):
     Does not use services.py.
     """
     try:
-        time.sleep(2)
         resp = requests.get(
             html_url,
             headers=DEFAULT_HEADERS,
@@ -831,7 +830,9 @@ def process_items(items):
     unique = _filter_unique_items(items)
     processed = 0
     errors = []
-    for item_data in unique:
+    for idx, item_data in enumerate(unique):
+        if idx > 0 and idx % 10 == 0:
+            time.sleep(0.5)
         link = item_data.get("link")
         if not link:
             continue
