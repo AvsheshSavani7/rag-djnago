@@ -61,39 +61,29 @@ class DocumentProcessingService:
         """
         Run MAE (Material Adverse Effect) extraction pipeline for a deal.
         Fetches MAE text from Pinecone and processes it through the MAE analysis pipeline.
-        
+
         Args:
             deal_id (str): ID of the deal to process
         """
         try:
-            logger.info(f"Starting MAE extraction pipeline for deal_id: {deal_id}")
-            
-            # Import MAE pipeline
-            mae_dir = Path(__file__).parent / 'MAE'
-            sys.path.insert(0, str(mae_dir))
-            
-            try:
-                from run_full_pipeline import run_pipeline_for_deal_id
-                
-                # Run the pipeline
-                results = run_pipeline_for_deal_id(str(deal_id))
-                
-                if results:
-                    logger.info(f"MAE extraction completed successfully for deal_id: {deal_id}")
-                    logger.info(f"Risk level: {results.get('risk_assessment', {}).get('risk_summary', {}).get('final_risk_level', 'N/A')}")
-                else:
-                    logger.warning(f"MAE extraction found no MAE text for deal_id: {deal_id}")
-                    
-            except Exception as e:
-                logger.error(f"Error running MAE pipeline: {e}")
-                logger.error(traceback.format_exc())
-            finally:
-                # Clean up sys.path
-                if str(mae_dir) in sys.path:
-                    sys.path.remove(str(mae_dir))
-                    
+            logger.info(
+                f"Starting MAE extraction pipeline for deal_id: {deal_id}")
+
+            from document_processor.MAE.run_full_pipeline import run_pipeline_for_deal_id
+
+            results = run_pipeline_for_deal_id(str(deal_id))
+
+            if results:
+                logger.info(
+                    f"MAE extraction completed successfully for deal_id: {deal_id}")
+                logger.info(
+                    f"Risk level: {results.get('risk_assessment', {}).get('risk_summary', {}).get('final_risk_level', 'N/A')}")
+            else:
+                logger.warning(
+                    f"MAE extraction found no MAE text for deal_id: {deal_id}")
+
         except Exception as e:
-            logger.error(f"Error in MAE extraction pipeline: {e}")
+            logger.error(f"Error running MAE pipeline: {e}")
             logger.error(traceback.format_exc())
 
     def _send_sec_filing_event(self, sec_filing_id, following_status, error_message=None):
@@ -432,9 +422,11 @@ Output JSON format (ONLY this)
                 if target_name:
                     lines.append("- Target: %s" % target_name)
                 if not acquire_name:
-                    lines.append("Return only target_aliases; set parent_aliases to [].")
+                    lines.append(
+                        "Return only target_aliases; set parent_aliases to [].")
                 elif not target_name:
-                    lines.append("Return only parent_aliases; set target_aliases to [].")
+                    lines.append(
+                        "Return only parent_aliases; set target_aliases to [].")
                 input_block = "\n".join(lines)
             else:
                 logger.warning(
