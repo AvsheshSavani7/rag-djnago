@@ -564,7 +564,7 @@ class EightKFeedProcessor:
                 return
 
             # Send email
-            self._send_ex21_email(item_data, company_details)
+            self._send_ex21_email(item_data, company_details, filing_entry=filing_entry)
 
             # Send historical 8-K filings email (last 1 year)
             self._send_historical_8k_email(item_data)
@@ -755,13 +755,26 @@ class EightKFeedProcessor:
 
         return item_data
 
-    def _send_ex21_email(self, item_data, company_details):
-        """Send email for EX-2.1 filing"""
+    def _send_ex21_email(self, item_data, company_details, filing_entry=None):
+        """Send email for EX-2.1 filing. If filing_entry is provided, use it for doc table (file/size from SEC)."""
         try:
             log_and_print("📧 Generating and sending EX-2.1 email")
 
+            # Build doc_files for template (match SEC table when filing_entry available)
+            if filing_entry:
+                doc_files = [{
+                    'type': filing_entry.get('document_type', 'EX-2.1'),
+                    'url': filing_entry.get('url'),
+                    'description': filing_entry.get('description', ''),
+                    'file': filing_entry.get('file', ''),
+                    'size': filing_entry.get('size', 0),
+                    'sequence': filing_entry.get('sequence', 0),
+                }]
+            else:
+                doc_files = item_data.get('xbrl_files') or []
+
             # Generate email HTML
-            subject, html_email = generate_filing_email_html(item_data)
+            subject, html_email = generate_filing_email_html(item_data, doc_files)
 
             # Prepare payload
             payload = {
