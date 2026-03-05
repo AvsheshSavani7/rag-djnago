@@ -6,6 +6,7 @@ from .views import (
     SEC8KFilingListView,
     SECFeedStatusView,
     SECFilingStatsView,
+    FetchSECFeedByDealCIKView,
 )
 
 app_name = 'sec_rss_parser'
@@ -13,6 +14,13 @@ app_name = 'sec_rss_parser'
 urlpatterns = [
     # Process SEC RSS feed
     path('process-feed/', ProcessSECFeedView.as_view(), name='process_feed'),
+
+    # Fetch SEC feed by deal CIK
+    path('fetch-feed-by-deal-cik/', FetchSECFeedByDealCIKView.as_view(),
+         name='fetch_feed_by_deal_cik'),
+    # demo RSS file curl "http://localhost:8000/sec-rss-parser/fetch-feed-by-deal-cik/?use_demo=true&limit_deals=5"
+    # live SEC feeds curl "http://localhost:8000/sec-rss-parser/fetch-feed-by-deal-cik/?limit_deals=10"
+    # custom output path:curl "http://localhost:8000/sec-rss-parser/fetch-feed-by-deal-cik/?use_demo=true&limit_deals=5&output_path=/path/to/output.json"
 
     # List SEC filings
     path('filings/', SECFilingListView.as_view(), name='filings_list'),

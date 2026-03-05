@@ -278,3 +278,85 @@ class TenKTenQSummary(Document):
 
     def __str__(self):
         return f"10K/10Q Summary - {self.accession_number} - {self.cik_number}"
+
+
+class SECFilingSummary(Document):
+    """
+    Unified summary collection for all SEC form types (8-K, 10-K/10-Q, proxy).
+    One document per filing; only the nested object for that form_type is set, others are null.
+    """
+    _id = StringField(primary_key=True, default=generate_object_id)
+
+    accession_number = StringField(required=False, max_length=50, null=True)
+    cik_number = StringField(required=False, max_length=20, null=True)
+    sec_document_url = StringField(required=True, max_length=2000)
+    # Normalized date for filtering (8-K: MM/DD/YY, 10-K/10-Q: YYYY-MM-DD, proxy: YYYY-MM-DD)
+    filing_date = DateTimeField(required=False, null=True)
+    deal_id = StringField(required=False, max_length=50, null=True)
+
+    created_at = DateTimeField(default=datetime.utcnow)
+    updated_at = DateTimeField(default=datetime.utcnow)
+    form_type = StringField(required=True, max_length=50)
+
+    # When form_type is proxy (DEFM14A, DEF 14A, etc.): only proxy is set
+    # Proxy node schema (all fields stored as dict):
+    # {
+    #   "proxy_parsing_status": "pending|processing|completed|failed",
+    #   "empty_percentage": float (0-100),
+    #   "processing_state": {
+    #     "pdf_created": bool,
+    #     "toc_found": bool,
+    #     "toc_extracted": bool,
+    #     "sections_extracted": bool,
+    #     "empty_percentage": float,
+    #     "iteration_count": int
+    #   },
+    #   "s3_urls": {
+    #     "pdf_url": str|None,
+    #     "toc_pdf_url": str|None,
+    #     "toc_json_url": str|None,
+    #     "sections_json_url": str|None
+    #   },
+    #   "pinecone_processing_status": "pending|processing|completed|failed",
+    #   "pinecone_processed_at": datetime|None,
+    #   "pinecone_error_message": str|None,
+    #   "summary_generation_status": "pending|processing|completed|failed",
+    #   "summary_docx_url": str|None,
+    #   "summary_generated_at": datetime|None,
+    #   "agent_response": str|None,
+    #   "error_message": str|None,
+    #   "completed_at": datetime|None,
+    #   "total_sections": int,
+    #   "empty_sections": int,
+    #   "iteration_count": int
+    # }
+    proxy = DictField(null=True)
+
+    # When form_type is 10-K or 10-Q: only ten_k_ten_q is set
+    ten_k_ten_q = DictField(null=True)
+
+    # When form_type is 8-K: only 8_k is set. Exhibit 99.1 is inside 8_k.filings[], never a separate top-level record.
+    eight_k = DictField(null=True, db_field="8_k")
+
+    # Future expansion; must always be present, null for now.
+    other_filings = DictField(null=True, db_field="other_filings")
+
+    meta = {
+        'collection': 'sec_filing_summary',
+        # Uses Deal_DB_New (MONGODB_CONNECTION_STRING_NEW)
+        'indexes': [
+            'accession_number',
+            'cik_number',
+            'deal_id',
+            'filing_date',
+            'form_type',
+            'sec_document_url',
+        ],
+    }
+
+    def save(self, *args, **kwargs):
+        self.updated_at = datetime.utcnow()
+        return super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"SECFilingSummary - {self.form_type} - {self.accession_number or self.sec_document_url[:50]}"

@@ -22,6 +22,15 @@ from proxy_processor.proxy_summary_service import ProxySummaryService
 logger = logging.getLogger(__name__)
 
 
+def _sync_proxy_to_sec_filing_summary(proxy_doc):
+    """Sync ProxyDocument state to sec_filing_summary (proxy node)."""
+    try:
+        from sec_rss_parser.sec_filing_summary_sync import sync_proxy_document_to_sec_filing_summary
+        sync_proxy_document_to_sec_filing_summary(proxy_doc)
+    except Exception as e:
+        logger.error(f"Error syncing to sec_filing_summary: {str(e)}")
+
+
 def escape_html(text):
     """Escape HTML special characters"""
     if text is None:
@@ -244,6 +253,7 @@ def process_sec_document_helper(cik_number, company_name, sec_filling_id, filing
 
         # Update SEC filing collection with following and following_status
         sec_filing_updated = False
+        accession_number = None
         try:
             # Find the SEC filing by _id (sec_filling_id is the MongoDB ObjectId)
             sec_filing = SECFiling.objects(_id=sec_filling_id).first()
@@ -252,6 +262,7 @@ def process_sec_document_helper(cik_number, company_name, sec_filling_id, filing
                 sec_filing.following_status = "In Progress"
                 sec_filing.save()
                 sec_filing_updated = True
+                accession_number = getattr(sec_filing, "accession_number", None)
                 logger.info(
                     f"Updated SEC filing {sec_filling_id} with following=True and following_status='In Progress'")
             else:
@@ -260,6 +271,22 @@ def process_sec_document_helper(cik_number, company_name, sec_filling_id, filing
         except Exception as e:
             logger.error(
                 f"Error updating SEC filing {sec_filling_id}: {str(e)}")
+
+        # Save proxy record in sec_filing_summary (proxy node) – canonical store for proxy data
+        try:
+            from sec_rss_parser.sec_filing_summary_sync import create_sec_filing_summary_for_proxy_start
+            create_sec_filing_summary_for_proxy_start(
+                proxy_sec_url=proxy_sec_url,
+                cik_number=cik_number,
+                form_type=form_type,
+                filing_date=filing_date,
+                deal_id=deal_id,
+                accession_number=accession_number,
+                sec_filling_id=sec_filling_id,
+            )
+            logger.info("Created/updated sec_filing_summary (proxy node) for proxy start")
+        except Exception as sync_err:
+            logger.error(f"Error creating sec_filing_summary for proxy start: {str(sync_err)}")
 
         # Start processing in a separate thread
         processing_thread = threading.Thread(
@@ -367,6 +394,7 @@ def process_proxy_document_async(proxy_doc_id, proxy_sec_url):
         proxy_doc = ProxyDocument.objects.get(id=proxy_doc_id)
         proxy_doc.proxy_parsing_status = 'processing'
         proxy_doc.save()
+        _sync_proxy_to_sec_filing_summary(proxy_doc)
 
         # Log processing start
         log_entry = ProxyProcessingLog(
@@ -397,6 +425,7 @@ def process_proxy_document_async(proxy_doc_id, proxy_sec_url):
             proxy_doc.error_message = f'Processing failed: Empty percentage too high ({empty_percentage:.1f}% > 40%)'
             proxy_doc.completed_at = datetime.utcnow()
             proxy_doc.save()
+            _sync_proxy_to_sec_filing_summary(proxy_doc)
 
             # Update SEC filing status to Failed
             try:
@@ -467,6 +496,7 @@ def process_proxy_document_async(proxy_doc_id, proxy_sec_url):
             proxy_doc.proxy_parsing_status = 'completed'
             proxy_doc.completed_at = datetime.utcnow()
             proxy_doc.save()
+            _sync_proxy_to_sec_filing_summary(proxy_doc)
 
             # Update SEC filing status to Completed
             try:
@@ -533,6 +563,7 @@ def process_proxy_document_async(proxy_doc_id, proxy_sec_url):
             proxy_doc.error_message = str(e)
             proxy_doc.completed_at = datetime.utcnow()
             proxy_doc.save()
+            _sync_proxy_to_sec_filing_summary(proxy_doc)
 
             # Update SEC filing status to Failed
             try:
@@ -592,6 +623,7 @@ def process_sections_with_pinecone(proxy_doc_id, sections_json_url):
         proxy_doc.pinecone_processing_status = 'completed'
         proxy_doc.pinecone_processed_at = datetime.utcnow()
         proxy_doc.save()
+        _sync_proxy_to_sec_filing_summary(proxy_doc)
 
         # Log completion
         log_entry = ProxyProcessingLog(
@@ -665,6 +697,7 @@ def process_sections_with_pinecone(proxy_doc_id, sections_json_url):
             proxy_doc.pinecone_processing_status = 'failed'
             proxy_doc.pinecone_error_message = str(e)
             proxy_doc.save()
+            _sync_proxy_to_sec_filing_summary(proxy_doc)
         except:
             pass
 
@@ -756,6 +789,10 @@ def generate_proxy_summary(proxy_doc_id):
                 logger.error(
                     f"❌ Error sending summary email notification: {str(email_error)}")
                 # Don't fail the entire process if email sending fails
+
+            # Sync to sec_filing_summary (proxy node)
+            _sync_proxy_to_sec_filing_summary(proxy_doc)
+            logger.info("✅ Synced proxy document to sec_filing_summary")
         else:
             # Update document with error
             proxy_doc.summary_generation_status = 'failed'

@@ -557,8 +557,10 @@ Respond ONLY with valid JSON.
                 model="gpt-5",
                 tools=[{"type": "web_search"}],
                 input=prompt,
-                reasoning={"effort": "low"}
+                reasoning={"effort": "high"}
             )
+
+            print(f" Prompt: {prompt}")
 
             result_text = None
             for item in response.output:
@@ -643,6 +645,8 @@ Respond ONLY with valid JSON.
         is_target_us_listed, is_target_market_cap_greater_than_100m.
         """
         try:
+
+            print(f"   filing_data 5: {filing_data}")
             xbrl_files = filing_data.get('xbrl_files', [])
             # Single entry: first .htm file (caller passes one document)
             htm_file = None
@@ -682,10 +686,14 @@ Respond ONLY with valid JSON.
                 filing_data.get('company_name', 'Unknown Company')
             )
 
-            filing_data['is_merger_related'] = analysis.get('is_merger_related')
+            print(f"   analysis 6: {analysis}")
+
+            filing_data['is_merger_related'] = analysis.get(
+                'is_merger_related')
             filing_data['confidence'] = analysis.get('confidence', 0)
             filing_data['reasoning'] = analysis.get('reasoning', '')
-            filing_data['is_target_us_listed'] = analysis.get('is_target_us_listed')
+            filing_data['is_target_us_listed'] = analysis.get(
+                'is_target_us_listed')
             filing_data['is_target_market_cap_greater_than_100m'] = analysis.get(
                 'is_target_market_cap_greater_than_100m')
 

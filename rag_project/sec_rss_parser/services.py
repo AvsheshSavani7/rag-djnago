@@ -1606,7 +1606,8 @@ class SECFeedProcessor:
                                     'company_name', 'Unknown Company')
                                 start_date = None
                                 if announce_date:
-                                    start_date = announce_date.strftime('%Y-%m-%d')
+                                    start_date = announce_date.strftime(
+                                        '%Y-%m-%d')
                                     log_and_print(
                                         f"📅 Using announce date as start_date: {start_date}"
                                     )
@@ -1621,7 +1622,8 @@ class SECFeedProcessor:
                                 )
                                 # Persist each filing to 10k_10Q_Summary if not already present
                                 deal_for_summary = deal or matched_deal
-                                deal_id_str = str(deal_for_summary.id) if deal_for_summary else None
+                                deal_id_str = str(
+                                    deal_for_summary.id) if deal_for_summary else None
                                 for f in filings:
                                     acc = f.get("accession_number")
                                     if not acc:
@@ -1629,13 +1631,15 @@ class SECFeedProcessor:
                                     if TenKTenQSummary.objects(accession_number=acc).first() is None:
                                         try:
                                             TenKTenQSummary(
-                                                sec_document_url=f.get("url", ""),
+                                                sec_document_url=f.get(
+                                                    "url", ""),
                                                 deal_id=deal_id_str,
                                                 s3_json_url=None,
                                                 s3_docx_url=None,
                                                 cik_number=str(cik_number),
                                                 accession_number=acc,
-                                                filing_date=f.get("filing_date"),
+                                                filing_date=f.get(
+                                                    "filing_date"),
                                                 form_type=f.get("form"),
                                             ).save()
                                             log_and_print(
@@ -1842,7 +1846,8 @@ class SECFeedProcessor:
                     log_and_print(
                         f"⏭️ Skipping 8-K/EX-99.1 summary - CIK {item_data.get('cik_number') or 'N/A'} not in deals (target or acquirer)")
                 else:
-                    cik_normalized = normalize_cik(item_data.get('cik_number') or '')
+                    cik_normalized = normalize_cik(
+                        item_data.get('cik_number') or '')
                     matched_deal = ProcessingJob.objects(
                         cik=cik_normalized,
                         deal_status__in=DEAL_STATUS_OPEN_OR_UNKNOWN,
@@ -1852,7 +1857,8 @@ class SECFeedProcessor:
                             acquirer_cik=cik_normalized,
                             deal_status__in=DEAL_STATUS_OPEN_OR_UNKNOWN,
                         ).first()
-                    deal_id_str = str(matched_deal.id) if matched_deal else None
+                    deal_id_str = str(
+                        matched_deal.id) if matched_deal else None
 
                     xbrl_files = item_data.get('xbrl_files', [])
                     output_dir = tempfile.mkdtemp()
@@ -1896,7 +1902,8 @@ class SECFeedProcessor:
                                             items_reported=result_8k.get(
                                                 'items_reported') or [],
                                             deal_id=deal_id_str,
-                                            one_line_summary=result_8k.get('L1_headline'),
+                                            one_line_summary=result_8k.get(
+                                                'L1_headline'),
                                         )
                                         doc_8k.save()
                                         log_and_print(
@@ -1913,7 +1920,8 @@ class SECFeedProcessor:
                                                     'link') or url_8k,
                                                 accession_number=accession_number,
                                                 summary_kind='8-K',
-                                                l1_headline=result_8k.get('L1_headline'),
+                                                l1_headline=result_8k.get(
+                                                    'L1_headline'),
                                             )
                                             log_and_print(
                                                 f"📧 8-K summary email sent via webhook (docx link included)")
@@ -1961,7 +1969,8 @@ class SECFeedProcessor:
                                             items_reported=result_99.get(
                                                 'items_reported') or [],
                                             deal_id=deal_id_str,
-                                            one_line_summary=result_99.get('L1_headline'),
+                                            one_line_summary=result_99.get(
+                                                'L1_headline'),
                                         )
                                         doc_99.save()
                                         log_and_print(
@@ -1978,7 +1987,8 @@ class SECFeedProcessor:
                                                     'link') or url_ex99,
                                                 accession_number=accession_number,
                                                 summary_kind='EX-99.1',
-                                                l1_headline=result_99.get('L1_headline'),
+                                                l1_headline=result_99.get(
+                                                    'L1_headline'),
                                             )
                                             log_and_print(
                                                 f"📧 EX-99.1 summary email sent via webhook (docx link included)")

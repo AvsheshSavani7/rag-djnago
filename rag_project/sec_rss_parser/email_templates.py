@@ -20,10 +20,22 @@ def escape_html(text):
     return text
 
 
+def _doc_display_name(file):
+    """Display name for document: 'file' key, or description, or filename from URL."""
+    name = file.get('file') or file.get('description')
+    if name:
+        return str(name).strip()
+    url = file.get('url', '')
+    if url:
+        return url.rstrip('/').split('/')[-1] or 'Document'
+    return 'Document'
+
+
 def build_doc_files_table(doc_files):
     """
     Build HTML table for document format files.
     Shared by filing and EX-99.1 merger emails.
+    Uses fallbacks for missing sequence, file, size when only type/url/description are passed.
     """
     if not doc_files or len(doc_files) == 0:
         return "<p><em>No Document Format Files found.</em></p>"
@@ -31,11 +43,16 @@ def build_doc_files_table(doc_files):
     rows = []
     for idx, file in enumerate(doc_files):
         bg = "#ffffff" if idx % 2 == 0 else "#f9f9f9"
-        seq = escape_html(file.get('sequence', ''))
+        seq = escape_html(file.get('sequence') if file.get('sequence') not in (None, '') else str(idx + 1))
         description = escape_html(file.get('description', ''))
-        doc_name = escape_html(file.get('file', ''))
+        doc_name = escape_html(_doc_display_name(file))
         doc_type = escape_html(file.get('type', ''))
-        size = escape_html(file.get('size', ''))
+        size_val = file.get('size')
+        # Size can be int (bytes) from SEC table; show number or — if missing
+        if size_val is None or size_val == '':
+            size = '—'
+        else:
+            size = escape_html(str(size_val))
 
         doc_url = file.get('url', '')
         if doc_url:
@@ -249,11 +266,11 @@ def generate_filing_email_html(filing_data, doc_files):
     return subject, html_email
 
 
-def generate_ex99_1_merger_email_html(filing_data, doc_files):
+def generate_8k_document_email_html(filing_data, doc_files):
     """
-    Generate HTML email for 8-K EX-99.1 merger-related notification.
-    Used when is_merger_related=True (EX-99.1 press release identified as M&A-related).
-    Different from EX-2.1 Definitive Merger Agreement email.
+    Generate HTML email for main 8-K document notification.
+    Used when we analyze the primary 8-K document (not an exhibit).
+    Subject/title: "8-K – {company_name}" so it is distinct from EX-99.1 emails.
     """
     form_type = filing_data.get('form_type', '8-K')
     company_name = filing_data.get('company_name', 'Unknown Company')
@@ -263,9 +280,9 @@ def generate_ex99_1_merger_email_html(filing_data, doc_files):
         filing_date = filing_date.strftime('%Y-%m-%d')
     cik = filing_data.get('cik_number', 'N/A')
     filing_url = filing_data.get('link', '')
-    confidence = filing_data.get('ex99_1_confidence', 0)
+    confidence = filing_data.get('confidence', 0) or filing_data.get('ex99_1_confidence', 0)
     is_merger_related = filing_data.get('is_merger_related', False)
-    reasoning = filing_data.get('ex99_1_reasoning', '')
+    reasoning = filing_data.get('reasoning', '') or filing_data.get('ex99_1_reasoning', '')
     is_target_us_listed = filing_data.get('is_target_us_listed')
     is_target_market_cap_greater_than_100m = filing_data.get(
         'is_target_market_cap_greater_than_100m')
@@ -275,7 +292,126 @@ def generate_ex99_1_merger_email_html(filing_data, doc_files):
             return 'N/A'
         return 'Yes' if val else 'No'
 
-    subject = f"8-K EX-99.1 M&A-Related – {form_type} – {company_name}"
+    subject = f"8-K – {company_name}"
+    confidence_badge = f"<span style='background:#28a745;color:white;padding:2px 8px;border-radius:4px;'>{confidence}% confidence</span>" if confidence else ""
+    doc_files_html = build_doc_files_table(doc_files)
+
+    reasoning_html = ""
+    if reasoning:
+        reasoning_html = f"""
+      <tr>
+        <td style="padding:8px; font-weight:bold; color:#555; vertical-align:top;">Reasoning:</td>
+        <td style="padding:8px; color:#333;">{escape_html(reasoning)}</td>
+      </tr>
+"""
+
+    filing_url_html = ""
+    if filing_url:
+        filing_url_html = f"""
+      <tr>
+        <td style="padding:8px; font-weight:bold; color:#555;">Filing URL:</td>
+        <td style="padding:8px;">
+          <a href="{escape_html(filing_url)}" style="color:#4a90e2; text-decoration:none;" target="_blank">View Filing</a>
+        </td>
+      </tr>
+"""
+
+    html_email = f"""
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>{escape_html(subject)}</title>
+</head>
+<body style="margin:0; padding:0; font-family:Arial,sans-serif; background-color:#f4f4f4;">
+  <div style="max-width:900px; margin:20px auto; background-color:#ffffff; padding:30px; border-radius:8px; box-shadow:0 2px 4px rgba(0,0,0,0.1);">
+    <h2 style="color:#333; text-align:center; margin-top:0; padding-bottom:20px; border-bottom:3px solid #4a90e2;">
+      8-K – {escape_html(company_name)}
+    </h2>
+    <p style="background:#e7f3ff; padding:12px; border-left:4px solid #4a90e2; margin:0 0 20px 0;">
+      <strong>Main 8-K document analyzed for merger/acquisition relevance.</strong>
+    </p>
+    <table style="width:100%; border-collapse:collapse; margin-bottom:20px;">
+      <tr>
+        <td style="padding:8px; font-weight:bold; width:170px; color:#555;">Form Type:</td>
+        <td style="padding:8px; color:#333;">{escape_html(form_type)}</td>
+      </tr>
+      <tr style="background-color:#f9f9f9;">
+        <td style="padding:8px; font-weight:bold; color:#555;">Accession No.:</td>
+        <td style="padding:8px; color:#333;">{escape_html(accession_no)}</td>
+      </tr>
+      <tr>
+        <td style="padding:8px; font-weight:bold; color:#555;">Filing Date:</td>
+        <td style="padding:8px; color:#333;">{escape_html(filing_date)}</td>
+      </tr>
+      <tr style="background-color:#f9f9f9;">
+        <td style="padding:8px; font-weight:bold; color:#555;">Confidence:</td>
+        <td style="padding:8px;">{confidence_badge}</td>
+      </tr>
+      <tr>
+        <td style="padding:8px; font-weight:bold; color:#555;">Is Merger Related:</td>
+        <td style="padding:8px; color:#333;">{escape_html(is_merger_related)}</td>
+      </tr>
+      <tr>
+        <td style="padding:8px; font-weight:bold; color:#555;">Company:</td>
+        <td style="padding:8px; color:#333;">{escape_html(company_name)}</td>
+      </tr>
+      <tr style="background-color:#f9f9f9;">
+        <td style="padding:8px; font-weight:bold; color:#555;">CIK:</td>
+        <td style="padding:8px; color:#333;">{escape_html(cik)}</td>
+      </tr>
+      <tr>
+        <td style="padding:8px; font-weight:bold; color:#555;">Target US Listed:</td>
+        <td style="padding:8px; color:#333;">{escape_html(_fmt_bool(is_target_us_listed))}</td>
+      </tr>
+      <tr style="background-color:#f9f9f9;">
+        <td style="padding:8px; font-weight:bold; color:#555;">Target Market Cap &gt; $100M:</td>
+        <td style="padding:8px; color:#333;">{escape_html(_fmt_bool(is_target_market_cap_greater_than_100m))}</td>
+      </tr>
+{reasoning_html}{filing_url_html}
+    </table>
+
+    <h3 style="color:#333; margin-top:20px; margin-bottom:10px;">Document Format Files</h3>
+    {doc_files_html}
+
+    <div style="margin-top:30px; padding-top:20px; border-top:1px solid #e0e0e0; text-align:center; color:#999; font-size:12px;">
+      <p>8-K main document notification. For EX-99.1 exhibit emails, see separate "EX-99.1 M&A-Related Press Release" emails.</p>
+    </div>
+  </div>
+</body>
+</html>
+"""
+    return subject, html_email
+
+
+def generate_ex99_1_merger_email_html(filing_data, doc_files):
+    """
+    Generate HTML email for 8-K EX-99.1 merger-related notification.
+    Used when is_merger_related=True (EX-99.1 press release identified as M&A-related).
+    Different from EX-2.1 Definitive Merger Agreement email.
+    Subject/title: "EX-99.1 M&A-Related Press Release – {company_name}".
+    """
+    form_type = filing_data.get('form_type', '8-K')
+    company_name = filing_data.get('company_name', 'Unknown Company')
+    accession_no = filing_data.get('accession_number', 'N/A')
+    filing_date = filing_data.get('filing_date', 'N/A')
+    if isinstance(filing_date, datetime):
+        filing_date = filing_date.strftime('%Y-%m-%d')
+    cik = filing_data.get('cik_number', 'N/A')
+    filing_url = filing_data.get('link', '')
+    confidence = filing_data.get('confidence', 0) or filing_data.get('ex99_1_confidence', 0)
+    is_merger_related = filing_data.get('is_merger_related', False)
+    reasoning = filing_data.get('reasoning', '') or filing_data.get('ex99_1_reasoning', '')
+    is_target_us_listed = filing_data.get('is_target_us_listed')
+    is_target_market_cap_greater_than_100m = filing_data.get(
+        'is_target_market_cap_greater_than_100m')
+
+    def _fmt_bool(val):
+        if val is None:
+            return 'N/A'
+        return 'Yes' if val else 'No'
+
+    subject = f"EX-99.1 M&A-Related Press Release – {company_name}"
     confidence_badge = f"<span style='background:#28a745;color:white;padding:2px 8px;border-radius:4px;'>{confidence}% confidence</span>" if confidence else ""
     doc_files_html = build_doc_files_table(doc_files)
 

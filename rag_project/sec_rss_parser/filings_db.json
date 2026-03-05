@@ -1,0 +1,38 @@
+[
+  {
+    "sec_document_url": "https://www.sec.gov/Archives/edgar/data/794619/000079461925000107/amwd-20250731.htm",
+    "processed": true,
+    "processed_at": "2026-02-27T11:09:02.123439+00:00",
+    "local_json_path": "output/AMWD_20250731_unknown_excerpts.json",
+    "local_docx_path": "output/AMWD_20250731_unknown_fulsome_report.docx",
+    "local_comparison_json_path": null,
+    "local_redline_docx_path": null,
+    "local_client_report_docx_path": null,
+    "local_exec_summary_docx_path": null,
+    "deal_id": "68f1d30397173821e21c541c",
+    "_id": "79ca8422-ad28-46c6-a431-67241175c204",
+    "created_at": "2026-02-27T11:08:01.535520+00:00",
+    "updated_at": "2026-02-27T11:09:02.123470+00:00",
+    "period_date": "2025-07-31",
+    "filing_type": "unknown",
+    "label": "2025-07-31 unknown"
+  },
+  {
+    "sec_document_url": "https://www.sec.gov/Archives/edgar/data/794619/000079461925000115/amwd-20251031.htm",
+    "processed": true,
+    "processed_at": "2026-02-27T11:09:41.070430+00:00",
+    "local_json_path": "output/AMWD_20251031_unknown_excerpts.json",
+    "local_docx_path": "output/AMWD_20251031_unknown_fulsome_report.docx",
+    "local_comparison_json_path": "output/AMWD_20260227_164035_comparison.json",
+    "local_redline_docx_path": "output/AMWD_20260227_164035_redline.docx",
+    "local_client_report_docx_path": "output/AMWD_20260227_164035_client_report.docx",
+    "local_exec_summary_docx_path": "output/AMWD_20260227_164035_exec_summary.docx",
+    "deal_id": "68f1d30397173821e21c541c",
+    "_id": "9a89dd18-b57c-42ba-b2c7-9529e48cc462",
+    "created_at": "2026-02-27T11:08:01.535862+00:00",
+    "updated_at": "2026-02-27T11:10:42.437193+00:00",
+    "period_date": "2025-10-31",
+    "filing_type": "unknown",
+    "label": "2025-10-31 unknown"
+  }
+]

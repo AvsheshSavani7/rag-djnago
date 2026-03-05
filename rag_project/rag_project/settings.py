@@ -127,18 +127,33 @@ WSGI_APPLICATION = "rag_project.wsgi.application"
 #     print("No MongoDB connection string provided")
 
 # MongoDB Connection using MongoEngine
+# --- Old / default DB (existing modules, unchanged behavior) ---
 MONGODB_URI = os.getenv("MONGODB_CONNECTION_STRING")
 MONGODB_NAME = os.getenv("MONGODB_NAME", "Deal_DB")
 
 if MONGODB_URI:
-    print("✅ MongoDB config detected.")
+    print("✅ MongoDB config detected (default).")
     connect(
         db=MONGODB_NAME,
         host=MONGODB_URI,
-        alias="default"
+        alias="default",
     )
 else:
     print("❌ No MongoDB connection string found in environment.")
+
+# --- New DB (for new development / structural changes) ---
+# Set MONGODB_CONNECTION_STRING_NEW and optionally MONGODB_NAME_NEW in .env
+# New models use meta = {"db_alias": "new_db"}. Read from old DB via default alias.
+MONGODB_URI_NEW = os.getenv("MONGODB_CONNECTION_STRING_NEW")
+MONGODB_NAME_NEW = os.getenv("MONGODB_NAME_NEW", "Deal_DB_New")
+
+if MONGODB_URI_NEW:
+    connect(
+        db=MONGODB_NAME_NEW,
+        host=MONGODB_URI_NEW,
+        alias="new_db",
+    )
+    print("✅ MongoDB config detected (new_db).")
 
 # Dummy database setup required by Django to run management commands
 DATABASES = {

@@ -6,8 +6,11 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 import logging
 import threading
+import os
 from datetime import datetime
 from .services import SECFeedProcessor
+from .process_feed_8k import run_8k_processor
+from .fetch_sec_feed_by_deal_cik import run_fetch_sec_feed_by_deal_cik
 from .models import SECFiling, SECFeedStatus
 from .serializers import (
     SECFilingSerializer,
@@ -46,8 +49,15 @@ class ProcessSECFeedView(APIView):
             # Start processing in background thread
             def process_in_background():
                 try:
-                    processor = SECFeedProcessor(form_type=form_type)
-                    result = processor.process_feed()
+                    # Use dedicated 8-K processor if form_type is '8-K'
+                    # if form_type == '8-K':
+                    logger.info("Using dedicated 8-K processor")
+                    result = run_8k_processor()
+                    # else:
+                    #     logger.info(f"Using generic processor for form_type: {form_type}")
+                    #     processor = SECFeedProcessor(form_type=form_type)
+                    #     result = processor.process_feed()
+
                     logger.info(
                         f"Background SEC processing completed: {result}")
                 except Exception as e:
@@ -374,5 +384,101 @@ class SECFilingStatsView(APIView):
             logger.error(f"Error in SECFilingStatsView: {e}")
             return Response(
                 {'error': 'Internal server error'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+
+class FetchSECFeedByDealCIKView(APIView):
+    """API endpoint to fetch and process SEC feed by deal CIK"""
+    permission_classes = [AllowAny]
+
+    def get(self, request, format=None):
+        """Handle GET requests"""
+        return self.process_feed_by_deal_cik()
+
+    def post(self, request, format=None):
+        """Handle POST requests"""
+        return self.process_feed_by_deal_cik()
+
+    def process_feed_by_deal_cik(self):
+        """Process SEC feed by deal CIK in background"""
+        try:
+            # Get parameters from request
+            limit_deals = None
+            use_demo = False
+            output_json_path = None
+
+            if hasattr(self.request, 'query_params'):
+                limit_deals_str = self.request.query_params.get('limit_deals')
+                use_demo = self.request.query_params.get(
+                    'use_demo', '').lower() in ('1', 'true', 'yes')
+                output_json_path = self.request.query_params.get('output_path')
+            if hasattr(self.request, 'data'):
+                limit_deals_str = self.request.data.get(
+                    'limit_deals') if not limit_deals_str else limit_deals_str
+                use_demo = self.request.data.get('use_demo', '').lower() in (
+                    '1', 'true', 'yes') if not use_demo else use_demo
+                output_json_path = self.request.data.get(
+                    'output_path') if not output_json_path else output_json_path
+
+            if limit_deals_str:
+                try:
+                    limit_deals = int(limit_deals_str)
+                except ValueError:
+                    limit_deals = None
+
+            # Default output path
+            if not output_json_path:
+                output_json_path = os.path.join(
+                    os.path.dirname(os.path.dirname(
+                        os.path.abspath(__file__))),
+                    "sec_feed_by_deal_cik_output.json",
+                )
+
+            # Start processing in background thread
+            def process_in_background():
+                try:
+                    # Determine RSS file path for development
+                    rss_file = None
+                    if use_demo:
+                        rss_file = os.path.join(
+                            os.path.dirname(os.path.abspath(__file__)),
+                            "rss copy.xml",
+                        )
+                        if not os.path.isfile(rss_file):
+                            logger.warning(
+                                f"Demo RSS file not found: {rss_file}")
+                            rss_file = None
+
+                    result = run_fetch_sec_feed_by_deal_cik(
+                        output_json_path=output_json_path,
+                        limit_deals=limit_deals,
+                        process_items_flow=True,
+                        rss_file=rss_file,
+                    )
+                    logger.info(
+                        f"SEC feed by deal CIK processing completed: {result}")
+                except Exception as e:
+                    logger.error(
+                        f"Error in background SEC feed by deal CIK processing: {e}")
+
+            thread = threading.Thread(target=process_in_background)
+            thread.daemon = True
+            thread.start()
+
+            return Response({
+                'success': True,
+                'message': 'SEC feed by deal CIK processing started in background',
+                'status': 'processing',
+                'limit_deals': limit_deals,
+                'use_demo': use_demo,
+                'output_path': output_json_path,
+            }, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            logger.error(
+                f"Error starting SEC feed by deal CIK processing: {e}")
+            return Response(
+                {'error': 'Failed to start processing'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
