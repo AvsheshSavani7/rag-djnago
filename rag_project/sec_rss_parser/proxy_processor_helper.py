@@ -116,6 +116,7 @@ def process_sec_document_for_filing_summary(
             "total_sections": 0,
             "empty_sections": 0,
             "iteration_count": 0,
+            "company_name": company_name or None,
         }
 
         # Check if filing summary already exists (by sec_document_url + form_type)
@@ -127,12 +128,14 @@ def process_sec_document_for_filing_summary(
         acc = accession_number or sec_filling_id
 
         if existing:
-            # Update existing record
+            # Update existing record (preserve company_name from existing proxy if not provided)
+            old_company_name = (existing.proxy or {}).get("company_name")
             existing.accession_number = acc
             existing.cik_number = cik_number
             existing.filing_date = filing_dt
             existing.deal_id = deal_id
             existing.proxy = proxy_payload
+            existing.proxy["company_name"] = company_name or old_company_name
             existing.save()
             filing_summary_id = str(existing.id)
             logger.info(
@@ -609,12 +612,13 @@ def send_summary_email_notification_v2(filing_summary):
                 f"No summary document URL available for filing summary {filing_summary.id}")
             return
 
+        company_name = proxy_data.get("company_name") or filing_summary.cik_number or "Unknown"
         logger.info(
-            f"Preparing to send summary email for: CIK {filing_summary.cik_number}")
+            f"Preparing to send summary email for: {company_name} (CIK {filing_summary.cik_number})")
 
         # Generate email HTML (same as old flow)
         subject, html_email = generate_summary_email_html(
-            company_name=filing_summary.cik_number or "Unknown",
+            company_name=company_name,
             form_type=filing_summary.form_type,
             summary_doc_url=summary_url,
             cik_number=filing_summary.cik_number or "",
@@ -630,7 +634,7 @@ def send_summary_email_notification_v2(filing_summary):
         payload = {
             'subject': subject,
             'html': html_email,
-            'company_name': filing_summary.cik_number or "Unknown",
+            'company_name': company_name,
             'form_type': filing_summary.form_type,
             'summary_doc_url': summary_url,
             'sec_filing_summary_id': str(filing_summary.id)
