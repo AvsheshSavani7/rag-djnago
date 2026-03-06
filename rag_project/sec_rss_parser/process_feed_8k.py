@@ -13,7 +13,6 @@ This module processes only 8-K filings from SEC RSS feed with the following work
 
 import copy
 import logging
-import tempfile
 from datetime import datetime, timedelta
 from mongoengine.errors import NotUniqueError
 from mongoengine.queryset.visitor import Q
@@ -37,7 +36,7 @@ from .email_templates import (
     generate_ex99_1_merger_email_html,
     generate_sec_filings_email_html,
 )
-from .Eight_k_summary import summarize_8k_filing
+from .sec_summarizers.filing_router import route_and_summarize
 from .sec_Last_Year import print_filings as fetch_sec_filings
 from document_processor.models import ProcessingJob
 from .services import process_8k_document_helper
@@ -469,49 +468,43 @@ class EightKFeedProcessor:
                 f"{LOG_PREFIX} :_send_8k_gpt_email: ❌ Error sending 8-K GPT email: {e}", 'error')
 
     def _generate_8k_summary_and_send(self, item_data, url_8k):
-        """Generate 8-K summary, save to sec_filing_summary, send summary email."""
+        """Generate 8-K summary via filing router, save to sec_filing_summary (parent-level), send summary email."""
         accession_number = item_data.get('accession_number', 'N/A')
         try:
             deal_id = item_data.get('deal_id')
             logger.info(f"{LOG_PREFIX} :_generate_8k_summary_and_send: accession=%s step=start url=%s deal_id=%s",
                         accession_number, url_8k, deal_id)
-            output_dir = tempfile.mkdtemp()
             log_and_print(
                 f"{LOG_PREFIX} :_generate_8k_summary_and_send: 📝 Generating 8-K summary: {url_8k}")
-            result_8k = summarize_8k_filing(
-                url_8k, output_dir, upload_to_s3=True, s3_folder="8k", verbose=False)
-            if not result_8k.get('s3_url'):
+            result_8k = route_and_summarize(url_8k)
+            s3_url = result_8k.get('s3_docx_url') or result_8k.get('s3_url')
+            if not s3_url:
                 logger.warning(
                     f"{LOG_PREFIX} :_generate_8k_summary_and_send: accession=%s step=skip reason=no_s3_url", accession_number)
                 return
             logger.info(f"{LOG_PREFIX} :_generate_8k_summary_and_send: accession=%s step=s3_uploaded s3_url=%s",
-                        accession_number, result_8k.get('s3_url', '')[:80])
+                        accession_number, (s3_url or '')[:80])
             log_and_print(
-                f"{LOG_PREFIX} :_generate_8k_summary_and_send: ✅ 8-K summary uploaded to S3: {result_8k['s3_url']}")
+                f"{LOG_PREFIX} :_generate_8k_summary_and_send: ✅ 8-K summary uploaded to S3: {s3_url}")
             try:
                 filing_dt = self._filing_date_for_summary(
                     item_data.get('filing_date'), result_8k.get('filing_date'))
-                # One document per accession_number, form_type always 8-K; EX-99.1 goes in eight_k.filings[]
                 existing = SECFilingSummary.objects(
                     accession_number=accession_number, form_type='8-K'
                 ).first()
-                filings = []
-                if existing and existing.eight_k:
-                    filings = list(existing.eight_k.get('filings') or [])
-                eight_k_payload = {
-                    'one_line_summary': result_8k.get('L1_headline'),
-                    'items_reported': result_8k.get('items_reported') or [],
-                    's3_docx_url': result_8k.get('s3_url'),
-                    's3_json_url': result_8k.get('s3_json_url'),
-                    'filings': filings,
-                }
                 if existing:
                     existing.sec_document_url = url_8k
                     existing.filing_date = filing_dt
                     existing.deal_id = deal_id
-                    existing.eight_k = eight_k_payload
+                    existing.items_reported = result_8k.get(
+                        'items_reported') or []
+                    existing.L1_headline = result_8k.get('L1_headline')
+                    existing.L2_brief = result_8k.get('L2_brief')
+                    existing.L3_detailed = result_8k.get('L3_detailed') or {}
+                    existing.s3_docx_url = result_8k.get(
+                        's3_docx_url') or result_8k.get('s3_url')
+                    existing.s3_json_url = result_8k.get('s3_json_url')
                     existing.save()
-                    doc_8k = existing
                 else:
                     doc_8k = SECFilingSummary(
                         form_type='8-K',
@@ -520,7 +513,13 @@ class EightKFeedProcessor:
                         sec_document_url=url_8k,
                         filing_date=filing_dt,
                         deal_id=deal_id,
-                        eight_k=eight_k_payload,
+                        items_reported=result_8k.get('items_reported') or [],
+                        L1_headline=result_8k.get('L1_headline'),
+                        L2_brief=result_8k.get('L2_brief'),
+                        L3_detailed=result_8k.get('L3_detailed') or {},
+                        s3_docx_url=result_8k.get(
+                            's3_docx_url') or result_8k.get('s3_url'),
+                        s3_json_url=result_8k.get('s3_json_url'),
                     )
                     doc_8k.save()
                 logger.info(
@@ -1258,7 +1257,7 @@ class EightKFeedProcessor:
                 f"{LOG_PREFIX} :_process_ex21_via_8k_helper: {traceback.format_exc()}", 'error')
 
     def _generate_ex99_summary(self, item_data, url_ex99):
-        """Generate summary for EX-99.1 document and save to sec_filing_summary."""
+        """Generate summary for EX-99.1 via filing router; save to sec_filing_summary 99_1 node only (parent-level summary null)."""
         accession_number = item_data.get('accession_number', 'N/A')
         try:
             logger.info(f"{LOG_PREFIX} :_generate_ex99_summary: accession=%s step=start url=%s",
@@ -1267,80 +1266,70 @@ class EightKFeedProcessor:
                 f"{LOG_PREFIX} :_generate_ex99_summary: 📝 Generating summary for EX-99.1 document")
 
             deal_id = item_data.get('deal_id')
-            output_dir = tempfile.mkdtemp()
 
             if url_ex99:
                 try:
                     log_and_print(
                         f"{LOG_PREFIX} :_generate_ex99_summary:    Summarizing EX-99.1 document: {url_ex99}")
-                    result_99 = summarize_8k_filing(
-                        url_ex99,
-                        output_dir,
-                        upload_to_s3=True,
-                        s3_folder="99_1",
-                        verbose=False,
-                    )
+                    result_99 = route_and_summarize(url_ex99)
+                    s3_url = result_99.get(
+                        's3_docx_url') or result_99.get('s3_url')
 
-                    if result_99.get('s3_url'):
+                    if s3_url:
                         logger.info(f"{LOG_PREFIX} :_generate_ex99_summary: accession=%s step=s3_uploaded s3_url=%s",
-                                    accession_number, (result_99.get('s3_url') or '')[:80])
+                                    accession_number, (s3_url or '')[:80])
                         log_and_print(
-                            f"{LOG_PREFIX} :_generate_ex99_summary: ✅ EX-99.1 summary uploaded to S3: {result_99['s3_url']}")
+                            f"{LOG_PREFIX} :_generate_ex99_summary: ✅ EX-99.1 summary uploaded to S3: {s3_url}")
 
-                        # One document per accession_number (form_type 8-K); EX-99.1 stored in eight_k.filings[]
                         try:
                             filing_dt = self._filing_date_for_summary(
                                 item_data.get('filing_date'), result_99.get('filing_date'))
-                            ex99_filing_entry = {
-                                'filing_date': filing_dt,
-                                'filing_url': url_ex99,
-                                's3_docx_url': result_99.get('s3_url'),
+                            # 99_1 node: only these 6 fields; parent-level summary fields stay null
+                            ex99_1_payload = {
+                                'items_reported': result_99.get('items_reported') or [],
+                                'L1_headline': result_99.get('L1_headline'),
+                                'L2_brief': result_99.get('L2_brief'),
+                                'L3_detailed': result_99.get('L3_detailed') or {},
+                                's3_docx_url': result_99.get('s3_docx_url') or result_99.get('s3_url'),
                                 's3_json_url': result_99.get('s3_json_url'),
-                                'exhibit_type': 'EX_99.1',
                             }
+                            url_8k = None
+                            for fe in item_data.get('filing_array') or []:
+                                if fe.get('document_type') == '8-K' and fe.get('url'):
+                                    url_8k = fe.get('url')
+                                    break
                             existing = SECFilingSummary.objects(
                                 accession_number=accession_number, form_type='8-K'
                             ).first()
-                            if existing and existing.eight_k:
-                                filings = list(
-                                    existing.eight_k.get('filings') or [])
-                                filings.append(ex99_filing_entry)
-                                existing.eight_k = dict(existing.eight_k)
-                                existing.eight_k['filings'] = filings
+                            if existing:
+                                existing.sec_document_url = url_8k or url_ex99
+                                existing.filing_date = filing_dt
+                                existing.deal_id = deal_id
+                                existing.ex99_1 = ex99_1_payload
                                 existing.save()
                             else:
-                                # No 8-K doc yet: create one with EX-99.1 in filings only
-                                url_8k = None
-                                for fe in item_data.get('filing_array') or []:
-                                    if fe.get('document_type') == '8-K' and fe.get('url'):
-                                        url_8k = fe.get('url')
-                                        break
-                                doc_8k = SECFilingSummary(
+                                SECFilingSummary(
                                     form_type='8-K',
                                     accession_number=accession_number,
                                     cik_number=item_data.get('cik_number'),
                                     sec_document_url=url_8k or url_ex99,
                                     filing_date=filing_dt,
                                     deal_id=deal_id,
-                                    eight_k={
-                                        'one_line_summary': None,
-                                        'items_reported': [],
-                                        's3_docx_url': None,
-                                        's3_json_url': None,
-                                        'filings': [ex99_filing_entry],
-                                    },
-                                )
-                                doc_8k.save()
+                                    items_reported=[],
+                                    L1_headline=None,
+                                    L2_brief=None,
+                                    L3_detailed=None,
+                                    s3_docx_url=None,
+                                    s3_json_url=None,
+                                    ex99_1=ex99_1_payload,
+                                ).save()
                             logger.info(
                                 f"{LOG_PREFIX} :_generate_ex99_summary: accession=%s step=db_saved", accession_number)
                             log_and_print(
-                                f"{LOG_PREFIX} :_generate_ex99_summary: 💾 EX-99.1 summary saved to DB (sec_filing_summary, inside eight_k.filings)")
+                                f"{LOG_PREFIX} :_generate_ex99_summary: 💾 EX-99.1 summary saved to DB (sec_filing_summary, 99_1 node)")
                             self.summary_ex99_count += 1
-
-                            # Send summary email
                             self._send_ex99_summary_email(
                                 item_data, result_99, url_ex99)
-
                         except Exception as db_e:
                             logger.exception(
                                 f"{LOG_PREFIX} :_generate_ex99_summary: accession=%s step=db_error error=%s", accession_number, str(db_e))
@@ -1360,9 +1349,11 @@ class EightKFeedProcessor:
     def _send_8k_summary_email(self, item_data, summary_result, doc_url):
         """Send email with 8-K summary document link"""
         accession_number = item_data.get('accession_number', 'N/A')
+        summary_doc_url = summary_result.get(
+            's3_docx_url') or summary_result.get('s3_url')
         try:
             logger.info(f"{LOG_PREFIX} :_send_8k_summary_email: accession=%s step=start summary_url=%s",
-                        accession_number, (summary_result.get('s3_url') or '')[:80])
+                        accession_number, (summary_doc_url or '')[:80])
             log_and_print(
                 f"{LOG_PREFIX} :_send_8k_summary_email:   📧 Sending 8-K summary email")
 
@@ -1371,12 +1362,13 @@ class EightKFeedProcessor:
             subject, html_email = generate_8k_99_1_summary_email_html(
                 company_name=item_data.get('company_name') or '',
                 form_type='8-K',
-                summary_doc_url=summary_result.get('s3_url'),
+                summary_doc_url=summary_doc_url,
                 cik_number=item_data.get('cik_number') or '',
                 sec_url=item_data.get('link') or doc_url,
                 accession_number=item_data.get('accession_number') or '',
                 summary_kind='8-K',
                 l1_headline=summary_result.get('L1_headline'),
+                l2_brief=summary_result.get('L2_brief'),
             )
 
             payload = {
@@ -1384,7 +1376,7 @@ class EightKFeedProcessor:
                 'html': html_email,
                 'company_name': item_data.get('company_name', 'Unknown Company'),
                 'form_type': '8-K',
-                'summary_doc_url': summary_result.get('s3_url'),
+                'summary_doc_url': summary_doc_url,
                 'accession_number': item_data.get('accession_number'),
                 'cik_number': item_data.get('cik_number'),
                 'sec_url': doc_url,
@@ -1406,9 +1398,11 @@ class EightKFeedProcessor:
     def _send_ex99_summary_email(self, item_data, summary_result, doc_url):
         """Send email with EX-99.1 summary document link"""
         accession_number = item_data.get('accession_number', 'N/A')
+        summary_doc_url = summary_result.get(
+            's3_docx_url') or summary_result.get('s3_url')
         try:
             logger.info(f"{LOG_PREFIX} :_send_ex99_summary_email: accession=%s step=start summary_url=%s",
-                        accession_number, (summary_result.get('s3_url') or '')[:80])
+                        accession_number, (summary_doc_url or '')[:80])
             log_and_print(
                 f"{LOG_PREFIX} :_send_ex99_summary_email:   📧 Sending EX-99.1 summary email")
 
@@ -1417,12 +1411,13 @@ class EightKFeedProcessor:
             subject, html_email = generate_8k_99_1_summary_email_html(
                 company_name=item_data.get('company_name') or '',
                 form_type='8-K (EX-99.1)',
-                summary_doc_url=summary_result.get('s3_url'),
+                summary_doc_url=summary_doc_url,
                 cik_number=item_data.get('cik_number') or '',
                 sec_url=item_data.get('link') or doc_url,
                 accession_number=item_data.get('accession_number') or '',
                 summary_kind='EX-99.1',
                 l1_headline=summary_result.get('L1_headline'),
+                l2_brief=summary_result.get('L2_brief'),
             )
 
             payload = {
@@ -1430,7 +1425,7 @@ class EightKFeedProcessor:
                 'html': html_email,
                 'company_name': item_data.get('company_name', 'Unknown Company'),
                 'form_type': '8-K (EX-99.1)',
-                'summary_doc_url': summary_result.get('s3_url'),
+                'summary_doc_url': summary_doc_url,
                 'accession_number': item_data.get('accession_number'),
                 'cik_number': item_data.get('cik_number'),
                 'sec_url': doc_url,

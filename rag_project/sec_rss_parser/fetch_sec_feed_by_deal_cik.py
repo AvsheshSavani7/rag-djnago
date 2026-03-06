@@ -61,6 +61,7 @@ from sec_rss_parser.models import (
     SECFilingSummary,
 )
 from sec_rss_parser.Eight_k_summary import summarize_8k_filing
+from sec_rss_parser.sec_summarizers.filing_router import route_and_summarize
 from sec_rss_parser.proxy_processor_helper import process_sec_document_for_filing_summary
 
 logger = logging.getLogger(__name__)
@@ -886,6 +887,198 @@ def _process_other_filing_item(item_data, html_data, filing):
         f"{LOG_PREFIX} :_process_other_filing_item: 💾 Other filing ({form_type}) saved to sec_filing_summary.other_filings")
 
 
+def _is_ex99_url(url):
+    """True if URL is an EX-99.1 document (by path pattern)."""
+    if not url:
+        return False
+    return bool(re.search(r"ex99[\-_\.]?1|ex-?99", url, re.I))
+
+
+def _normalize_sec_url(url):
+    """Build full SEC URL and strip ix?doc=/ prefix if present."""
+    if not url:
+        return None
+    u = build_full_sec_url(url) or url
+    if "ix?doc=/" in u:
+        u = u.replace("ix?doc=/", "", 1)
+    return u
+
+
+def _route_summarize_and_save(item_data, html_data):
+    """
+    For any form type: generate summary via route_and_summarize(url), save to SECFilingSummary
+    with same 8-K/99.1 logic as process_feed_8k, and send a separate summary email.
+    """
+    form_type = (item_data.get("form_type") or html_data.get(
+        "form_type") or "").strip().upper()
+    if not form_type:
+        form_type = "OTHER"
+    accession_number = item_data.get(
+        "accession_number") or html_data.get("accession_number")
+    cik_number = item_data.get("cik_number") or html_data.get("cik_number")
+    deal_id = item_data.get("deal_id") or _deal_id_for_cik(cik_number)
+    company_name = item_data.get(
+        "company_name") or html_data.get("company_name") or ""
+    link = item_data.get("link") or ""
+    xbrl_files = html_data.get(
+        "xbrl_files") or item_data.get("xbrl_files") or []
+
+    # Build list of (url, is_ex99). Only 8-K has 99.1 (EX-99.1 exhibit); other form types = parent-level only.
+    urls_to_summarize = []
+    if form_type == "8-K":
+        file_8k = find_file_by_type(xbrl_files, "8-K")
+        file_ex99 = find_file_by_type(xbrl_files, "EX-99.1")
+        if file_8k and file_8k.get("url"):
+            url_8k = _normalize_sec_url(file_8k.get("url"))
+            if url_8k:
+                urls_to_summarize.append((url_8k, False))
+        if file_ex99 and file_ex99.get("url"):
+            url_ex99 = _normalize_sec_url(file_ex99.get("url"))
+            if url_ex99:
+                urls_to_summarize.append((url_ex99, True))
+    else:
+        # Any other form type: single document, parent-level only (no 99.1 node)
+        doc_file = find_file_by_type(xbrl_files, form_type)
+        if doc_file and doc_file.get("url"):
+            sec_url = _normalize_sec_url(doc_file.get("url"))
+        elif xbrl_files and xbrl_files[0].get("url"):
+            sec_url = _normalize_sec_url(xbrl_files[0].get("url"))
+        else:
+            sec_url = _normalize_sec_url(link) if link else None
+        if sec_url:
+            # never 99.1 for non-8-K
+            urls_to_summarize.append((sec_url, False))
+
+    if not urls_to_summarize:
+        log_and_print(
+            f"{LOG_PREFIX} :_route_summarize_and_save: ⚠️ No document URL found for {form_type}", "warning")
+        return
+
+    for url, is_ex99 in urls_to_summarize:
+        try:
+            log_and_print(
+                f"{LOG_PREFIX} :_route_summarize_and_save: 📝 Generating summary for {form_type}: {url[:80]}...")
+            result = route_and_summarize(url)
+            s3_docx_url = result.get("s3_docx_url") or result.get("s3_url")
+            if not s3_docx_url:
+                log_and_print(
+                    f"{LOG_PREFIX} :_route_summarize_and_save: ⚠️ No S3 docx URL returned for {url[:60]}...", "warning")
+                continue
+            log_and_print(
+                f"{LOG_PREFIX} :_route_summarize_and_save: ✅ Summary uploaded to S3: {s3_docx_url[:80]}...")
+
+            filing_dt = _filing_date_for_summary(
+                html_data.get("filing_date") or item_data.get("filing_date"),
+                result.get("filing_date"),
+            )
+            summary_kind = "EX-99.1" if is_ex99 else form_type
+            doc_form_type = "8-K" if is_ex99 else form_type
+
+            if is_ex99:
+                ex99_1_payload = {
+                    "items_reported": result.get("items_reported") or [],
+                    "L1_headline": result.get("L1_headline"),
+                    "L2_brief": result.get("L2_brief"),
+                    "L3_detailed": result.get("L3_detailed") or {},
+                    "s3_docx_url": result.get("s3_docx_url") or result.get("s3_url"),
+                    "s3_json_url": result.get("s3_json_url"),
+                }
+                existing = SECFilingSummary.objects(
+                    accession_number=accession_number, form_type="8-K"
+                ).first()
+                url_8k_main = None
+                for fe in (html_data.get("filing_array") or item_data.get("filing_array") or []):
+                    if (fe.get("document_type") or "").upper() == "8-K" and fe.get("url"):
+                        url_8k_main = _normalize_sec_url(fe.get("url"))
+                        break
+                sec_document_url = url_8k_main or url
+                if existing:
+                    existing.sec_document_url = sec_document_url
+                    existing.filing_date = filing_dt
+                    existing.deal_id = deal_id
+                    existing.ex99_1 = ex99_1_payload
+                    existing.save()
+                else:
+                    SECFilingSummary(
+                        form_type="8-K",
+                        accession_number=accession_number,
+                        cik_number=cik_number,
+                        sec_document_url=sec_document_url,
+                        filing_date=filing_dt,
+                        deal_id=deal_id,
+                        items_reported=[],
+                        L1_headline=None,
+                        L2_brief=None,
+                        L3_detailed=None,
+                        s3_docx_url=None,
+                        s3_json_url=None,
+                        ex99_1=ex99_1_payload,
+                    ).save()
+                log_and_print(
+                    f"{LOG_PREFIX} :_route_summarize_and_save: 💾 EX-99.1 summary saved (99_1 node)")
+            else:
+                existing = SECFilingSummary.objects(
+                    accession_number=accession_number, form_type=doc_form_type
+                ).first()
+                if existing:
+                    existing.sec_document_url = url
+                    existing.filing_date = filing_dt
+                    existing.deal_id = deal_id
+                    existing.items_reported = result.get(
+                        "items_reported") or []
+                    existing.L1_headline = result.get("L1_headline")
+                    existing.L2_brief = result.get("L2_brief")
+                    existing.L3_detailed = result.get("L3_detailed") or {}
+                    existing.s3_docx_url = result.get(
+                        "s3_docx_url") or result.get("s3_url")
+                    existing.s3_json_url = result.get("s3_json_url")
+                    existing.save()
+                else:
+                    SECFilingSummary(
+                        form_type=doc_form_type,
+                        accession_number=accession_number,
+                        cik_number=cik_number,
+                        sec_document_url=url,
+                        filing_date=filing_dt,
+                        deal_id=deal_id,
+                        items_reported=result.get("items_reported") or [],
+                        L1_headline=result.get("L1_headline"),
+                        L2_brief=result.get("L2_brief"),
+                        L3_detailed=result.get("L3_detailed") or {},
+                        s3_docx_url=result.get(
+                            "s3_docx_url") or result.get("s3_url"),
+                        s3_json_url=result.get("s3_json_url"),
+                    ).save()
+                log_and_print(
+                    f"{LOG_PREFIX} :_route_summarize_and_save: 💾 Summary saved (parent-level) for {doc_form_type}")
+
+            # Send email with the generated summary (doc link + L1 headline)
+            log_and_print(
+                f"{LOG_PREFIX} :_route_summarize_and_save: 📧 Sending summary email for {summary_kind}...")
+            try:
+                send_summary_email_via_webhook(
+                    summary_doc_url=s3_docx_url,
+                    company_name=company_name,
+                    form_type="8-K (EX-99.1)" if is_ex99 else doc_form_type,
+                    cik_number=cik_number or "",
+                    sec_url=link or url,
+                    accession_number=accession_number or "",
+                    summary_kind=summary_kind,
+                    l1_headline=result.get("L1_headline"),
+                    l2_brief=result.get("L2_brief"),
+                )
+                log_and_print(
+                    f"{LOG_PREFIX} :_route_summarize_and_save: ✅ Summary email sent for {summary_kind}")
+            except Exception as email_e:
+                log_and_print(
+                    f"{LOG_PREFIX} :_route_summarize_and_save: ❌ Summary email failed: {email_e}", "error")
+        except Exception as e:
+            log_and_print(
+                f"{LOG_PREFIX} :_route_summarize_and_save: ❌ Summary failed for {url[:60]}...: {e}", "error")
+            logger.exception(
+                f"{LOG_PREFIX} :_route_summarize_and_save: url={url[:80]} error={e}")
+
+
 def process_items(items):
     """
     For each item: check accession lookup, fetch HTML by form type, create SECFiling if needed, then branch by form_type.
@@ -919,23 +1112,24 @@ def process_items(items):
         logger.info(f"{LOG_PREFIX} :process_items: form_type={form_type}")
         if not form_type:
             form_type = (html_data.get("form_type") or "").strip().upper()
+        # Route-and-summarize for any form type: save to DB (8-K/99.1 logic) and send summary email
+        try:
+            _route_summarize_and_save(item_data, html_data)
+        except Exception as summary_e:
+            log_and_print(
+                f"{LOG_PREFIX} :process_items: ⚠️ Route summary failed (continuing): {summary_e}", "warning")
+            logger.exception(
+                f"{LOG_PREFIX} :process_items: _route_summarize_and_save error={summary_e}")
         try:
             if form_type in PROXY_SUMMARY_FORM_TYPES:
                 logger.info(
                     f"{LOG_PREFIX} :process_items: form_type={form_type} processing proxy item")
                 _process_proxy_item(item_data, html_data, filing)
-            elif form_type == "8-K":
-                logger.info(
-                    f"{LOG_PREFIX} :process_items: form_type={form_type} processing 8-K item")
-                _process_8k_item(item_data, html_data)
             elif form_type in TEN_K_TEN_Q_FORM_TYPES:
                 logger.info(
                     f"{LOG_PREFIX} :process_items: form_type={form_type} processing 10-K/10-Q item")
                 _process_ten_k_ten_q_item(item_data, html_data, filing)
-            else:
-                logger.info(
-                    f"{LOG_PREFIX} :process_items: form_type={form_type} processing other filing item")
-                _process_other_filing_item(item_data, html_data, filing)
+
             acc = item_data.get("accession_number")
             logger.info(f"{LOG_PREFIX} :process_items: accession_number={acc}")
             if acc:

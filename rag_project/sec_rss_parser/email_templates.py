@@ -43,7 +43,8 @@ def build_doc_files_table(doc_files):
     rows = []
     for idx, file in enumerate(doc_files):
         bg = "#ffffff" if idx % 2 == 0 else "#f9f9f9"
-        seq = escape_html(file.get('sequence') if file.get('sequence') not in (None, '') else str(idx + 1))
+        seq = escape_html(file.get('sequence') if file.get(
+            'sequence') not in (None, '') else str(idx + 1))
         description = escape_html(file.get('description', ''))
         doc_name = escape_html(_doc_display_name(file))
         doc_type = escape_html(file.get('type', ''))
@@ -280,9 +281,11 @@ def generate_8k_document_email_html(filing_data, doc_files):
         filing_date = filing_date.strftime('%Y-%m-%d')
     cik = filing_data.get('cik_number', 'N/A')
     filing_url = filing_data.get('link', '')
-    confidence = filing_data.get('confidence', 0) or filing_data.get('ex99_1_confidence', 0)
+    confidence = filing_data.get(
+        'confidence', 0) or filing_data.get('ex99_1_confidence', 0)
     is_merger_related = filing_data.get('is_merger_related', False)
-    reasoning = filing_data.get('reasoning', '') or filing_data.get('ex99_1_reasoning', '')
+    reasoning = filing_data.get(
+        'reasoning', '') or filing_data.get('ex99_1_reasoning', '')
     is_target_us_listed = filing_data.get('is_target_us_listed')
     is_target_market_cap_greater_than_100m = filing_data.get(
         'is_target_market_cap_greater_than_100m')
@@ -399,9 +402,11 @@ def generate_ex99_1_merger_email_html(filing_data, doc_files):
         filing_date = filing_date.strftime('%Y-%m-%d')
     cik = filing_data.get('cik_number', 'N/A')
     filing_url = filing_data.get('link', '')
-    confidence = filing_data.get('confidence', 0) or filing_data.get('ex99_1_confidence', 0)
+    confidence = filing_data.get(
+        'confidence', 0) or filing_data.get('ex99_1_confidence', 0)
     is_merger_related = filing_data.get('is_merger_related', False)
-    reasoning = filing_data.get('reasoning', '') or filing_data.get('ex99_1_reasoning', '')
+    reasoning = filing_data.get(
+        'reasoning', '') or filing_data.get('ex99_1_reasoning', '')
     is_target_us_listed = filing_data.get('is_target_us_listed')
     is_target_market_cap_greater_than_100m = filing_data.get(
         'is_target_market_cap_greater_than_100m')
@@ -572,7 +577,7 @@ def generate_8k_summary_email_html(company_name: str, form_type: str, summary_do
     return subject, html_email
 
 
-def generate_8k_99_1_summary_email_html(company_name: str, form_type: str, summary_doc_url: str, cik_number: str, sec_url: str, accession_number: str, summary_kind: str = "8-K", l1_headline: str = None) -> tuple:
+def generate_8k_99_1_summary_email_html(company_name: str, form_type: str, summary_doc_url: str, cik_number: str, sec_url: str, accession_number: str, summary_kind: str = "8-K", l1_headline: str = None, l2_brief: str = None) -> tuple:
     """
     Generate HTML email for 8-K summary document notification.
 
@@ -585,6 +590,7 @@ def generate_8k_99_1_summary_email_html(company_name: str, form_type: str, summa
         accession_number: SEC accession number
         summary_kind: Summary type label (e.g. "8-K", "EX-99.1")
         l1_headline: Optional L1 headline from the summary doc (shown so user can see content without opening doc)
+        l2_brief: Optional L2 brief from the summary doc (shown so user can see content without opening doc)
     Returns:
         tuple: (subject, html_email)
     """
@@ -598,7 +604,14 @@ def generate_8k_99_1_summary_email_html(company_name: str, form_type: str, summa
       <p style="margin:0; font-size:15px; font-weight:bold; color:#003366; line-height:1.5;">{escape_html(l1_headline.strip())}</p>
     </div>
 """
-
+    brief_block = ""
+    if l2_brief and l2_brief.strip():
+        brief_block = f"""
+    <div style="margin-bottom:24px; padding:16px; background-color:#f0f7ff; border-left:4px solid #4a90e2; border-radius:4px;">
+      <p style="margin:0 0 6px 0; font-size:12px; font-weight:bold; color:#4a90e2; text-transform:uppercase; letter-spacing:0.5px;">L2 — Brief</p>
+      <p style="margin:0; font-size:15px; font-weight:bold; color:#003366; line-height:1.5;">{escape_html(l2_brief.strip())}</p>
+    </div>
+"""
     html_email = f"""
 <!DOCTYPE html>
 <html lang="en">
@@ -635,7 +648,7 @@ def generate_8k_99_1_summary_email_html(company_name: str, form_type: str, summa
         </p>
       </div>
     </div>
-{headline_block}
+{headline_block}{brief_block}
     <div style="text-align:center; margin:30px 0;">
       <a href="{escape_html(summary_doc_url)}"
          style="display:inline-block; background-color:#4a90e2; color:#ffffff; padding:15px 30px; text-decoration:none; border-radius:5px; font-size:16px; font-weight:bold; box-shadow:0 2px 4px rgba(0,0,0,0.2);">

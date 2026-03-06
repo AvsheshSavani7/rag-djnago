@@ -238,7 +238,7 @@ def send_webhook_notification(webhook_url, payload, notification_type="notificat
         raise
 
 
-def send_summary_email_via_webhook(summary_doc_url, company_name, form_type, cik_number, sec_url, accession_number, summary_kind: str, l1_headline: str = None):
+def send_summary_email_via_webhook(summary_doc_url, company_name, form_type, cik_number, sec_url, accession_number, summary_kind: str, l1_headline: str = None, l2_brief: str = None):
     """Generate 8-K/EX-99.1 summary email HTML and send via N8N testing webhook (includes .docx URL and L1 headline so user can see content without opening doc)."""
     try:
         subject, html_email = generate_8k_99_1_summary_email_html(
@@ -250,6 +250,7 @@ def send_summary_email_via_webhook(summary_doc_url, company_name, form_type, cik
             accession_number=accession_number or "",
             summary_kind=summary_kind,
             l1_headline=l1_headline,
+            l2_brief=l2_brief,
         )
         payload = {
             "subject": subject,

@@ -297,6 +297,16 @@ class SECFilingSummary(Document):
     created_at = DateTimeField(default=datetime.utcnow)
     updated_at = DateTimeField(default=datetime.utcnow)
     form_type = StringField(required=True, max_length=50)
+    items_reported = ListField(StringField(max_length=50), default=[])
+    L1_headline = StringField(required=False, max_length=1000, null=True)
+    L2_brief = StringField(required=False, max_length=1000, null=True)
+    L3_detailed = DictField(required=False, null=True, default={})
+    s3_docx_url = StringField(required=False, max_length=2000, null=True)
+    s3_json_url = StringField(required=False, max_length=2000, null=True)
+
+    # EX-99.1 exhibit summary: { items_reported, L1_headline, L2_brief, L3_detailed, s3_docx_url, s3_json_url }
+    # When set, parent-level summary fields are typically null.
+    ex99_1 = DictField(null=True, db_field="99_1")
 
     # When form_type is proxy (DEFM14A, DEF 14A, etc.): only proxy is set
     # Proxy node schema (all fields stored as dict):
