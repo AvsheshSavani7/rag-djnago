@@ -58,6 +58,8 @@ N8N_WEBHOOK_URL_8K_SUMMARY = "https://n8n-xwx1.onrender.com/webhook/b3007d21-684
 N8N_WEBHOOK_URL_FILING = "https://n8n-xwx1.onrender.com/webhook/3ff1b0ea-7114-4dda-940e-95ce81e08017"
 MAX_DESCRIPTION_LENGTH = 50
 
+LOG_PREFIX = "form by form_type: 8-K"
+
 ALLOWED_FILING_FIELDS = {
     'title', 'link', 'guid', 'description', 'pubDate',
     'enclosure_url', 'enclosure_length', 'enclosure_type',
@@ -94,9 +96,10 @@ class EightKFeedProcessor:
         If either is provided, the live SEC feed is not fetched.
         """
         try:
-            logger.info("8k_processor_run step=start")
+            logger.info(f"{LOG_PREFIX} :run: step=start")
             log_and_print("=" * 80)
-            log_and_print("🚀 Starting 8-K-only feed processor")
+            log_and_print(
+                f"{LOG_PREFIX} :run: 🚀 Starting 8-K-only feed processor")
             log_and_print("=" * 80)
 
             # Use manual RSS for testing if provided
@@ -104,12 +107,13 @@ class EightKFeedProcessor:
                 try:
                     with open(rss_file, 'r', encoding='utf-8', errors='replace') as f:
                         rss_content = f.read()
-                    log_and_print(f"📂 Using RSS from file: {rss_file}")
+                    log_and_print(
+                        f"{LOG_PREFIX} :run: 📂 Using RSS from file: {rss_file}")
                     logger.info(
-                        "8k_processor_run step=rss_source source=file path=%s", rss_file)
+                        f"{LOG_PREFIX} :run: step=rss_source source=file path=%s", rss_file)
                 except Exception as e:
                     log_and_print(
-                        f"❌ Failed to read RSS file {rss_file}: {e}", 'error')
+                        f"{LOG_PREFIX} :run: ❌ Failed to read RSS file {rss_file}: {e}", 'error')
                     return {
                         'success': False,
                         'error': f'Failed to read RSS file: {e}',
@@ -119,13 +123,16 @@ class EightKFeedProcessor:
                 self.parser.set_feed_url('8-K')
                 rss_content = self.parser.fetch_rss_feed()
                 if rss_content:
-                    logger.info("8k_processor_run step=fetch_feed source=live")
+                    logger.info(
+                        f"{LOG_PREFIX} :run: step=fetch_feed source=live")
             else:
-                log_and_print("📂 Using provided RSS content (skip live fetch)")
+                log_and_print(
+                    f"{LOG_PREFIX} :run: 📂 Using provided RSS content (skip live fetch)")
                 logger.info("8k_processor_run step=rss_source source=provided")
 
             if not rss_content:
-                log_and_print("❌ Failed to fetch 8-K RSS feed", 'error')
+                log_and_print(
+                    f"{LOG_PREFIX} :run: ❌ Failed to fetch 8-K RSS feed", 'error')
                 return {
                     'success': False,
                     'error': 'Failed to fetch RSS feed',
@@ -135,11 +142,12 @@ class EightKFeedProcessor:
             # Parse feed
             items = self.parser.parse_rss_content(rss_content)
             logger.info(
-                "8k_processor_run step=parse_feed total_items=%s", len(items))
+                f"{LOG_PREFIX} :run: step=parse_feed total_items=%s", len(items))
             log_and_print(f"📋 Parsed {len(items)} items from 8-K feed")
 
             if not items:
-                log_and_print("⚠️ No items found in 8-K feed")
+                log_and_print(
+                    f"{LOG_PREFIX} :run: ⚠️ No items found in 8-K feed")
                 return {
                     'success': True,
                     'message': 'No items in feed',
@@ -149,10 +157,10 @@ class EightKFeedProcessor:
 
             # Filter by accession (check AccessionLookedUp)
             unique_items = self._filter_unique_items(items)
-            logger.info("8k_processor_run step=filter_accessions total=%s new_to_process=%s", len(
+            logger.info(f"{LOG_PREFIX} :run: step=filter_accessions total=%s new_to_process=%s", len(
                 items), len(unique_items))
             log_and_print(
-                f"✅ Found {len(unique_items)} new items to process (after accession filtering)")
+                f"{LOG_PREFIX} :run: ✅ Found {len(unique_items)} new items to process (after accession filtering)")
 
             # Process each unique item
             for item_data in unique_items:
@@ -160,22 +168,27 @@ class EightKFeedProcessor:
 
             # Log summary
             logger.info(
-                "8k_processor_run step=summary total_items=%s new_items=%s ex21=%s ex99=%s summary_8k=%s summary_ex99=%s skipped=%s errors=%s",
+                f"{LOG_PREFIX} :run: step=summary total_items=%s new_items=%s ex21=%s ex99=%s summary_8k=%s summary_ex99=%s skipped=%s errors=%s",
                 len(items), self.processed_count, self.ex21_processed_count, self.ex99_processed_count,
                 self.summary_8k_count, self.summary_ex99_count, self.skipped_count, self.error_count
             )
             log_and_print("=" * 80)
-            log_and_print("📊 8-K Processing Summary:")
-            log_and_print(f"   Total items in feed: {len(items)}")
-            log_and_print(f"   New items processed: {self.processed_count}")
-            log_and_print(f"   EX-2.1 processed: {self.ex21_processed_count}")
-            log_and_print(f"   EX-99.1 processed: {self.ex99_processed_count}")
+            log_and_print(f"{LOG_PREFIX} :run: 📊 8-K Processing Summary:")
             log_and_print(
-                f"   8-K summaries generated: {self.summary_8k_count}")
+                f"{LOG_PREFIX} :run:    Total items in feed: {len(items)}")
             log_and_print(
-                f"   EX-99.1 summaries generated: {self.summary_ex99_count}")
-            log_and_print(f"   Skipped: {self.skipped_count}")
-            log_and_print(f"   Errors: {self.error_count}")
+                f"{LOG_PREFIX} :run:    New items processed: {self.processed_count}")
+            log_and_print(
+                f"{LOG_PREFIX} :run:    EX-2.1 processed: {self.ex21_processed_count}")
+            log_and_print(
+                f"{LOG_PREFIX} :run:    EX-99.1 processed: {self.ex99_processed_count}")
+            log_and_print(
+                f"{LOG_PREFIX} :run:   8-K summaries generated: {self.summary_8k_count}")
+            log_and_print(
+                f"{LOG_PREFIX} :run:   EX-99.1 summaries generated: {self.summary_ex99_count}")
+            log_and_print(
+                f"{LOG_PREFIX} :run:   Skipped: {self.skipped_count}")
+            log_and_print(f"{LOG_PREFIX} :run:   Errors: {self.error_count}")
             log_and_print("=" * 80)
 
             return {
@@ -193,8 +206,9 @@ class EightKFeedProcessor:
             }
 
         except Exception as e:
-            logger.exception("8k_processor_run step=error error=%s", str(e))
-            log_and_print(f"❌ Error in 8-K feed processor: {e}", 'error')
+            logger.exception(f"{LOG_PREFIX} :run: step=error error=%s", str(e))
+            log_and_print(
+                f"{LOG_PREFIX} :run: ❌ Error in 8-K feed processor: {e}", 'error')
             import traceback
             log_and_print(traceback.format_exc(), 'error')
             return {
@@ -214,17 +228,17 @@ class EightKFeedProcessor:
                 'accession_number') or extract_accession_from_guid(item_data.get('guid'))
 
             if not accession_number:
-                logger.warning("filter_unique_items accession=missing title=%s",
+                logger.warning(f"{LOG_PREFIX} :_filter_unique_items: accession=missing title=%s",
                                (item_data.get('title') or 'N/A')[:80])
                 log_and_print(
-                    f"⚠️ Item without accession number: {item_data.get('title', 'N/A')}", 'warning')
+                    f"{LOG_PREFIX} :_filter_unique_items: ⚠️ Item without accession number: {item_data.get('title', 'N/A')}", 'warning')
                 unique_items.append(item_data)
                 continue
 
             # Check AccessionLookedUp cache
             if AccessionLookedUp.objects(accession_number=accession_number).first():
                 logger.info(
-                    "filter_unique_items accession=%s reason=already_looked_up", accession_number)
+                    f"{LOG_PREFIX} :_filter_unique_items: accession=%s reason=already_looked_up", accession_number)
                 log_and_print(
                     f"⏭️ Skipping already looked up filing: {accession_number}")
                 continue
@@ -232,45 +246,45 @@ class EightKFeedProcessor:
             # Check SECFiling database
             if SECFiling.objects(accession_number=accession_number).first():
                 logger.info(
-                    "filter_unique_items accession=%s reason=existing_filing", accession_number)
+                    f"{LOG_PREFIX} :_filter_unique_items: accession=%s reason=existing_filing", accession_number)
                 log_and_print(
-                    f"⏭️ Skipping existing filing: {accession_number}")
+                    f"{LOG_PREFIX} :_filter_unique_items: ⏭️ Skipping existing filing: {accession_number}")
                 # Cache for future runs
                 try:
                     AccessionLookedUp(accession_number=accession_number).save()
                 except Exception as e:
                     if 'duplicate' not in str(e).lower() and 'E11000' not in str(e):
                         log_and_print(
-                            f"Failed to save accession number to AccessionLookedUp: {e}", 'warning')
+                            f"{LOG_PREFIX} :_filter_unique_items: Failed to save accession number to AccessionLookedUp: {e}", 'warning')
                 continue
 
             # Check for duplicates in current batch
             if accession_number in seen_accessions:
                 logger.info(
-                    "filter_unique_items accession=%s reason=duplicate_in_batch", accession_number)
+                    f"{LOG_PREFIX} :_filter_unique_items: accession=%s reason=duplicate_in_batch", accession_number)
                 log_and_print(
-                    f"⏭️ Skipping duplicate accession in same feed: {accession_number}")
+                    f"{LOG_PREFIX} :_filter_unique_items: ⏭️ Skipping duplicate accession in same feed: {accession_number}")
                 continue
 
             seen_accessions.add(accession_number)
             unique_items.append(item_data)
             new_accession_numbers.append(accession_number)
             logger.info(
-                "filter_unique_items accession=%s reason=queued", accession_number)
+                f"{LOG_PREFIX} :_filter_unique_items: accession=%s reason=queued", accession_number)
 
         # Bulk insert new accession numbers
         if new_accession_numbers:
             logger.info("filter_unique_items step=bulk_cache accessions_count=%s accessions=%s", len(
                 new_accession_numbers), new_accession_numbers[:10])
             log_and_print(
-                f"💾 Adding {len(new_accession_numbers)} new accessions to AccessionLookedUp")
+                f"{LOG_PREFIX} :_filter_unique_items: 💾 Adding {len(new_accession_numbers)} new accessions to AccessionLookedUp")
             for acc_num in new_accession_numbers:
                 try:
                     AccessionLookedUp(accession_number=acc_num).save()
                 except Exception as e:
                     if 'duplicate' not in str(e).lower() and 'E11000' not in str(e):
                         log_and_print(
-                            f"Failed to save accession number {acc_num} to AccessionLookedUp: {e}", 'warning')
+                            f"{LOG_PREFIX} :_filter_unique_items: Failed to save accession number {acc_num} to AccessionLookedUp: {e}", 'warning')
 
         return unique_items
 
@@ -296,21 +310,23 @@ class EightKFeedProcessor:
                 ).first()
 
             if matched_deal:
-                logger.info("check_cik_matches_deal cik=%s match=true deal_id=%s",
+                logger.info(f"{LOG_PREFIX} :_check_cik_matches_deal: cik=%s match=true deal_id=%s",
                             cik_normalized, str(matched_deal.id))
                 log_and_print(
-                    f"✅ CIK {cik_normalized} matches deal: {matched_deal.id}")
+                    f"{LOG_PREFIX} :_check_cik_matches_deal: ✅ CIK {cik_normalized} matches deal: {matched_deal.id}")
                 return True, str(matched_deal.id)
             else:
                 logger.info(
-                    "check_cik_matches_deal cik=%s match=false", cik_normalized)
-                log_and_print(f"⏭️ CIK {cik_normalized} not in deals")
+                    f"{LOG_PREFIX} :_check_cik_matches_deal: cik=%s match=false", cik_normalized)
+                log_and_print(
+                    f"{LOG_PREFIX} :_check_cik_matches_deal: ⏭️ CIK {cik_normalized} not in deals")
                 return False, None
 
         except Exception as e:
             logger.exception(
-                "check_cik_matches_deal cik=%s error=%s", cik_number, str(e))
-            log_and_print(f"❌ Error checking CIK in deals: {e}", 'error')
+                f"{LOG_PREFIX} :_check_cik_matches_deal: cik=%s error=%s", cik_number, str(e))
+            log_and_print(
+                f"{LOG_PREFIX} :_check_cik_matches_deal: ❌ Error checking CIK in deals: {e}", 'error')
             return False, None
 
     def _filing_date_for_summary(self, item_filing_date, result_filing_date):
@@ -341,23 +357,23 @@ class EightKFeedProcessor:
                         accession_number, url_8k or '')
             if not url_8k:
                 logger.warning(
-                    "process_8k_document accession=%s step=skip reason=no_url", accession_number)
+                    f"{LOG_PREFIX} :_process_8k_document: step=start accession=%s step=skip reason=no_url", accession_number)
                 log_and_print(
-                    "⚠️ No 8-K document URL in filing entry", 'warning')
+                    f"{LOG_PREFIX} :_process_8k_document: ⚠️ No 8-K document URL in filing entry", 'warning')
                 return
 
             if item_data.get('cik_matches_deal'):
                 logger.info(
-                    "process_8k_document accession=%s step=cik_matches_deal generating_summary", accession_number)
+                    f"{LOG_PREFIX} :_process_8k_document: accession=%s step=cik_matches_deal generating_summary", accession_number)
                 log_and_print(
-                    "✅ CIK matches deal → generating 8-K summary (no GPT)")
+                    f"{LOG_PREFIX} :_process_8k_document: ✅ CIK matches deal → generating 8-K summary (no GPT)")
                 self._generate_8k_summary_and_send(item_data, url_8k)
                 return
 
-            logger.info("process_8k_document accession=%s step=gpt_analysis company=%s",
+            logger.info(f"{LOG_PREFIX} :_process_8k_document: accession=%s step=gpt_analysis company=%s",
                         accession_number, item_data.get('company_name', ''))
             log_and_print(
-                f"🔍 8-K: GPT analysis: {item_data.get('company_name')}")
+                f"{LOG_PREFIX} :_process_8k_document: 🔍 8-K: GPT analysis: {item_data.get('company_name')}")
             data = copy.deepcopy(item_data)
             data['xbrl_files'] = [
                 {'type': '8-K', 'description': filing_entry.get('description', '8-K'), 'url': url_8k}]
@@ -371,7 +387,7 @@ class EightKFeedProcessor:
             item_data['is_target_market_cap_greater_than_100m'] = result.get(
                 'is_target_market_cap_greater_than_100m')
             logger.info(
-                "process_8k_document accession=%s step=gpt_result is_merger=%s is_us_listed=%s cap_gt_100m=%s confidence=%s",
+                f"{LOG_PREFIX} :_process_8k_document: accession=%s step=gpt_result is_merger=%s is_us_listed=%s cap_gt_100m=%s confidence=%s",
                 accession_number,
                 item_data.get('is_merger_related'),
                 item_data.get('is_target_us_listed'),
@@ -379,11 +395,11 @@ class EightKFeedProcessor:
                 item_data.get('confidence', 0),
             )
             log_and_print(
-                f"   8-K Merger-related: {item_data.get('is_merger_related', False)}")
+                f"{LOG_PREFIX} :_process_8k_document:   8-K Merger-related: {item_data.get('is_merger_related', False)}")
             log_and_print(
-                f"   Market cap > $100M: {item_data.get('is_target_market_cap_greater_than_100m')}")
+                f"{LOG_PREFIX} :_process_8k_document:   Market cap > $100M: {item_data.get('is_target_market_cap_greater_than_100m')}")
             log_and_print(
-                f"   Confidence: {item_data.get('confidence', 0)}%")
+                f"{LOG_PREFIX} :_process_8k_document:   Confidence: {item_data.get('confidence', 0)}%")
 
             # Send 8-K email only if all three are truthy; otherwise skip
             is_merger = item_data.get('is_merger_related')
@@ -392,7 +408,7 @@ class EightKFeedProcessor:
                 'is_target_market_cap_greater_than_100m')
             if is_merger and is_listed and cap_gt_100m:
                 logger.info(
-                    "process_8k_document accession=%s step=send_8k_gpt_email", accession_number)
+                    f"{LOG_PREFIX} :_process_8k_document: accession=%s step=send_8k_gpt_email", accession_number)
                 doc_files = [{
                     'type': filing_entry.get('document_type', '8-K'),
                     'url': filing_entry.get('url'),
@@ -404,21 +420,23 @@ class EightKFeedProcessor:
                 self._send_8k_gpt_email(item_data, doc_files=doc_files)
             else:
                 logger.info(
-                    "process_8k_document accession=%s step=email_skipped reason=criteria_not_met", accession_number)
+                    f"{LOG_PREFIX} :_process_8k_document: accession=%s step=email_skipped reason=criteria_not_met", accession_number)
                 log_and_print(
-                    "⏭️ 8-K main email skipped (need is_merger_related, is_target_us_listed, and market cap > $100M)")
+                    f"{LOG_PREFIX} :_process_8k_document: ⏭️ 8-K main email skipped (need is_merger_related, is_target_us_listed, and market cap > $100M)")
         except Exception as e:
             logger.exception(
-                "process_8k_document accession=%s step=error error=%s", accession_number, str(e))
-            log_and_print(f"❌ Error in _process_8k_document: {e}", 'error')
+                f"{LOG_PREFIX} :_process_8k_document: accession=%s step=error error=%s", accession_number, str(e))
+            log_and_print(
+                f"{LOG_PREFIX} :_process_8k_document: ❌ Error in _process_8k_document: {e}", 'error')
 
     def _send_8k_gpt_email(self, item_data, doc_files=None):
         """Send email for main 8-K document (subject: 8-K – Company Name). Distinct from EX-99.1 email."""
         accession_number = item_data.get('accession_number', 'N/A')
         try:
-            logger.info("send_8k_gpt_email accession=%s company=%s",
+            logger.info(f"{LOG_PREFIX} :_send_8k_gpt_email: accession=%s company=%s",
                         accession_number, item_data.get('company_name', ''))
-            log_and_print("📧 Sending 8-K email with GPT data")
+            log_and_print(
+                f"{LOG_PREFIX} :_send_8k_gpt_email: 📧 Sending 8-K email with GPT data")
             if doc_files is None:
                 doc_files = item_data.get('xbrl_files', [])
             subject, html_email = generate_8k_document_email_html(
@@ -434,33 +452,36 @@ class EightKFeedProcessor:
             }
             send_webhook_notification(
                 N8N_WEBHOOK_URL_8K_SUMMARY, payload, "8-K GPT email")
-            logger.info("send_8k_gpt_email accession=%s step=sent",
+            logger.info(f"{LOG_PREFIX} :_send_8k_gpt_email: accession=%s step=sent",
                         accession_number)
-            log_and_print("✅ 8-K GPT email sent")
+            log_and_print(
+                f"{LOG_PREFIX} :_send_8k_gpt_email: ✅ 8-K GPT email sent")
         except Exception as e:
             logger.exception(
-                "send_8k_gpt_email accession=%s error=%s", accession_number, str(e))
-            log_and_print(f"❌ Error sending 8-K GPT email: {e}", 'error')
+                f"{LOG_PREFIX} :_send_8k_gpt_email: accession=%s error=%s", accession_number, str(e))
+            log_and_print(
+                f"{LOG_PREFIX} :_send_8k_gpt_email: ❌ Error sending 8-K GPT email: {e}", 'error')
 
     def _generate_8k_summary_and_send(self, item_data, url_8k):
         """Generate 8-K summary, save to sec_filing_summary, send summary email."""
         accession_number = item_data.get('accession_number', 'N/A')
         try:
             deal_id = item_data.get('deal_id')
-            logger.info("generate_8k_summary accession=%s step=start url=%s deal_id=%s",
+            logger.info(f"{LOG_PREFIX} :_generate_8k_summary_and_send: accession=%s step=start url=%s deal_id=%s",
                         accession_number, url_8k, deal_id)
             output_dir = tempfile.mkdtemp()
-            log_and_print(f"📝 Generating 8-K summary: {url_8k}")
+            log_and_print(
+                f"{LOG_PREFIX} :_generate_8k_summary_and_send: 📝 Generating 8-K summary: {url_8k}")
             result_8k = summarize_8k_filing(
                 url_8k, output_dir, upload_to_s3=True, s3_folder="8k", verbose=False)
             if not result_8k.get('s3_url'):
                 logger.warning(
-                    "generate_8k_summary accession=%s step=skip reason=no_s3_url", accession_number)
+                    f"{LOG_PREFIX} :_generate_8k_summary_and_send: accession=%s step=skip reason=no_s3_url", accession_number)
                 return
-            logger.info("generate_8k_summary accession=%s step=s3_uploaded s3_url=%s",
+            logger.info(f"{LOG_PREFIX} :_generate_8k_summary_and_send: accession=%s step=s3_uploaded s3_url=%s",
                         accession_number, result_8k.get('s3_url', '')[:80])
             log_and_print(
-                f"✅ 8-K summary uploaded to S3: {result_8k['s3_url']}")
+                f"{LOG_PREFIX} :_generate_8k_summary_and_send: ✅ 8-K summary uploaded to S3: {result_8k['s3_url']}")
             try:
                 filing_dt = self._filing_date_for_summary(
                     item_data.get('filing_date'), result_8k.get('filing_date'))
@@ -497,19 +518,21 @@ class EightKFeedProcessor:
                     )
                     doc_8k.save()
                 logger.info(
-                    "generate_8k_summary accession=%s step=db_saved", accession_number)
-                log_and_print("💾 8-K summary saved to DB (sec_filing_summary)")
+                    f"{LOG_PREFIX} :_generate_8k_summary_and_send: accession=%s step=db_saved", accession_number)
+                log_and_print(
+                    f"{LOG_PREFIX} :_generate_8k_summary_and_send: 💾 8-K summary saved to DB (sec_filing_summary)")
                 self.summary_8k_count += 1
                 self._send_8k_summary_email(item_data, result_8k, url_8k)
             except Exception as db_e:
                 logger.exception(
-                    "generate_8k_summary accession=%s step=db_error error=%s", accession_number, str(db_e))
+                    f"{LOG_PREFIX} :_generate_8k_summary_and_send: accession=%s step=db_error error=%s", accession_number, str(db_e))
                 log_and_print(
-                    f"❌ Failed to save 8-K summary to DB: {db_e}", 'error')
+                    f"{LOG_PREFIX} :_generate_8k_summary_and_send: ❌ Failed to save 8-K summary to DB: {db_e}", 'error')
         except Exception as e:
             logger.exception(
-                "generate_8k_summary accession=%s error=%s", accession_number, str(e))
-            log_and_print(f"❌ 8-K summary generation failed: {e}", 'error')
+                f"{LOG_PREFIX} :_generate_8k_summary_and_send: accession=%s error=%s", accession_number, str(e))
+            log_and_print(
+                f"{LOG_PREFIX} :_generate_8k_summary_and_send: ❌ 8-K summary generation failed: {e}", 'error')
 
     def _process_single_item(self, item_data):
         """Process a single 8-K item"""
@@ -517,46 +540,52 @@ class EightKFeedProcessor:
             'accession_number') or extract_accession_from_guid(item_data.get('guid'))
         try:
             html_url = item_data.get('link')
-            logger.info("process_single_item accession=%s step=start title=%s link=%s",
+            logger.info(f"{LOG_PREFIX} :_process_single_item: accession=%s step=start title=%s link=%s",
                         accession_number, (item_data.get('title') or 'N/A')[:60], html_url or '')
 
-            log_and_print("-" * 80)
+            log_and_print(f"{LOG_PREFIX} :_process_single_item: -" * 80)
             log_and_print(
-                f"🔍 Processing: {item_data.get('title', 'N/A')[:80]}")
-            log_and_print(f"   Accession: {accession_number}")
-            log_and_print(f"   item_data 1: {item_data}")
+                f"{LOG_PREFIX} :_process_single_item: 🔍 Processing: {item_data.get('title', 'N/A')[:80]}")
+            log_and_print(
+                f"{LOG_PREFIX} :_process_single_item:   Accession: {accession_number}")
+            log_and_print(
+                f"{LOG_PREFIX} :_process_single_item:   item_data 1: {item_data}")
 
             if not html_url:
                 logger.warning(
-                    "process_single_item accession=%s step=skip reason=no_link", accession_number)
-                log_and_print("⚠️ No link URL found, skipping", 'warning')
+                    f"{LOG_PREFIX} :_process_single_item: accession=%s step=skip reason=no_link", accession_number)
+                log_and_print(
+                    f"{LOG_PREFIX} :_process_single_item: ⚠️ No link URL found, skipping", 'warning')
                 self.skipped_count += 1
                 return
 
             # Fetch HTML and parse filing details
             logger.info(
-                "process_single_item accession=%s step=fetch_html url=%s", accession_number, html_url)
-            log_and_print(f"🌐 Fetching filing details from: {html_url}")
+                f"{LOG_PREFIX} :_process_single_item: accession=%s step=fetch_html url=%s", accession_number, html_url)
+            log_and_print(
+                f"{LOG_PREFIX} :_process_single_item: 🌐 Fetching filing details from: {html_url}")
             html_data = self.parser.fetch_and_parse_html(
                 html_url, form_type_from_feed='8-K')
 
-            log_and_print(f"   html_data 1: {html_data}")
+            log_and_print(
+                f"{LOG_PREFIX} :_process_single_item:   html_data 1: {html_data}")
 
             if not html_data:
                 logger.error(
-                    "process_single_item accession=%s step=parse_failed url=%s", accession_number, html_url)
+                    f"{LOG_PREFIX} :_process_single_item: accession=%s step=parse_failed url=%s", accession_number, html_url)
                 log_and_print(
-                    f"❌ Failed to parse HTML for: {html_url}", 'error')
+                    f"{LOG_PREFIX} :_process_single_item: ❌ Failed to parse HTML for: {html_url}", 'error')
                 self.error_count += 1
                 return
 
             # Merge HTML data into item_data
             item_data.update(html_data)
             filing_array = item_data.get('filing_array', [])
-            logger.info("process_single_item accession=%s step=html_merged cik=%s filing_array_len=%s doc_types=%s",
+            logger.info(f"{LOG_PREFIX} :_process_single_item: accession=%s step=html_merged cik=%s filing_array_len=%s doc_types=%s",
                         accession_number, item_data.get('cik_number'), len(filing_array or []), [f.get('document_type') for f in (filing_array or [])])
 
-            log_and_print(f"   item_data 2: {item_data}")
+            log_and_print(
+                f"{LOG_PREFIX} :_process_single_item:   item_data 2: {item_data}")
 
             # CIK check early (for summary: only generate when CIK matches a deal)
             cik_number = item_data.get('cik_number')
@@ -564,28 +593,30 @@ class EightKFeedProcessor:
                 cik_number)
             item_data['deal_id'] = deal_id
             item_data['cik_matches_deal'] = cik_matches_deal
-            logger.info("process_single_item accession=%s step=cik_check cik_matches_deal=%s deal_id=%s",
+            logger.info(f"{LOG_PREFIX} :_process_single_item: accession=%s step=cik_check cik_matches_deal=%s deal_id=%s",
                         accession_number, cik_matches_deal, deal_id)
 
-            log_and_print(f"   item_data 3: {item_data}")
+            log_and_print(
+                f"{LOG_PREFIX} :_process_single_item:   item_data 3: {item_data}")
 
             filing_array = item_data.get('filing_array', [])
 
-            log_and_print(f"   filing_array 1: {filing_array}")
+            log_and_print(
+                f"{LOG_PREFIX} :_process_single_item:   filing_array 1: {filing_array}")
             if not filing_array:
                 logger.warning(
-                    "process_single_item accession=%s step=skip reason=no_filing_array", accession_number)
+                    f"{LOG_PREFIX} :_process_single_item: accession=%s step=skip reason=no_filing_array", accession_number)
                 log_and_print(
-                    "⚠️ No 8-K / EX-2.1 / EX-99.1 .htm documents in filing, skipping", 'warning')
+                    f"{LOG_PREFIX} :_process_single_item: ⚠️ No 8-K / EX-2.1 / EX-99.1 .htm documents in filing, skipping", 'warning')
                 self.skipped_count += 1
                 return
 
-            logger.info("process_single_item accession=%s step=save_filing form_type=%s doc_types=%s",
+            logger.info(f"{LOG_PREFIX} :_process_single_item: accession=%s step=save_filing form_type=%s doc_types=%s",
                         accession_number, item_data.get('form_type'), [f.get('document_type') for f in filing_array])
             log_and_print(
-                f"   Form type: {item_data.get('form_type', 'N/A')}")
+                f"{LOG_PREFIX} :_process_single_item:   Form type: {item_data.get('form_type', 'N/A')}")
             log_and_print(
-                f"   Filing array: {len(filing_array)} document(s) – {[f.get('document_type') for f in filing_array]}")
+                f"{LOG_PREFIX} :_process_single_item:   Filing array: {len(filing_array)} document(s) – {[f.get('document_type') for f in filing_array]}")
 
             item_data['has_htm_files'] = True
 
@@ -596,23 +627,30 @@ class EightKFeedProcessor:
             for filing in filing_array:
                 doc_type = filing.get('document_type')
                 logger.info(
-                    "process_single_item accession=%s step=process_doc doc_type=%s", accession_number, doc_type)
+                    f"{LOG_PREFIX} :_process_single_item: accession=%s step=process_doc doc_type=%s", accession_number, doc_type)
                 if doc_type == '8-K':
+                    logger.info(
+                        f"{LOG_PREFIX} :_process_single_item: accession=%s step=process_doc doc_type=8-K", accession_number)
                     self._process_8k_document(item_data, filing)
                 elif doc_type == 'EX-99.1':
+                    logger.info(
+                        f"{LOG_PREFIX} :_process_single_item: accession=%s step=process_doc doc_type=EX-99.1", accession_number)
                     self._process_ex99_filing(item_data, filing)
                 elif doc_type == 'EX-2.1':
+                    logger.info(
+                        f"{LOG_PREFIX} :_process_single_item: accession=%s step=process_doc doc_type=EX-2.1", accession_number)
                     self._process_ex21_filing(item_data, filing)
             logger.info(
-                "process_single_item accession=%s step=done", accession_number)
+                f"{LOG_PREFIX} :_process_single_item: accession=%s step=done", accession_number)
 
         except Exception as e:
             logger.exception(
-                "process_single_item accession=%s step=error error=%s", accession_number, str(e))
+                f"{LOG_PREFIX} :_process_single_item: accession=%s step=error error=%s", accession_number, str(e))
             log_and_print(
-                f"❌ Error processing item: {e}", 'error')
+                f"{LOG_PREFIX} :_process_single_item: ❌ Error processing item: {e}", 'error')
             import traceback
-            log_and_print(traceback.format_exc(), 'error')
+            log_and_print(
+                f"{LOG_PREFIX} :_process_single_item: {traceback.format_exc()}", 'error')
             self.error_count += 1
 
     def _process_ex21_filing(self, item_data, filing_entry):
@@ -620,14 +658,15 @@ class EightKFeedProcessor:
         accession_number = item_data.get('accession_number', 'N/A')
         try:
             logger.info(
-                "process_ex21_filing accession=%s step=start", accession_number)
-            log_and_print("📄 Processing EX-2.1 filing")
+                f"{LOG_PREFIX} :_process_ex21_filing: accession=%s step=start", accession_number)
+            log_and_print(
+                f"{LOG_PREFIX} :_process_ex21_filing: 📄 Processing EX-2.1 filing")
             url_ex21 = filing_entry.get('url')
             if not url_ex21:
                 logger.warning(
-                    "process_ex21_filing accession=%s step=skip reason=no_url", accession_number)
+                    f"{LOG_PREFIX} :_process_ex21_filing: accession=%s step=skip reason=no_url", accession_number)
                 log_and_print(
-                    "⚠️ No EX-2.1 document URL in filing entry", 'warning')
+                    f"{LOG_PREFIX} :_process_ex21_filing: ⚠️ No EX-2.1 document URL in filing entry", 'warning')
                 return
 
             # Set xbrl_files to this filing for analyzer
@@ -635,10 +674,10 @@ class EightKFeedProcessor:
             data['xbrl_files'] = [
                 {'type': 'EX-2.1', 'description': filing_entry.get('description', 'EX-2.1'), 'url': url_ex21}]
             # Analyze filing to get document_kind and company_details
-            logger.info("process_ex21_filing accession=%s step=analyze company=%s",
+            logger.info(f"{LOG_PREFIX} :_process_ex21_filing: accession=%s step=analyze company=%s",
                         accession_number, item_data.get('company_name', ''))
             log_and_print(
-                f"🔍 Analyzing EX-2.1 document for: {item_data.get('company_name')}")
+                f"{LOG_PREFIX} :_process_ex21_filing: 🔍 Analyzing EX-2.1 document for: {item_data.get('company_name')}")
             result = self.document_analyzer.analyze_filing(data)
             item_data.update(result)
 
@@ -650,12 +689,15 @@ class EightKFeedProcessor:
             market_cap_gt_100m = company_details.get(
                 'is_target_market_cap_greater_than_100m')
             logger.info(
-                "process_ex21_filing accession=%s step=result document_kind=%s is_us_listed=%s market_cap_gt_100m=%s",
+                f"{LOG_PREFIX} :_process_ex21_filing: accession=%s step=result document_kind=%s is_us_listed=%s market_cap_gt_100m=%s",
                 accession_number, document_kind, is_us_listed, market_cap_gt_100m,
             )
-            log_and_print(f"   Document kind: {document_kind}")
-            log_and_print(f"   US listed: {is_us_listed}")
-            log_and_print(f"   Market cap > $100M: {market_cap_gt_100m}")
+            log_and_print(
+                f"{LOG_PREFIX} :_process_ex21_filing:   Document kind: {document_kind}")
+            log_and_print(
+                f"{LOG_PREFIX} :_process_ex21_filing:   US listed: {is_us_listed}")
+            log_and_print(
+                f"{LOG_PREFIX} :_process_ex21_filing:   Market cap > $100M: {market_cap_gt_100m}")
 
             # Update existing SECFiling (saved at start of _process_single_item) with document_kind and company_details
             filing = SECFiling.objects(
@@ -667,7 +709,8 @@ class EightKFeedProcessor:
             else:
                 filing = self._save_filing(item_data)
             if not filing:
-                log_and_print("⚠️ Failed to save/update filing", 'warning')
+                log_and_print(
+                    f"{LOG_PREFIX} :_process_ex21_filing: ⚠️ Failed to save/update filing", 'warning')
                 self.error_count += 1
                 return
 
@@ -678,29 +721,33 @@ class EightKFeedProcessor:
             # Process EX-2.1 via 8-K document helper (Node API) if US-related and market cap > $100M
             if is_us_listed and market_cap_gt_100m:
                 logger.info(
-                    "process_ex21_filing accession=%s step=qualified sending_historical_and_helper", accession_number)
+                    f"{LOG_PREFIX} :_process_ex21_filing: accession=%s step=qualified sending_historical_and_helper", accession_number)
                 # Send historical 8-K filings email (last 1 year)
                 log_and_print(
-                    "✅ Qualified for 8-K EX-2.1 document processing (US-listed + market cap > $100M)")
+                    f"{LOG_PREFIX} :_process_ex21_filing: ✅ Qualified for 8-K EX-2.1 document processing (US-listed + market cap > $100M)")
                 self._send_historical_8k_email(item_data)
+                logger.info(
+                    f"{LOG_PREFIX} :_process_ex21_filing: accession=%s step=process_ex21_via_8k_helper", accession_number)
                 self._process_ex21_via_8k_helper(item_data, filing)
                 self.ex21_processed_count += 1
             else:
-                logger.info("process_ex21_filing accession=%s step=not_qualified is_us_listed=%s market_cap_gt_100m=%s",
+                logger.info(f"{LOG_PREFIX} :_process_ex21_filing: accession=%s step=not_qualified is_us_listed=%s market_cap_gt_100m=%s",
                             accession_number, is_us_listed, market_cap_gt_100m)
                 log_and_print(
-                    "⏭️ Not qualified for 8-K EX-2.1 document processing (US-listed or market cap criteria not met)")
+                    f"{LOG_PREFIX} :_process_ex21_filing: ⏭️ Not qualified for 8-K EX-2.1 document processing (US-listed or market cap criteria not met)")
 
             self.processed_count += 1
             logger.info(
-                "process_ex21_filing accession=%s step=done", accession_number)
+                f"{LOG_PREFIX} :_process_ex21_filing: accession=%s step=done", accession_number)
 
         except Exception as e:
             logger.exception(
-                "process_ex21_filing accession=%s error=%s", accession_number, str(e))
-            log_and_print(f"❌ Error processing EX-2.1 filing: {e}", 'error')
+                f"{LOG_PREFIX} :_process_ex21_filing: accession=%s error=%s", accession_number, str(e))
+            log_and_print(
+                f"{LOG_PREFIX} :_process_ex21_filing: ❌ Error processing EX-2.1 filing: {e}", 'error')
             import traceback
-            log_and_print(traceback.format_exc(), 'error')
+            log_and_print(
+                f"{LOG_PREFIX} :_process_ex21_filing: {traceback.format_exc()}", 'error')
             self.error_count += 1
 
     def _process_ex99_filing(self, item_data, filing_entry):
@@ -713,34 +760,40 @@ class EightKFeedProcessor:
         accession_number = item_data.get('accession_number', 'N/A')
         try:
             logger.info(
-                "process_ex99_filing accession=%s step=start", accession_number)
-            log_and_print("📄 Processing EX-99.1 filing")
+                f"{LOG_PREFIX} :_process_ex99_filing: accession=%s step=start", accession_number)
+            log_and_print(
+                f"{LOG_PREFIX} :_process_ex99_filing: 📄 Processing EX-99.1 filing")
             url_ex99 = filing_entry.get('url')
             if not url_ex99:
                 logger.warning(
-                    "process_ex99_filing accession=%s step=skip reason=no_url", accession_number)
+                    f"{LOG_PREFIX} :_process_ex99_filing: accession=%s step=skip reason=no_url", accession_number)
                 log_and_print(
-                    "⚠️ No EX-99.1 document URL in filing entry", 'warning')
+                    f"{LOG_PREFIX} :_process_ex99_filing: ⚠️ No EX-99.1 document URL in filing entry", 'warning')
                 return
 
             if item_data.get('cik_matches_deal'):
                 logger.info(
-                    "process_ex99_filing accession=%s step=cik_matches_deal generating_summary", accession_number)
+                    f"{LOG_PREFIX} :_process_ex99_filing: accession=%s step=cik_matches_deal generating_summary", accession_number)
                 log_and_print(
-                    "✅ CIK matches deal → generating EX-99.1 summary (no GPT)")
+                    f"{LOG_PREFIX} :_process_ex99_filing:   ✅ CIK matches deal → generating EX-99.1 summary (no GPT)")
                 self._generate_ex99_summary(item_data, url_ex99)
+                logger.info(
+                    f"{LOG_PREFIX} :_process_ex99_filing: accession=%s step=done", accession_number)
                 self.processed_count += 1
                 self.ex99_processed_count += 1
                 return
 
-            logger.info("process_ex99_filing accession=%s step=gpt_analysis company=%s",
+            logger.info(f"{LOG_PREFIX} :_process_ex99_filing: accession=%s step=gpt_analysis company=%s",
                         accession_number, item_data.get('company_name', ''))
             data = copy.deepcopy(item_data)
             data['xbrl_files'] = [
                 {'type': 'EX-99.1', 'description': filing_entry.get('description', 'EX-99.1'), 'url': url_ex99}]
             log_and_print(
-                f"🔍 EX-99.1: GPT analysis: {item_data.get('company_name')}")
+                f"{LOG_PREFIX} :_process_ex99_filing: 🔍 EX-99.1: GPT analysis: {item_data.get('company_name')}")
             result = self.document_analyzer.analyze_ex99_1_filing(data)
+            logger.info(
+                f"{LOG_PREFIX} :_process_ex99_filing: accession=%s step=gpt_result result=%s", accession_number, result)
+
             item_data.update(result)
 
             is_merger_related = item_data.get('is_merger_related')
@@ -748,38 +801,43 @@ class EightKFeedProcessor:
             market_cap_gt_100m = item_data.get(
                 'is_target_market_cap_greater_than_100m')
             logger.info(
-                "process_ex99_filing accession=%s step=gpt_result is_merger=%s is_listed=%s cap_gt_100m=%s confidence=%s",
+                f"{LOG_PREFIX} :_process_ex99_filing: accession=%s step=gpt_result is_merger=%s is_listed=%s cap_gt_100m=%s confidence=%s",
                 accession_number, is_merger_related, is_listed, market_cap_gt_100m, item_data.get(
                     'confidence', 0),
             )
-            log_and_print(f"   Merger-related: {is_merger_related}")
-            log_and_print(f"   Market cap > $100M: {market_cap_gt_100m}")
             log_and_print(
-                f"   Confidence: {item_data.get('confidence', 0)}%")
+                f"{LOG_PREFIX} :_process_ex99_filing:   Merger-related: {is_merger_related}")
+            log_and_print(
+                f"{LOG_PREFIX} :_process_ex99_filing:   Market cap > $100M: {market_cap_gt_100m}")
+            log_and_print(
+                f"{LOG_PREFIX} :_process_ex99_filing:   Confidence: {item_data.get('confidence', 0)}%")
 
             # Send EX-99.1 email only if all three are truthy; otherwise skip
             if is_merger_related and is_listed and market_cap_gt_100m:
                 logger.info(
-                    "process_ex99_filing accession=%s step=send_ex99_email", accession_number)
+                    f"{LOG_PREFIX} :_process_ex99_filing: accession=%s step=send_ex99_email", accession_number)
                 self._send_ex99_email(item_data, filing_entry=filing_entry)
+                logger.info(
+                    f"{LOG_PREFIX} :_process_ex99_filing: accession=%s step=done", accession_number)
             else:
                 logger.info(
-                    "process_ex99_filing accession=%s step=email_skipped reason=criteria_not_met", accession_number)
+                    f"{LOG_PREFIX} :_process_ex99_filing: accession=%s step=email_skipped reason=criteria_not_met", accession_number)
                 log_and_print(
-                    "⏭️ EX-99.1 main email skipped (need is_merger_related, is_target_us_listed, and market cap > $100M)")
+                    f"{LOG_PREFIX} :_process_ex99_filing: ⏭️ EX-99.1 main email skipped (need is_merger_related, is_target_us_listed, and market cap > $100M)")
 
             self.processed_count += 1
             self.ex99_processed_count += 1
             logger.info(
-                "process_ex99_filing accession=%s step=done", accession_number)
+                f"{LOG_PREFIX} :_process_ex99_filing: accession=%s step=done", accession_number)
 
         except Exception as e:
             logger.exception(
-                "process_ex99_filing accession=%s error=%s", accession_number, str(e))
+                f"{LOG_PREFIX} :_process_ex99_filing: accession=%s error=%s", accession_number, str(e))
             log_and_print(
-                f"❌ Error processing EX-99.1 filing: {e}", 'error')
+                f"{LOG_PREFIX} :_process_ex99_filing: ❌ Error processing EX-99.1 filing: {e}", 'error')
             import traceback
-            log_and_print(traceback.format_exc(), 'error')
+            log_and_print(
+                f"{LOG_PREFIX} :_process_ex99_filing: {traceback.format_exc()}", 'error')
             self.error_count += 1
 
     def _save_filing(self, item_data):
@@ -787,22 +845,23 @@ class EightKFeedProcessor:
         accession_number = item_data.get('accession_number')
         try:
             if not accession_number:
-                logger.warning("save_filing accession=missing")
+                logger.warning(
+                    f"{LOG_PREFIX} :_save_filing: accession=missing")
                 log_and_print(
-                    "Cannot save filing without accession_number", 'warning')
+                    f"{LOG_PREFIX} :_save_filing: Cannot save filing without accession_number", 'warning')
                 return None
 
             # Check if already exists (race condition)
             existing = SECFiling.objects(
                 accession_number=accession_number).first()
             if existing:
-                logger.info("save_filing accession=%s step=existing filing_id=%s",
+                logger.info(f"{LOG_PREFIX} :_save_filing: accession=%s step=existing filing_id=%s",
                             accession_number, str(existing._id))
                 log_and_print(
-                    f"⏭️ Filing already exists: {accession_number}")
+                    f"{LOG_PREFIX} :_save_filing: ⏭️ Filing already exists: {accession_number}")
                 return existing
 
-            logger.info("save_filing accession=%s step=prepare company=%s",
+            logger.info(f"{LOG_PREFIX} :_save_filing:    accession=%s step=prepare company=%s",
                         accession_number, item_data.get('company_name', ''))
             # Prepare filing data
             item_data = self._prepare_filing_data(item_data)
@@ -815,10 +874,10 @@ class EightKFeedProcessor:
             filing = SECFiling(**filing_data)
             try:
                 filing.save()
-                logger.info("save_filing accession=%s step=saved filing_id=%s company=%s",
+                logger.info(f"{LOG_PREFIX} :_save_filing: accession=%s step=saved filing_id=%s company=%s",
                             accession_number, str(filing._id), filing.company_name or '')
                 log_and_print(
-                    f"💾 Saved filing: {item_data.get('company_name')} - {accession_number}")
+                    f"{LOG_PREFIX} :_save_filing: 💾 Saved filing: {item_data.get('company_name')} - {accession_number}")
 
                 # Emit WebSocket event
                 filing_ws_data = {
@@ -849,17 +908,18 @@ class EightKFeedProcessor:
             except (NotUniqueError, Exception) as e:
                 if 'E11000' in str(e) or 'duplicate' in str(e).lower():
                     logger.info(
-                        "save_filing accession=%s step=duplicate_race using_existing", accession_number)
+                        f"{LOG_PREFIX} :_save_filing: accession=%s step=duplicate_race using_existing", accession_number)
                     log_and_print(
-                        f"⏭️ Duplicate accession_number (race): {accession_number}", 'warning')
+                        f"{LOG_PREFIX} :_save_filing: ⏭️ Duplicate accession_number (race): {accession_number}", 'warning')
                     # Try to fetch existing
                     return SECFiling.objects(accession_number=accession_number).first()
                 raise
 
         except Exception as e:
-            logger.exception("save_filing accession=%s error=%s",
+            logger.exception(f"{LOG_PREFIX} :_save_filing: accession=%s error=%s",
                              accession_number, str(e))
-            log_and_print(f"❌ Error saving filing: {e}", 'error')
+            log_and_print(
+                f"{LOG_PREFIX} :_save_filing: ❌ Error saving filing: {e}", 'error')
             return None
 
     def _prepare_filing_data(self, item_data):
@@ -871,7 +931,7 @@ class EightKFeedProcessor:
                     item_data['acceptance_datetime_utc'].replace('Z', '+00:00'))
             except Exception as e:
                 log_and_print(
-                    f"Error converting acceptance_datetime_utc: {e}", 'warning')
+                    f"{LOG_PREFIX} :_prepare_filing_data: Error converting acceptance_datetime_utc: {e}", 'warning')
                 item_data['acceptance_datetime_utc'] = None
 
         # Convert filing_date
@@ -908,9 +968,10 @@ class EightKFeedProcessor:
         """Send email for EX-2.1 filing. If filing_entry is provided, use it for doc table (file/size from SEC)."""
         accession_number = item_data.get('accession_number', 'N/A')
         try:
-            logger.info("send_ex21_email accession=%s step=start company=%s",
+            logger.info(f"{LOG_PREFIX} :_send_ex21_email: accession=%s step=start company=%s",
                         accession_number, item_data.get('company_name', ''))
-            log_and_print("📧 Generating and sending EX-2.1 email")
+            log_and_print(
+                f"{LOG_PREFIX} :_send_ex21_email: 📧 Generating and sending EX-2.1 email")
 
             # Build doc_files for template (match SEC table when filing_entry available)
             if filing_entry:
@@ -949,19 +1010,20 @@ class EightKFeedProcessor:
                 N8N_WEBHOOK_URL_FILING if use_filing_webhook
                 else N8N_WEBHOOK_URL_8K_SUMMARY
             )
-            logger.info("send_ex21_email accession=%s step=send webhook=%s",
+            logger.info(f"{LOG_PREFIX} :_send_ex21_email: accession=%s step=send webhook=%s",
                         accession_number, 'filing' if use_filing_webhook else '8k_summary')
 
             send_webhook_notification(webhook_url, payload, "EX-2.1 email")
-            logger.info("send_ex21_email accession=%s step=sent",
+            logger.info(f"{LOG_PREFIX} :_send_ex21_email: accession=%s step=sent",
                         accession_number)
-            log_and_print("✅ EX-2.1 email sent successfully")
+            log_and_print(
+                f"{LOG_PREFIX} :_send_ex21_email: ✅ EX-2.1 email sent successfully")
 
         except Exception as e:
             logger.exception(
-                "send_ex21_email accession=%s error=%s", accession_number, str(e))
+                f"{LOG_PREFIX} :_send_ex21_email: accession=%s error=%s", accession_number, str(e))
             log_and_print(
-                f"❌ Error sending EX-2.1 email: {e}", 'error')
+                f"{LOG_PREFIX} :_send_ex21_email: ❌ Error sending EX-2.1 email: {e}", 'error')
 
     def _send_historical_8k_email(self, item_data):
         """
@@ -975,14 +1037,14 @@ class EightKFeedProcessor:
             cik_number = item_data.get('cik_number')
             filing_date = item_data.get('filing_date')
             company_name = item_data.get('company_name', 'Unknown Company')
-            logger.info("send_historical_8k_email accession=%s step=start cik=%s company=%s",
+            logger.info(f"{LOG_PREFIX} :_send_historical_8k_email: accession=%s step=start cik=%s company=%s",
                         accession_number, cik_number, company_name)
 
             if not cik_number or not filing_date:
                 logger.warning(
-                    "send_historical_8k_email accession=%s step=skip reason=missing_cik_or_date", accession_number)
+                    f"{LOG_PREFIX} :_send_historical_8k_email: accession=%s step=skip reason=missing_cik_or_date", accession_number)
                 log_and_print(
-                    "⏭️ Skipping historical 8-K email: missing CIK or filing date",
+                    f"{LOG_PREFIX} :_send_historical_8k_email: ⏭️ Skipping historical 8-K email: missing CIK or filing date",
                     'warning'
                 )
                 return
@@ -993,9 +1055,9 @@ class EightKFeedProcessor:
 
             if not filing_date:
                 logger.warning(
-                    "send_historical_8k_email accession=%s step=skip reason=invalid_filing_date", accession_number)
+                    f"{LOG_PREFIX} :_send_historical_8k_email: accession=%s step=skip reason=invalid_filing_date", accession_number)
                 log_and_print(
-                    "⏭️ Skipping historical 8-K email: invalid filing date",
+                    f"{LOG_PREFIX} :_send_historical_8k_email: ⏭️ Skipping historical 8-K email: invalid filing date",
                     'warning'
                 )
                 return
@@ -1003,11 +1065,11 @@ class EightKFeedProcessor:
             # Fetch 8-K filings from 1 year before filing date
             start_date = (filing_date - timedelta(days=365)
                           ).strftime('%Y-%m-%d')
-            logger.info("send_historical_8k_email accession=%s step=fetch cik=%s start_date=%s",
+            logger.info(f"{LOG_PREFIX} :_send_historical_8k_email: accession=%s step=fetch cik=%s start_date=%s",
                         accession_number, cik_number, start_date)
 
             log_and_print(
-                f"🔍 Fetching historical 8-K filings for CIK {cik_number} from {start_date}..."
+                f"{LOG_PREFIX} :_send_historical_8k_email:  🔍 Fetching historical 8-K filings for CIK {cik_number} from {start_date}..."
             )
 
             filings = fetch_sec_filings(
@@ -1018,16 +1080,17 @@ class EightKFeedProcessor:
 
             if not filings:
                 logger.info(
-                    "send_historical_8k_email accession=%s step=no_filings cik=%s", accession_number, cik_number)
+                    f"{LOG_PREFIX} :_send_historical_8k_email: accession=%s step=no_filings cik=%s", accession_number, cik_number)
                 log_and_print(
-                    f"⚠️ No historical 8-K filings found for CIK {cik_number}",
+                    f"{LOG_PREFIX} :_send_historical_8k_email: ⚠️ No historical 8-K filings found for CIK {cik_number}",
                     'warning'
                 )
                 return
 
-            logger.info("send_historical_8k_email accession=%s step=fetched filings_count=%s",
+            logger.info(f"{LOG_PREFIX} :_send_historical_8k_email: accession=%s step=fetched filings_count=%s",
                         accession_number, len(filings))
-            log_and_print(f"📥 Found {len(filings)} historical 8-K filings")
+            log_and_print(
+                f"{LOG_PREFIX} :_send_historical_8k_email: 📥 Found {len(filings)} historical 8-K filings")
 
             # Generate email HTML
             sec_subject, sec_html = generate_sec_filings_email_html(
@@ -1050,17 +1113,17 @@ class EightKFeedProcessor:
                 sec_payload,
                 "Historical 8-K filings email"
             )
-            logger.info("send_historical_8k_email accession=%s step=sent filings_count=%s company=%s",
+            logger.info(f"{LOG_PREFIX} :_send_historical_8k_email: accession=%s step=sent filings_count=%s company=%s",
                         accession_number, len(filings), company_name)
             log_and_print(
-                f"📤 Sent historical 8-K filings email: {len(filings)} filings for {company_name}"
+                f"{LOG_PREFIX} :_send_historical_8k_email: 📤 Sent historical 8-K filings email: {len(filings)} filings for {company_name}"
             )
 
         except Exception as e:
             logger.exception(
-                "send_historical_8k_email accession=%s error=%s", accession_number, str(e))
+                f"{LOG_PREFIX} :_send_historical_8k_email: accession=%s error=%s", accession_number, str(e))
             log_and_print(
-                f"❌ Error sending historical 8-K email: {e}",
+                f"{LOG_PREFIX} :_send_historical_8k_email: ❌ Error sending historical 8-K email: {e}",
                 'error'
             )
 
@@ -1068,9 +1131,10 @@ class EightKFeedProcessor:
         """Send email for EX-99.1 filing. If filing_entry is provided, use it for doc table (file/size from SEC table)."""
         accession_number = item_data.get('accession_number', 'N/A')
         try:
-            logger.info("send_ex99_email accession=%s step=start company=%s",
+            logger.info(f"{LOG_PREFIX} :_send_ex99_email: accession=%s step=start company=%s",
                         accession_number, item_data.get('company_name', ''))
-            log_and_print("📧 Generating and sending EX-99.1 email")
+            log_and_print(
+                f"{LOG_PREFIX} :_send_ex99_email: 📧 Generating and sending EX-99.1 email")
 
             # Use filing_entry so document name and size match SEC table; fallback to xbrl_files
             if filing_entry:
@@ -1083,7 +1147,7 @@ class EightKFeedProcessor:
                     'sequence': filing_entry.get('sequence', 0),
                 }]
                 log_and_print(
-                    f"   doc_files for EX-99.1 email: file={doc_files[0].get('file')!r} size={doc_files[0].get('size')}")
+                    f"{LOG_PREFIX} :_send_ex99_email:   doc_files for EX-99.1 email: file={doc_files[0].get('file')!r} size={doc_files[0].get('size')}")
             else:
                 doc_files = item_data.get('xbrl_files', [])
             subject, html_email = generate_ex99_1_merger_email_html(
@@ -1103,39 +1167,41 @@ class EightKFeedProcessor:
             # Always use 8K summary webhook for EX-99.1
             send_webhook_notification(
                 N8N_WEBHOOK_URL_8K_SUMMARY, payload, "EX-99.1 email")
-            logger.info("send_ex99_email accession=%s step=sent",
+            logger.info(f"{LOG_PREFIX} :_send_ex99_email: accession=%s step=sent",
                         accession_number)
-            log_and_print("✅ EX-99.1 email sent successfully")
+            log_and_print(
+                f"{LOG_PREFIX} :_send_ex99_email: ✅ EX-99.1 email sent successfully")
 
         except Exception as e:
             logger.exception(
-                "send_ex99_email accession=%s error=%s", accession_number, str(e))
+                f"{LOG_PREFIX} :_send_ex99_email: accession=%s error=%s", accession_number, str(e))
             log_and_print(
-                f"❌ Error sending EX-99.1 email: {e}", 'error')
+                f"{LOG_PREFIX} :_send_ex99_email: ❌ Error sending EX-99.1 email: {e}", 'error')
 
     def _process_ex21_via_8k_helper(self, item_data, filing):
         """Process EX-2.1 filing via 8-K document helper (Node API deal/process-with-url), same as services.py."""
         accession_number = item_data.get('accession_number', 'N/A')
         try:
-            logger.info("process_ex21_via_8k_helper accession=%s step=start sec_filing_id=%s",
+            logger.info(f"{LOG_PREFIX} :_process_ex21_via_8k_helper: accession=%s step=start sec_filing_id=%s",
                         accession_number, str(filing._id))
             log_and_print(
-                "🚀 Starting 8-K EX-2.1 document processing")
+                f"{LOG_PREFIX} :_process_ex21_via_8k_helper: 🚀 Starting 8-K EX-2.1 document processing")
 
             ex21_file = find_file_by_type(
                 item_data.get('xbrl_files', []), 'EX-2.1')
             if not ex21_file:
                 logger.error(
-                    "process_ex21_via_8k_helper accession=%s step=skip reason=no_ex21_in_xbrl", accession_number)
+                    f"{LOG_PREFIX} :_process_ex21_via_8k_helper: accession=%s step=skip reason=no_ex21_in_xbrl", accession_number)
                 log_and_print(
-                    "❌ No EX-2.1 file found in xbrl_files", 'error')
+                    f"{LOG_PREFIX} :_process_ex21_via_8k_helper: ❌ No EX-2.1 file found in xbrl_files", 'error')
                 return
 
             ex21_url = build_full_sec_url(ex21_file.get('url'))
             if not ex21_url:
                 logger.error(
-                    "process_ex21_via_8k_helper accession=%s step=skip reason=no_url", accession_number)
-                log_and_print("❌ Could not build EX-2.1 URL", 'error')
+                    f"{LOG_PREFIX} :_process_ex21_via_8k_helper: accession=%s step=skip reason=no_url", accession_number)
+                log_and_print(
+                    f"{LOG_PREFIX} :_process_ex21_via_8k_helper: ❌ Could not build EX-2.1 URL", 'error')
                 return
 
             cik_number = item_data.get('cik_number', '')
@@ -1145,11 +1211,13 @@ class EightKFeedProcessor:
             filing_date = item_data.get('filing_date')
             filing_date_obj = parse_filing_date(
                 filing_date) if filing_date else None
-            logger.info("process_ex21_via_8k_helper accession=%s step=call_helper ex21_url=%s sec_filing_id=%s",
+            logger.info(f"{LOG_PREFIX} :_process_ex21_via_8k_helper: accession=%s step=call_helper ex21_url=%s sec_filing_id=%s",
                         accession_number, ex21_url[:80] if ex21_url else '', sec_filing_id)
 
-            log_and_print(f"   EX-2.1 URL: {ex21_url}")
-            log_and_print(f"   SEC Filing ID: {sec_filing_id}")
+            log_and_print(
+                f"{LOG_PREFIX} :_process_ex21_via_8k_helper:   EX-2.1 URL: {ex21_url}")
+            log_and_print(
+                f"{LOG_PREFIX} :_process_ex21_via_8k_helper:   SEC Filing ID: {sec_filing_id}")
 
             result = process_8k_document_helper(
                 cik_number=cik_number,
@@ -1163,32 +1231,34 @@ class EightKFeedProcessor:
             )
 
             if result:
-                logger.info("process_ex21_via_8k_helper accession=%s step=result status=%s message=%s",
+                logger.info(f"{LOG_PREFIX} :_process_ex21_via_8k_helper: accession=%s step=result status=%s message=%s",
                             accession_number, result.get('status'), result.get('message', '')[:80])
                 log_and_print(
-                    f"✅ 8-K EX-2.1 document processing started: {result.get('message', 'Processing started')}")
+                    f"{LOG_PREFIX} :_process_ex21_via_8k_helper: ✅ 8-K EX-2.1 document processing started: {result.get('message', 'Processing started')}")
                 log_and_print(f"   Status: {result.get('status')}")
             else:
                 logger.error(
-                    "process_ex21_via_8k_helper accession=%s step=failed result=empty", accession_number)
+                    f"{LOG_PREFIX} :_process_ex21_via_8k_helper: accession=%s step=failed result=empty", accession_number)
                 log_and_print(
-                    "❌ Failed to start 8-K EX-2.1 document processing", 'error')
+                    f"{LOG_PREFIX} :_process_ex21_via_8k_helper: ❌ Failed to start 8-K EX-2.1 document processing", 'error')
 
         except Exception as e:
             logger.exception(
-                "process_ex21_via_8k_helper accession=%s error=%s", accession_number, str(e))
+                f"{LOG_PREFIX} :_process_ex21_via_8k_helper: accession=%s error=%s", accession_number, str(e))
             log_and_print(
-                f"❌ Error processing EX-2.1 via 8-K helper: {e}", 'error')
+                f"{LOG_PREFIX} :_process_ex21_via_8k_helper: ❌ Error processing EX-2.1 via 8-K helper: {e}", 'error')
             import traceback
-            log_and_print(traceback.format_exc(), 'error')
+            log_and_print(
+                f"{LOG_PREFIX} :_process_ex21_via_8k_helper: {traceback.format_exc()}", 'error')
 
     def _generate_ex99_summary(self, item_data, url_ex99):
         """Generate summary for EX-99.1 document and save to sec_filing_summary."""
         accession_number = item_data.get('accession_number', 'N/A')
         try:
-            logger.info("generate_ex99_summary accession=%s step=start url=%s",
+            logger.info(f"{LOG_PREFIX} :_generate_ex99_summary: accession=%s step=start url=%s",
                         accession_number, url_ex99 or '')
-            log_and_print("📝 Generating summary for EX-99.1 document")
+            log_and_print(
+                f"{LOG_PREFIX} :_generate_ex99_summary: 📝 Generating summary for EX-99.1 document")
 
             deal_id = item_data.get('deal_id')
             output_dir = tempfile.mkdtemp()
@@ -1196,7 +1266,7 @@ class EightKFeedProcessor:
             if url_ex99:
                 try:
                     log_and_print(
-                        f"   Summarizing EX-99.1 document: {url_ex99}")
+                        f"{LOG_PREFIX} :_generate_ex99_summary:    Summarizing EX-99.1 document: {url_ex99}")
                     result_99 = summarize_8k_filing(
                         url_ex99,
                         output_dir,
@@ -1206,10 +1276,10 @@ class EightKFeedProcessor:
                     )
 
                     if result_99.get('s3_url'):
-                        logger.info("generate_ex99_summary accession=%s step=s3_uploaded s3_url=%s",
+                        logger.info(f"{LOG_PREFIX} :_generate_ex99_summary: accession=%s step=s3_uploaded s3_url=%s",
                                     accession_number, (result_99.get('s3_url') or '')[:80])
                         log_and_print(
-                            f"✅ EX-99.1 summary uploaded to S3: {result_99['s3_url']}")
+                            f"{LOG_PREFIX} :_generate_ex99_summary: ✅ EX-99.1 summary uploaded to S3: {result_99['s3_url']}")
 
                         # One document per accession_number (form_type 8-K); EX-99.1 stored in eight_k.filings[]
                         try:
@@ -1256,9 +1326,9 @@ class EightKFeedProcessor:
                                 )
                                 doc_8k.save()
                             logger.info(
-                                "generate_ex99_summary accession=%s step=db_saved", accession_number)
+                                f"{LOG_PREFIX} :_generate_ex99_summary: accession=%s step=db_saved", accession_number)
                             log_and_print(
-                                "💾 EX-99.1 summary saved to DB (sec_filing_summary, inside eight_k.filings)")
+                                f"{LOG_PREFIX} :_generate_ex99_summary: 💾 EX-99.1 summary saved to DB (sec_filing_summary, inside eight_k.filings)")
                             self.summary_ex99_count += 1
 
                             # Send summary email
@@ -1267,26 +1337,28 @@ class EightKFeedProcessor:
 
                         except Exception as db_e:
                             logger.exception(
-                                "generate_ex99_summary accession=%s step=db_error error=%s", accession_number, str(db_e))
+                                f"{LOG_PREFIX} :_generate_ex99_summary: accession=%s step=db_error error=%s", accession_number, str(db_e))
                             log_and_print(
-                                f"❌ Failed to save EX-99.1 summary to DB: {db_e}", 'error')
+                                f"{LOG_PREFIX} :_generate_ex99_summary: ❌ Failed to save EX-99.1 summary to DB: {db_e}", 'error')
                 except Exception as e:
                     logger.exception(
-                        "generate_ex99_summary accession=%s step=summary_error error=%s", accession_number, str(e))
+                        f"{LOG_PREFIX} :_generate_ex99_summary: accession=%s step=summary_error error=%s", accession_number, str(e))
                     log_and_print(
-                        f"❌ EX-99.1 summary generation failed: {e}", 'error')
+                        f"{LOG_PREFIX} :_generate_ex99_summary: ❌ EX-99.1 summary generation failed: {e}", 'error')
         except Exception as e:
             logger.exception(
-                "generate_ex99_summary accession=%s error=%s", accession_number, str(e))
-            log_and_print(f"❌ Error in _generate_ex99_summary: {e}", 'error')
+                f"{LOG_PREFIX} :_generate_ex99_summary: accession=%s error=%s", accession_number, str(e))
+            log_and_print(
+                f"{LOG_PREFIX} :_generate_ex99_summary: ❌ Error in _generate_ex99_summary: {e}", 'error')
 
     def _send_8k_summary_email(self, item_data, summary_result, doc_url):
         """Send email with 8-K summary document link"""
         accession_number = item_data.get('accession_number', 'N/A')
         try:
-            logger.info("send_8k_summary_email accession=%s step=start summary_url=%s",
+            logger.info(f"{LOG_PREFIX} :_send_8k_summary_email: accession=%s step=start summary_url=%s",
                         accession_number, (summary_result.get('s3_url') or '')[:80])
-            log_and_print("📧 Sending 8-K summary email")
+            log_and_print(
+                f"{LOG_PREFIX} :_send_8k_summary_email:   📧 Sending 8-K summary email")
 
             from .email_templates import generate_8k_99_1_summary_email_html
 
@@ -1315,21 +1387,24 @@ class EightKFeedProcessor:
             send_webhook_notification(
                 N8N_WEBHOOK_URL_8K_SUMMARY, payload, "8-K summary email")
             logger.info(
-                "send_8k_summary_email accession=%s step=sent", accession_number)
-            log_and_print("✅ 8-K summary email sent successfully")
+                f"{LOG_PREFIX} :_send_8k_summary_email: accession=%s step=sent", accession_number)
+            log_and_print(
+                f"{LOG_PREFIX} :_send_8k_summary_email: ✅ 8-K summary email sent successfully")
 
         except Exception as e:
             logger.exception(
-                "send_8k_summary_email accession=%s error=%s", accession_number, str(e))
-            log_and_print(f"❌ Error sending 8-K summary email: {e}", 'error')
+                f"{LOG_PREFIX} :_send_8k_summary_email: accession=%s error=%s", accession_number, str(e))
+            log_and_print(
+                f"{LOG_PREFIX} :_send_8k_summary_email: ❌ Error sending 8-K summary email: {e}", 'error')
 
     def _send_ex99_summary_email(self, item_data, summary_result, doc_url):
         """Send email with EX-99.1 summary document link"""
         accession_number = item_data.get('accession_number', 'N/A')
         try:
-            logger.info("send_ex99_summary_email accession=%s step=start summary_url=%s",
+            logger.info(f"{LOG_PREFIX} :_send_ex99_summary_email: accession=%s step=start summary_url=%s",
                         accession_number, (summary_result.get('s3_url') or '')[:80])
-            log_and_print("📧 Sending EX-99.1 summary email")
+            log_and_print(
+                f"{LOG_PREFIX} :_send_ex99_summary_email:   📧 Sending EX-99.1 summary email")
 
             from .email_templates import generate_8k_99_1_summary_email_html
 
@@ -1358,14 +1433,15 @@ class EightKFeedProcessor:
             send_webhook_notification(
                 N8N_WEBHOOK_URL_8K_SUMMARY, payload, "EX-99.1 summary email")
             logger.info(
-                "send_ex99_summary_email accession=%s step=sent", accession_number)
-            log_and_print("✅ EX-99.1 summary email sent successfully")
+                f"{LOG_PREFIX} :_send_ex99_summary_email: accession=%s step=sent", accession_number)
+            log_and_print(
+                f"{LOG_PREFIX} :_send_ex99_summary_email: ✅ EX-99.1 summary email sent successfully")
 
         except Exception as e:
             logger.exception(
-                "send_ex99_summary_email accession=%s error=%s", accession_number, str(e))
+                f"{LOG_PREFIX} :_send_ex99_summary_email: accession=%s error=%s", accession_number, str(e))
             log_and_print(
-                f"❌ Error sending EX-99.1 summary email: {e}", 'error')
+                f"{LOG_PREFIX} :_send_ex99_summary_email: ❌ Error sending EX-99.1 summary email: {e}", 'error')
 
 
 def run_8k_processor(rss_content=None, rss_file=None):
@@ -1376,7 +1452,7 @@ def run_8k_processor(rss_content=None, rss_file=None):
       run_8k_processor(rss_file='sec_rss_parser/rss.xml')
       run_8k_processor(rss_content=open('sec_rss_parser/rss.xml').read())
     """
-    logger.info("run_8k_processor entry rss_file=%s rss_content_len=%s",
+    logger.info(f"{LOG_PREFIX} :run_8k_processor: entry rss_file=%s rss_content_len=%s",
                 rss_file, len(rss_content) if rss_content else 0)
     processor = EightKFeedProcessor()
     return processor.run(rss_content=rss_content, rss_file=rss_file)

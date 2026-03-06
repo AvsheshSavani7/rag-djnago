@@ -70,6 +70,8 @@ PROXY_SUMMARY_FORM_TYPES = [
 PROXY_FORM_TYPES = ["DEFM14A", "DEFM14C", "PREM14A", "PREM14C", "S-4", "F-4"]
 TEN_K_TEN_Q_FORM_TYPES = ["10-K", "10-Q"]
 
+LOG_PREFIX = "form by cik: "
+
 SEC_FEED_URL_TEMPLATE = (
     "https://www.sec.gov/cgi-bin/browse-edgar?"
     "action=getcurrent&CIK={cik}&type=&company=&dateb=&owner=include&start=0&count=100&output=atom"
@@ -240,7 +242,7 @@ def fetch_and_parse_html_by_form_type(html_url, form_type_from_feed=None):
         xbrl_files = _extract_xbrl_files_by_form_type(soup, form_type)
         if not form_type or not accession_number:
             log_and_print(
-                f"Missing form_type or accession: form_type={form_type}, accession={accession_number}",
+                f"{LOG_PREFIX} :fetch_and_parse_html_by_form_type: Missing form_type or accession: form_type={form_type}, accession={accession_number}",
                 "warning",
             )
             return None
@@ -294,7 +296,7 @@ def fetch_and_parse_html_by_form_type(html_url, form_type_from_feed=None):
         }
     except Exception as e:
         log_and_print(
-            f"Error in fetch_and_parse_html_by_form_type: {e}", "error")
+            f"{LOG_PREFIX} :fetch_and_parse_html_by_form_type: Error in fetch_and_parse_html_by_form_type: {e}", "error")
         return None
 
 
@@ -364,7 +366,8 @@ def _filter_unique_items(items):
             unique.append(item)
             continue
         if _accession_already_looked_up(acc):
-            log_and_print(f"⏭️ Skipping already looked up: {acc}")
+            log_and_print(
+                f"{LOG_PREFIX} :_filter_unique_items: ⏭️ Skipping already looked up: {acc}")
             continue
         if acc in seen:
             continue
@@ -454,42 +457,76 @@ def _ensure_sec_filing(item_data):
         filing.save()
         return filing, True
     except Exception as e:
-        log_and_print(f"Failed to create SECFiling for {acc}: {e}", "error")
+        log_and_print(
+            f"{LOG_PREFIX} :_ensure_sec_filing: Failed to create SECFiling for {acc}: {e}", "error")
         return None, False
 
 
 def _process_proxy_item(item_data, html_data, filing):
     """Process proxy form: start proxy document processing (summary + email happen async)."""
+    logger.info(f"{LOG_PREFIX} :_process_proxy_item: item_data={item_data}")
+    logger.info(f"{LOG_PREFIX} :_process_proxy_item: html_data={html_data}")
+    logger.info(f"{LOG_PREFIX} :_process_proxy_item: filing={filing}")
     form_type = item_data.get("form_type") or html_data.get("form_type")
     if form_type not in PROXY_FORM_TYPES:
+        logger.info(
+            f"{LOG_PREFIX} :_process_proxy_item: form_type={form_type} not in PROXY_FORM_TYPES")
         return
     cik_number = item_data.get("cik_number") or html_data.get("cik_number")
     if not cik_number:
+        logger.info(
+            f"{LOG_PREFIX} :_process_proxy_item: cik_number={cik_number} not found")
         return
     xbrl_files = html_data.get(
         "xbrl_files") or item_data.get("xbrl_files") or []
     proxy_file = find_file_by_type(xbrl_files, PROXY_FORM_TYPES)
     if not proxy_file or not proxy_file.get("url"):
         log_and_print(
-            f"⚠️ No proxy HTM file for {item_data.get('company_name')}", "warning")
+            f"{LOG_PREFIX} :_process_proxy_item: ⚠️ No proxy HTM file for {item_data.get('company_name')}", "warning")
         return
     proxy_sec_url = build_full_sec_url(proxy_file.get("url"))
+    logger.info(
+        f"{LOG_PREFIX} :_process_proxy_item: proxy_sec_url={proxy_sec_url}")
     if not proxy_sec_url:
+        logger.info(
+            f"{LOG_PREFIX} :_process_proxy_item: proxy_sec_url not found")
         return
     filing_date = html_data.get("filing_date") or item_data.get("filing_date")
     if isinstance(filing_date, datetime):
+        logger.info(
+            f"{LOG_PREFIX} :_process_proxy_item: filing_date={filing_date}")
+
         filing_date = filing_date.strftime("%Y-%m-%d")
     else:
+        logger.info(
+            f"{LOG_PREFIX} :_process_proxy_item: filing_date={filing_date}")
         filing_date = str(filing_date) if filing_date else ""
+    logger.info(
+        f"{LOG_PREFIX} :_process_proxy_item: filing_date={filing_date}")
     sec_filling_id = str(filing.id) if filing else None
     if not sec_filling_id:
-        log_and_print("⚠️ No sec_filling_id for proxy", "warning")
+        logger.info(
+            f"{LOG_PREFIX} :_process_proxy_item: sec_filling_id not found")
+        log_and_print(
+            f"{LOG_PREFIX} :_process_proxy_item: ⚠️ No sec_filling_id for proxy", "warning")
         return
     company_name = html_data.get(
         "company_name") or item_data.get("company_name") or ""
     deal_id = item_data.get("deal_id") or _deal_id_for_cik(cik_number)
     accession_number = item_data.get(
         "accession_number") or html_data.get("accession_number")
+    logger.info(
+        f"{LOG_PREFIX} :_process_proxy_item: accession_number={accession_number}")
+    logger.info(
+        f"{LOG_PREFIX} :_process_proxy_item: company_name={company_name}")
+    logger.info(f"{LOG_PREFIX} :_process_proxy_item: deal_id={deal_id}")
+    logger.info(
+        f"{LOG_PREFIX} :_process_proxy_item: sec_filling_id={sec_filling_id}")
+    logger.info(
+        f"{LOG_PREFIX} :_process_proxy_item: filing_date={filing_date}")
+    logger.info(f"{LOG_PREFIX} :_process_proxy_item: form_type={form_type}")
+    logger.info(
+        f"{LOG_PREFIX} :_process_proxy_item: proxy_sec_url={proxy_sec_url}")
     result = process_sec_document_for_filing_summary(
         cik_number=cik_number,
         company_name=company_name,
@@ -502,7 +539,7 @@ def _process_proxy_item(item_data, html_data, filing):
     )
     if result:
         log_and_print(
-            f"✅ Proxy processing started: {result.get('sec_filing_summary_id')}")
+            f"{LOG_PREFIX} :_process_proxy_item: ✅ Proxy processing started: {result.get('sec_filing_summary_id')}")
     else:
         log_and_print("❌ Failed to start proxy processing", "error")
 
@@ -542,7 +579,8 @@ def _process_8k_item(item_data, html_data):
             url_ex99 = url_ex99.replace("ix?doc=/", "", 1)
 
     if not url_8k and not url_ex99:
-        log_and_print("⚠️ No 8-K or EX-99.1 document URL found", "warning")
+        log_and_print(
+            f"{LOG_PREFIX} :_process_8k_item: ⚠️ No 8-K or EX-99.1 document URL found", "warning")
         return
 
     output_dir = tempfile.mkdtemp()
@@ -557,14 +595,15 @@ def _process_8k_item(item_data, html_data):
 
     # --- Process main 8-K document ---
     if url_8k:
-        log_and_print(f"📝 Generating 8-K summary: {url_8k}")
+        log_and_print(
+            f"{LOG_PREFIX} :_process_8k_item: 📝 Generating 8-K summary: {url_8k}")
         try:
             result_8k = summarize_8k_filing(
                 url_8k, output_dir, upload_to_s3=True, s3_folder="8k", verbose=False
             )
             if result_8k.get("s3_url"):
                 log_and_print(
-                    f"✅ 8-K summary uploaded to S3: {result_8k['s3_url']}")
+                    f"{LOG_PREFIX} :_process_8k_item: ✅ 8-K summary uploaded to S3: {result_8k['s3_url']}")
                 filing_dt = _filing_date_for_summary(
                     html_data.get("filing_date") or item_data.get(
                         "filing_date"),
@@ -588,25 +627,29 @@ def _process_8k_item(item_data, html_data):
                         summary_kind="8-K",
                         l1_headline=result_8k.get("L1_headline"),
                     )
-                    log_and_print("✅ 8-K summary email sent")
+                    log_and_print(
+                        f"{LOG_PREFIX} :_process_8k_item: ✅ 8-K summary email sent")
                 except Exception as e:
-                    log_and_print(f"❌ 8-K summary email failed: {e}", "error")
+                    log_and_print(
+                        f"{LOG_PREFIX} :_process_8k_item: ❌ 8-K summary email failed: {e}", "error")
             else:
                 log_and_print(
-                    "⚠️ 8-K summary did not return S3 URL", "warning")
+                    f"{LOG_PREFIX} :_process_8k_item: ⚠️ 8-K summary did not return S3 URL", "warning")
         except Exception as e:
-            log_and_print(f"❌ 8-K summary failed: {e}", "error")
+            log_and_print(
+                f"{LOG_PREFIX} :_process_8k_item: ❌ 8-K summary failed: {e}", "error")
 
     # --- Process EX-99.1 document (if present) ---
     if url_ex99:
-        log_and_print(f"📝 Generating EX-99.1 summary: {url_ex99}")
+        log_and_print(
+            f"{LOG_PREFIX} :_process_8k_item: 📝 Generating EX-99.1 summary: {url_ex99}")
         try:
             result_99 = summarize_8k_filing(
                 url_ex99, output_dir, upload_to_s3=True, s3_folder="99_1", verbose=False
             )
             if result_99.get("s3_url"):
                 log_and_print(
-                    f"✅ EX-99.1 summary uploaded to S3: {result_99['s3_url']}")
+                    f"{LOG_PREFIX} :_process_8k_item: ✅ EX-99.1 summary uploaded to S3: {result_99['s3_url']}")
                 ex99_filing_dt = _filing_date_for_summary(
                     html_data.get("filing_date") or item_data.get(
                         "filing_date"),
@@ -634,20 +677,22 @@ def _process_8k_item(item_data, html_data):
                         summary_kind="EX-99.1",
                         l1_headline=result_99.get("L1_headline"),
                     )
-                    log_and_print("✅ EX-99.1 summary email sent")
+                    log_and_print(
+                        f"{LOG_PREFIX} :_process_8k_item: ✅ EX-99.1 summary email sent")
                 except Exception as e:
                     log_and_print(
-                        f"❌ EX-99.1 summary email failed: {e}", "error")
+                        f"{LOG_PREFIX} :_process_8k_item: ❌ EX-99.1 summary email failed: {e}", "error")
             else:
                 log_and_print(
-                    "⚠️ EX-99.1 summary did not return S3 URL", "warning")
+                    f"{LOG_PREFIX} :_process_8k_item: ⚠️ EX-99.1 summary did not return S3 URL", "warning")
         except Exception as e:
-            log_and_print(f"❌ EX-99.1 summary failed: {e}", "error")
+            log_and_print(
+                f"{LOG_PREFIX} :_process_8k_item: ❌ EX-99.1 summary failed: {e}", "error")
 
     # --- Save to sec_filing_summary ---
     if not eight_k_payload["s3_docx_url"] and not eight_k_payload["filings"]:
         log_and_print(
-            "⚠️ No 8-K or EX-99.1 summary generated, skipping DB save", "warning")
+            f"{LOG_PREFIX} :_process_8k_item: ⚠️ No 8-K or EX-99.1 summary generated, skipping DB save", "warning")
         return
 
     existing = SECFilingSummary.objects(
@@ -674,7 +719,8 @@ def _process_8k_item(item_data, html_data):
             deal_id=deal_id,
             eight_k=eight_k_payload,
         ).save()
-    log_and_print("💾 8-K summary saved to sec_filing_summary")
+    log_and_print(
+        f"{LOG_PREFIX} :_process_8k_item: 💾 8-K summary saved to sec_filing_summary")
 
 
 def _process_ten_k_ten_q_item(item_data, html_data, filing):
@@ -689,17 +735,30 @@ def _process_ten_k_ten_q_item(item_data, html_data, filing):
     Note: We don't save the current filing separately because it will be included
     in the SEC API results when we fetch filings from the time period.
     """
+    logger.info(
+        f"{LOG_PREFIX} :_process_ten_k_ten_q_item: item_data={item_data}")
+    logger.info(
+        f"{LOG_PREFIX} :_process_ten_k_ten_q_item: html_data={html_data}")
+    logger.info(f"{LOG_PREFIX} :_process_ten_k_ten_q_item: filing={filing}")
     form_type = item_data.get("form_type") or html_data.get("form_type")
     cik_number = item_data.get("cik_number") or html_data.get("cik_number")
     company_name = item_data.get("company_name") or html_data.get(
         "company_name") or "Unknown Company"
     deal_id = item_data.get("deal_id") or _deal_id_for_cik(cik_number)
+    logger.info(f"{LOG_PREFIX} :_process_ten_k_ten_q_item: deal_id={deal_id}")
+    logger.info(
+        f"{LOG_PREFIX} :_process_ten_k_ten_q_item: cik_number={cik_number}")
+    logger.info(
+        f"{LOG_PREFIX} :_process_ten_k_ten_q_item: company_name={company_name}")
+    logger.info(
+        f"{LOG_PREFIX} :_process_ten_k_ten_q_item: form_type={form_type}")
 
     # Fetch and save all 10-K/10-Q filings from SEC API (including current filing)
     try:
         from .utils_10k_10q import fetch_and_save_additional_10k_10q_filings
 
-        log_and_print(f"🔍 Fetching 10-K/10-Q filings for CIK {cik_number}...")
+        log_and_print(
+            f"{LOG_PREFIX} :_process_ten_k_ten_q_item: 🔍 Fetching 10-K/10-Q filings for CIK {cik_number}...")
 
         result = fetch_and_save_additional_10k_10q_filings(
             cik_number=cik_number,
@@ -713,20 +772,15 @@ def _process_ten_k_ten_q_item(item_data, html_data, filing):
 
         if result.get('success'):
             log_and_print(
-                f"✅ 10-K/10-Q processing completed: "
+                f"{LOG_PREFIX} :_process_ten_k_ten_q_item: ✅ 10-K/10-Q processing completed: "
                 f"{result.get('filings_count', 0)} filings found, "
-                f"{result.get('saved_count', 0)} new records saved to sec_filing_summary.ten_k_ten_q"
-            )
+                f"{result.get('saved_count', 0)} new records saved to sec_filing_summary.ten_k_ten_q")
         else:
             log_and_print(
-                f"⚠️ 10-K/10-Q processing failed: {result.get('error', 'Unknown error')}",
-                "warning"
-            )
+                f"{LOG_PREFIX} :_process_ten_k_ten_q_item: ⚠️ 10-K/10-Q processing failed: {result.get('error', 'Unknown error')}", "warning")
     except Exception as e:
         log_and_print(
-            f"❌ Error fetching 10-K/10-Q filings: {e}",
-            "error"
-        )
+            f"{LOG_PREFIX} :_process_ten_k_ten_q_item: ❌ Error fetching 10-K/10-Q filings: {e}", "error")
 
 
 def _process_other_filing_item(item_data, html_data, filing):
@@ -771,7 +825,8 @@ def _process_other_filing_item(item_data, html_data, filing):
 
     # --- Generate summary (same as 8-K/EX-99.1) but NO email ---
     if sec_url:
-        log_and_print(f"📝 Generating summary for {form_type}: {sec_url}")
+        log_and_print(
+            f"{LOG_PREFIX} :_process_other_filing_item: 📝 Generating summary for {form_type}: {sec_url}")
         output_dir = tempfile.mkdtemp()
         try:
             result = summarize_8k_filing(
@@ -783,20 +838,22 @@ def _process_other_filing_item(item_data, html_data, filing):
             )
             if result.get("s3_url"):
                 log_and_print(
-                    f"✅ {form_type} summary uploaded to S3: {result['s3_url']}")
+                    f"{LOG_PREFIX} :_process_other_filing_item: ✅ {form_type} summary uploaded to S3: {result['s3_url']}")
                 other_payload["summary_status"] = "completed"
                 other_payload["s3_docx_url"] = result.get("s3_url")
                 other_payload["s3_json_url"] = result.get("s3_json_url")
                 other_payload["one_line_summary"] = result.get("L1_headline")
             else:
                 log_and_print(
-                    f"⚠️ {form_type} summary did not return S3 URL", "warning")
+                    f"{LOG_PREFIX} :_process_other_filing_item: ⚠️ {form_type} summary did not return S3 URL", "warning")
                 other_payload["summary_status"] = "failed"
         except Exception as e:
-            log_and_print(f"❌ {form_type} summary failed: {e}", "error")
+            log_and_print(
+                f"{LOG_PREFIX} :_process_other_filing_item: ❌ {form_type} summary failed: {e}", "error")
             other_payload["summary_status"] = "failed"
     else:
-        log_and_print(f"⚠️ No document URL found for {form_type}", "warning")
+        log_and_print(
+            f"{LOG_PREFIX} :_process_other_filing_item: ⚠️ No document URL found for {form_type}", "warning")
 
     # --- Save to sec_filing_summary ---
     existing = SECFilingSummary.objects(
@@ -819,7 +876,7 @@ def _process_other_filing_item(item_data, html_data, filing):
             other_filings=other_payload,
         ).save()
     log_and_print(
-        f"💾 Other filing ({form_type}) saved to sec_filing_summary.other_filings")
+        f"{LOG_PREFIX} :_process_other_filing_item: 💾 Other filing ({form_type}) saved to sec_filing_summary.other_filings")
 
 
 def process_items(items):
@@ -828,9 +885,12 @@ def process_items(items):
     Uses fetch_and_parse_html_by_form_type: for 8-K only 8-K/EX-99.1 files; otherwise only files matching form_type.
     """
     unique = _filter_unique_items(items)
+    logger.info(f"{LOG_PREFIX} :process_items: unique={len(unique)}")
+    logger.info(f"{LOG_PREFIX} :process_items: unique={unique}")
     processed = 0
     errors = []
     for idx, item_data in enumerate(unique):
+
         if idx > 0 and idx % 10 == 0:
             time.sleep(0.5)
         link = item_data.get("link")
@@ -839,6 +899,7 @@ def process_items(items):
         html_data = fetch_and_parse_html_by_form_type(
             link, form_type_from_feed=item_data.get("form_type")
         )
+        logger.info(f"{LOG_PREFIX} :process_items: html_data={html_data}")
         if not html_data:
             errors.append({"accession": item_data.get(
                 "accession_number"), "message": "Failed to parse HTML"})
@@ -848,18 +909,28 @@ def process_items(items):
             "deal_id") or _deal_id_for_cik(item_data.get("cik_number"))
         filing, _ = _ensure_sec_filing(item_data)
         form_type = (item_data.get("form_type") or "").strip().upper()
+        logger.info(f"{LOG_PREFIX} :process_items: form_type={form_type}")
         if not form_type:
             form_type = (html_data.get("form_type") or "").strip().upper()
         try:
             if form_type in PROXY_SUMMARY_FORM_TYPES:
+                logger.info(
+                    f"{LOG_PREFIX} :process_items: form_type={form_type} processing proxy item")
                 _process_proxy_item(item_data, html_data, filing)
             elif form_type == "8-K":
+                logger.info(
+                    f"{LOG_PREFIX} :process_items: form_type={form_type} processing 8-K item")
                 _process_8k_item(item_data, html_data)
             elif form_type in TEN_K_TEN_Q_FORM_TYPES:
+                logger.info(
+                    f"{LOG_PREFIX} :process_items: form_type={form_type} processing 10-K/10-Q item")
                 _process_ten_k_ten_q_item(item_data, html_data, filing)
             else:
+                logger.info(
+                    f"{LOG_PREFIX} :process_items: form_type={form_type} processing other filing item")
                 _process_other_filing_item(item_data, html_data, filing)
             acc = item_data.get("accession_number")
+            logger.info(f"{LOG_PREFIX} :process_items: accession_number={acc}")
             if acc:
                 try:
                     AccessionLookedUp(accession_number=acc).save()
@@ -869,7 +940,8 @@ def process_items(items):
         except Exception as e:
             errors.append({"accession": item_data.get(
                 "accession_number"), "message": str(e)})
-            log_and_print(f"❌ Error processing item: {e}", "error")
+            log_and_print(
+                f"{LOG_PREFIX} :process_items: ❌ Error processing item: {e}", "error")
     return {"processed": processed, "errors": errors}
 
 
@@ -948,6 +1020,8 @@ def run_fetch_sec_feed_by_deal_cik(
         session.mount("http://", HTTPAdapter(max_retries=retry))
 
         deals = get_open_or_unknown_deals()
+        logger.info(
+            f"{LOG_PREFIX} :run_fetch_sec_feed_by_deal_cik: deals={len(deals)}")
         if limit_deals is not None:
             deals = deals[:limit_deals]
         deals_processed = len(deals)
@@ -958,7 +1032,11 @@ def run_fetch_sec_feed_by_deal_cik(
             if not ciks:
                 continue
             for cik in ciks:
+                logger.info(
+                    f"{LOG_PREFIX} :run_fetch_sec_feed_by_deal_cik: cik={cik}")
                 raw = fetch_feed_for_cik(cik, session)
+                logger.info(
+                    f"{LOG_PREFIX} :run_fetch_sec_feed_by_deal_cik: raw={raw}")
                 feed_fetches += 1
                 if feed_fetches % 7 == 0:
                     time.sleep(1)
@@ -969,6 +1047,10 @@ def run_fetch_sec_feed_by_deal_cik(
                 try:
                     items = parse_atom_to_items(
                         raw, cik_number=cik, deal_id=deal_id)
+                    logger.info(
+                        f"{LOG_PREFIX} :run_fetch_sec_feed_by_deal_cik: items={len(items)}")
+                    logger.info(
+                        f"{LOG_PREFIX} :run_fetch_sec_feed_by_deal_cik: items={items}")
                     all_items.extend(items)
                 except Exception as e:
                     errors.append(
@@ -982,10 +1064,16 @@ def run_fetch_sec_feed_by_deal_cik(
         }
 
     if process_items_flow and all_items:
+        logger.info(
+            f"{LOG_PREFIX} :run_fetch_sec_feed_by_deal_cik: process_items_flow=True all_items={len(all_items)}")
         result = process_items(all_items)
+        logger.info(
+            f"{LOG_PREFIX} :run_fetch_sec_feed_by_deal_cik: result={result}")
         out["items_processed"] = result["processed"]
         out["processing_errors"] = result["errors"]
     else:
+        logger.info(
+            f"{LOG_PREFIX} :run_fetch_sec_feed_by_deal_cik: process_items_flow=False all_items={len(all_items)}")
         out["items"] = all_items
 
     if output_json_path:
