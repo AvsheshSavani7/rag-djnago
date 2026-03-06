@@ -16,6 +16,7 @@ import logging
 import tempfile
 from datetime import datetime, timedelta
 from mongoengine.errors import NotUniqueError
+from mongoengine.queryset.visitor import Q
 
 from .utils_8k import (
     SECRSSParser,
@@ -296,17 +297,22 @@ class EightKFeedProcessor:
         try:
             cik_normalized = normalize_cik(cik_number)
 
+            # Match: deal_status in Open/Unknown, or deal_status is null/missing
+            deal_status_filter = (
+                Q(deal_status__in=DEAL_STATUS_OPEN_OR_UNKNOWN)
+                | Q(deal_status=None)
+                | Q(deal_status__exists=False)
+            )
+
             # Check as target CIK
             matched_deal = ProcessingJob.objects(
-                cik=cik_normalized,
-                deal_status__in=DEAL_STATUS_OPEN_OR_UNKNOWN,
+                Q(cik=cik_normalized) & deal_status_filter
             ).first()
 
             # Check as acquirer CIK
             if not matched_deal:
                 matched_deal = ProcessingJob.objects(
-                    acquirer_cik=cik_normalized,
-                    deal_status__in=DEAL_STATUS_OPEN_OR_UNKNOWN,
+                    Q(acquirer_cik=cik_normalized) & deal_status_filter
                 ).first()
 
             if matched_deal:

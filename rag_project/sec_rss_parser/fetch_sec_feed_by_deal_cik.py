@@ -40,6 +40,7 @@ if __name__ == "__main__":
     django.setup()
 
 from document_processor.models import ProcessingJob
+from mongoengine.queryset.visitor import Q
 from sec_rss_parser.utils_8k import (
     SECRSSParser,
     normalize_cik,
@@ -301,11 +302,12 @@ def fetch_and_parse_html_by_form_type(html_url, form_type_from_feed=None):
 
 
 def get_open_or_unknown_deals():
-    return list(
-        ProcessingJob.objects(deal_status__in=DEAL_STATUS_OPEN_OR_UNKNOWN).only(
-            "id", "cik", "acquirer_cik"
-        )
+    deal_status_filter = (
+        Q(deal_status__in=DEAL_STATUS_OPEN_OR_UNKNOWN)
+        | Q(deal_status=None)
+        | Q(deal_status__exists=False)
     )
+    return list(ProcessingJob.objects(deal_status_filter).only("id", "cik", "acquirer_cik"))
 
 
 def get_ciks_for_deal(deal):
@@ -380,13 +382,18 @@ def _deal_id_for_cik(cik_number):
     if not cik_number:
         return None
     cik_n = normalize_cik(cik_number)
+    deal_status_filter = (
+        Q(deal_status__in=DEAL_STATUS_OPEN_OR_UNKNOWN)
+        | Q(deal_status=None)
+        | Q(deal_status__exists=False)
+    )
     deal = ProcessingJob.objects(
-        cik=cik_n, deal_status__in=DEAL_STATUS_OPEN_OR_UNKNOWN
+        Q(cik=cik_n) & deal_status_filter
     ).only("id").first()
     if deal:
         return str(deal.id)
     deal = ProcessingJob.objects(
-        acquirer_cik=cik_n, deal_status__in=DEAL_STATUS_OPEN_OR_UNKNOWN
+        Q(acquirer_cik=cik_n) & deal_status_filter
     ).only("id").first()
     if deal:
         return str(deal.id)

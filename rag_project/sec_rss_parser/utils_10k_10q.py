@@ -13,6 +13,7 @@ Similar to utils_8k.py but specifically for 10-K/10-Q processing.
 import logging
 from datetime import datetime, timedelta
 from mongoengine.errors import NotUniqueError
+from mongoengine.queryset.visitor import Q
 
 from .sec_Last_Year import print_filings as fetch_sec_filings
 from .models import SECFilingSummary
@@ -81,18 +82,19 @@ def get_announce_date_for_10k_10q(cik_number, matched_deal=None, item_data=None)
     # Try DB lookup by CIK
     if not announce_date:
         cik_normalized = normalize_cik(cik_number)
-        
+        deal_status_filter = (
+            Q(deal_status__in=DEAL_STATUS_OPEN_OR_UNKNOWN)
+            | Q(deal_status=None)
+            | Q(deal_status__exists=False)
+        )
         # Try as target CIK
         deal = ProcessingJob.objects(
-            cik=cik_normalized,
-            deal_status__in=DEAL_STATUS_OPEN_OR_UNKNOWN,
+            Q(cik=cik_normalized) & deal_status_filter
         ).first()
-        
         # Try as acquirer CIK
         if not deal:
             deal = ProcessingJob.objects(
-                acquirer_cik=cik_normalized,
-                deal_status__in=DEAL_STATUS_OPEN_OR_UNKNOWN,
+                Q(acquirer_cik=cik_normalized) & deal_status_filter
             ).first()
         
         if deal and getattr(deal, 'announce_date', None):
