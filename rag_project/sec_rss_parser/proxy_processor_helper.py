@@ -210,7 +210,8 @@ def process_proxy_async(filing_summary_id, proxy_sec_url):
     """
     try:
         # Get the filing summary
-        filing_summary = SECFilingSummary.objects(_id=filing_summary_id).first()
+        filing_summary = SECFilingSummary.objects(
+            _id=filing_summary_id).first()
         if not filing_summary:
             logger.error(f"Filing summary not found: {filing_summary_id}")
             return
@@ -316,7 +317,8 @@ def process_proxy_async(filing_summary_id, proxy_sec_url):
     except Exception as e:
         # Update filing summary status to failed
         try:
-            filing_summary = SECFilingSummary.objects(_id=filing_summary_id).first()
+            filing_summary = SECFilingSummary.objects(
+                _id=filing_summary_id).first()
             if filing_summary:
                 proxy_data = filing_summary.proxy or {}
                 proxy_data["proxy_parsing_status"] = "failed"
@@ -351,7 +353,8 @@ def process_sections_with_pinecone_v2(filing_summary_id, sections_json_url):
     """
     try:
         # Get the filing summary
-        filing_summary = SECFilingSummary.objects(_id=filing_summary_id).first()
+        filing_summary = SECFilingSummary.objects(
+            _id=filing_summary_id).first()
         if not filing_summary:
             logger.error(f"Filing summary not found: {filing_summary_id}")
             return
@@ -399,7 +402,8 @@ def process_sections_with_pinecone_v2(filing_summary_id, sections_json_url):
     except Exception as e:
         # Update filing summary status to failed
         try:
-            filing_summary = SECFilingSummary.objects(_id=filing_summary_id).first()
+            filing_summary = SECFilingSummary.objects(
+                _id=filing_summary_id).first()
             if filing_summary:
                 proxy_data = filing_summary.proxy or {}
                 proxy_data["pinecone_processing_status"] = "failed"
@@ -420,7 +424,8 @@ def generate_proxy_summary_v2(filing_summary_id):
     """
     try:
         # Get the filing summary
-        filing_summary = SECFilingSummary.objects(_id=filing_summary_id).first()
+        filing_summary = SECFilingSummary.objects(
+            _id=filing_summary_id).first()
         if not filing_summary:
             logger.error(f"Filing summary not found: {filing_summary_id}")
             return
@@ -490,7 +495,8 @@ def generate_proxy_summary_v2(filing_summary_id):
     except Exception as e:
         # Update filing summary status to failed
         try:
-            filing_summary = SECFilingSummary.objects(_id=filing_summary_id).first()
+            filing_summary = SECFilingSummary.objects(
+                _id=filing_summary_id).first()
             if filing_summary:
                 proxy_data = filing_summary.proxy or {}
                 proxy_data["summary_generation_status"] = "failed"
@@ -612,7 +618,8 @@ def send_summary_email_notification_v2(filing_summary):
                 f"No summary document URL available for filing summary {filing_summary.id}")
             return
 
-        company_name = proxy_data.get("company_name") or filing_summary.cik_number or "Unknown"
+        company_name = proxy_data.get(
+            "company_name") or filing_summary.cik_number or "Unknown"
         logger.info(
             f"Preparing to send summary email for: {company_name} (CIK {filing_summary.cik_number})")
 
@@ -627,7 +634,7 @@ def send_summary_email_notification_v2(filing_summary):
         logger.info(f"Generated email subject: {subject}")
 
         # Send email via n8n webhook (same URL as old flow)
-        webhook_url = "https://n8n-xwx1.onrender.com/webhook/80830c6d-ff5b-45e3-9ef3-a061db1fbf0c"
+        webhook_url = "https://n8n-xwx1.onrender.com/webhook/b3007d21-6845-47b5-aece-7b26583758bc"
         logger.info(f"📤 Sending summary email via n8n webhook: {webhook_url}")
 
         # Prepare payload for n8n webhook
