@@ -959,6 +959,8 @@ def _route_summarize_and_save(item_data, html_data):
             log_and_print(
                 f"{LOG_PREFIX} :_route_summarize_and_save: 📝 Generating summary for {form_type}: {url[:80]}...")
             result = route_and_summarize(url)
+            logger.info(
+                f"{LOG_PREFIX} :_route_summarize_and_save: result={result}")
             s3_docx_url = result.get("s3_docx_url") or result.get("s3_url")
             if not s3_docx_url:
                 log_and_print(
@@ -1107,6 +1109,14 @@ def process_items(items):
         item_data.update(html_data)
         item_data["deal_id"] = item_data.get(
             "deal_id") or _deal_id_for_cik(item_data.get("cik_number"))
+        # Mark accession as looked up immediately so overlapping runs (e.g. cron every minute)
+        # skip this item and don't process the same 10-K/proxy/8-K multiple times.
+        acc = item_data.get("accession_number")
+        if acc:
+            try:
+                AccessionLookedUp(accession_number=acc).save()
+            except Exception:
+                pass
         filing, _ = _ensure_sec_filing(item_data)
         form_type = (item_data.get("form_type") or "").strip().upper()
         logger.info(f"{LOG_PREFIX} :process_items: form_type={form_type}")
@@ -1130,13 +1140,7 @@ def process_items(items):
                     f"{LOG_PREFIX} :process_items: form_type={form_type} processing 10-K/10-Q item")
                 _process_ten_k_ten_q_item(item_data, html_data, filing)
 
-            acc = item_data.get("accession_number")
             logger.info(f"{LOG_PREFIX} :process_items: accession_number={acc}")
-            if acc:
-                try:
-                    AccessionLookedUp(accession_number=acc).save()
-                except Exception:
-                    pass
             processed += 1
         except Exception as e:
             errors.append({"accession": item_data.get(

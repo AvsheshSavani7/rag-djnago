@@ -111,7 +111,7 @@ def summarize(text: str, model: str = "claude-opus-4-6") -> dict:
 
     msg = client.messages.create(
         model=model,
-        max_tokens=1500,
+        max_tokens=4096,  # 1500 was too low for 10-K/10-Q; truncation caused "Unterminated string" JSON error
         messages=[{
             "role": "user",
             "content": SUMMARY_PROMPT + "\n\n" + text
@@ -122,6 +122,7 @@ def summarize(text: str, model: str = "claude-opus-4-6") -> dict:
     raw = re.sub(r"^```json\s*", "", raw)
     raw = re.sub(r"\s*```$", "", raw)
 
+    # JSONDecodeError "Unterminated string" = Claude response truncated (max_tokens) or unescaped " in a string
     return json.loads(raw)
 
 
