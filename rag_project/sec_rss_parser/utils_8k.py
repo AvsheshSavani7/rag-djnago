@@ -34,6 +34,31 @@ def normalize_cik(cik_number):
     return str(cik_number).zfill(CIK_LENGTH) if cik_number else ''
 
 
+def get_ticker_for_deal_and_cik(deal_id, cik_number):
+    """
+    Return target_ticker or acquirer_ticker from ProcessingJob based on which CIK matches.
+    If cik_number matches the deal's cik (target), return target_ticker.
+    If cik_number matches the deal's acquirer_cik, return acquirer_ticker.
+    Otherwise return None.
+    """
+    if not deal_id or cik_number is None:
+        return None
+    try:
+        from bson import ObjectId
+        from document_processor.models import ProcessingJob
+        job = ProcessingJob.objects.get(id=ObjectId(deal_id))
+        cik_norm = normalize_cik(cik_number)
+        job_cik = normalize_cik(getattr(job, 'cik', None) or '')
+        job_acquirer_cik = normalize_cik(getattr(job, 'acquirer_cik', None) or '')
+        if cik_norm and cik_norm == job_acquirer_cik:
+            return getattr(job, 'acquirer_ticker', None) or None
+        if cik_norm and cik_norm == job_cik:
+            return getattr(job, 'target_ticker', None) or None
+        return None
+    except Exception:
+        return None
+
+
 def log_and_print(message, level='info'):
     """Log and print a message"""
     log_func = getattr(logger, level, logger.info)

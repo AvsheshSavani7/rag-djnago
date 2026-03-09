@@ -12,7 +12,7 @@ from sec_rss_parser.proxy_summary_service_v2 import ProxySummaryServiceV2
 from sec_rss_parser.sec_processor_and_pinecone_v2 import SectionProcessorV2
 from sec_rss_parser.agentic_sec_processor_v2 import AgenticSECProcessor
 from sec_rss_parser.models import SECFilingSummary, SECFiling
-from document_processor.models import ProcessingJob
+from sec_rss_parser.utils_8k import get_ticker_for_deal_and_cik
 import os
 import sys
 import logging
@@ -541,13 +541,14 @@ def generate_summary_email_html(company_name: str, form_type: str, summary_doc_u
     """
     # Subject: ticker (if from deal) else company_name : form_type Summary : filing_date
     label = (ticker or "").strip() or (company_name or "Unknown")
-    filing_date_str = "N/A"
+    filing_date_str = ""
     if filing_date is not None:
         if hasattr(filing_date, "strftime"):
             filing_date_str = filing_date.strftime("%Y-%m-%d")
         else:
-            filing_date_str = str(filing_date)[:10] if str(filing_date) else "N/A"
-    subject = f"{label} : {form_type} Summary : {filing_date_str}"
+            filing_date_str = str(filing_date)[:10] if str(
+                filing_date) else ""
+    subject = f"{label} : {form_type} Summary [ {filing_date_str} ]"
 
     html_email = f"""
 <!DOCTYPE html>
@@ -634,15 +635,11 @@ def send_summary_email_notification_v2(filing_summary):
         logger.info(
             f"Preparing to send summary email for: {company_name} (CIK {filing_summary.cik_number})")
 
-        # Ticker from deal if available (first priority for subject)
-        ticker = None
-        if getattr(filing_summary, "deal_id", None):
-            try:
-                from bson import ObjectId
-                job = ProcessingJob.objects.get(id=ObjectId(filing_summary.deal_id))
-                ticker = getattr(job, "target_ticker", None) or None
-            except Exception:
-                pass
+        # Ticker from deal by CIK: target_ticker if filing CIK is deal cik, acquirer_ticker if filing CIK is acquirer_cik
+        ticker = get_ticker_for_deal_and_cik(
+            getattr(filing_summary, "deal_id", None),
+            getattr(filing_summary, "cik_number", None),
+        )
         filing_date = getattr(filing_summary, "filing_date", None)
 
         # Generate email HTML (same as old flow)
