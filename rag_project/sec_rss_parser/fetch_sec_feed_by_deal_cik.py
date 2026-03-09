@@ -763,7 +763,7 @@ def _process_ten_k_ten_q_item(item_data, html_data, filing):
 
     # Fetch and save all 10-K/10-Q filings from SEC API (including current filing)
     try:
-        from .utils_10k_10q import fetch_and_save_additional_10k_10q_filings
+        from sec_rss_parser.utils_10k_10q import fetch_and_save_additional_10k_10q_filings
 
         log_and_print(
             f"{LOG_PREFIX} :_process_ten_k_ten_q_item: 🔍 Fetching 10-K/10-Q filings for CIK {cik_number}...")

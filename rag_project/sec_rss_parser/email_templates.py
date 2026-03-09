@@ -190,24 +190,6 @@ def generate_filing_email_html(filing_data, doc_files):
     if form_type == '8-K' and company_details:
         company_details_html = _build_company_details_rows(company_details)
 
-    # EX-2.1: show document_kind and whether this filing gets further processing (Definitive Merger Agreement + US listed + market cap > $100M)
-    ex21_info_html = ""
-    document_kind = filing_data.get('document_kind')
-    if document_kind:
-        cd = filing_data.get('company_details') or {}
-        further_processing = (
-            document_kind == "Definitive Merger Agreement"
-            and cd.get('is_target_us_listed')
-            and cd.get('is_target_market_cap_greater_than_100m')
-        )
-        ex21_info_html = f"""
-      <tr>
-        <td style="padding:8px; font-weight:bold; color:#555;">Document kind (EX-2.1):</td>
-        <td style="padding:8px; color:#333;">{escape_html(document_kind)}</td>
-      </tr>
-     
-"""
-
     filing_url_html = ""
     if filing_url:
         filing_url_html = f"""
@@ -267,7 +249,6 @@ def generate_filing_email_html(filing_data, doc_files):
         <td style="padding:8px; font-weight:bold; color:#555;">CIK:</td>
         <td style="padding:8px; color:#333;">{escape_html(cik)}</td>
       </tr>
-{ex21_info_html}
 {company_details_html}
 
 {filing_url_html}
@@ -314,7 +295,12 @@ def generate_8k_document_email_html(filing_data, doc_files):
             return 'N/A'
         return 'Yes' if val else 'No'
 
-    subject = f"8-K – {company_name}"
+    # Subject: ticker (if from deal) else company_name : 8-K New Merger : filing_date
+    ticker = (filing_data.get("ticker") or "").strip()
+    label = ticker or company_name
+    filing_date_str = filing_date if isinstance(filing_date, str) else (filing_date.strftime(
+        "%Y-%m-%d") if isinstance(filing_date, datetime) else str(filing_date))
+    subject = f"{label} : 8-K New Merger : {filing_date_str}"
     confidence_badge = f"<span style='background:#28a745;color:white;padding:2px 8px;border-radius:4px;'>{confidence}% confidence</span>" if confidence else ""
     doc_files_html = build_doc_files_table(doc_files)
 
@@ -435,7 +421,12 @@ def generate_ex99_1_merger_email_html(filing_data, doc_files):
             return 'N/A'
         return 'Yes' if val else 'No'
 
-    subject = f"EX-99.1 M&A-Related Press Release – {company_name}"
+    # Subject: ticker (if from deal) else company_name : EX-99.1 New Merger : filing_date
+    ticker = (filing_data.get("ticker") or "").strip()
+    label = ticker or company_name
+    filing_date_str = filing_date if isinstance(filing_date, str) else (filing_date.strftime(
+        "%Y-%m-%d") if isinstance(filing_date, datetime) else str(filing_date))
+    subject = f"{label} : EX-99.1 New Merger : {filing_date_str}"
     confidence_badge = f"<span style='background:#28a745;color:white;padding:2px 8px;border-radius:4px;'>{confidence}% confidence</span>" if confidence else ""
     doc_files_html = build_doc_files_table(doc_files)
 
@@ -596,7 +587,7 @@ def generate_8k_summary_email_html(company_name: str, form_type: str, summary_do
     return subject, html_email
 
 
-def generate_8k_99_1_summary_email_html(company_name: str, form_type: str, summary_doc_url: str, cik_number: str, sec_url: str, accession_number: str, summary_kind: str = "8-K", l1_headline: str = None, l2_brief: str = None) -> tuple:
+def generate_8k_99_1_summary_email_html(company_name: str, form_type: str, summary_doc_url: str, cik_number: str, sec_url: str, accession_number: str, summary_kind: str = "8-K", l1_headline: str = None, l2_brief: str = None, ticker: str = None, filing_date=None) -> tuple:
     """
     Generate HTML email for 8-K summary document notification.
 
@@ -610,10 +601,22 @@ def generate_8k_99_1_summary_email_html(company_name: str, form_type: str, summa
         summary_kind: Summary type label (e.g. "8-K", "EX-99.1")
         l1_headline: Optional L1 headline from the summary doc (shown so user can see content without opening doc)
         l2_brief: Optional L2 brief from the summary doc (shown so user can see content without opening doc)
+        ticker: Optional ticker (from deal); if present, used in subject instead of company_name
+        filing_date: Optional filing date for subject (datetime or str, formatted as YYYY-MM-DD)
     Returns:
         tuple: (subject, html_email)
     """
-    subject = f"New {summary_kind} Summary Document – {form_type} – {company_name}"
+    # Subject: ticker (if from deal) else company_name : form_type Summary : filing_date
+    form_type_subject = summary_kind or f"-{form_type}-"
+    filing_date_str = "N/A"
+    if filing_date is not None:
+        if isinstance(filing_date, datetime):
+            filing_date_str = filing_date.strftime("%Y-%m-%d")
+        else:
+            filing_date_str = str(filing_date)[:10] if str(
+                filing_date) else "N/A"
+    label = (ticker or "").strip() or (company_name or "Unknown")
+    subject = f"{label} : {form_type_subject} Summary : {filing_date_str}"
 
     headline_block = ""
     if l1_headline and l1_headline.strip():
@@ -641,12 +644,12 @@ def generate_8k_99_1_summary_email_html(company_name: str, form_type: str, summa
 <body style="margin:0; padding:0; font-family:Arial,sans-serif; background-color:#f4f4f4;">
   <div style="max-width:700px; margin:20px auto; background-color:#ffffff; padding:30px; border-radius:8px; box-shadow:0 2px 4px rgba(0,0,0,0.1);">
     <h2 style="color:#333; text-align:center; margin-top:0; padding-bottom:20px; border-bottom:3px solid #4a90e2;">
-      New {summary_kind} Summary Document
+      New {form_type_subject} Summary Document
     </h2>
 
     <div style="margin-bottom:30px;">
       <p style="color:#333; font-size:16px; line-height:1.6;">
-        The {summary_kind} summary document has been successfully generated for:
+        The {form_type_subject} summary document has been successfully generated for:
       </p>
 
       <div style="background-color:#f9f9f9; padding:15px; border-radius:5px; margin:20px 0;">
@@ -732,8 +735,17 @@ def build_sec_filings_table(filings):
 
 def generate_sec_filings_email_html(company_name, filings, form_type):
     """Generate full email HTML for SEC form filings (last year) table. Returns (subject, html).
-    form_type identifies which email is for which (e.g. '8-K(EX-2.1)', '10-K', '10-Q')."""
-    subject = f"SEC Form Filings ({escape_html(form_type)}) – {escape_html(company_name)}"
+    form_type identifies which email is for which (e.g. '8-K(EX-2.1)', '10-K', '10-Q').
+    Subject: for 8-K(EX-2.1) -> company name : form_type All One Year Forms.;
+    for 10-K/10-Q -> company name : form_type All 10k/10q since announcing date."""
+    form_type_esc = escape_html(form_type)
+    company_esc = escape_html(company_name or "Unknown Company")
+    if form_type and "8-K" in str(form_type):
+        subject = f"{company_esc} : {form_type_esc} All One Year Forms."
+    elif form_type and str(form_type).upper() in ("10-K", "10-Q"):
+        subject = f"{company_esc} : {form_type_esc} All 10k/10q since announcing date."
+    else:
+        subject = f"SEC Form Filings ({form_type_esc}) – {company_esc}"
     table_html = build_sec_filings_table(filings)
     html_email = f"""
 <!DOCTYPE html>

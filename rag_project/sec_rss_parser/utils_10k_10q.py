@@ -47,7 +47,7 @@ def _extract_announce_date_with_llm(company_details_str):
     """
     try:
         # Import here to avoid circular dependency
-        from .services import _extract_announce_date_with_llm as llm_extract
+        from sec_rss_parser.services import _extract_announce_date_with_llm as llm_extract
         return llm_extract(company_details_str)
     except Exception as e:
         logger.error(f"Error extracting announce date with LLM: {e}")
@@ -272,7 +272,7 @@ def fetch_and_save_additional_10k_10q_filings(
         urls_from_filings = [f.get("url") for f in filings if f.get("url")]
         if urls_from_filings and deal_id:
             try:
-                from .tenK_tenQ_pipeline.orchestrator import run_pipeline
+                from sec_rss_parser.tenK_tenQ_pipeline.orchestrator import run_pipeline
                 log_and_print(
                     f"🔄 Running 10-K/10-Q summary pipeline for {len(urls_from_filings)} filing(s), deal_id={deal_id}...")
                 run_pipeline(urls=urls_from_filings, deal_id=deal_id)

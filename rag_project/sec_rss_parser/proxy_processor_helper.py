@@ -12,6 +12,7 @@ from sec_rss_parser.proxy_summary_service_v2 import ProxySummaryServiceV2
 from sec_rss_parser.sec_processor_and_pinecone_v2 import SectionProcessorV2
 from sec_rss_parser.agentic_sec_processor_v2 import AgenticSECProcessor
 from sec_rss_parser.models import SECFilingSummary, SECFiling
+from document_processor.models import ProcessingJob
 import os
 import sys
 import logging
@@ -523,7 +524,7 @@ def escape_html(text):
     return text
 
 
-def generate_summary_email_html(company_name: str, form_type: str, summary_doc_url: str, cik_number: str, proxy_sec_url: str) -> tuple:
+def generate_summary_email_html(company_name: str, form_type: str, summary_doc_url: str, cik_number: str, proxy_sec_url: str, ticker: str = None, filing_date=None) -> tuple:
     """
     Generate HTML email for proxy summary document notification.
 
@@ -533,10 +534,20 @@ def generate_summary_email_html(company_name: str, form_type: str, summary_doc_u
         summary_doc_url: URL of the generated summary document
         cik_number: CIK number
         proxy_sec_url: URL of the SEC proxy document
+        ticker: Optional ticker (from deal); if present, used in subject instead of company_name
+        filing_date: Optional filing date for subject (datetime or str)
     Returns:
         tuple: (subject, html_email)
     """
-    subject = f"New Proxy Summary Document – {form_type} – {company_name}"
+    # Subject: ticker (if from deal) else company_name : form_type Summary : filing_date
+    label = (ticker or "").strip() or (company_name or "Unknown")
+    filing_date_str = "N/A"
+    if filing_date is not None:
+        if hasattr(filing_date, "strftime"):
+            filing_date_str = filing_date.strftime("%Y-%m-%d")
+        else:
+            filing_date_str = str(filing_date)[:10] if str(filing_date) else "N/A"
+    subject = f"{label} : {form_type} Summary : {filing_date_str}"
 
     html_email = f"""
 <!DOCTYPE html>
@@ -623,13 +634,26 @@ def send_summary_email_notification_v2(filing_summary):
         logger.info(
             f"Preparing to send summary email for: {company_name} (CIK {filing_summary.cik_number})")
 
+        # Ticker from deal if available (first priority for subject)
+        ticker = None
+        if getattr(filing_summary, "deal_id", None):
+            try:
+                from bson import ObjectId
+                job = ProcessingJob.objects.get(id=ObjectId(filing_summary.deal_id))
+                ticker = getattr(job, "target_ticker", None) or None
+            except Exception:
+                pass
+        filing_date = getattr(filing_summary, "filing_date", None)
+
         # Generate email HTML (same as old flow)
         subject, html_email = generate_summary_email_html(
             company_name=company_name,
             form_type=filing_summary.form_type,
             summary_doc_url=summary_url,
             cik_number=filing_summary.cik_number or "",
-            proxy_sec_url=filing_summary.sec_document_url
+            proxy_sec_url=filing_summary.sec_document_url,
+            ticker=ticker,
+            filing_date=filing_date,
         )
         logger.info(f"Generated email subject: {subject}")
 

@@ -731,12 +731,11 @@ class EightKFeedProcessor:
                 self.error_count += 1
                 return
 
-            # Send email
-            self._send_ex21_email(
-                item_data, company_details, filing_entry=filing_entry)
-
             # Process EX-2.1 via 8-K document helper (Node API) if US-related and market cap > $100M
             if document_kind == "Definitive Merger Agreement" and is_us_listed and market_cap_gt_100m:
+                # Send email
+                self._send_ex21_email(
+                    item_data, company_details, filing_entry=filing_entry)
                 logger.info(
                     f"{LOG_PREFIX} :_process_ex21_filing: accession=%s step=qualified sending_historical_and_helper", accession_number)
                 # Send historical 8-K filings email (last 1 year)
@@ -752,13 +751,16 @@ class EightKFeedProcessor:
                         f"{LOG_PREFIX} :_process_ex21_filing: 📝 Definitive Merger Agreement + qualified → generating 8-K/EX-99.1 summaries and sending emails")
                     for f in other_filings:
                         doc_type = f.get('document_type')
+                        log_and_print(f"doc_type: {doc_type}")
                         if doc_type == '8-K':
                             url_8k = f.get('url')
+                            log_and_print(f"url_8k: {url_8k}")
                             if url_8k:
                                 self._generate_8k_summary_and_send(
                                     item_data, url_8k)
                         elif doc_type == 'EX-99.1':
                             url_ex99 = f.get('url')
+                            log_and_print(f"url_ex99: {url_ex99}")
                             if url_ex99:
                                 self._generate_ex99_summary(
                                     item_data, url_ex99)
@@ -1374,6 +1376,17 @@ class EightKFeedProcessor:
             log_and_print(
                 f"{LOG_PREFIX} :_generate_ex99_summary: ❌ Error in _generate_ex99_summary: {e}", 'error')
 
+    def _get_ticker_from_deal(self, deal_id):
+        """Return target_ticker from ProcessingJob if deal_id is set, else None."""
+        if not deal_id:
+            return None
+        try:
+            from bson import ObjectId
+            job = ProcessingJob.objects.get(id=ObjectId(deal_id))
+            return getattr(job, 'target_ticker', None) or None
+        except Exception:
+            return None
+
     def _send_8k_summary_email(self, item_data, summary_result, doc_url):
         """Send email with 8-K summary document link"""
         accession_number = item_data.get('accession_number', 'N/A')
@@ -1385,7 +1398,10 @@ class EightKFeedProcessor:
             log_and_print(
                 f"{LOG_PREFIX} :_send_8k_summary_email:   📧 Sending 8-K summary email")
 
-            from .email_templates import generate_8k_99_1_summary_email_html
+            from sec_rss_parser.email_templates import generate_8k_99_1_summary_email_html
+
+            ticker = self._get_ticker_from_deal(item_data.get('deal_id'))
+            filing_date = item_data.get('filing_date')
 
             subject, html_email = generate_8k_99_1_summary_email_html(
                 company_name=item_data.get('company_name') or '',
@@ -1397,6 +1413,8 @@ class EightKFeedProcessor:
                 summary_kind='8-K',
                 l1_headline=summary_result.get('L1_headline'),
                 l2_brief=summary_result.get('L2_brief'),
+                ticker=ticker,
+                filing_date=filing_date,
             )
 
             payload = {
@@ -1434,7 +1452,10 @@ class EightKFeedProcessor:
             log_and_print(
                 f"{LOG_PREFIX} :_send_ex99_summary_email:   📧 Sending EX-99.1 summary email")
 
-            from .email_templates import generate_8k_99_1_summary_email_html
+            from sec_rss_parser.email_templates import generate_8k_99_1_summary_email_html
+
+            ticker = self._get_ticker_from_deal(item_data.get('deal_id'))
+            filing_date = item_data.get('filing_date')
 
             subject, html_email = generate_8k_99_1_summary_email_html(
                 company_name=item_data.get('company_name') or '',
@@ -1446,6 +1467,8 @@ class EightKFeedProcessor:
                 summary_kind='EX-99.1',
                 l1_headline=summary_result.get('L1_headline'),
                 l2_brief=summary_result.get('L2_brief'),
+                ticker=ticker,
+                filing_date=filing_date,
             )
 
             payload = {
