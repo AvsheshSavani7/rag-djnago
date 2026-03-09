@@ -628,23 +628,32 @@ class EightKFeedProcessor:
             # Save SECFiling once per item (has at least one .htm document)
             self._save_filing(item_data)
 
-            # Iterate over filing_array and process by document_type
-            for filing in filing_array:
-                doc_type = filing.get('document_type')
+            # Case 1: EX-2.1 present → process only via _process_ex21_filing (pass other filings for conditional 8-K/EX-99.1 summary).
+            # Case 2: No EX-2.1 → process 8-K and EX-99.1 in the loop as before.
+            ex21_entries = [f for f in filing_array if f.get(
+                'document_type') == 'EX-2.1']
+            if ex21_entries:
+                other_filings = [f for f in filing_array if f.get(
+                    'document_type') != 'EX-2.1']
+                ex21_filing = ex21_entries[0]
                 logger.info(
-                    f"{LOG_PREFIX} :_process_single_item: accession=%s step=process_doc doc_type=%s", accession_number, doc_type)
-                if doc_type == '8-K':
+                    f"{LOG_PREFIX} :_process_single_item: accession=%s step=ex21_present other_count=%s",
+                    accession_number, len(other_filings))
+                self._process_ex21_filing(
+                    item_data, ex21_filing, other_filings=other_filings)
+            else:
+                for filing in filing_array:
+                    doc_type = filing.get('document_type')
                     logger.info(
-                        f"{LOG_PREFIX} :_process_single_item: accession=%s step=process_doc doc_type=8-K", accession_number)
-                    self._process_8k_document(item_data, filing)
-                elif doc_type == 'EX-99.1':
-                    logger.info(
-                        f"{LOG_PREFIX} :_process_single_item: accession=%s step=process_doc doc_type=EX-99.1", accession_number)
-                    self._process_ex99_filing(item_data, filing)
-                elif doc_type == 'EX-2.1':
-                    logger.info(
-                        f"{LOG_PREFIX} :_process_single_item: accession=%s step=process_doc doc_type=EX-2.1", accession_number)
-                    self._process_ex21_filing(item_data, filing)
+                        f"{LOG_PREFIX} :_process_single_item: accession=%s step=process_doc doc_type=%s", accession_number, doc_type)
+                    if doc_type == '8-K':
+                        logger.info(
+                            f"{LOG_PREFIX} :_process_single_item: accession=%s step=process_doc doc_type=8-K", accession_number)
+                        self._process_8k_document(item_data, filing)
+                    elif doc_type == 'EX-99.1':
+                        logger.info(
+                            f"{LOG_PREFIX} :_process_single_item: accession=%s step=process_doc doc_type=EX-99.1", accession_number)
+                        self._process_ex99_filing(item_data, filing)
             logger.info(
                 f"{LOG_PREFIX} :_process_single_item: accession=%s step=done", accession_number)
 
@@ -658,8 +667,11 @@ class EightKFeedProcessor:
                 f"{LOG_PREFIX} :_process_single_item: {traceback.format_exc()}", 'error')
             self.error_count += 1
 
-    def _process_ex21_filing(self, item_data, filing_entry):
-        """Process 8-K filing with EX-2.1 (one document from filing_array)."""
+    def _process_ex21_filing(self, item_data, filing_entry, other_filings=None):
+        """Process 8-K filing with EX-2.1 (one document from filing_array).
+        When other_filings is provided and document_kind is Definitive Merger Agreement + is_us_listed + market_cap_gt_100m,
+        also runs 8-K and EX-99.1 summary generation and send email (same as cik_matches_deal path).
+        """
         accession_number = item_data.get('accession_number', 'N/A')
         try:
             logger.info(
@@ -724,7 +736,7 @@ class EightKFeedProcessor:
                 item_data, company_details, filing_entry=filing_entry)
 
             # Process EX-2.1 via 8-K document helper (Node API) if US-related and market cap > $100M
-            if is_us_listed and market_cap_gt_100m:
+            if document_kind == "Definitive Merger Agreement" and is_us_listed and market_cap_gt_100m:
                 logger.info(
                     f"{LOG_PREFIX} :_process_ex21_filing: accession=%s step=qualified sending_historical_and_helper", accession_number)
                 # Send historical 8-K filings email (last 1 year)
@@ -734,6 +746,22 @@ class EightKFeedProcessor:
                 logger.info(
                     f"{LOG_PREFIX} :_process_ex21_filing: accession=%s step=process_ex21_via_8k_helper", accession_number)
                 self._process_ex21_via_8k_helper(item_data, filing)
+                # Definitive Merger Agreement + other_filings: run 8-K and EX-99.1 summary generation and send email (same as cik_matches_deal path)
+                if other_filings:
+                    log_and_print(
+                        f"{LOG_PREFIX} :_process_ex21_filing: 📝 Definitive Merger Agreement + qualified → generating 8-K/EX-99.1 summaries and sending emails")
+                    for f in other_filings:
+                        doc_type = f.get('document_type')
+                        if doc_type == '8-K':
+                            url_8k = f.get('url')
+                            if url_8k:
+                                self._generate_8k_summary_and_send(
+                                    item_data, url_8k)
+                        elif doc_type == 'EX-99.1':
+                            url_ex99 = f.get('url')
+                            if url_ex99:
+                                self._generate_ex99_summary(
+                                    item_data, url_ex99)
                 self.ex21_processed_count += 1
             else:
                 logger.info(f"{LOG_PREFIX} :_process_ex21_filing: accession=%s step=not_qualified is_us_listed=%s market_cap_gt_100m=%s",

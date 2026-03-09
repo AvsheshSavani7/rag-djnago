@@ -190,6 +190,24 @@ def generate_filing_email_html(filing_data, doc_files):
     if form_type == '8-K' and company_details:
         company_details_html = _build_company_details_rows(company_details)
 
+    # EX-2.1: show document_kind and whether this filing gets further processing (Definitive Merger Agreement + US listed + market cap > $100M)
+    ex21_info_html = ""
+    document_kind = filing_data.get('document_kind')
+    if document_kind:
+        cd = filing_data.get('company_details') or {}
+        further_processing = (
+            document_kind == "Definitive Merger Agreement"
+            and cd.get('is_target_us_listed')
+            and cd.get('is_target_market_cap_greater_than_100m')
+        )
+        ex21_info_html = f"""
+      <tr>
+        <td style="padding:8px; font-weight:bold; color:#555;">Document kind (EX-2.1):</td>
+        <td style="padding:8px; color:#333;">{escape_html(document_kind)}</td>
+      </tr>
+     
+"""
+
     filing_url_html = ""
     if filing_url:
         filing_url_html = f"""
@@ -249,6 +267,7 @@ def generate_filing_email_html(filing_data, doc_files):
         <td style="padding:8px; font-weight:bold; color:#555;">CIK:</td>
         <td style="padding:8px; color:#333;">{escape_html(cik)}</td>
       </tr>
+{ex21_info_html}
 {company_details_html}
 
 {filing_url_html}
