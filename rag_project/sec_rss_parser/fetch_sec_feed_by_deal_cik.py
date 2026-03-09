@@ -43,6 +43,7 @@ from document_processor.models import ProcessingJob
 from mongoengine.queryset.visitor import Q
 from sec_rss_parser.utils_8k import (
     SECRSSParser,
+    get_ticker_for_deal_and_cik,
     normalize_cik,
     extract_accession_from_guid,
     build_full_sec_url,
@@ -1057,6 +1058,7 @@ def _route_summarize_and_save(item_data, html_data):
             # Send email with the generated summary (doc link + L1 headline)
             log_and_print(
                 f"{LOG_PREFIX} :_route_summarize_and_save: 📧 Sending summary email for {summary_kind}...")
+            ticker = get_ticker_for_deal_and_cik(deal_id, cik_number)
             try:
                 send_summary_email_via_webhook(
                     summary_doc_url=s3_docx_url,
@@ -1068,6 +1070,8 @@ def _route_summarize_and_save(item_data, html_data):
                     summary_kind=summary_kind,
                     l1_headline=result.get("L1_headline"),
                     l2_brief=result.get("L2_brief"),
+                    ticker=ticker,
+                    filing_date=filing_dt,
                 )
                 log_and_print(
                     f"{LOG_PREFIX} :_route_summarize_and_save: ✅ Summary email sent for {summary_kind}")

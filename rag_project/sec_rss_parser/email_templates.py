@@ -300,7 +300,7 @@ def generate_8k_document_email_html(filing_data, doc_files):
     label = ticker or company_name
     filing_date_str = filing_date if isinstance(filing_date, str) else (filing_date.strftime(
         "%Y-%m-%d") if isinstance(filing_date, datetime) else str(filing_date))
-    subject = f"{label} : 8-K New Merger : {filing_date_str}"
+    subject = f"{label} : 8-K New Merger [ {filing_date_str} ]"
     confidence_badge = f"<span style='background:#28a745;color:white;padding:2px 8px;border-radius:4px;'>{confidence}% confidence</span>" if confidence else ""
     doc_files_html = build_doc_files_table(doc_files)
 
@@ -426,7 +426,7 @@ def generate_ex99_1_merger_email_html(filing_data, doc_files):
     label = ticker or company_name
     filing_date_str = filing_date if isinstance(filing_date, str) else (filing_date.strftime(
         "%Y-%m-%d") if isinstance(filing_date, datetime) else str(filing_date))
-    subject = f"{label} : EX-99.1 New Merger : {filing_date_str}"
+    subject = f"{label} : EX-99.1 New Merger [ {filing_date_str} ]"
     confidence_badge = f"<span style='background:#28a745;color:white;padding:2px 8px;border-radius:4px;'>{confidence}% confidence</span>" if confidence else ""
     doc_files_html = build_doc_files_table(doc_files)
 
@@ -608,15 +608,15 @@ def generate_8k_99_1_summary_email_html(company_name: str, form_type: str, summa
     """
     # Subject: ticker (if from deal) else company_name : form_type Summary : filing_date
     form_type_subject = summary_kind or f"-{form_type}-"
-    filing_date_str = "N/A"
+    filing_date_str = ""
     if filing_date is not None:
         if isinstance(filing_date, datetime):
             filing_date_str = filing_date.strftime("%Y-%m-%d")
         else:
             filing_date_str = str(filing_date)[:10] if str(
-                filing_date) else "N/A"
+                filing_date) else ""
     label = (ticker or "").strip() or (company_name or "Unknown")
-    subject = f"{label} : {form_type_subject} Summary : {filing_date_str}"
+    subject = f"{label} : {form_type_subject} Summary [ {filing_date_str} ]"
 
     headline_block = ""
     if l1_headline and l1_headline.strip():

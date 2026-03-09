@@ -22,6 +22,7 @@ from .utils_8k import (
     extract_accession_from_guid,
     build_full_sec_url,
     find_file_by_type,
+    get_ticker_for_deal_and_cik,
     normalize_cik,
     parse_filing_date,
     send_webhook_notification,
@@ -1376,17 +1377,6 @@ class EightKFeedProcessor:
             log_and_print(
                 f"{LOG_PREFIX} :_generate_ex99_summary: ❌ Error in _generate_ex99_summary: {e}", 'error')
 
-    def _get_ticker_from_deal(self, deal_id):
-        """Return target_ticker from ProcessingJob if deal_id is set, else None."""
-        if not deal_id:
-            return None
-        try:
-            from bson import ObjectId
-            job = ProcessingJob.objects.get(id=ObjectId(deal_id))
-            return getattr(job, 'target_ticker', None) or None
-        except Exception:
-            return None
-
     def _send_8k_summary_email(self, item_data, summary_result, doc_url):
         """Send email with 8-K summary document link"""
         accession_number = item_data.get('accession_number', 'N/A')
@@ -1400,7 +1390,7 @@ class EightKFeedProcessor:
 
             from sec_rss_parser.email_templates import generate_8k_99_1_summary_email_html
 
-            ticker = self._get_ticker_from_deal(item_data.get('deal_id'))
+            ticker = get_ticker_for_deal_and_cik(item_data.get('deal_id'), item_data.get('cik_number'))
             filing_date = item_data.get('filing_date')
 
             subject, html_email = generate_8k_99_1_summary_email_html(
@@ -1454,7 +1444,7 @@ class EightKFeedProcessor:
 
             from sec_rss_parser.email_templates import generate_8k_99_1_summary_email_html
 
-            ticker = self._get_ticker_from_deal(item_data.get('deal_id'))
+            ticker = get_ticker_for_deal_and_cik(item_data.get('deal_id'), item_data.get('cik_number'))
             filing_date = item_data.get('filing_date')
 
             subject, html_email = generate_8k_99_1_summary_email_html(
