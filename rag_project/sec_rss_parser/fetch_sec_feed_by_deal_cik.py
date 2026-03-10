@@ -1110,7 +1110,12 @@ def process_items(items):
             errors.append({"accession": item_data.get(
                 "accession_number"), "message": "Failed to parse HTML"})
             continue
+        # Preserve deal CIK (from parse_atom_to_items) before HTML overwrites it.
+        # We use deal_cik for saving SECFilingSummary and email; html_data has filer CIK.
+        deal_cik = item_data.get("cik_number")
         item_data.update(html_data)
+        if deal_cik is not None:
+            item_data["cik_number"] = deal_cik
         item_data["deal_id"] = item_data.get(
             "deal_id") or _deal_id_for_cik(item_data.get("cik_number"))
         # Mark accession as looked up immediately so overlapping runs (e.g. cron every minute)
