@@ -26,6 +26,11 @@ from .sec_fetcher import detect_filing_metadata, fetch_sec_filing, make_filing_l
 from .summary_db import SummaryDB
 from .s3_utils import upload_file, upload_json
 
+# Email for final comparison summary (JSON + DOCX URLs)
+from sec_rss_parser.email_templates import generate_10k_10q_comparison_summary_email_html
+from sec_rss_parser.utils_8k import send_webhook_notification
+from sec_rss_parser.utils_10k_10q import N8N_WEBHOOK_URL_10K_10Q
+
 
 def _get_ticker_for_deal(deal_id: str) -> str:
     """Resolve ticker from deal_id via ProcessingJob.target_ticker."""
@@ -191,8 +196,9 @@ def run_pipeline(
         "exec_summary": None,
     }
 
+    # Only run comparison and send email when we have at least 2 processed filings.
     if len(processed_records) < 2:
-        print(f"  Only {len(processed_records)} processed filing(s) — skipping comparison")
+        print(f"  Only {len(processed_records)} processed filing(s) — skipping comparison (no comparison summary, no email)")
     else:
         def _sort_key(r):
             return r.get("period_date") or "9999"
@@ -292,6 +298,32 @@ def run_pipeline(
 
         sig = sum(1 for r in merged if r["overall_severity"] == "significant")
         print(f"\n  Comparison: {len(merged)} changes ({sig} significant)")
+
+        # Send email for final summary with JSON and DOCX URLs (same pattern as utils_10k_10q)
+        try:
+            subject, html = generate_10k_10q_comparison_summary_email_html(
+                ticker=deal.ticker,
+                target_company=deal.target_company,
+                filing_labels=filing_labels,
+                s3_comparison_json_url=s3_comparison,
+                s3_exec_summary_docx_url=s3_exec,
+                s3_redline_docx_url=s3_redline,
+                s3_client_report_docx_url=s3_client,
+            )
+            payload = {
+                "subject": subject,
+                "html": html,
+                "company_name": deal.target_company or deal.ticker,
+                "email_type": "10k_10q_comparison_summary",
+                "s3_comparison_json_url": s3_comparison,
+                "s3_exec_summary_docx_url": s3_exec,
+                "s3_redline_docx_url": s3_redline,
+                "s3_client_report_docx_url": s3_client,
+            }
+            send_webhook_notification(N8N_WEBHOOK_URL_10K_10Q, payload, "10-K/10-Q comparison summary email")
+            print(f"  Email sent: final summary with JSON and DOCX links")
+        except Exception as email_e:
+            print(f"  Warning: failed to send comparison summary email: {email_e}")
 
     print(f"\n{'='*60}")
     print(f"DONE | processed={len(processed_urls)} | skipped={len(skipped_urls)}")

@@ -761,3 +761,61 @@ def generate_sec_filings_email_html(company_name, filings, form_type):
 </html>
 """
     return subject, html_email
+
+
+def generate_10k_10q_comparison_summary_email_html(
+    ticker: str,
+    target_company: str,
+    filing_labels: list,
+    s3_comparison_json_url: str,
+    s3_exec_summary_docx_url: str,
+    s3_redline_docx_url: str = None,
+    s3_client_report_docx_url: str = None,
+):
+    """Generate email HTML for 10-K/10-Q comparison final summary with JSON and DOCX links.
+    Returns (subject, html). Used after orchestrator comparison run."""
+    company_esc = escape_html(target_company or ticker or "Unknown Company")
+    ticker_esc = escape_html(ticker or "")
+    subject = f"{company_esc} : 10-K/10-Q Comparison Summary – {ticker_esc}" if ticker_esc else f"{company_esc} : 10-K/10-Q Comparison Summary"
+
+    labels_line = ", ".join(escape_html(l or "") for l in (filing_labels or [])[:10])
+    if filing_labels and len(filing_labels) > 10:
+        labels_line += " …"
+
+    links = []
+    if s3_exec_summary_docx_url:
+        links.append(("Executive Summary (DOCX)", s3_exec_summary_docx_url))
+    if s3_comparison_json_url:
+        links.append(("Comparison data (JSON)", s3_comparison_json_url))
+    if s3_redline_docx_url:
+        links.append(("Redline report (DOCX)", s3_redline_docx_url))
+    if s3_client_report_docx_url:
+        links.append(("Client report (DOCX)", s3_client_report_docx_url))
+
+    rows_html = "".join(
+        f'<tr><td style="padding:8px; border:1px solid #ddd;"><a href="{escape_html(url)}" style="color:#4a90e2;" target="_blank">{escape_html(label)}</a></td></tr>'
+        for label, url in links
+    )
+    links_table = f"""
+    <table style="width:100%; border-collapse:collapse; margin-top:10px;">
+      <thead><tr style="background-color:#f5f5f5;"><th style="padding:8px; border:1px solid #ddd; text-align:left;">Document</th></tr></thead>
+      <tbody>{rows_html}</tbody>
+    </table>
+""" if rows_html else "<p><em>No links available.</em></p>"
+
+    html_email = f"""
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><title>10-K/10-Q Comparison Summary</title></head>
+<body style="font-family: Arial, sans-serif; margin: 20px;">
+  <div style="max-width:900px;">
+    <h2 style="color:#333;">10-K/10-Q Comparison Summary</h2>
+    <p style="color:#555;">Company: <strong>{company_esc}</strong></p>
+    <p style="color:#555;">Filings compared: <strong>{labels_line}</strong></p>
+    <p style="color:#555;">Links to final summary and comparison data:</p>
+    {links_table}
+  </div>
+</body>
+</html>
+"""
+    return subject, html_email
