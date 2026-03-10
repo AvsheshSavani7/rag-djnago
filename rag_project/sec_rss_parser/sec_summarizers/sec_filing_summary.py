@@ -6,6 +6,12 @@ Use this script for any SEC filing type not covered by a dedicated summarizer
 (e.g., 10-K, 10-Q, S-1, S-4, DEF 14A, DEFM14A, SC TO, SC 14D-9, 8-A, etc.)
 """
 
+import anthropic
+import re
+import json
+import sys
+import os
+import io
 from pathlib import Path
 from ._naming import filing_uid
 
@@ -15,12 +21,6 @@ FILING_URL = ""
 OUTPUT_DIR = Path(__file__).resolve().parents[1] / "Output Summaries"
 # ─────────────────────────────────
 
-import io
-import os
-import sys
-import json
-import re
-import anthropic
 
 try:
     import requests
@@ -106,12 +106,14 @@ def fetch_filing_text(source: str) -> str:
 def summarize(text: str, model: str = "claude-opus-4-6") -> dict:
     """Call Claude API to produce multi-level summary."""
     if not ANTHROPIC_API_KEY:
-        raise ValueError("ANTHROPIC_API_KEY not set. Set it in .env or Django settings (ANTHROPIC_API_KEY).")
+        raise ValueError(
+            "ANTHROPIC_API_KEY not set. Set it in .env or Django settings (ANTHROPIC_API_KEY).")
     client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
 
     msg = client.messages.create(
         model=model,
-        max_tokens=4096,  # 1500 was too low for 10-K/10-Q; truncation caused "Unterminated string" JSON error
+        # 1500 was too low for 10-K/10-Q; truncation caused "Unterminated string" JSON error
+        max_tokens=4096,
         messages=[{
             "role": "user",
             "content": SUMMARY_PROMPT + "\n\n" + text
@@ -121,6 +123,14 @@ def summarize(text: str, model: str = "claude-opus-4-6") -> dict:
     raw = msg.content[0].text.strip()
     raw = re.sub(r"^```json\s*", "", raw)
     raw = re.sub(r"\s*```$", "", raw)
+
+    # If response was truncated (stop_reason != "end_turn"), try to close the JSON
+    if msg.stop_reason != "end_turn":
+        # Attempt to salvage truncated JSON by closing open structures
+        if raw.count('{') > raw.count('}'):
+            raw += '"' + '}' * (raw.count('{') - raw.count('}'))
+        if raw.count('[') > raw.count(']'):
+            raw += ']' * (raw.count('[') - raw.count(']'))
 
     # JSONDecodeError "Unterminated string" = Claude response truncated (max_tokens) or unescaped " in a string
     return json.loads(raw)
@@ -132,7 +142,8 @@ def print_summary(s: dict):
     print(f"  SEC FILING SUMMARY — {s.get('filing_type', 'UNKNOWN TYPE')}")
     print("=" * 70)
 
-    print(f"\n   Company:  {s.get('company', 'N/A')} ({s.get('ticker', 'N/A')})")
+    print(
+        f"\n   Company:  {s.get('company', 'N/A')} ({s.get('ticker', 'N/A')})")
     print(f"   Type:     {s.get('filing_type', 'N/A')}")
     print(f"   Date:     {s.get('filing_date', 'N/A')}")
 
@@ -267,7 +278,8 @@ def main():
     uid = filing_uid(FILING_URL)
     from .s3_utils import upload_json
 
-    s3_json_path, s3_json_url = upload_json(result, f"sec_filing_summary_{uid}.json")
+    s3_json_path, s3_json_url = upload_json(
+        result, f"sec_filing_summary_{uid}.json")
     print(f"\nJSON uploaded to S3: {s3_json_url}")
 
     filing_type = result.get("filing_type", "SEC")

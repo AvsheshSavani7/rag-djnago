@@ -20,7 +20,8 @@ try:
     import pypdf
 except ImportError:
     import subprocess
-    subprocess.check_call([sys.executable, "-m", "pip", "install", "pypdf", "-q"])
+    subprocess.check_call(
+        [sys.executable, "-m", "pip", "install", "pypdf", "-q"])
     import pypdf
 
 
@@ -33,7 +34,9 @@ def fetch_text(source: str, word_limit: int = 10000) -> str:
     is_pdf = source.lower().endswith(".pdf")
 
     if is_url:
-        headers = {"User-Agent": "ResearchBot/1.0 (research@example.com)"}
+        headers = {
+            "User-Agent": "MergerArbDashboard/1.0 (merger-arb-research@outlook.com)"}
+
         resp = requests.get(source, headers=headers, timeout=60)
         resp.raise_for_status()
 
@@ -63,7 +66,8 @@ def _extract_html(html: str, word_limit: int) -> str:
     text = re.sub(r" {2,}", " ", text)
 
     words = text.split()
-    if len(words) > word_limit:
+    if word_limit and len(words) > word_limit:
+
         text = " ".join(words[:word_limit])
 
     return text
@@ -94,7 +98,8 @@ def _read_pdf_pages(reader: pypdf.PdfReader, word_limit: int) -> str:
     text = re.sub(r" {2,}", " ", text)
 
     words = text.split()
-    if len(words) > word_limit:
+    if word_limit and len(words) > word_limit:
+
         text = " ".join(words[:word_limit])
 
     return text

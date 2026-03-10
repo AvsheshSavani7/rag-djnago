@@ -8,6 +8,7 @@ from mongoengine import (
     EmbeddedDocumentField,
     EmbeddedDocument,
     IntField,
+    DictField,
 )
 from datetime import datetime
 import uuid
@@ -29,6 +30,13 @@ class FeedItem(Document):
     date_published = DateTimeField(required=True)
     authors = ListField(EmbeddedDocumentField(
         Author), required=False, default=[])
+
+    # Optional AI summary fields (from sec_rss_parser.sec_summarizers.filing_router.route_and_summarize)
+    l1_headline = StringField(required=False, max_length=500, null=True)
+    l2_brief = StringField(required=False, max_length=4000, null=True)
+    l3_detailed = DictField(required=False, null=True)  # full JSON blob
+    s3_docx_url = URLField(required=False, max_length=1000, null=True)
+    s3_json_url = URLField(required=False, max_length=1000, null=True)
 
     # Reference to parent feed
     rss_feed_id = StringField(required=True, max_length=50)

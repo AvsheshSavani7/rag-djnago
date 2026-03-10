@@ -40,12 +40,14 @@ FILING_MAP = {
     "F-4":       "f4_summary",
     "F-4/A":     "f4_summary",
     "FORM 25":   "form25_summary",
+    # ── Press releases ──
+    "PRESS_RELEASE": "PRNewswire_summary",
     # ── Additional types from email filings ──
     "8-K/A":     "8k_summary",
-    "10-Q":      "sec_filing_summary",
-    "10-K":      "sec_filing_summary",
-    "10-K/A":    "sec_filing_summary",
-    "10-Q/A":    "sec_filing_summary",
+    "10-Q":      "10k_summary",
+    "10-K":      "10k_summary",
+    "10-K/A":    "10k_summary",
+    "10-Q/A":    "10k_summary",
     "DEF 14A":   "sec_filing_summary",
     "DEFA14A":   "sec_filing_summary",
     "DEFM14A":   "sec_filing_summary",
@@ -106,6 +108,15 @@ URL_PATTERNS = [
     (r'xsleffect',       "EFFECT"),
 ]
 
+# ──── Press release domains (detect before URL patterns) ────
+PRESS_RELEASE_DOMAINS = [
+    "prnewswire.com",
+    "globenewswire.com",
+    "businesswire.com",
+    "accesswire.com",
+    "newswire.com",
+]
+
 
 CLASSIFY_PROMPT = """You are an SEC filing classifier. Given the first portion of a filing's text, identify the filing type.
 
@@ -144,6 +155,12 @@ FILING TEXT (first ~1000 words):
 def detect_from_url(url: str) -> str | None:
     """Try to detect filing type from URL patterns."""
     url_lower = url.lower()
+
+    # Check for press release domains first
+    for domain in PRESS_RELEASE_DOMAINS:
+        if domain in url_lower:
+            return "PRESS_RELEASE"
+
     for pattern, filing_type in URL_PATTERNS:
         if re.search(pattern, url_lower):
             return filing_type

@@ -19,6 +19,20 @@ class FeedItemSerializer(serializers.Serializer):
     date_published = serializers.DateTimeField()
     authors = AuthorSerializer(many=True, required=False)
     rss_feed_id = serializers.CharField(max_length=50)
+    # Optional AI summary fields
+    l1_headline = serializers.CharField(
+        max_length=500, required=False, allow_blank=True, allow_null=True
+    )
+    l2_brief = serializers.CharField(
+        max_length=4000, required=False, allow_blank=True, allow_null=True
+    )
+    l3_detailed = serializers.JSONField(required=False, allow_null=True)
+    s3_docx_url = serializers.URLField(
+        max_length=1000, required=False, allow_blank=True, allow_null=True
+    )
+    s3_json_url = serializers.URLField(
+        max_length=1000, required=False, allow_blank=True, allow_null=True
+    )
     created_at = serializers.DateTimeField(read_only=True)
     updated_at = serializers.DateTimeField(read_only=True)
 
@@ -84,3 +98,17 @@ class FeedItemCreateSerializer(serializers.Serializer):
         max_length=1000, required=False, allow_blank=True, allow_null=True)
     date_published = serializers.DateTimeField()
     authors = AuthorSerializer(many=True, required=False, allow_null=True)
+    # Optional AI summary fields attached before saving
+    l1_headline = serializers.CharField(
+        max_length=500, required=False, allow_blank=True, allow_null=True
+    )
+    l2_brief = serializers.CharField(
+        max_length=4000, required=False, allow_blank=True, allow_null=True
+    )
+    l3_detailed = serializers.JSONField(required=False, allow_null=True)
+    s3_docx_url = serializers.URLField(
+        max_length=1000, required=False, allow_blank=True, allow_null=True
+    )
+    s3_json_url = serializers.URLField(
+        max_length=1000, required=False, allow_blank=True, allow_null=True
+    )

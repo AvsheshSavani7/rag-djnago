@@ -184,20 +184,64 @@ def generate_rss_feed_item_email_html(
     )
     source_url = feed_data.get("source_url") or ""
 
+    # Optional summary block (from sec_rss_parser.sec_summarizers.filing_router)
+    l1_headline = item.get("l1_headline")
+    l2_brief = item.get("l2_brief")
+    s3_docx_url = item.get("s3_docx_url")
+    s3_json_url = item.get("s3_json_url")
+
+    summary_block = ""
+    if l1_headline or l2_brief or s3_docx_url or s3_json_url:
+        summary_parts = []
+        if l1_headline:
+            summary_parts.append(
+                f'<p style="margin:0 0 4px 0; font-size:14px; font-weight:bold; color:#0b5ed7;">{escape_html(l1_headline)}</p>'
+            )
+        if l2_brief:
+            summary_parts.append(
+                f'<p style="margin:0 0 4px 0; font-size:13px; color:#333;">{escape_html(l2_brief)}</p>'
+            )
+        link_bits = []
+        if s3_docx_url:
+            link_bits.append(
+                f'<a href="{escape_html(s3_docx_url)}" style="color:#0b5ed7; text-decoration:none;" target="_blank" rel="noopener noreferrer">View DOCX summary</a>'
+            )
+        if s3_json_url:
+            if link_bits:
+                link_bits.append("&nbsp;·&nbsp;")
+            link_bits.append(
+                f'<a href="{escape_html(s3_json_url)}" style="color:#0b5ed7; text-decoration:none;" target="_blank" rel="noopener noreferrer">View JSON</a>'
+            )
+        if link_bits:
+            summary_parts.append(
+                f'<p style="margin:4px 0 0 0; font-size:12px; color:#555;">{"".join(link_bits)}</p>'
+            )
+
+        if summary_parts:
+            summary_block = (
+                '<div style="margin:16px 0; padding:12px; background-color:#eef5ff; '
+                'border-left:4px solid #0b5ed7; border-radius:4px;">'
+                '<p style="margin:0 0 6px 0; font-size:12px; font-weight:bold; color:#0b5ed7;">AI Summary</p>'
+                f'{"".join(summary_parts)}'
+                "</div>"
+            )
+
     # Old email = old email HTML (no extra content)
-    # New email = old email HTML + deal related info or not_merger_related flag
+    # New email = old email HTML + summary (if any) + deal related info or not_merger_related flag
     if email_note == "not_merger_related":
         note_label = EMAIL_NOTE_LABELS.get(
             "not_merger_related", "Merger related: false")
-        extra_content = (
+        note_block = (
             f'<div style="margin:16px 0; padding:12px; background-color:#f8f9fa; border-left:4px solid #6c757d; border-radius:4px;">'
             f'<p style="margin:0; font-size:12px; font-weight:bold; color:#555;">{escape_html(note_label)}</p>'
             f"</div>"
         )
+        extra_content = summary_block + note_block
     elif deal_info:
-        extra_content = _deal_info_block(deal_info, email_note)
+        deal_block = _deal_info_block(deal_info, email_note)
+        extra_content = summary_block + deal_block
     else:
-        extra_content = ""
+        extra_content = summary_block
     html_email = _old_email_html(
         subject=subject,
         feed_display_name_escaped=feed_display_name_escaped,

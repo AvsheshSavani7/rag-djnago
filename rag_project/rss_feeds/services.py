@@ -11,6 +11,7 @@ from .merger_news_classifier import (
     get_deals_record_string,
     resolve_rss_item_flow,
 )
+from sec_rss_parser.sec_summarizers.filing_router import route_and_summarize
 
 logger = logging.getLogger(__name__)
 
@@ -233,6 +234,11 @@ class RSSFeedService:
                     authors=authors,
                     rss_feed_id=feed_id,
                     deal_id=item_data.get('deal_id') or None,
+                    l1_headline=item_data.get('l1_headline') or None,
+                    l2_brief=item_data.get('l2_brief') or None,
+                    l3_detailed=item_data.get('l3_detailed') or None,
+                    s3_docx_url=item_data.get('s3_docx_url') or None,
+                    s3_json_url=item_data.get('s3_json_url') or None,
                 )
                 feed_item.save()
                 created_items.append(feed_item)
@@ -280,6 +286,7 @@ class RSSFeedService:
                 # New process: 3-prompt flow, save and email only merger-related items, attach deal_id
                 deals_record_string = get_deals_record_string()
                 flow_results = []
+                # Run merger classifier on the original webhook items (items_new)
                 for item in items_new:
                     try:
                         result = resolve_rss_item_flow(
@@ -292,6 +299,7 @@ class RSSFeedService:
                             (item, {"skip_email": True, "deal_id": None, "deal_info": None, "email_note": None}))
 
                 items_to_save = []
+                email_items: List[tuple[Dict, Dict]] = []
                 for item, result in flow_results:
                     if result.get("skip_email"):
                         continue
@@ -300,7 +308,35 @@ class RSSFeedService:
                     item_with_deal = dict(item)
                     if result.get("deal_id"):
                         item_with_deal["deal_id"] = result["deal_id"]
+
+                    # Try to generate SEC/press-release summary via filing_router before saving
+                    url = item_with_deal.get("url")
+                    if url:
+                        try:
+                            summary = route_and_summarize(url)
+                            s3_docx_url = summary.get(
+                                "s3_docx_url") or summary.get("s3_url")
+                            if s3_docx_url:
+                                item_with_deal["l1_headline"] = summary.get(
+                                    "L1_headline")
+                                item_with_deal["l2_brief"] = summary.get(
+                                    "L2_brief")
+                                item_with_deal["l3_detailed"] = summary.get(
+                                    "L3_detailed") or None
+                                item_with_deal["s3_docx_url"] = s3_docx_url
+                                item_with_deal["s3_json_url"] = summary.get(
+                                    "s3_json_url")
+                            else:
+                                logger.warning(
+                                    "route_and_summarize returned no S3 docx URL for %s", url
+                                )
+                        except Exception as e:
+                            logger.warning(
+                                "route_and_summarize failed for %s: %s", url, e
+                            )
+
                     items_to_save.append(item_with_deal)
+                    email_items.append((item_with_deal, result))
                 created_items = RSSFeedService.create_feed_items(
                     str(feed.id), items_to_save)
                 logger.debug(
@@ -325,13 +361,14 @@ class RSSFeedService:
                     thread.daemon = True
                     thread.start()
 
-                for item, result in flow_results:
+                # For emails, use the enriched items (with summaries) when available
+                for item_with_deal, result in email_items:
                     if result.get("skip_email"):
                         continue
                     try:
                         subject, html_email = generate_rss_feed_item_email_html(
                             feed_data,
-                            item,
+                            item_with_deal,
                             deal_info=result.get("deal_info"),
                             email_note=result.get("email_note"),
                         )
@@ -349,8 +386,37 @@ class RSSFeedService:
                         )
             else:
                 # Old way: save all items, send email for every item (no deal logic)
+                items_with_summaries = []
+                for item in items_new:
+                    item_data = dict(item)
+                    url = item_data.get("url")
+                    if url:
+                        try:
+                            summary = route_and_summarize(url)
+                            s3_docx_url = summary.get(
+                                "s3_docx_url") or summary.get("s3_url")
+                            if s3_docx_url:
+                                item_data["l1_headline"] = summary.get(
+                                    "L1_headline")
+                                item_data["l2_brief"] = summary.get(
+                                    "L2_brief")
+                                item_data["l3_detailed"] = summary.get(
+                                    "L3_detailed") or None
+                                item_data["s3_docx_url"] = s3_docx_url
+                                item_data["s3_json_url"] = summary.get(
+                                    "s3_json_url")
+                            else:
+                                logger.warning(
+                                    "route_and_summarize returned no S3 docx URL for %s", url
+                                )
+                        except Exception as e:
+                            logger.warning(
+                                "route_and_summarize failed for %s: %s", url, e
+                            )
+                    items_with_summaries.append(item_data)
+
                 created_items = RSSFeedService.create_feed_items(
-                    str(feed.id), items_new)
+                    str(feed.id), items_with_summaries)
                 logger.debug("Webhook created_items count: %s",
                              len(created_items))
 
