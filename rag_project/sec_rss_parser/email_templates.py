@@ -300,7 +300,7 @@ def generate_8k_document_email_html(filing_data, doc_files):
     label = ticker or company_name
     filing_date_str = filing_date if isinstance(filing_date, str) else (filing_date.strftime(
         "%Y-%m-%d") if isinstance(filing_date, datetime) else str(filing_date))
-    subject = f"{label} : 8-K New Merger [ {filing_date_str} ]"
+    subject = f"{label} : Form 8-K New Merger by {company_name} on [ {filing_date_str} ]"
     confidence_badge = f"<span style='background:#28a745;color:white;padding:2px 8px;border-radius:4px;'>{confidence}% confidence</span>" if confidence else ""
     doc_files_html = build_doc_files_table(doc_files)
 
@@ -426,7 +426,7 @@ def generate_ex99_1_merger_email_html(filing_data, doc_files):
     label = ticker or company_name
     filing_date_str = filing_date if isinstance(filing_date, str) else (filing_date.strftime(
         "%Y-%m-%d") if isinstance(filing_date, datetime) else str(filing_date))
-    subject = f"{label} : EX-99.1 New Merger [ {filing_date_str} ]"
+    subject = f"{label} : Form EX-99.1 New Merger by {company_name} on [ {filing_date_str} ]"
     confidence_badge = f"<span style='background:#28a745;color:white;padding:2px 8px;border-radius:4px;'>{confidence}% confidence</span>" if confidence else ""
     doc_files_html = build_doc_files_table(doc_files)
 
@@ -616,7 +616,7 @@ def generate_8k_99_1_summary_email_html(company_name: str, form_type: str, summa
             filing_date_str = str(filing_date)[:10] if str(
                 filing_date) else ""
     label = (ticker or "").strip() or (company_name or "Unknown")
-    subject = f"{label} : {form_type_subject} Summary [ {filing_date_str} ]"
+    subject = f"{label} :Form {form_type_subject} Summary By {company_name} on [ {filing_date_str} ]"
 
     headline_block = ""
     if l1_headline and l1_headline.strip():
@@ -778,7 +778,8 @@ def generate_10k_10q_comparison_summary_email_html(
     ticker_esc = escape_html(ticker or "")
     subject = f"{company_esc} : 10-K/10-Q Comparison Summary – {ticker_esc}" if ticker_esc else f"{company_esc} : 10-K/10-Q Comparison Summary"
 
-    labels_line = ", ".join(escape_html(l or "") for l in (filing_labels or [])[:10])
+    labels_line = ", ".join(escape_html(l or "")
+                            for l in (filing_labels or [])[:10])
     if filing_labels and len(filing_labels) > 10:
         labels_line += " …"
 

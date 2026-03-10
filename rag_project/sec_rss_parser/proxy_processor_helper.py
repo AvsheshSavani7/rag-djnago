@@ -548,7 +548,7 @@ def generate_summary_email_html(company_name: str, form_type: str, summary_doc_u
         else:
             filing_date_str = str(filing_date)[:10] if str(
                 filing_date) else ""
-    subject = f"{label} : {form_type} Summary [ {filing_date_str} ]"
+    subject = f"{label} :Form {form_type} Summary By {company_name} on [ {filing_date_str} ]"
 
     html_email = f"""
 <!DOCTYPE html>

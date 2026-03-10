@@ -36,10 +36,8 @@ def normalize_cik(cik_number):
 
 def get_ticker_for_deal_and_cik(deal_id, cik_number):
     """
-    Return target_ticker or acquirer_ticker from ProcessingJob based on which CIK matches.
-    If cik_number matches the deal's cik (target), return target_ticker.
-    If cik_number matches the deal's acquirer_cik, return acquirer_ticker.
-    Otherwise return None.
+    Return target_ticker from ProcessingJob if cik_number matches the deal's cik (target)
+    or the deal's acquirer_cik. Otherwise return None.
     """
     if not deal_id or cik_number is None:
         return None
@@ -50,9 +48,7 @@ def get_ticker_for_deal_and_cik(deal_id, cik_number):
         cik_norm = normalize_cik(cik_number)
         job_cik = normalize_cik(getattr(job, 'cik', None) or '')
         job_acquirer_cik = normalize_cik(getattr(job, 'acquirer_cik', None) or '')
-        if cik_norm and cik_norm == job_acquirer_cik:
-            return getattr(job, 'acquirer_ticker', None) or None
-        if cik_norm and cik_norm == job_cik:
+        if cik_norm and (cik_norm == job_acquirer_cik or cik_norm == job_cik):
             return getattr(job, 'target_ticker', None) or None
         return None
     except Exception:
