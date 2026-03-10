@@ -239,6 +239,88 @@ No explanation.
 """
 
 
+# --- Title/description only: does this feed item mention a deal we follow? (no URL fetch) ---
+PROMPT_TITLE_DESC_DEAL_MATCH = """We have a list of deals we follow.
+
+DEAL RECORDS WE FOLLOW (one per line, format: deal_id|target_name|acquirer_name|target_aliases|parent_aliases):
+
+{deals_record}
+
+Feed item title: {title}
+
+Feed item description:
+{description}
+
+Based ONLY on the title and description above (no web search), does the title or description say anything about any of these deals (e.g. mention of target/acquirer names or aliases, or news about one of these deals)?
+
+If YES, return the matching deal_id.
+If NO, return match false.
+
+Return ONLY a JSON object: {{"match": true|false, "deal_id": "<id>"|null}}
+Use deal_id only when match is true.
+"""
+
+
+def _call_llm_json_simple(prompt: str, model: str = "gpt-4.1") -> Optional[Dict[str, Any]]:
+    """Call OpenAI API without web search; parse first JSON object from output_text."""
+    if not openai or not os.environ.get("OPENAI_API_KEY"):
+        return None
+    try:
+        client = openai.OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+        response = client.responses.create(
+            model=model,
+            input=prompt,
+            reasoning={"effort": "low"},
+        )
+        result_text = None
+        for item in response.output:
+            if getattr(item, "type", None) == "message" and hasattr(item, "content"):
+                for content_item in item.content:
+                    if getattr(content_item, "type", None) == "output_text":
+                        result_text = getattr(content_item, "text", None)
+                        break
+            if result_text:
+                break
+        if not result_text:
+            return None
+        match = re.search(r"\{[\s\S]*?\}", result_text)
+        if match:
+            return json.loads(match.group(0))
+    except Exception as e:
+        logger.warning("LLM simple call failed: %s", e)
+    return None
+
+
+def classify_feed_item_by_title_description(
+    deals_record_string: str,
+    title: str,
+    description: str,
+) -> Dict[str, Any]:
+    """
+    Classify a feed item by title and description only (no URL fetch).
+    Ask LLM: does title or description say anything about a deal we follow? If yes, return deal_id.
+
+    Returns: {"match": bool, "deal_id": str|None}
+    """
+    out = {"match": False, "deal_id": None}
+    if not (deals_record_string or "").strip():
+        return out
+    parsed = _call_llm_json_simple(
+        PROMPT_TITLE_DESC_DEAL_MATCH.format(
+            deals_record=deals_record_string or "(no deals)",
+            title=(title or "").strip() or "(no title)",
+            description=(description or "").strip() or "(no description)",
+        )
+    )
+    if not parsed or not isinstance(parsed, dict):
+        return out
+    out["match"] = bool(parsed.get("match"))
+    did = parsed.get("deal_id")
+    if did is not None:
+        out["deal_id"] = str(did).strip() or None
+    return out
+
+
 def _call_llm_json_with_web_search(
     prompt: str, model: str = "gpt-5.2"
 ) -> Optional[Dict[str, Any]]:

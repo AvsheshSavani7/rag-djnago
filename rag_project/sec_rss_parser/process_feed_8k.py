@@ -189,7 +189,7 @@ class EightKFeedProcessor:
                 f"{LOG_PREFIX} :run:   EX-99.1 summaries generated: {self.summary_ex99_count}")
             log_and_print(
                 f"{LOG_PREFIX} :run:   Skipped: {self.skipped_count}")
-            log_and_print(f"{LOG_PREFIX} :run:   Errors: {self.error_count}")
+            # log_and_print(f"{LOG_PREFIX} :run:   Errors: {self.error_count}")
             log_and_print("=" * 80)
 
             return {
@@ -1390,7 +1390,8 @@ class EightKFeedProcessor:
 
             from sec_rss_parser.email_templates import generate_8k_99_1_summary_email_html
 
-            ticker = get_ticker_for_deal_and_cik(item_data.get('deal_id'), item_data.get('cik_number'))
+            ticker = get_ticker_for_deal_and_cik(
+                item_data.get('deal_id'), item_data.get('cik_number'))
             filing_date = item_data.get('filing_date')
 
             subject, html_email = generate_8k_99_1_summary_email_html(
@@ -1444,7 +1445,8 @@ class EightKFeedProcessor:
 
             from sec_rss_parser.email_templates import generate_8k_99_1_summary_email_html
 
-            ticker = get_ticker_for_deal_and_cik(item_data.get('deal_id'), item_data.get('cik_number'))
+            ticker = get_ticker_for_deal_and_cik(
+                item_data.get('deal_id'), item_data.get('cik_number'))
             filing_date = item_data.get('filing_date')
 
             subject, html_email = generate_8k_99_1_summary_email_html(

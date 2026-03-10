@@ -14,7 +14,14 @@ FEED_TITLE_DISPLAY_NAMES = {
     "GlobeNewswire - Mergers and Acquisitions": "GlobeNewswire - Mergers and Acquisitions",
     "GlobeNewswire - Press Releases": "GlobeNewswire - Press Releases",
     "news.cision.com": "Cision News"
+}
 
+FEED_TITLE_DISPLAY_NAME_2 = {
+    "Justice News": "Justice News",
+    "Federal Trade Commission | Protecting America's Consumers": "Federal Trade Commission",
+    "Netherlands Authority for Consumers and Markets | ACM": "Netherlands ACM",
+    "Comisión Nacional de los Mercados y la Competencia | CNMC": "CNMC",
+    "Press releases | Autorité de la concurrence": "France Autorite"
 }
 
 
@@ -254,4 +261,141 @@ def generate_rss_feed_item_email_html(
         extra_content=extra_content,
     )
 
+    return subject, html_email
+
+
+# ─── Flow 2: Title/description deal match (no article fetch, no save). Separate template to avoid confusion. ───
+
+def _deal_info_block_flow2(deal_info: Dict[str, Any]) -> str:
+    """Render deal details block for Flow 2 emails. Deal info in clear HTML format."""
+    target = escape_html(deal_info.get("target_name") or "—")
+    acquirer = escape_html(deal_info.get("acquire_name") or "—")
+    cik = escape_html(deal_info.get("cik") or "—")
+    acquirer_cik = escape_html(deal_info.get("acquirer_cik") or "—")
+    sec_url = (deal_info.get("sec_url") or "").strip()
+    announce = escape_html(deal_info.get("announce_date") or "—")
+    deal_id = escape_html(deal_info.get("id") or "")
+
+    sec_line = ""
+    if sec_url:
+        sec_line = f'<p style="margin:4px 0 0 0; font-size:12px;">SEC: <a href="{escape_html(sec_url)}" style="color:#4a90e2;" target="_blank">Filing</a></p>'
+
+    return f"""
+    <div style="margin:16px 0; padding:12px; background-color:#f0f7ff; border-left:4px solid #2563eb; border-radius:4px;">
+      <p style="margin:0 0 8px 0; font-size:11px; font-weight:bold; color:#1e40af; text-transform:uppercase; letter-spacing:0.5px;">Deal match (title/description)</p>
+      <p style="margin:0 0 6px 0; font-size:12px; font-weight:bold; color:#333;">Deal details</p>
+      <table style="font-size:12px; color:#555; border-collapse:collapse;">
+        <tr><td style="padding:2px 8px 2px 0; vertical-align:top; font-weight:bold;">Target:</td><td>{target} (CIK: {cik})</td></tr>
+        <tr><td style="padding:2px 8px 2px 0; vertical-align:top; font-weight:bold;">Acquirer:</td><td>{acquirer} (CIK: {acquirer_cik})</td></tr>
+        <tr><td style="padding:2px 8px 2px 0; vertical-align:top; font-weight:bold;">Announce date:</td><td>{announce}</td></tr>
+        {f'<tr><td style="padding:2px 8px 2px 0; vertical-align:top; font-weight:bold;">Deal ID:</td><td>{deal_id}</td></tr>' if deal_id else ''}
+      </table>
+      {sec_line}
+    </div>"""
+
+
+def _flow2_email_html(
+    subject: str,
+    feed_display_name_escaped: str,
+    source_url: str,
+    url: str,
+    item_title: str,
+    desc_escaped: str,
+    date_pub: str,
+    author_line: str,
+    deal_block: str,
+) -> str:
+    """
+    HTML layout for Flow 2 emails (title/description deal match only).
+    Same structure as main RSS email but with Flow 2 badge and deal block; no AI summary.
+    """
+    return f"""
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>{escape_html(subject)}</title>
+</head>
+<body style="margin:0; padding:0; font-family:Arial,sans-serif; background-color:#f4f4f4;">
+  <div style="max-width:700px; margin:20px auto; background-color:#ffffff; padding:30px; border-radius:8px; box-shadow:0 2px 4px rgba(0,0,0,0.1);">
+    <p style="margin:0 0 6px 0; font-size:10px; color:#2563eb; font-weight:bold; text-transform:uppercase;">Flow 2 · Deal match from feed</p>
+    <h2 style="color:#333; margin-top:0; padding-bottom:16px; border-bottom:3px solid #2563eb;">
+      {feed_display_name_escaped}
+    </h2>
+
+    <p style="margin:8px 0; font-size:12px; color:#888;">
+      From <strong>{feed_display_name_escaped}</strong>
+      {f' · <a href="{escape_html(source_url)}" style="color:#2563eb;" target="_blank">Source</a>' if source_url else ''}
+    </p>
+
+    <div style="margin:20px 0;">
+      <a href="{escape_html(url)}" style="color:#2563eb; text-decoration:none; font-weight:bold; font-size:18px;" target="_blank">{item_title}</a>
+      <p style="margin:10px 0 0 0; font-size:14px; color:#555; line-height:1.5;">{desc_escaped}</p>
+      <p style="margin:8px 0 0 0; font-size:12px; color:#888;">{escape_html(str(date_pub))}</p>
+      {author_line}
+    </div>
+    {deal_block}
+
+    <p style="margin-top:20px;">
+      <a href="{escape_html(url)}" style="display:inline-block; background-color:#2563eb; color:#fff; padding:10px 20px; text-decoration:none; border-radius:5px; font-size:14px;" target="_blank">Read more</a>
+    </p>
+
+  </div>
+</body>
+</html>
+"""
+
+
+def generate_rss_feed_item_email_html_flow2(
+    feed_data: Dict[str, Any],
+    item: Dict[str, Any],
+    deal_info: Optional[Dict[str, Any]] = None,
+) -> tuple:
+    """
+    Generate HTML email for Flow 2: deal match from title/description only (no article fetch, no save).
+
+    Use this only for use_merger_flow_2 feeds (Justice News, FTC, ACM, CNMC, etc.).
+    Deal info is rendered in HTML. Subject uses FEED_TITLE_DISPLAY_NAME_2.
+
+    Args:
+        feed_data: Webhook feed object (title, source_url, description).
+        item: Single item (url, title, description_text, date_published, authors).
+        deal_info: Dict with id, target_name, acquire_name, cik, acquirer_cik, sec_url, announce_date.
+
+    Returns:
+        tuple: (subject, html_email)
+    """
+    item_title = escape_html(item.get("title") or "Untitled")
+    raw_feed_title = feed_data.get("title") or "RSS Feed"
+    feed_display_name = FEED_TITLE_DISPLAY_NAME_2.get(
+        raw_feed_title, raw_feed_title)
+    feed_display_name_escaped = escape_html(feed_display_name)
+    subject = f"{feed_display_name} : {item_title}"
+
+    url = item.get("url") or "#"
+    desc = item.get("description_text") or ""
+    desc_escaped = escape_html(desc)
+    date_pub = item.get("date_published") or ""
+    authors = item.get("authors") or []
+    author_names = ", ".join(a.get("name", "")
+                             for a in authors if a.get("name"))
+    author_line = (
+        f'<p style="margin:4px 0 0 0; font-size:12px; color:#888;">{escape_html(author_names)}</p>'
+        if author_names
+        else ""
+    )
+    source_url = feed_data.get("source_url") or ""
+
+    deal_block = _deal_info_block_flow2(deal_info) if deal_info else ""
+    html_email = _flow2_email_html(
+        subject=subject,
+        feed_display_name_escaped=feed_display_name_escaped,
+        source_url=source_url,
+        url=url,
+        item_title=item_title,
+        desc_escaped=desc_escaped,
+        date_pub=date_pub,
+        author_line=author_line,
+        deal_block=deal_block,
+    )
     return subject, html_email

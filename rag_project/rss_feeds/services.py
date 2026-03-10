@@ -6,10 +6,17 @@ import requests
 from .models import Feed, FeedItem, Author
 from .serializers import FeedItemCreateSerializer
 from .websocket_service import RSSWebSocketService
-from .email_templates import generate_rss_feed_item_email_html, FEED_TITLE_DISPLAY_NAMES
+from .email_templates import (
+    generate_rss_feed_item_email_html,
+    generate_rss_feed_item_email_html_flow2,
+    FEED_TITLE_DISPLAY_NAMES,
+    FEED_TITLE_DISPLAY_NAME_2,
+)
 from .merger_news_classifier import (
     get_deals_record_string,
     resolve_rss_item_flow,
+    classify_feed_item_by_title_description,
+    get_deal_info_for_email,
 )
 from sec_rss_parser.sec_summarizers.filing_router import route_and_summarize
 
@@ -282,8 +289,11 @@ class RSSFeedService:
             # Use 3-prompt merger flow only for feeds in FEED_TITLE_DISPLAY_NAMES; otherwise old way (save all, email all)
             use_merger_flow = feed_title_str in FEED_TITLE_DISPLAY_NAMES
 
+            use_merger_flow_2 = feed_title_str in FEED_TITLE_DISPLAY_NAME_2
+
             if use_merger_flow:
                 # New process: 3-prompt flow, save and email only merger-related items, attach deal_id
+                # AI summary (route_and_summarize) is only run for items that pass this filter.
                 deals_record_string = get_deals_record_string()
                 flow_results = []
                 # Run merger classifier on the original webhook items (items_new)
@@ -297,6 +307,16 @@ class RSSFeedService:
                             "RSS item flow failed for %s: %s", item.get("url"), e)
                         flow_results.append(
                             (item, {"skip_email": True, "deal_id": None, "deal_info": None, "email_note": None}))
+
+                # Log how many items passed the merger filter (only these get AI summary)
+                n_total = len(flow_results)
+                n_skipped = sum(1 for _, r in flow_results if r.get("skip_email"))
+                n_not_merger = sum(1 for _, r in flow_results if r.get("email_note") == "not_merger_related")
+                n_passed = n_total - n_skipped - n_not_merger
+                logger.info(
+                    "Merger flow: %s items total, %s skipped, %s not_merger_related, %s passed (will get AI summary if route_and_summarize succeeds)",
+                    n_total, n_skipped, n_not_merger, n_passed,
+                )
 
                 items_to_save = []
                 email_items: List[tuple[Dict, Dict]] = []
@@ -313,6 +333,9 @@ class RSSFeedService:
                     url = item_with_deal.get("url")
                     if url:
                         try:
+                            logger.info(
+                                "Calling route_and_summarize for merger-related item: %s", url
+                            )
                             summary = route_and_summarize(url)
                             s3_docx_url = summary.get(
                                 "s3_docx_url") or summary.get("s3_url")
@@ -326,13 +349,21 @@ class RSSFeedService:
                                 item_with_deal["s3_docx_url"] = s3_docx_url
                                 item_with_deal["s3_json_url"] = summary.get(
                                     "s3_json_url")
+                                logger.info(
+                                    "AI summary attached for %s (L1: %s)",
+                                    url,
+                                    (summary.get("L1_headline") or "")[:60],
+                                )
                             else:
                                 logger.warning(
-                                    "route_and_summarize returned no S3 docx URL for %s", url
+                                    "route_and_summarize returned no S3 docx URL for %s (keys: %s)",
+                                    url,
+                                    list(summary.keys()) if isinstance(summary, dict) else type(summary).__name__,
                                 )
                         except Exception as e:
                             logger.warning(
-                                "route_and_summarize failed for %s: %s", url, e
+                                "route_and_summarize failed for %s: %s", url, e,
+                                exc_info=True,
                             )
 
                     items_to_save.append(item_with_deal)
@@ -383,6 +414,53 @@ class RSSFeedService:
                     except Exception as e:
                         logger.warning(
                             "Could not generate/send RSS feed item email: %s", e
+                        )
+            elif use_merger_flow_2:
+                # Flow 2: no save. For each item, ask LLM if title/description mention a deal we follow;
+                # if yes, send one email per matching item with deal_id. Do not save any items.
+                deals_record_string = get_deals_record_string()
+                created_items = []
+                for item in items_new:
+                    title = item.get("title") or ""
+                    description = item.get("description_text") or ""
+                    try:
+                        result = classify_feed_item_by_title_description(
+                            deals_record_string, title, description
+                        )
+                        logger.info(
+                            f"classify_feed_item_by_title_description result: {result}")
+                    except Exception as e:
+                        logger.warning(
+                            "classify_feed_item_by_title_description failed for item %s: %s",
+                            item.get("url"), e,
+                        )
+                        continue
+                    if not result.get("match") or not result.get("deal_id"):
+                        continue
+                    deal_id = result["deal_id"]
+                    deal_info = get_deal_info_for_email(deal_id)
+                    if deal_info:
+                        logger.info(f"deal_info: {deal_info}")
+                        deal_info["in_db"] = True
+                    item_with_deal = dict(item)
+                    item_with_deal["deal_id"] = deal_id
+                    try:
+                        subject, html_email = generate_rss_feed_item_email_html_flow2(
+                            feed_data,
+                            item_with_deal,
+                            deal_info=deal_info,
+                        )
+                        _send_rss_feed_email_via_webhook(
+                            N8N_WEBHOOK_URL_FOR_TESTING,
+                            subject=subject,
+                            html_email=html_email,
+                            feed_title=feed_title_str,
+                            items_count=1,
+                            feed_source_url=feed_source_url_str
+                        )
+                    except Exception as e:
+                        logger.warning(
+                            "Could not generate/send RSS feed item email (flow 2): %s", e
                         )
             else:
                 # Old way: save all items, send email for every item (no deal logic)
