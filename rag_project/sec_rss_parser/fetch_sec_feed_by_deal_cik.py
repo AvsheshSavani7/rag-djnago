@@ -24,7 +24,7 @@ import json
 import re
 import tempfile
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 from urllib.parse import urljoin
 
 import requests
@@ -54,8 +54,11 @@ from sec_rss_parser.utils_8k import (
 )
 from sec_rss_parser.services import (
     DEAL_STATUS_OPEN_OR_UNKNOWN,
+    N8N_WEBHOOK_URL_8K_SUMMARY,
     send_summary_email_via_webhook,
 )
+from sec_rss_parser.sec_Last_Year import print_filings as fetch_sec_filings
+from sec_rss_parser.email_templates import generate_item_5_02_one_year_filings_email_html
 from sec_rss_parser.models import (
     AccessionLookedUp,
     SECFiling,
@@ -559,185 +562,6 @@ def _process_proxy_item(item_data, html_data, filing):
         log_and_print("❌ Failed to start proxy processing", "error")
 
 
-def _process_8k_item(item_data, html_data):
-    """
-    Generate 8-K and EX-99.1 summaries, save to sec_filing_summary.eight_k, send emails.
-    - 8-K main document: summarize, save as main 8-K record, send email.
-    - EX-99.1 (if present): summarize, append to eight_k.filings[], send email.
-    """
-    xbrl_files = html_data.get(
-        "xbrl_files") or item_data.get("xbrl_files") or []
-    accession_number = item_data.get(
-        "accession_number") or html_data.get("accession_number")
-    deal_id = item_data.get("deal_id") or _deal_id_for_cik(
-        item_data.get("cik_number"))
-    cik_number = item_data.get("cik_number") or html_data.get("cik_number")
-    company_name = item_data.get(
-        "company_name") or html_data.get("company_name") or ""
-    link = item_data.get("link") or ""
-
-    # Find 8-K and EX-99.1 files
-    file_8k = find_file_by_type(xbrl_files, "8-K")
-    file_ex99 = find_file_by_type(xbrl_files, "EX-99.1")
-
-    url_8k = None
-    if file_8k and file_8k.get("url"):
-        url_8k = build_full_sec_url(file_8k.get("url")) or file_8k.get("url")
-        if url_8k and "ix?doc=/" in url_8k:
-            url_8k = url_8k.replace("ix?doc=/", "", 1)
-
-    url_ex99 = None
-    if file_ex99 and file_ex99.get("url"):
-        url_ex99 = build_full_sec_url(
-            file_ex99.get("url")) or file_ex99.get("url")
-        if url_ex99 and "ix?doc=/" in url_ex99:
-            url_ex99 = url_ex99.replace("ix?doc=/", "", 1)
-
-    if not url_8k and not url_ex99:
-        log_and_print(
-            f"{LOG_PREFIX} :_process_8k_item: ⚠️ No 8-K or EX-99.1 document URL found", "warning")
-        return
-
-    output_dir = tempfile.mkdtemp()
-    filing_dt = None
-    eight_k_payload = {
-        "one_line_summary": None,
-        "items_reported": [],
-        "s3_docx_url": None,
-        "s3_json_url": None,
-        "filings": [],
-    }
-
-    # --- Process main 8-K document ---
-    if url_8k:
-        log_and_print(
-            f"{LOG_PREFIX} :_process_8k_item: 📝 Generating 8-K summary: {url_8k}")
-        try:
-            result_8k = summarize_8k_filing(
-                url_8k, output_dir, upload_to_s3=True, s3_folder="8k", verbose=False
-            )
-            if result_8k.get("s3_url"):
-                log_and_print(
-                    f"{LOG_PREFIX} :_process_8k_item: ✅ 8-K summary uploaded to S3: {result_8k['s3_url']}")
-                filing_dt = _filing_date_for_summary(
-                    html_data.get("filing_date") or item_data.get(
-                        "filing_date"),
-                    result_8k.get("filing_date"),
-                )
-                eight_k_payload["one_line_summary"] = result_8k.get(
-                    "L1_headline")
-                eight_k_payload["items_reported"] = result_8k.get(
-                    "items_reported") or []
-                eight_k_payload["s3_docx_url"] = result_8k.get("s3_url")
-                eight_k_payload["s3_json_url"] = result_8k.get("s3_json_url")
-                # Send 8-K summary email
-                try:
-                    send_summary_email_via_webhook(
-                        summary_doc_url=result_8k.get("s3_url"),
-                        company_name=company_name,
-                        form_type="8-K",
-                        cik_number=cik_number or "",
-                        sec_url=link or url_8k,
-                        accession_number=accession_number or "",
-                        summary_kind="8-K",
-                        l1_headline=result_8k.get("L1_headline"),
-                    )
-                    log_and_print(
-                        f"{LOG_PREFIX} :_process_8k_item: ✅ 8-K summary email sent")
-                except Exception as e:
-                    log_and_print(
-                        f"{LOG_PREFIX} :_process_8k_item: ❌ 8-K summary email failed: {e}", "error")
-            else:
-                log_and_print(
-                    f"{LOG_PREFIX} :_process_8k_item: ⚠️ 8-K summary did not return S3 URL", "warning")
-        except Exception as e:
-            log_and_print(
-                f"{LOG_PREFIX} :_process_8k_item: ❌ 8-K summary failed: {e}", "error")
-
-    # --- Process EX-99.1 document (if present) ---
-    if url_ex99:
-        log_and_print(
-            f"{LOG_PREFIX} :_process_8k_item: 📝 Generating EX-99.1 summary: {url_ex99}")
-        try:
-            result_99 = summarize_8k_filing(
-                url_ex99, output_dir, upload_to_s3=True, s3_folder="99_1", verbose=False
-            )
-            if result_99.get("s3_url"):
-                log_and_print(
-                    f"{LOG_PREFIX} :_process_8k_item: ✅ EX-99.1 summary uploaded to S3: {result_99['s3_url']}")
-                ex99_filing_dt = _filing_date_for_summary(
-                    html_data.get("filing_date") or item_data.get(
-                        "filing_date"),
-                    result_99.get("filing_date"),
-                )
-                if not filing_dt:
-                    filing_dt = ex99_filing_dt
-                ex99_entry = {
-                    "filing_date": ex99_filing_dt,
-                    "filing_url": url_ex99,
-                    "s3_docx_url": result_99.get("s3_url"),
-                    "s3_json_url": result_99.get("s3_json_url"),
-                    "exhibit_type": "EX_99.1",
-                }
-                eight_k_payload["filings"].append(ex99_entry)
-                # Send EX-99.1 summary email
-                try:
-                    send_summary_email_via_webhook(
-                        summary_doc_url=result_99.get("s3_url"),
-                        company_name=company_name,
-                        form_type="8-K (EX-99.1)",
-                        cik_number=cik_number or "",
-                        sec_url=link or url_ex99,
-                        accession_number=accession_number or "",
-                        summary_kind="EX-99.1",
-                        l1_headline=result_99.get("L1_headline"),
-                    )
-                    log_and_print(
-                        f"{LOG_PREFIX} :_process_8k_item: ✅ EX-99.1 summary email sent")
-                except Exception as e:
-                    log_and_print(
-                        f"{LOG_PREFIX} :_process_8k_item: ❌ EX-99.1 summary email failed: {e}", "error")
-            else:
-                log_and_print(
-                    f"{LOG_PREFIX} :_process_8k_item: ⚠️ EX-99.1 summary did not return S3 URL", "warning")
-        except Exception as e:
-            log_and_print(
-                f"{LOG_PREFIX} :_process_8k_item: ❌ EX-99.1 summary failed: {e}", "error")
-
-    # --- Save to sec_filing_summary ---
-    if not eight_k_payload["s3_docx_url"] and not eight_k_payload["filings"]:
-        log_and_print(
-            f"{LOG_PREFIX} :_process_8k_item: ⚠️ No 8-K or EX-99.1 summary generated, skipping DB save", "warning")
-        return
-
-    existing = SECFilingSummary.objects(
-        accession_number=accession_number, form_type="8-K"
-    ).first()
-    if existing:
-        existing.sec_document_url = url_8k or url_ex99
-        existing.filing_date = filing_dt
-        existing.deal_id = deal_id
-        # Merge filings if existing has some
-        if existing.eight_k and existing.eight_k.get("filings"):
-            existing_filings = list(existing.eight_k.get("filings") or [])
-            existing_filings.extend(eight_k_payload["filings"])
-            eight_k_payload["filings"] = existing_filings
-        existing.eight_k = eight_k_payload
-        existing.save()
-    else:
-        SECFilingSummary(
-            form_type="8-K",
-            accession_number=accession_number,
-            cik_number=cik_number,
-            sec_document_url=url_8k or url_ex99,
-            filing_date=filing_dt,
-            deal_id=deal_id,
-            eight_k=eight_k_payload,
-        ).save()
-    log_and_print(
-        f"{LOG_PREFIX} :_process_8k_item: 💾 8-K summary saved to sec_filing_summary")
-
-
 def _process_ten_k_ten_q_item(item_data, html_data, filing):
     """
     Fetch and save 10-K/10-Q filings from SEC API.
@@ -796,109 +620,6 @@ def _process_ten_k_ten_q_item(item_data, html_data, filing):
     except Exception as e:
         log_and_print(
             f"{LOG_PREFIX} :_process_ten_k_ten_q_item: ❌ Error fetching 10-K/10-Q filings: {e}", "error")
-
-
-def _process_other_filing_item(item_data, html_data, filing):
-    """
-    Generate summary for other filings (same way as 8-K/EX-99.1) and save to
-    sec_filing_summary.other_filings. No email is sent.
-    """
-    form_type = item_data.get("form_type") or html_data.get(
-        "form_type") or "OTHER"
-    accession_number = item_data.get(
-        "accession_number") or html_data.get("accession_number")
-    cik_number = item_data.get("cik_number") or html_data.get("cik_number")
-    sec_url = item_data.get("link") or ""
-    xbrl_files = html_data.get(
-        "xbrl_files") or item_data.get("xbrl_files") or []
-
-    # Find the document file matching the form type
-    doc_file = find_file_by_type(xbrl_files, form_type)
-    if doc_file and doc_file.get("url"):
-        sec_url = build_full_sec_url(
-            doc_file.get("url")) or doc_file.get("url")
-    elif xbrl_files and xbrl_files[0].get("url"):
-        sec_url = build_full_sec_url(
-            xbrl_files[0].get("url")) or xbrl_files[0].get("url")
-
-    if sec_url and "ix?doc=/" in sec_url:
-        sec_url = sec_url.replace("ix?doc=/", "", 1)
-
-    filing_dt = _filing_date_for_summary(
-        html_data.get("filing_date"), item_data.get("filing_date")
-    )
-    deal_id = item_data.get("deal_id") or _deal_id_for_cik(cik_number)
-
-    # Initialize payload with pending status
-    other_payload = {
-        "summary_status": "pending",
-        "form_type": form_type,
-        "s3_docx_url": None,
-        "s3_json_url": None,
-        "one_line_summary": None,
-    }
-
-    # --- Generate summary (same as 8-K/EX-99.1) but NO email ---
-    if sec_url:
-        log_and_print(
-            f"{LOG_PREFIX} :_process_other_filing_item: 📝 Generating summary for {form_type}: {sec_url}")
-        output_dir = tempfile.mkdtemp()
-        try:
-            result = summarize_8k_filing(
-                sec_url,
-                output_dir,
-                upload_to_s3=True,
-                s3_folder="other_filings",
-                verbose=False,
-            )
-            if result.get("s3_url"):
-                log_and_print(
-                    f"{LOG_PREFIX} :_process_other_filing_item: ✅ {form_type} summary uploaded to S3: {result['s3_url']}")
-                other_payload["summary_status"] = "completed"
-                other_payload["s3_docx_url"] = result.get("s3_url")
-                other_payload["s3_json_url"] = result.get("s3_json_url")
-                other_payload["one_line_summary"] = result.get("L1_headline")
-            else:
-                log_and_print(
-                    f"{LOG_PREFIX} :_process_other_filing_item: ⚠️ {form_type} summary did not return S3 URL", "warning")
-                other_payload["summary_status"] = "failed"
-        except Exception as e:
-            log_and_print(
-                f"{LOG_PREFIX} :_process_other_filing_item: ❌ {form_type} summary failed: {e}", "error")
-            other_payload["summary_status"] = "failed"
-    else:
-        log_and_print(
-            f"{LOG_PREFIX} :_process_other_filing_item: ⚠️ No document URL found for {form_type}", "warning")
-
-    # --- Save to sec_filing_summary ---
-    existing = SECFilingSummary.objects(
-        accession_number=accession_number, form_type=form_type
-    ).first()
-    if existing:
-        existing.sec_document_url = sec_url
-        existing.filing_date = filing_dt
-        existing.deal_id = deal_id
-        existing.other_filings = other_payload
-        existing.save()
-    else:
-        SECFilingSummary(
-            form_type=form_type,
-            accession_number=accession_number,
-            cik_number=cik_number,
-            sec_document_url=sec_url,
-            filing_date=filing_dt,
-            deal_id=deal_id,
-            other_filings=other_payload,
-        ).save()
-    log_and_print(
-        f"{LOG_PREFIX} :_process_other_filing_item: 💾 Other filing ({form_type}) saved to sec_filing_summary.other_filings")
-
-
-def _is_ex99_url(url):
-    """True if URL is an EX-99.1 document (by path pattern)."""
-    if not url:
-        return False
-    return bool(re.search(r"ex99[\-_\.]?1|ex-?99", url, re.I))
 
 
 def _normalize_sec_url(url):
@@ -1096,6 +817,43 @@ def _route_summarize_and_save(item_data, html_data):
                     ).save()
                 log_and_print(
                     f"{LOG_PREFIX} :_route_summarize_and_save: 💾 Summary saved (parent-level) for {doc_form_type}")
+
+                # If 8-K with Item 5.02 (or 5.02): fetch one-year filings and send separate email
+                items_reported = result.get("items_reported") or []
+                _has_item_502 = any(
+                    "Item 5.02" in str(i) or str(i).strip() == "5.02"
+                    for i in items_reported
+                )
+                if form_type == "8-K" and doc_form_type == "8-K" and _has_item_502 and cik_number:
+                    try:
+                        start_date = (datetime.now() - timedelta(days=365)).strftime("%Y-%m-%d")
+                        filings = fetch_sec_filings(str(cik_number), start_date=start_date)
+                        ticker_item502 = get_ticker_for_deal_and_cik(deal_id, cik_number)
+                        sec_subject, sec_html = generate_item_5_02_one_year_filings_email_html(
+                            company_name,
+                            filings,
+                            trigger_accession_number=accession_number,
+                            trigger_filing_date=filing_dt,
+                            cik_number=cik_number,
+                            ticker=ticker_item502,
+                        )
+                        payload = {
+                            "subject": sec_subject,
+                            "html": sec_html,
+                            "company_name": company_name,
+                            "email_type": "item_5_02_one_year_filings",
+                        }
+                        send_webhook_notification(
+                            N8N_WEBHOOK_URL_8K_SUMMARY, payload, "Item 5.02 one-year filings email"
+                        )
+                        log_and_print(
+                            f"{LOG_PREFIX} :_route_summarize_and_save: 📤 Sent Item 5.02 one-year filings email: {len(filings)} filings for {company_name}"
+                        )
+                    except Exception as item502_e:
+                        log_and_print(
+                            f"{LOG_PREFIX} :_route_summarize_and_save: ❌ Item 5.02 one-year filings email failed: {item502_e}",
+                            "error",
+                        )
 
             # Send email with the generated summary (doc link + L1 headline)
             log_and_print(

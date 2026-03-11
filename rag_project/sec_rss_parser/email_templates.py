@@ -763,6 +763,46 @@ def generate_sec_filings_email_html(company_name, filings, form_type):
     return subject, html_email
 
 
+def generate_item_5_02_one_year_filings_email_html(company_name, filings, trigger_accession_number=None, trigger_filing_date=None, cik_number=None, ticker=None):
+    """Generate email HTML for 8-K Item 5.02 trigger: one-year SEC filings for the company.
+    Separate format from generate_sec_filings_email_html. Returns (subject, html)."""
+    company_esc = escape_html(company_name or "Unknown Company")
+    # Subject: same pattern as generate_8k_99_1_summary_email_html — {label} :Form {form_type_subject} Item 5.02 All Filing of last one year By {company_name}
+    form_type_subject = "8-K"
+    label = (ticker or "").strip() or (company_name or "Unknown")
+    label_esc = escape_html(label)
+    subject = f"{label_esc} :Form {form_type_subject} Item 5.02 All Filing of last one year By {company_esc}"
+    table_html = build_sec_filings_table(filings)
+    cik_display = (str(cik_number).zfill(10) if cik_number else "").strip()
+    intro_parts = [
+        f"<p style='color:#555;'>Company: <strong>{company_esc}</strong></p>",
+    ]
+    if cik_display:
+        intro_parts.append(
+            f"<p style='color:#555;'>CIK: <strong>{escape_html(cik_display)}</strong></p>"
+        )
+
+    if trigger_accession_number or trigger_filing_date:
+        intro_parts.append(
+            f"<p style='color:#666; font-size:0.9em;'>Triggering filing: {escape_html(trigger_accession_number or '')} {('filed ' + escape_html(str(trigger_filing_date))) if trigger_filing_date else ''}</p>"
+        )
+    intro_html = "\n    ".join(intro_parts)
+    html_email = f"""
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><title>8-K Item 5.02 – One Year SEC Filings</title></head>
+<body style="font-family: Arial, sans-serif; margin: 20px;">
+  <div style="max-width:900px;">
+    <h2 style="color:#333;">8-K Item 5.02 – One Year SEC Filings</h2>
+    {intro_html}
+    {table_html}
+  </div>
+</body>
+</html>
+"""
+    return subject, html_email
+
+
 def generate_10k_10q_comparison_summary_email_html(
     ticker: str,
     target_company: str,
