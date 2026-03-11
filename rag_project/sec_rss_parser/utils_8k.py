@@ -98,15 +98,18 @@ def build_full_sec_url(url):
     return f"{SEC_BASE_URL}{url}"
 
 
-def find_file_by_type(xbrl_files, file_types, extension='.htm'):
-    """Find file in xbrl_files by type and extension"""
+def find_file_by_type(xbrl_files, file_types, extension=(".htm", ".html", ".xml")):
+    """Find file in xbrl_files by type and extension. extension can be a str or iterable of str."""
+    exts = (extension,) if isinstance(extension, str) else tuple(extension)
     for file in xbrl_files:
-        doc_type = file.get('type', '')
-        description = file.get('description', '')
-        doc_url = file.get('url', '')
+        doc_type = file.get("type", "")
+        description = file.get("description", "")
+        doc_url = file.get("url", "")
 
         for file_type in file_types if isinstance(file_types, list) else [file_types]:
-            if (file_type in doc_type or file_type in description) and doc_url.endswith(extension):
+            if (file_type in doc_type or file_type in description) and any(
+                doc_url.endswith(e) for e in exts
+            ):
                 return file
     return None
 

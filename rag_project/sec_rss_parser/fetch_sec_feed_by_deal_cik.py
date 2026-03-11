@@ -132,9 +132,13 @@ def _extract_filing_dates(soup):
     return filing_date, acceptance_datetime_utc, period
 
 
+# Document extensions to extract from SEC index (htm, html, xml e.g. Form 4)
+_DOC_EXTENSIONS = (".htm", ".html", ".xml")
+
+
 def _extract_xbrl_files_by_form_type(soup, form_type_from_feed):
     """
-    Extract .htm files from document table, filtered by form_type:
+    Extract .htm/.html/.xml files from document table, filtered by form_type:
     - If form_type is 8-K: only include 8-K and EX-99.1 (not EX-2.1).
     - Otherwise: only include files where doc_type equals form_type.
     """
@@ -158,7 +162,9 @@ def _extract_xbrl_files_by_form_type(soup, form_type_from_feed):
         doc_url = doc_link.get("href", "")
         if not doc_url.startswith("http"):
             doc_url = urljoin(SEC_BASE_URL, doc_url)
-        if not doc_url.endswith(".htm"):
+        if not doc_url or not any(
+            doc_url.lower().endswith(ext) for ext in _DOC_EXTENSIONS
+        ):
             continue
         size = 0
         if size_text:
