@@ -19,8 +19,8 @@ FEED_TITLE_DISPLAY_NAMES = {
 FEED_TITLE_DISPLAY_NAME_2 = {
     "Justice News": "Justice News",
     "Federal Trade Commission | Protecting America's Consumers": "Federal Trade Commission",
-    "Netherlands Authority for Consumers and Markets | ACM": "Netherlands ACM",
-    "Comisión Nacional de los Mercados y la Competencia | CNMC": "CNMC",
+    "Latest news articles": "Netherlands ACM",
+    "RSS CNMC": "CNMC",
     "Press releases | Autorité de la concurrence": "France Autorite"
 }
 
