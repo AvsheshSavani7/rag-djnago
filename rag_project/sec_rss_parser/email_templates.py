@@ -771,7 +771,7 @@ def generate_item_5_02_one_year_filings_email_html(company_name, filings, trigge
     form_type_subject = "8-K"
     label = (ticker or "").strip() or (company_name or "Unknown")
     label_esc = escape_html(label)
-    subject = f"{label_esc} :Form {form_type_subject} Item 5.02 All Filing of last one year By {company_esc}"
+    subject = f"{label_esc} :Form {form_type_subject} (Item 5.02) All Filing Of Last One Year By {company_esc}"
     table_html = build_sec_filings_table(filings)
     cik_display = (str(cik_number).zfill(10) if cik_number else "").strip()
     intro_parts = [
@@ -790,10 +790,10 @@ def generate_item_5_02_one_year_filings_email_html(company_name, filings, trigge
     html_email = f"""
 <!DOCTYPE html>
 <html>
-<head><meta charset="utf-8"><title>8-K Item 5.02 – One Year SEC Filings</title></head>
+<head><meta charset="utf-8"><title>8-K (Item 5.02) – One Year SEC Filings</title></head>
 <body style="font-family: Arial, sans-serif; margin: 20px;">
   <div style="max-width:900px;">
-    <h2 style="color:#333;">8-K Item 5.02 – One Year SEC Filings</h2>
+    <h2 style="color:#333;">8-K (Item 5.02) – One Year SEC Filings</h2>
     {intro_html}
     {table_html}
   </div>
