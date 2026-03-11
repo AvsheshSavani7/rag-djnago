@@ -278,8 +278,11 @@ def fetch_and_save_additional_10k_10q_filings(
                 run_pipeline(urls=urls_from_filings, deal_id=deal_id)
                 log_and_print("✅ 10-K/10-Q summary pipeline completed.")
             except Exception as pipeline_e:
+                logger.exception("10-K/10-Q summary pipeline failed: %s", pipeline_e)
                 log_and_print(
                     f"❌ 10-K/10-Q summary pipeline failed: {pipeline_e}", "error")
+            finally:
+                log_and_print("10-K/10-Q pipeline block finished (check above for success or error).")
         elif not deal_id:
             log_and_print(
                 "⏭️ Skipping summary pipeline: no deal_id.", "warning")

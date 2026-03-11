@@ -1,16 +1,15 @@
 """Main pipeline orchestrator: run_pipeline() — MongoDB + S3, importable entry point."""
 
-import json
-import os
-import tempfile
-from datetime import datetime, timezone
-from pathlib import Path
-from typing import List, Optional
-
-from .assessor import assess_with_claude
-from .comparator import merge_results, run_recency_prioritized_comparison
-from .config import BATCH_SIZE
-from .deal_context import fetch_deal_context
+from sec_rss_parser.utils_10k_10q import N8N_WEBHOOK_URL_10K_10Q
+from sec_rss_parser.utils_8k import send_webhook_notification
+from sec_rss_parser.email_templates import generate_10k_10q_comparison_summary_email_html
+from .s3_utils import upload_file, upload_json
+from .summary_db import SummaryDB
+from .sec_fetcher import detect_filing_metadata, fetch_sec_filing, make_filing_label
+from .scorer import score_all_paragraphs
+from .models import DealContext
+from .html_parser import parse_html_to_paragraphs
+from .excerpts import generate_excerpts_json, load_excerpts, load_excerpts_from_url
 from .docx_builder import (
     generate_client_report,
     generate_exec_summary_report,
@@ -18,18 +17,22 @@ from .docx_builder import (
     generate_redline_report,
     generate_single_filing_report_fulsome,
 )
-from .excerpts import generate_excerpts_json, load_excerpts, load_excerpts_from_url
-from .html_parser import parse_html_to_paragraphs
-from .models import DealContext
-from .scorer import score_all_paragraphs
-from .sec_fetcher import detect_filing_metadata, fetch_sec_filing, make_filing_label
-from .summary_db import SummaryDB
-from .s3_utils import upload_file, upload_json
+from .deal_context import fetch_deal_context
+from .config import BATCH_SIZE
+from .comparator import merge_results, run_recency_prioritized_comparison
+from .assessor import assess_with_claude
+import json
+import logging
+import os
+import tempfile
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import List, Optional
+
+logger = logging.getLogger(__name__)
+
 
 # Email for final comparison summary (JSON + DOCX URLs)
-from sec_rss_parser.email_templates import generate_10k_10q_comparison_summary_email_html
-from sec_rss_parser.utils_8k import send_webhook_notification
-from sec_rss_parser.utils_10k_10q import N8N_WEBHOOK_URL_10K_10Q
 
 
 def _get_ticker_for_deal(deal_id: str) -> str:
@@ -38,9 +41,11 @@ def _get_ticker_for_deal(deal_id: str) -> str:
     job = ProcessingJob.objects(id=deal_id).first()
     if not job:
         raise ValueError(f"No ProcessingJob found for deal_id={deal_id}")
-    ticker = getattr(job, "target_ticker", None) or getattr(job, "target_name", None)
+    ticker = getattr(job, "target_ticker", None) or getattr(
+        job, "target_name", None)
     if not ticker:
-        raise ValueError(f"ProcessingJob {deal_id} has no target_ticker or target_name")
+        raise ValueError(
+            f"ProcessingJob {deal_id} has no target_ticker or target_name")
     return str(ticker).strip().upper() if len(str(ticker)) <= 10 else str(ticker).strip()
 
 
@@ -83,7 +88,10 @@ def run_pipeline(
     if not anthropic_key:
         raise ValueError("ANTHROPIC_API_KEY is required")
 
+    logger.info("10-K/10-Q pipeline: resolving ticker for deal_id=%s", deal_id)
     ticker = _get_ticker_for_deal(deal_id)
+    logger.info(
+        "10-K/10-Q pipeline: ticker=%s, starting DB upsert for %s URL(s)", ticker, len(urls))
 
     if output_dir is None:
         output_dir = Path(tempfile.mkdtemp())
@@ -113,15 +121,21 @@ def run_pipeline(
 
     deal_context_path = output_dir / f"{deal_id}_deal_context.json"
     if deal_context_path.exists():
+        logger.info("10-K/10-Q pipeline: loading deal context from cache")
         deal = DealContext.load(deal_context_path)
-        print(f"\n[DEAL CONTEXT] Loaded from cache: {deal.target_company} / {deal.acquirer_company}")
+        print(
+            f"\n[DEAL CONTEXT] Loaded from cache: {deal.target_company} / {deal.acquirer_company}")
     else:
         if not perplexity_key:
-            raise ValueError("PERPLEXITY_API_KEY is required to fetch deal context")
+            raise ValueError(
+                "PERPLEXITY_API_KEY is required to fetch deal context")
+        logger.info("10-K/10-Q pipeline: fetching deal context from Perplexity")
         print("\n[DEAL CONTEXT] Fetching from Perplexity...")
         deal = fetch_deal_context(ticker, perplexity_key)
         deal.save(deal_context_path)
         print(f"  {deal.target_company} / {deal.acquirer_company}")
+    logger.info(
+        "10-K/10-Q pipeline: deal context ready, starting processing loop")
 
     processed_urls: List[str] = []
     skipped_urls: List[str] = []
@@ -138,6 +152,7 @@ def run_pipeline(
             continue
 
         print(f"\n  --- Processing: {url} ---")
+        logger.info("10-K/10-Q pipeline: fetching SEC filing: %s", url)
 
         html = fetch_sec_filing(url)
         period_date, filing_type = detect_filing_metadata(url, html)
@@ -147,10 +162,15 @@ def run_pipeline(
         paragraphs = parse_html_to_paragraphs(html)
         print(f"  Parsed: {len(paragraphs)} paragraphs")
 
-        paragraphs = score_all_paragraphs(paragraphs, deal, anthropic_key, batch_size)
+        logger.info(
+            "10-K/10-Q pipeline: scoring %s paragraphs (Anthropic)", len(paragraphs))
+        paragraphs = score_all_paragraphs(
+            paragraphs, deal, anthropic_key, batch_size)
 
         if not skip_assessment:
-            paragraphs = assess_with_claude(paragraphs, deal, anthropic_key, threshold)
+            logger.info("10-K/10-Q pipeline: running assessment (Claude)")
+            paragraphs = assess_with_claude(
+                paragraphs, deal, anthropic_key, threshold)
 
         basename = f"{ticker}_{period_date.replace('-', '')}_{filing_type.replace('-', '')}"
         excerpts_path = output_dir / f"{basename}_excerpts.json"
@@ -161,7 +181,8 @@ def run_pipeline(
 
         excerpts_data, _ = load_excerpts(excerpts_path, threshold)
         fulsome_path = output_dir / f"{basename}_fulsome_report.docx"
-        generate_single_filing_report_fulsome(excerpts_data, deal, label, fulsome_path)
+        generate_single_filing_report_fulsome(
+            excerpts_data, deal, label, fulsome_path)
 
         accession = record.get("accession_number") or basename
         excerpts_dict = json.loads(excerpts_path.read_text(encoding="utf-8"))
@@ -184,10 +205,14 @@ def run_pipeline(
 
         processed_urls.append(url)
         print(f"  Done: {label}")
+        logger.info("10-K/10-Q pipeline: completed one filing: %s", label)
 
+    logger.info(
+        "10-K/10-Q pipeline: processing loop done, starting comparison step")
     print(f"\n[COMPARISON]")
     all_records = db.get_by_deal_id(deal_id)
-    processed_records = [r for r in all_records if r.get("processed") and r.get("s3_json_url")]
+    processed_records = [r for r in all_records if r.get(
+        "processed") and r.get("s3_json_url")]
 
     comparison_outputs: dict = {
         "redline": None,
@@ -198,7 +223,8 @@ def run_pipeline(
 
     # Only run comparison and send email when we have at least 2 processed filings.
     if len(processed_records) < 2:
-        print(f"  Only {len(processed_records)} processed filing(s) — skipping comparison (no comparison summary, no email)")
+        print(
+            f"  Only {len(processed_records)} processed filing(s) — skipping comparison (no comparison summary, no email)")
     else:
         def _sort_key(r):
             return r.get("period_date") or "9999"
@@ -211,7 +237,8 @@ def run_pipeline(
         print(f"  Priors: {[r.get('label') for r in prior_records]}")
 
         newest_excerpts, newest_meta = load_excerpts_from_url(
-            newest_record["s3_json_url"], threshold, source_label=newest_record.get("label")
+            newest_record["s3_json_url"], threshold, source_label=newest_record.get(
+                "label")
         )
 
         prior_filing_groups = []
@@ -250,7 +277,8 @@ def run_pipeline(
         base = f"{deal_id}_{timestamp}"
 
         client_path = output_dir / f"{base}_client_report.docx"
-        generate_client_report(all_comparison_steps, deal, filing_labels, client_path)
+        generate_client_report(all_comparison_steps, deal,
+                               filing_labels, client_path)
         s3_client = upload_file(
             client_path,
             f"comparison/{base}_client_report.docx",
@@ -258,7 +286,8 @@ def run_pipeline(
         )
 
         redline_path = output_dir / f"{base}_redline.docx"
-        generate_redline_report(all_comparison_steps, deal, filing_labels, redline_path)
+        generate_redline_report(all_comparison_steps,
+                                deal, filing_labels, redline_path)
         s3_redline = upload_file(
             redline_path,
             f"comparison/{base}_redline.docx",
@@ -266,7 +295,8 @@ def run_pipeline(
         )
 
         json_path = output_dir / f"{base}_comparison.json"
-        generate_full_comparison_json(all_comparison_steps, deal, filing_labels, json_path)
+        generate_full_comparison_json(
+            all_comparison_steps, deal, filing_labels, json_path)
         s3_comparison = upload_json(
             json.loads(json_path.read_text(encoding="utf-8")),
             f"comparison/{base}_comparison.json",
@@ -320,13 +350,18 @@ def run_pipeline(
                 "s3_redline_docx_url": s3_redline,
                 "s3_client_report_docx_url": s3_client,
             }
-            send_webhook_notification(N8N_WEBHOOK_URL_10K_10Q, payload, "10-K/10-Q comparison summary email")
+            send_webhook_notification(
+                N8N_WEBHOOK_URL_10K_10Q, payload, "10-K/10-Q comparison summary email")
             print(f"  Email sent: final summary with JSON and DOCX links")
         except Exception as email_e:
-            print(f"  Warning: failed to send comparison summary email: {email_e}")
+            print(
+                f"  Warning: failed to send comparison summary email: {email_e}")
 
+    logger.info("10-K/10-Q pipeline: DONE | processed=%s | skipped=%s",
+                len(processed_urls), len(skipped_urls))
     print(f"\n{'='*60}")
-    print(f"DONE | processed={len(processed_urls)} | skipped={len(skipped_urls)}")
+    print(
+        f"DONE | processed={len(processed_urls)} | skipped={len(skipped_urls)}")
     print(f"{'='*60}\n")
 
     return {
