@@ -911,6 +911,48 @@ def _normalize_sec_url(url):
     return u
 
 
+def _pick_single_doc_url_for_form(xbrl_files, form_type, link):
+    """
+    For non-8-K form types, pick exactly one document URL when multiple xbrl_files match.
+    Priority is by the index 'file' extension (not URL): 1) .htm  2) .html  3) .xml.
+    """
+    form_norm = (form_type or "").strip().upper()
+    exts = _DOC_EXTENSIONS
+    ext_priority = (".htm", ".html", ".xml")
+
+    def priority_key(item):
+        _, filename = item
+        f_lower = (filename or "").lower()
+        for i, ext in enumerate(ext_priority):
+            if f_lower.endswith(ext):
+                return i
+        return len(ext_priority)
+
+    candidates = []
+    for f in xbrl_files or []:
+        url = f.get("url")
+        if not url or not any(url.lower().endswith(ext) for ext in exts):
+            continue
+        doc_type = (f.get("type") or "").upper()
+        desc = (f.get("description") or "").upper()
+        if not form_norm or form_norm in doc_type or form_norm in desc or doc_type in form_norm:
+            candidates.append(f)
+    if not candidates:
+        return _normalize_sec_url(link) if link else None
+    seen = set()
+    unique = []  # list of (normalized_url, file)
+    for f in candidates:
+        u = _normalize_sec_url(f.get("url"))
+        if u and u not in seen:
+            seen.add(u)
+            unique.append((u, f.get("file") or ""))
+    if not unique:
+        return _normalize_sec_url(link) if link else None
+    if len(unique) == 1:
+        return unique[0][0]
+    return min(unique, key=priority_key)[0]
+
+
 def _route_summarize_and_save(item_data, html_data):
     """
     For any form type: generate summary via route_and_summarize(url), save to SECFilingSummary
@@ -944,16 +986,10 @@ def _route_summarize_and_save(item_data, html_data):
             if url_ex99:
                 urls_to_summarize.append((url_ex99, True))
     else:
-        # Any other form type: single document, parent-level only (no 99.1 node)
-        doc_file = find_file_by_type(xbrl_files, form_type)
-        if doc_file and doc_file.get("url"):
-            sec_url = _normalize_sec_url(doc_file.get("url"))
-        elif xbrl_files and xbrl_files[0].get("url"):
-            sec_url = _normalize_sec_url(xbrl_files[0].get("url"))
-        else:
-            sec_url = _normalize_sec_url(link) if link else None
+        # Any other form type: single document, parent-level only (no 99.1 node).
+        # If multiple xbrl_files match (e.g. primary_doc.html + primary_doc.xml), pick one URL only.
+        sec_url = _pick_single_doc_url_for_form(xbrl_files, form_type, link)
         if sec_url:
-            # never 99.1 for non-8-K
             urls_to_summarize.append((sec_url, False))
 
     if not urls_to_summarize:
