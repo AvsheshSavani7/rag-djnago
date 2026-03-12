@@ -241,8 +241,8 @@ def send_webhook_notification(webhook_url, payload, notification_type="notificat
         raise
 
 
-def send_summary_email_via_webhook(summary_doc_url, company_name, form_type, cik_number, sec_url, accession_number, summary_kind: str, l1_headline: str = None, l2_brief: str = None, ticker: str = None, filing_date=None):
-    """Generate 8-K/EX-99.1 summary email HTML and send via N8N testing webhook (includes .docx URL and L1 headline so user can see content without opening doc). Subject uses ticker if provided, else company_name."""
+def send_summary_email_via_webhook(summary_doc_url, company_name, form_type, cik_number, sec_url, accession_number, summary_kind: str, l1_headline: str = None, l2_brief: str = None, ticker: str = None, filing_date=None, matched_cik_label: str = None, form_affects_deal: bool = None):
+    """Generate 8-K/EX-99.1 summary email HTML and send via N8N testing webhook (includes .docx URL and L1 headline so user can see content without opening doc). Subject uses ticker if provided, else company_name. matched_cik_label is '(target)' or '(acquirer)' to show beside company name; form_affects_deal is set only for acquirer filings (LLM)."""
     try:
         subject, html_email = generate_8k_99_1_summary_email_html(
             company_name=company_name,
@@ -256,6 +256,8 @@ def send_summary_email_via_webhook(summary_doc_url, company_name, form_type, cik
             l2_brief=l2_brief,
             ticker=ticker,
             filing_date=filing_date,
+            matched_cik_label=matched_cik_label,
+            form_affects_deal=form_affects_deal,
         )
         payload = {
             "subject": subject,
@@ -267,6 +269,10 @@ def send_summary_email_via_webhook(summary_doc_url, company_name, form_type, cik
             "cik_number": cik_number,
             "sec_url": sec_url,
         }
+        if matched_cik_label is not None:
+            payload["matched_cik_label"] = matched_cik_label
+        if form_affects_deal is not None:
+            payload["form_affects_deal"] = form_affects_deal
         send_webhook_notification(
             N8N_WEBHOOK_URL_8K_SUMMARY, payload, f"{summary_kind} summary email"
         )

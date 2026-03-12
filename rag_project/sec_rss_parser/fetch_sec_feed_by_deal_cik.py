@@ -29,6 +29,7 @@ from urllib.parse import urljoin
 
 import requests
 from bs4 import BeautifulSoup
+import openai
 
 import django
 
@@ -39,6 +40,7 @@ if __name__ == "__main__":
     os.environ.setdefault("DJANGO_SETTINGS_MODULE", "rag_project.settings")
     django.setup()
 
+from bson import ObjectId
 from document_processor.models import ProcessingJob
 from mongoengine.queryset.visitor import Q
 from sec_rss_parser.utils_8k import (
@@ -409,6 +411,86 @@ def _deal_id_for_cik(cik_number):
     if deal:
         return str(deal.id)
     return None
+
+
+def _llm_form_affects_deal(target_name, acquirer_name, sec_url, form_type=None):
+    """
+    Ask LLM whether this SEC form affects the deal. Returns True/False or None on error.
+    Used only when the filing CIK is the acquirer.
+    """
+    try:
+        import openai
+
+        client = openai.OpenAI()
+        form_label = form_type or "this SEC form"
+
+        prompt = f"""You are evaluating whether an SEC filing by the acquirer/parent is materially related to a specific M&A deal.
+
+Deal parties:
+- Target: {target_name or 'Unknown'}
+- Acquirer / Parent: {acquirer_name or 'Unknown'}
+
+SEC filing URL: {sec_url}
+Form type: {form_label}
+
+Important context:
+- This filing was made under the acquirer/parent's CIK.
+- Many filings under the acquirer/parent's CIK are unrelated to the acquisition.
+- Return YES only if the filing is specifically related to the acquisition transaction or provides a material transaction-related update.
+-Return NO for routine or unrelated parent/acquirer filings, even if they were filed under the acquirer’s CIK.
+
+Examples of YES:
+- merger announcement
+- acquisition update
+- transaction financing
+- shareholder approval related to the deal
+- amendment to merger agreement
+- closing announcement
+- termination of the transaction
+- regulatory approval or material transaction condition update
+
+Examples of NO:
+- insider trading Form 4 filings not tied to the transaction
+- routine governance updates
+- unrelated earnings filings
+- unrelated securities offerings
+- general business updates with no meaningful connection to the deal
+
+Question:
+Is this filing specifically related to, or does it meaningfully affect, the acquisition of {target_name or 'Unknown'} by {acquirer_name or 'Unknown'}?
+
+Answer with exactly one word: YES or NO."""
+
+        response = client.responses.create(
+            model="gpt-5.2",
+            tools=[{"type": "web_search"}],
+            input=prompt,
+            reasoning={"effort": "medium"}
+
+        )
+
+        # print(f"response: {response}")
+
+        text = (response.output_text or "").strip().upper()
+
+        if text == "YES":
+            return True
+        if text == "NO":
+            return False
+
+        log_and_print(
+            f"{LOG_PREFIX} :_llm_form_affects_deal: Unexpected response: {text[:100]}",
+            "warning",
+        )
+        return None
+
+    except Exception as e:
+        log_and_print(
+            f"{LOG_PREFIX} :_llm_form_affects_deal: LLM call failed: {e}",
+            "error",
+        )
+        logger.exception("_llm_form_affects_deal")
+        return None
 
 
 def _filing_date_for_summary(item_filing_date, result_filing_date):
@@ -862,6 +944,31 @@ def _route_summarize_and_save(item_data, html_data):
             log_and_print(
                 f"{LOG_PREFIX} :_route_summarize_and_save: 📧 Sending summary email for {summary_kind}...")
             ticker = get_ticker_for_deal_and_cik(deal_id, cik_number)
+
+            # Deal match: target vs acquirer for "(target)" or "(acquirer)" beside company name; acquirer-only LLM
+            matched_cik_label = None
+            form_affects_deal = None
+            if deal_id and cik_number:
+                try:
+                    deal = ProcessingJob.objects(id=ObjectId(deal_id)).only(
+                        "cik", "acquirer_cik", "target_name", "acquire_name"
+                    ).first()
+                    cik_n = normalize_cik(cik_number)
+                    if deal and cik_n:
+                        if normalize_cik(deal.acquirer_cik) == cik_n:
+                            matched_cik_label = "(acquirer)"
+                            form_affects_deal = _llm_form_affects_deal(
+                                target_name=deal.target_name or "",
+                                acquirer_name=deal.acquire_name or "",
+                                sec_url=link or url,
+                                form_type="8-K (EX-99.1)" if is_ex99 else doc_form_type,
+                            )
+                        elif normalize_cik(deal.cik) == cik_n:
+                            matched_cik_label = "(target)"
+                except Exception as deal_e:
+                    log_and_print(
+                        f"{LOG_PREFIX} :_route_summarize_and_save: Deal lookup for match/LLM: {deal_e}", "warning")
+
             try:
                 send_summary_email_via_webhook(
                     summary_doc_url=s3_docx_url,
@@ -875,6 +982,8 @@ def _route_summarize_and_save(item_data, html_data):
                     l2_brief=result.get("L2_brief"),
                     ticker=ticker,
                     filing_date=filing_dt,
+                    matched_cik_label=matched_cik_label,
+                    form_affects_deal=form_affects_deal,
                 )
                 log_and_print(
                     f"{LOG_PREFIX} :_route_summarize_and_save: ✅ Summary email sent for {summary_kind}")

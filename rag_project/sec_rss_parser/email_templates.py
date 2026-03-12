@@ -587,7 +587,7 @@ def generate_8k_summary_email_html(company_name: str, form_type: str, summary_do
     return subject, html_email
 
 
-def generate_8k_99_1_summary_email_html(company_name: str, form_type: str, summary_doc_url: str, cik_number: str, sec_url: str, accession_number: str, summary_kind: str = "8-K", l1_headline: str = None, l2_brief: str = None, ticker: str = None, filing_date=None) -> tuple:
+def generate_8k_99_1_summary_email_html(company_name: str, form_type: str, summary_doc_url: str, cik_number: str, sec_url: str, accession_number: str, summary_kind: str = "8-K", l1_headline: str = None, l2_brief: str = None, ticker: str = None, filing_date=None, matched_cik_label: str = None, form_affects_deal: bool = None) -> tuple:
     """
     Generate HTML email for 8-K summary document notification.
 
@@ -603,6 +603,8 @@ def generate_8k_99_1_summary_email_html(company_name: str, form_type: str, summa
         l2_brief: Optional L2 brief from the summary doc (shown so user can see content without opening doc)
         ticker: Optional ticker (from deal); if present, used in subject instead of company_name
         filing_date: Optional filing date for subject (datetime or str, formatted as YYYY-MM-DD)
+        matched_cik_label: Optional "(target)" or "(acquirer)" to show beside company name
+        form_affects_deal: Optional bool; when True/False (acquirer filing), show "Affects deal: Yes/No"
     Returns:
         tuple: (subject, html_email)
     """
@@ -634,6 +636,14 @@ def generate_8k_99_1_summary_email_html(company_name: str, form_type: str, summa
       <p style="margin:0; font-size:15px; font-weight:bold; color:#003366; line-height:1.5;">{escape_html(l2_brief.strip())}</p>
     </div>
 """
+    form_affects_deal_block = ""
+    if form_affects_deal is not None:
+        affects_text = "Yes" if form_affects_deal else "No"
+        form_affects_deal_block = f"""
+        <p style="margin:8px 0; color:#555;">
+          <strong style="color:#333;">Affects deal:</strong> {escape_html(affects_text)}
+        </p>
+"""
     html_email = f"""
 <!DOCTYPE html>
 <html lang="en">
@@ -654,7 +664,7 @@ def generate_8k_99_1_summary_email_html(company_name: str, form_type: str, summa
 
       <div style="background-color:#f9f9f9; padding:15px; border-radius:5px; margin:20px 0;">
         <p style="margin:8px 0; color:#555;">
-          <strong style="color:#333;">Company:</strong> {escape_html(company_name)}
+          <strong style="color:#333;">Company:</strong> {escape_html(company_name)}{escape_html((matched_cik_label or "").strip())}
         </p>
         <p style="margin:8px 0; color:#555;">
           <strong style="color:#333;">Form Type:</strong> {escape_html(form_type)}
@@ -668,6 +678,7 @@ def generate_8k_99_1_summary_email_html(company_name: str, form_type: str, summa
         <p style="margin:8px 0; color:#555;">
           <strong style="color:#333;">SEC URL:</strong> <a href="{escape_html(sec_url)}" style="color:#4a90e2; text-decoration:none;" target="_blank">{escape_html(sec_url)}</a>
         </p>
+{form_affects_deal_block}
       </div>
     </div>
 {headline_block}{brief_block}
