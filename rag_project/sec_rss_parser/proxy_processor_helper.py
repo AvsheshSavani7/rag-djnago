@@ -17,6 +17,7 @@ import os
 import sys
 import logging
 import threading
+import time
 import re
 import requests
 from datetime import datetime
@@ -383,6 +384,8 @@ def process_sections_with_pinecone_v2(filing_summary_id, sections_json_url):
 
         # Start summary generation after Pinecone processing completes
         try:
+            # Brief delay so Pinecone can make newly upserted vectors visible (eventual consistency)
+            time.sleep(2)
             logger.info(
                 f"Starting summary generation for {filing_summary_id}")
 
