@@ -278,23 +278,103 @@ Separate board rationale (Point 4) from regulatory details (Point 5)
 
 Now create your summary."""
 
-STAGE_2B_NARRATIVE_SUMMARY_PROMPT = """You are a financial analyst creating a narrative summary for internal review. Using the detailed extraction provided, create a flowing paragraph-style summary that covers the same information as the strict numbered format, but written as cohesive prose.
+STAGE_2B_NARRATIVE_SUMMARY_PROMPT = """You are a financial analyst creating a chronological summary from a proxy statement background section.
 
-This version prioritizes readability and natural flow while ensuring all key information is present. Aim for 3-4 well-structured paragraphs that tell the story of the transaction chronologically.
+Using the detailed extraction provided, create a summary following this EXACT format:
 
-Start with 1-2 sentences about events before the starting point, then present the transaction narrative in flowing paragraphs covering:
-- Sales process or exclusivity approach
-- Final bidders and amounts
-- Board's selection rationale
-- Regulatory considerations (if applicable)
-- Financing considerations (if applicable)
-- Process leaks (if applicable)
-- Bid trajectory (up-bid vs down-bid)
-- Other notable parties (if applicable)
+# CRITICAL FORMATTING RULES:
 
-End with a one-sentence key insight for merger arbitrage analysis.
+1. Start with 1-2 sentences summarizing events BEFORE the starting point, including any informal approaches by individual consortium members that predate the formal starting point (no header)
+2. Then provide numbered points in chronological order
+3. Each numbered item is EXACTLY ONE SENTENCE (maximum 35 words), EXCEPT Point 8 which allows two sentences
+4. DO NOT add bold headers - just “1. [sentence]”
+5. If an item doesn’t apply, SKIP that number entirely
+5. If an item doesn’t apply, OMIT it
+6. Format the items as bullet points instead of numbered points. The final output should use consistent bullet styling throughout, with no numbering.
 
-This version is for readers who prefer narrative flow over numbered structure."""
+# NUMBERED POINTS REQUIREMENTS:
+
+**Point 1: Sales Process Metrics**
+IF there was a sales process, include ALL of:
+- When it occurred (date range)
+- How many parties contacted
+- Breakdown (financial vs. strategic)
+- How many signed CAs/NDAs
+- How many submitted IOIs or received data room access
+- If a go-shop was conducted post-signing, include as a second sentence: parties contacted, NDAs signed, and proposals received
+
+IF no formal process, state:
+- Whether negotiations were exclusive (formal or informal)
+- Why board didn’t conduct market check
+
+**Point 2: Other Parties**
+IF not captured in points 1 and 3 to 9, list other buyers with:
+- Detailed descriptions
+- What happened with them
+
+**Point 3: Exclusivity (if no sales process)**
+Only include if there was NO sales process. Otherwise SKIP.
+
+**Point 4: Final Bidders**
+IF multiple bidders, include:
+- Who submitted final bids
+- DESCRIPTION of each party (e.g., “large global pharmaceutical company”)
+- Amount of each final bid as submitted - CRITICAL: If the winning bidder’s final submitted bid differs from the ultimate signed merger consideration, you MUST note both figures in this point using the format: “$X.XX/share as submitted, subsequently negotiated to $Y.YY prior to signing” - Failure to include both figures when they differ will create a contradiction with Point 4
+
+**Point 5: Board Selection Rationale**
+Summarize why board selected the acquirer’s bid:
+- Focus on PRIMARY reasons (price, timing, certainty)
+- Note if they did NOT select highest offer
+- Keep regulatory details for Point 5
+
+**Point 6: Regulatory Considerations**
+IF antitrust/regulatory was a factor, include:
+- How regulatory considerations differentiated bidders
+- Specific terms (reverse termination fees, approval obligations)
+- How this factored into the decision
+SKIP if not applicable.
+
+**Point 7: Financing Considerations**
+IF financing certainty was a factor, state whether the merger agreement includes a financing condition and how the buyer expects to fund the transaction.
+Do not compare the buyer’s financing to the target’s standalone financing needs.
+
+**Point 8: Press Leaks**
+IF process leaked to press, indicate when.
+SKIP if no leak.
+
+**Point 9: Bid Trajectory — TWO SENTENCES ALLOWED FOR THIS POINT ONLY**
+Sentence 1: List each proposal by the winning bidder in chronological order with date and price.
+Sentence 2: State the final accepted offer relative to the bidder’s initial proposal and indicate whether the final price was higher or lower than the initial proposal.
+
+
+
+# EXAMPLE (CORRECT FORMAT):
+
+Following preliminary 2023 discussions at conferences, Company executed NDAs with three parties but received no formal proposals before 2024.
+
+1. The company conducted a targeted auction from March to May 2024, contacting 15 parties (10 strategic, 5 financial), with 8 signing NDAs and 5 submitting IOIs. A 30-day go-shop contacted 20 parties with two signing NDAs but none submitting proposals.
+
+4. Two parties submitted final bids: Party A (large multinational pharmaceutical) at $52/share all-cash and Party B (financial sponsor) at $48/share.
+
+5. The board selected Party A’s $52/share bid as the highest offer with superior execution certainty and favorable timeline.
+
+6. Regulatory risk was minimal for both parties, with Party A offering a $200M reverse termination fee versus Party B’s $150M fee.
+
+9. Party A withdrew its offer on October 15 citing market deterioration before re-tabling at $50/share on November 1. The final $52/share offer exceeded Party A’s initial $44/share proposal, characterizing the final round as an up-bid overall.
+
+# CRITICAL REMINDERS:
+- TONE: State only facts from the filing. Do NOT speculate on motives, interpret what actions "signal" or "suggest", assess confidence levels, or draw conclusions beyond what is explicitly stated. GOOD: "Company suspended earnings calls due to pending transaction." BAD: "Company suspended earnings calls, signaling high confidence in deal completion."
+- Do not describe actions that did not occur (e.g., “did not withdraw”, “did not walk away”, “remained committed”). Only summarize actions explicitly described in the document.
+- Avoid narrative verbs such as: remained committed, demonstrated confidence, stayed engaged, did not withdraw. Use only transactional verbs such as: proposed, increased, reduced, withdrew, re-tabled, accepted.
+- NO bold headers (just “1. [sentence]“)
+- Maximum 35 words per sentence EXCEPT Point 8 which allows two sentences
+- Skip inapplicable numbers
+- Include ALL sales process metrics in Point 1, including go-shop if applicable
+- Include party DESCRIPTIONS in Point 4
+- Separate board rationale (Point 4) from regulatory details (Point 6)
+- Point 9 MUST distinguish between a withdrawal+re-tabling and a simple down-bid if a withdrawal occurred
+
+Now create your summary."""
 
 STAGE_3_RED_FLAGS_PROMPT = """You are a merger arbitrage analyst reviewing this transaction for risk factors. Based on the detailed extraction and executive summary provided, identify potential red flags and points of interest that could affect deal certainty or arbitrage returns.
 
