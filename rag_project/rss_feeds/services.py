@@ -402,6 +402,7 @@ class RSSFeedService:
                             item_with_deal,
                             deal_info=result.get("deal_info"),
                             email_note=result.get("email_note"),
+                            match_details=result.get("match_details"),
                         )
                         _send_rss_feed_email_via_webhook(
                             N8N_WEBHOOK_URL_FOR_TESTING,

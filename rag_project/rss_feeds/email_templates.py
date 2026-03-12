@@ -50,6 +50,7 @@ EMAIL_NOTE_LABELS = {
 def _deal_info_block(
     deal_info: Dict[str, Any],
     email_note: Optional[str] = None,
+    match_details: Optional[Dict[str, Any]] = None,
 ) -> str:
     """Render deal details block for the email body. Shows US listed and Market cap > $100M when present."""
     note_line = ""
@@ -82,6 +83,28 @@ def _deal_info_block(
         color = "#28a745" if val else "#dc3545"
         market_cap_line = f'<p style="margin:4px 0 0 0; font-size:12px; color:#555;">Target market cap &gt; $100M: <span style="color:{color}; font-weight:bold;">{escape_html(text)}</span></p>'
 
+    # Match details block (matched side + keywords)
+    match_details_block = ""
+    if match_details:
+        matched_side = match_details.get("matched_side")
+        match_keywords = match_details.get("match_keywords")
+        keywords_list = match_keywords if isinstance(match_keywords, list) and match_keywords else []
+        
+        if matched_side or keywords_list:
+            parts = []
+            if matched_side:
+                side_display = matched_side.capitalize()
+                parts.append(f'<p style="margin:0 0 4px 0; font-size:12px; color:#555;">Matched side: <strong style="color:#4a90e2;">{escape_html(side_display)}</strong></p>')
+            if keywords_list:
+                keywords_escaped = ", ".join(escape_html(str(k)) for k in keywords_list)
+                parts.append(f'<p style="margin:4px 0 0 0; font-size:12px; color:#555; background-color:#f0f7ff; padding:8px; border-radius:3px;">Matched keywords: {keywords_escaped}</p>')
+            
+            match_details_block = f"""
+      <div style="margin:8px 0 0 0; padding-top:8px; border-top:1px solid #e0e0e0;">
+        <p style="margin:0 0 4px 0; font-size:11px; font-weight:bold; color:#666; text-transform:uppercase;">Match Evidence</p>
+        {''.join(parts)}
+      </div>"""
+
     return f"""
     <div style="margin:16px 0; padding:12px; background-color:#f8f9fa; border-left:4px solid #4a90e2; border-radius:4px;">
       {note_line}
@@ -93,6 +116,7 @@ def _deal_info_block(
       {us_listed_line}
       {market_cap_line}
       {f'<p style="margin:4px 0 0 0; font-size:11px; color:#888;">Deal ID: {deal_id}</p>' if deal_id else ''}
+      {match_details_block}
     </div>"""
 
 
@@ -153,6 +177,7 @@ def generate_rss_feed_item_email_html(
     item: Dict[str, Any],
     deal_info: Optional[Dict[str, Any]] = None,
     email_note: Optional[str] = None,
+    match_details: Optional[Dict[str, Any]] = None,
 ) -> tuple:
     """
     Generate HTML email for a single RSS feed item (one email per item).
@@ -165,6 +190,7 @@ def generate_rss_feed_item_email_html(
         item: Single item (url, title, description_text, thumbnail, date_published, authors).
         deal_info: Optional dict with id, target_name, acquire_name, cik, acquirer_cik, sec_url, announce_date.
         email_note: "existing_deal" | "new_deal_in_db" | "new_deal_not_in_db" for deal block label.
+        match_details: Optional dict with matched_side and match_keywords from Prompt 1.
 
     Returns:
         tuple: (subject, html_email) with subject "PR News : {item title}"
@@ -245,7 +271,7 @@ def generate_rss_feed_item_email_html(
         )
         extra_content = summary_block + note_block
     elif deal_info:
-        deal_block = _deal_info_block(deal_info, email_note)
+        deal_block = _deal_info_block(deal_info, email_note, match_details)
         extra_content = summary_block + deal_block
     else:
         extra_content = summary_block

@@ -826,9 +826,12 @@ def _route_summarize_and_save(item_data, html_data):
                 )
                 if form_type == "8-K" and doc_form_type == "8-K" and _has_item_502 and cik_number:
                     try:
-                        start_date = (datetime.now() - timedelta(days=365)).strftime("%Y-%m-%d")
-                        filings = fetch_sec_filings(str(cik_number), start_date=start_date)
-                        ticker_item502 = get_ticker_for_deal_and_cik(deal_id, cik_number)
+                        start_date = (datetime.now() -
+                                      timedelta(days=365)).strftime("%Y-%m-%d")
+                        filings = fetch_sec_filings(
+                            str(cik_number), start_date=start_date)
+                        ticker_item502 = get_ticker_for_deal_and_cik(
+                            deal_id, cik_number)
                         sec_subject, sec_html = generate_item_5_02_one_year_filings_email_html(
                             company_name,
                             filings,

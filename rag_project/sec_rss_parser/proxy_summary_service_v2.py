@@ -190,6 +190,7 @@ class ProxySummaryServiceV2:
                 )
 
                 for match in search_response.matches:
+                    print(f"match.id: {match.id}")
                     result = {
                         'score': match.score,
                         'text': match.metadata.get('original_text', ''),
@@ -234,7 +235,8 @@ class ProxySummaryServiceV2:
                 f"Starting summary generation for sec_filing_summary_id: {sec_filing_summary_id}")
 
             # Step 1: Get background chunks
-            document_text = self.get_background_chunks_by_filing_id(sec_filing_summary_id)
+            document_text = self.get_background_chunks_by_filing_id(
+                sec_filing_summary_id)
 
             if not document_text:
                 logger.warning(
@@ -253,7 +255,8 @@ class ProxySummaryServiceV2:
             qa_content = ""
             if questions_file and os.path.exists(questions_file):
                 logger.info(f"Processing questions from {questions_file}")
-                qa_content = self._process_questions(sec_filing_summary_id, questions_file)
+                qa_content = self._process_questions(
+                    sec_filing_summary_id, questions_file)
 
             # Step 4: Create DOCX document
             logger.info("Creating DOCX document")

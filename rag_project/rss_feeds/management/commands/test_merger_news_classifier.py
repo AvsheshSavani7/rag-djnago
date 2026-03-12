@@ -122,6 +122,14 @@ class Command(BaseCommand):
                 f"  deal_id: {result.get('deal_id') or '(none)'}")
             self.stdout.write(
                 f"  email_note: {result.get('email_note') or '(none)'}")
+            if result.get("match_details"):
+                md = result["match_details"]
+                self.stdout.write(
+                    f"  matched_side: {md.get('matched_side') or '(none)'}")
+                keywords = md.get('match_keywords') or []
+                if keywords:
+                    self.stdout.write(
+                        f"  match_keywords: {keywords}")
             if result.get("deal_info"):
                 d = result["deal_info"]
                 self.stdout.write(
@@ -135,6 +143,7 @@ class Command(BaseCommand):
             item,
             deal_info=result.get("deal_info"),
             email_note=result.get("email_note"),
+            match_details=result.get("match_details"),
         )
         self.stdout.write("Generated email:")
         self.stdout.write(f"  Subject: {subject}")

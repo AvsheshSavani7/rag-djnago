@@ -141,13 +141,20 @@ PROMPT_1_DEAL_WE_FOLLOW = """We have a list of deals we follow.
   
   Does this article say anything about any of these deals (e.g. news, update, or mention of one of these target/acquirer names or aliases)? 
   
-  If YES, return the matching deal_id. 
+  If YES, return the matching deal_id and provide additional details about the match.
   
   If NO, return match false. 
   
-  Return ONLY a JSON object: {{"match": true|false, "deal_id": "<id>"|null}} 
+  Return ONLY a JSON object with these exact keys:
+  - "match": true or false
+  - "deal_id": the matching deal_id string or null
+  - "matched_side": one of "target", "acquirer", or "both" (which company names/aliases were mentioned: target company, acquirer/parent company, or both). Return null if no match.
+  - "match_keywords": an array of strings—the specific names, terms, or phrases from the deal record that appeared in the article and triggered the match (e.g. company names, tickers, aliases). Return null or empty array if no match.
   
-  Use deal_id only when match is true.
+  Example response format:
+  {{"match": true, "deal_id": "abc123", "matched_side": "target", "match_keywords": ["XYZ Corp", "XYZ Corporation"]}}
+  
+  Use deal_id, matched_side, and match_keywords only when match is true.
 """
 
 # --- Prompt 2: Is this article a self-announce of a new merger? Extract deal fields. ---
@@ -361,9 +368,9 @@ def prompt_1_deal_we_follow(
 ) -> Dict[str, Any]:
     """
     Prompt 1: Does this article say anything about a deal we follow?
-    Returns: { "match": bool, "deal_id": str|None }
+    Returns: { "match": bool, "deal_id": str|None, "matched_side": str|None, "match_keywords": list|None }
     """
-    out = {"match": False, "deal_id": None}
+    out = {"match": False, "deal_id": None, "matched_side": None, "match_keywords": None}
     parsed = _call_llm_json_with_web_search(
         PROMPT_1_DEAL_WE_FOLLOW.format(
             deals_record=deals_record_string or "(no deals)",
@@ -376,6 +383,22 @@ def prompt_1_deal_we_follow(
     did = parsed.get("deal_id")
     if did is not None:
         out["deal_id"] = str(did).strip() or None
+    
+    # Parse and normalize matched_side
+    matched_side = parsed.get("matched_side")
+    if matched_side and isinstance(matched_side, str):
+        matched_side_lower = matched_side.strip().lower()
+        if matched_side_lower in ("target", "acquirer", "both"):
+            out["matched_side"] = matched_side_lower
+    
+    # Parse and normalize match_keywords (array of strings)
+    match_keywords = parsed.get("match_keywords")
+    if match_keywords is not None and isinstance(match_keywords, list):
+        keywords = [str(k).strip() for k in match_keywords if k is not None and str(k).strip()]
+        if keywords:
+            # Cap at 20 keywords to avoid bloat
+            out["match_keywords"] = keywords[:20]
+    
     return out
 
 
@@ -730,7 +753,17 @@ def resolve_rss_item_flow(
         result["email_note"] = "existing_deal"
         if result["deal_info"]:
             result["deal_info"]["in_db"] = True
-        logger.debug("Prompt 1 match deal_id: %s", deal_id)
+        
+        # Add match details from Prompt 1
+        match_details = {}
+        if p1.get("matched_side"):
+            match_details["matched_side"] = p1["matched_side"]
+        if p1.get("match_keywords"):
+            match_details["match_keywords"] = p1["match_keywords"]
+        if match_details:
+            result["match_details"] = match_details
+        
+        logger.debug("Prompt 1 match deal_id: %s, matched_side: %s", deal_id, p1.get("matched_side"))
         return result
 
     # Prompt 2: Is it self-announce new merger? Extract deal fields.
