@@ -88,17 +88,21 @@ def _deal_info_block(
     if match_details:
         matched_side = match_details.get("matched_side")
         match_keywords = match_details.get("match_keywords")
-        keywords_list = match_keywords if isinstance(match_keywords, list) and match_keywords else []
-        
+        keywords_list = match_keywords if isinstance(
+            match_keywords, list) and match_keywords else []
+
         if matched_side or keywords_list:
             parts = []
             if matched_side:
                 side_display = matched_side.capitalize()
-                parts.append(f'<p style="margin:0 0 4px 0; font-size:12px; color:#555;">Matched side: <strong style="color:#4a90e2;">{escape_html(side_display)}</strong></p>')
+                parts.append(
+                    f'<p style="margin:0 0 4px 0; font-size:12px; color:#555;">Matched side: <strong style="color:#4a90e2;">{escape_html(side_display)}</strong></p>')
             if keywords_list:
-                keywords_escaped = ", ".join(escape_html(str(k)) for k in keywords_list)
-                parts.append(f'<p style="margin:4px 0 0 0; font-size:12px; color:#555; background-color:#f0f7ff; padding:8px; border-radius:3px;">Matched keywords: {keywords_escaped}</p>')
-            
+                keywords_escaped = ", ".join(
+                    escape_html(str(k)) for k in keywords_list)
+                parts.append(
+                    f'<p style="margin:4px 0 0 0; font-size:12px; color:#555; background-color:#f0f7ff; padding:8px; border-radius:3px;">Matched keywords: {keywords_escaped}</p>')
+
             match_details_block = f"""
       <div style="margin:8px 0 0 0; padding-top:8px; border-top:1px solid #e0e0e0;">
         <p style="margin:0 0 4px 0; font-size:11px; font-weight:bold; color:#666; text-transform:uppercase;">Match Evidence</p>
@@ -140,7 +144,7 @@ def _render_l3_value(key: str, value: Any, level: int) -> str:
         return f"""
     <div style="margin-bottom:12px; padding:10px; background-color:#eef5ff; border-left:4px solid #0b5ed7; border-radius:4px; {margin_style}">
       <p style="margin:0 0 4px 0; font-size:11px; font-weight:bold; color:#0b5ed7; text-transform:uppercase; letter-spacing:0.5px;">{escape_html(key)}</p>
-      <p style="margin:0; font-size:13px; color:#333; line-height:1.5;">{escape_html(s)}</p>
+      <p style="margin:0; font-size:15px; font-weight:bold; color:#003366; line-height:1.5;">{escape_html(s)}</p>
     </div>
 """
 
@@ -149,7 +153,7 @@ def _render_l3_value(key: str, value: Any, level: int) -> str:
             return ""
         if all(isinstance(item, str) for item in value):
             items_html = "".join(
-                f'<li style="margin:4px 0; line-height:1.5;">{escape_html(str(item).strip())}</li>'
+                f'<li style="margin:4px 0; line-height:1.5; font-size:15px; font-weight:bold; color:#003366;">{escape_html(str(item).strip())}</li>'
                 for item in value if str(item).strip()
             )
             if not items_html:
@@ -181,7 +185,7 @@ def _render_l3_value(key: str, value: Any, level: int) -> str:
     return f"""
     <div style="margin-bottom:12px; padding:10px; background-color:#eef5ff; border-left:4px solid #0b5ed7; border-radius:4px; {margin_style}">
       <p style="margin:0 0 4px 0; font-size:11px; font-weight:bold; color:#0b5ed7; text-transform:uppercase; letter-spacing:0.5px;">{escape_html(key)}</p>
-      <p style="margin:0; font-size:13px; color:#333; line-height:1.5;">{escape_html(str(value))}</p>
+      <p style="margin:0; font-size:15px; font-weight:bold; color:#003366; line-height:1.5;">{escape_html(str(value))}</p>
     </div>
 """
 
@@ -315,19 +319,27 @@ def generate_rss_feed_item_email_html(
             )
             l3_block = f'<div style="margin-top:12px;">{inner}</div>'
         elif isinstance(l3_detailed, str) and l3_detailed.strip():
-            l3_block = f'<p style="margin:12px 0 0 0; font-size:13px; color:#333; line-height:1.5;">{escape_html(l3_detailed.strip())}</p>'
+            l3_block = f'<p style="margin:12px 0 0 0; font-size:15px; font-weight:bold; color:#003366; line-height:1.5;">{escape_html(l3_detailed.strip())}</p>'
 
     summary_block = ""
     if l1_headline or l2_brief or l3_detailed or s3_docx_url or s3_json_url:
         summary_parts: List[str] = []
         if l1_headline:
             summary_parts.append(
-                f'<p style="margin:0 0 4px 0; font-size:14px; font-weight:bold; color:#0b5ed7;">{escape_html(l1_headline)}</p>'
+                '<div style="margin-bottom:16px; padding:12px; background-color:#eef5ff; border-left:4px solid #0b5ed7; border-radius:4px;">'
+                '<p style="margin:0 0 6px 0; font-size:12px; font-weight:bold; color:#0b5ed7; text-transform:uppercase; letter-spacing:0.5px;">L1 — Headline</p>'
+                f'<p style="margin:0; font-size:15px; font-weight:bold; color:#003366; line-height:1.5;">{escape_html(l1_headline)}</p>'
+                '</div>'
             )
         if l2_brief:
             summary_parts.append(
-                f'<p style="margin:0 0 4px 0; font-size:13px; color:#333;">{escape_html(l2_brief)}</p>'
+                '<div style="margin-bottom:16px; padding:12px; background-color:#eef5ff; border-left:4px solid #0b5ed7; border-radius:4px;">'
+                '<p style="margin:0 0 6px 0; font-size:12px; font-weight:bold; color:#0b5ed7; text-transform:uppercase; letter-spacing:0.5px;">L2 — Brief</p>'
+                f'<p style="margin:0; font-size:15px; font-weight:bold; color:#003366; line-height:1.5;">{escape_html(l2_brief)}</p>'
+                '</div>'
             )
+        if l3_block:
+            summary_parts.append(l3_block)
         link_bits = []
         if s3_docx_url:
             link_bits.append(
@@ -343,17 +355,9 @@ def generate_rss_feed_item_email_html(
             summary_parts.append(
                 f'<p style="margin:4px 0 0 0; font-size:12px; color:#555;">{"".join(link_bits)}</p>'
             )
-        if l3_block:
-            summary_parts.append(l3_block)
 
         if summary_parts:
-            summary_block = (
-                '<div style="margin:16px 0; padding:12px; background-color:#eef5ff; '
-                'border-left:4px solid #0b5ed7; border-radius:4px;">'
-                '<p style="margin:0 0 6px 0; font-size:12px; font-weight:bold; color:#0b5ed7;">AI Summary</p>'
-                f'{"".join(summary_parts)}'
-                "</div>"
-            )
+            summary_block = "".join(summary_parts)
 
     # Old email = old email HTML (no extra content)
     # New email = old email HTML + summary (if any) + deal related info or not_merger_related flag

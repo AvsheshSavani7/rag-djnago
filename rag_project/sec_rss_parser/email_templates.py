@@ -607,7 +607,7 @@ def _render_l3_value(key: str, value, level: int) -> str:
         return f"""
     <div style="margin-bottom:16px; padding:12px; background-color:#f0f7ff; border-left:4px solid #4a90e2; border-radius:4px; {margin_style}">
       <p style="margin:0 0 6px 0; font-size:12px; font-weight:bold; color:#4a90e2; text-transform:uppercase; letter-spacing:0.5px;">{escape_html(key)}</p>
-      <p style="margin:0; font-size:14px; color:#003366; line-height:1.5;">{escape_html(s)}</p>
+      <p style="margin:0; font-size:15px; font-weight:bold; color:#003366; line-height:1.5;">{escape_html(s)}</p>
     </div>
 """
 
@@ -617,7 +617,7 @@ def _render_l3_value(key: str, value, level: int) -> str:
         # Check if list of strings
         if all(isinstance(item, str) for item in value):
             items_html = "".join(
-                f"<li style=\"margin:4px 0; line-height:1.5;\">{escape_html(str(item).strip())}</li>"
+                f"<li style=\"margin:4px 0; line-height:1.5; font-size:15px; font-weight:bold; color:#003366;\">{escape_html(str(item).strip())}</li>"
                 for item in value if str(item).strip()
             )
             if not items_html:
@@ -651,7 +651,7 @@ def _render_l3_value(key: str, value, level: int) -> str:
     return f"""
     <div style="margin-bottom:16px; padding:12px; background-color:#f0f7ff; border-left:4px solid #4a90e2; border-radius:4px; {margin_style}">
       <p style="margin:0 0 6px 0; font-size:12px; font-weight:bold; color:#4a90e2; text-transform:uppercase; letter-spacing:0.5px;">{escape_html(key)}</p>
-      <p style="margin:0; font-size:14px; color:#003366; line-height:1.5;">{escape_html(str(value))}</p>
+      <p style="margin:0; font-size:15px; font-weight:bold; color:#003366; line-height:1.5;">{escape_html(str(value))}</p>
     </div>
 """
 
