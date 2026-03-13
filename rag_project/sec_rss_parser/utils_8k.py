@@ -47,7 +47,8 @@ def get_ticker_for_deal_and_cik(deal_id, cik_number):
         job = ProcessingJob.objects.get(id=ObjectId(deal_id))
         cik_norm = normalize_cik(cik_number)
         job_cik = normalize_cik(getattr(job, 'cik', None) or '')
-        job_acquirer_cik = normalize_cik(getattr(job, 'acquirer_cik', None) or '')
+        job_acquirer_cik = normalize_cik(
+            getattr(job, 'acquirer_cik', None) or '')
         if cik_norm and (cik_norm == job_acquirer_cik or cik_norm == job_cik):
             return getattr(job, 'target_ticker', None) or None
         return None
