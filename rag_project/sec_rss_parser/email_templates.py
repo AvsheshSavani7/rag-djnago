@@ -587,7 +587,91 @@ def generate_8k_summary_email_html(company_name: str, form_type: str, summary_do
     return subject, html_email
 
 
-def generate_8k_99_1_summary_email_html(company_name: str, form_type: str, summary_doc_url: str, cik_number: str, sec_url: str, accession_number: str, summary_kind: str = "8-K", l1_headline: str = None, l2_brief: str = None, ticker: str = None, filing_date=None, matched_cik_label: str = None, form_affects_deal: bool = None) -> tuple:
+def _render_l3_value(key: str, value, level: int) -> str:
+    """
+    Render a single L3 key-value by type. Recursive for nested objects.
+    - string → L2-style block with key as label
+    - list of strings → key as label + <ul><li>...</li></ul>
+    - list of objects or single dict → recurse with level+1 and indent
+    """
+    indent_px = level * 20
+    margin_style = f"margin-left:{indent_px}px;" if indent_px else ""
+
+    if value is None:
+        return ""
+
+    if isinstance(value, str):
+        s = value.strip()
+        if not s:
+            return ""
+        return f"""
+    <div style="margin-bottom:16px; padding:12px; background-color:#f0f7ff; border-left:4px solid #4a90e2; border-radius:4px; {margin_style}">
+      <p style="margin:0 0 6px 0; font-size:12px; font-weight:bold; color:#4a90e2; text-transform:uppercase; letter-spacing:0.5px;">{escape_html(key)}</p>
+      <p style="margin:0; font-size:14px; color:#003366; line-height:1.5;">{escape_html(s)}</p>
+    </div>
+"""
+
+    if isinstance(value, list):
+        if not value:
+            return ""
+        # Check if list of strings
+        if all(isinstance(item, str) for item in value):
+            items_html = "".join(
+                f"<li style=\"margin:4px 0; line-height:1.5;\">{escape_html(str(item).strip())}</li>"
+                for item in value if str(item).strip()
+            )
+            if not items_html:
+                return ""
+            return f"""
+    <div style="margin-bottom:16px; padding:12px; background-color:#f0f7ff; border-left:4px solid #4a90e2; border-radius:4px; {margin_style}">
+      <p style="margin:0 0 8px 0; font-size:12px; font-weight:bold; color:#4a90e2; text-transform:uppercase; letter-spacing:0.5px;">{escape_html(key)}</p>
+      <ul style="margin:0; padding-left:20px;">{items_html}</ul>
+    </div>
+"""
+        # List of objects (dicts): key as label, then recurse for each with indent
+        parts = []
+        for item in value:
+            if isinstance(item, dict):
+                parts.append(_render_l3_detailed(item, level + 1))
+            else:
+                parts.append(_render_l3_value(key, str(item), level))
+        if not parts:
+            return ""
+        key_label = f"""
+    <div style="margin-bottom:8px; {margin_style}">
+      <p style="margin:0; font-size:12px; font-weight:bold; color:#4a90e2; text-transform:uppercase; letter-spacing:0.5px;">{escape_html(key)}</p>
+    </div>
+"""
+        return key_label + "".join(parts)
+
+    if isinstance(value, dict):
+        return _render_l3_detailed(value, level + 1)
+
+    # number, bool, etc.
+    return f"""
+    <div style="margin-bottom:16px; padding:12px; background-color:#f0f7ff; border-left:4px solid #4a90e2; border-radius:4px; {margin_style}">
+      <p style="margin:0 0 6px 0; font-size:12px; font-weight:bold; color:#4a90e2; text-transform:uppercase; letter-spacing:0.5px;">{escape_html(key)}</p>
+      <p style="margin:0; font-size:14px; color:#003366; line-height:1.5;">{escape_html(str(value))}</p>
+    </div>
+"""
+
+
+def _render_l3_detailed(l3_data: dict, level: int = 0) -> str:
+    """Recursively render L3 dict key-value pairs with type-based formatting and indent."""
+    if not l3_data or not isinstance(l3_data, dict):
+        return ""
+    parts = []
+    for k, v in l3_data.items():
+        if k is None:
+            continue
+        key_str = str(k).strip()
+        if not key_str:
+            continue
+        parts.append(_render_l3_value(key_str, v, level))
+    return "".join(parts)
+
+
+def generate_8k_99_1_summary_email_html(company_name: str, form_type: str, summary_doc_url: str, cik_number: str, sec_url: str, accession_number: str, summary_kind: str = "8-K", l1_headline: str = None, l2_brief: str = None, l3_detailed=None, ticker: str = None, filing_date=None, matched_cik_label: str = None, form_affects_deal: bool = None) -> tuple:
     """
     Generate HTML email for 8-K summary document notification.
 
@@ -601,6 +685,7 @@ def generate_8k_99_1_summary_email_html(company_name: str, form_type: str, summa
         summary_kind: Summary type label (e.g. "8-K", "EX-99.1")
         l1_headline: Optional L1 headline from the summary doc (shown so user can see content without opening doc)
         l2_brief: Optional L2 brief from the summary doc (shown so user can see content without opening doc)
+        l3_detailed: Optional L3 detailed: dict (key-value by type, recursively rendered) or str (legacy, shown as one block)
         ticker: Optional ticker (from deal); if present, used in subject instead of company_name
         filing_date: Optional filing date for subject (datetime or str, formatted as YYYY-MM-DD)
         matched_cik_label: Optional "(target)" or "(acquirer)" to show beside company name
@@ -634,6 +719,26 @@ def generate_8k_99_1_summary_email_html(company_name: str, form_type: str, summa
     <div style="margin-bottom:24px; padding:16px; background-color:#f0f7ff; border-left:4px solid #4a90e2; border-radius:4px;">
       <p style="margin:0 0 6px 0; font-size:12px; font-weight:bold; color:#4a90e2; text-transform:uppercase; letter-spacing:0.5px;">L2 — Brief</p>
       <p style="margin:0; font-size:15px; font-weight:bold; color:#003366; line-height:1.5;">{escape_html(l2_brief.strip())}</p>
+    </div>
+"""
+    # L3: dict → recursive by type (string / list of strings / list of objects); str → legacy single block
+    l3_block = ""
+    if l3_detailed is not None:
+        if isinstance(l3_detailed, dict):
+            inner = (
+                '<p style="margin:0 0 8px 0; font-size:12px; font-weight:bold; color:#4a90e2; text-transform:uppercase;">L3 — Detailed</p>'
+                + _render_l3_detailed(l3_detailed, 0)
+            )
+            l3_block = f"""
+    <div style="margin-bottom:24px; padding:16px; background-color:#f8fbff; border-left:4px solid #4a90e2; border-radius:4px;">
+{inner}
+    </div>
+"""
+        elif isinstance(l3_detailed, str) and l3_detailed.strip():
+            l3_block = f"""
+    <div style="margin-bottom:24px; padding:16px; background-color:#f0f7ff; border-left:4px solid #4a90e2; border-radius:4px;">
+      <p style="margin:0 0 6px 0; font-size:12px; font-weight:bold; color:#4a90e2; text-transform:uppercase; letter-spacing:0.5px;">L3 — Detailed</p>
+      <p style="margin:0; font-size:15px; font-weight:bold; color:#003366; line-height:1.5;">{escape_html(l3_detailed.strip())}</p>
     </div>
 """
     form_affects_deal_block = ""
@@ -681,7 +786,7 @@ def generate_8k_99_1_summary_email_html(company_name: str, form_type: str, summa
 {form_affects_deal_block}
       </div>
     </div>
-{headline_block}{brief_block}
+{headline_block}{brief_block}{l3_block}
     <div style="text-align:center; margin:30px 0;">
       <a href="{escape_html(summary_doc_url)}"
          style="display:inline-block; background-color:#4a90e2; color:#ffffff; padding:15px 30px; text-decoration:none; border-radius:5px; font-size:16px; font-weight:bold; box-shadow:0 2px 4px rgba(0,0,0,0.2);">

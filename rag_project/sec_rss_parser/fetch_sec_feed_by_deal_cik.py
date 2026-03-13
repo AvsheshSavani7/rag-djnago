@@ -1223,6 +1223,7 @@ def _route_summarize_and_save(item_data, html_data):
                     summary_kind=summary_kind,
                     l1_headline=result.get("L1_headline"),
                     l2_brief=result.get("L2_brief"),
+                    l3_detailed=result.get("L3_detailed"),
                     ticker=ticker,
                     filing_date=filing_dt,
                     matched_cik_label=matched_cik_label,

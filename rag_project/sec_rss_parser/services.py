@@ -241,7 +241,7 @@ def send_webhook_notification(webhook_url, payload, notification_type="notificat
         raise
 
 
-def send_summary_email_via_webhook(summary_doc_url, company_name, form_type, cik_number, sec_url, accession_number, summary_kind: str, l1_headline: str = None, l2_brief: str = None, ticker: str = None, filing_date=None, matched_cik_label: str = None, form_affects_deal: bool = None):
+def send_summary_email_via_webhook(summary_doc_url, company_name, form_type, cik_number, sec_url, accession_number, summary_kind: str, l1_headline: str = None, l2_brief: str = None, l3_detailed: str = None, ticker: str = None, filing_date=None, matched_cik_label: str = None, form_affects_deal: bool = None):
     """Generate 8-K/EX-99.1 summary email HTML and send via N8N testing webhook (includes .docx URL and L1 headline so user can see content without opening doc). Subject uses ticker if provided, else company_name. matched_cik_label is '(target)' or '(acquirer)' to show beside company name; form_affects_deal is set only for acquirer filings (LLM)."""
     try:
         subject, html_email = generate_8k_99_1_summary_email_html(
@@ -254,6 +254,7 @@ def send_summary_email_via_webhook(summary_doc_url, company_name, form_type, cik
             summary_kind=summary_kind,
             l1_headline=l1_headline,
             l2_brief=l2_brief,
+            l3_detailed=l3_detailed,
             ticker=ticker,
             filing_date=filing_date,
             matched_cik_label=matched_cik_label,
