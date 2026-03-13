@@ -1405,8 +1405,7 @@ def run_fetch_sec_feed_by_deal_cik(
                 logger.info(
                     f"{LOG_PREFIX} :run_fetch_sec_feed_by_deal_cik: cik={cik}")
                 raw = fetch_feed_for_cik(cik, session)
-                logger.info(
-                    f"{LOG_PREFIX} :run_fetch_sec_feed_by_deal_cik: raw={raw}")
+
                 feed_fetches += 1
                 if feed_fetches % 7 == 0:
                     time.sleep(1)
