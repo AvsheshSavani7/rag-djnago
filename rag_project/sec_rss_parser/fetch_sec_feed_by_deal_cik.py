@@ -7,7 +7,7 @@ Flow:
 3. For each CIK, call SEC browse-edgar URL and parse the Atom feed.
 4. Filter items: skip if accession already in AccessionLookedUp; find unique items by accession.
 5. Iterate items; for each, branch by form_type:
-   - PROXY_SUMMARY_FORM_TYPES: process via proxy_processor_helper.process_sec_document_for_filing_summary(), 
+   - PROXY_FORM_TYPES: process via proxy_processor_helper.process_sec_document_for_filing_summary(), 
      which creates/updates SECFilingSummary.proxy directly (no ProxyDocument, no sync).
    - 8-K: generate summary for 8-K and EX-99.1 (if present), send emails, save to sec_filing_summary.eight_k.
    - TEN_K_TEN_Q_FORM_TYPES: save to sec_filing_summary.ten_k_ten_q (minimal record).
@@ -60,7 +60,10 @@ from sec_rss_parser.services import (
     send_summary_email_via_webhook,
 )
 from sec_rss_parser.sec_Last_Year import print_filings as fetch_sec_filings
-from sec_rss_parser.email_templates import generate_item_5_02_one_year_filings_email_html
+from sec_rss_parser.email_templates import (
+    generate_item_5_02_one_year_filings_email_html,
+    generate_proxy_comparison_summary_email_html,
+)
 from sec_rss_parser.models import (
     AccessionLookedUp,
     SECFiling,
@@ -69,13 +72,13 @@ from sec_rss_parser.models import (
 from sec_rss_parser.Eight_k_summary import summarize_8k_filing
 from sec_rss_parser.sec_summarizers.filing_router import route_and_summarize
 from sec_rss_parser.proxy_processor_helper import process_sec_document_for_filing_summary
+from sec_rss_parser.proxy_comparision.orchestrator import run_comparison
 
 logger = logging.getLogger(__name__)
 
-PROXY_SUMMARY_FORM_TYPES = [
-    "DEFM14A", "DEFM14C", "PREM14A", "PREM14C", "S-4", "F-4", "S-4/A", "F-4/A",
-]
-PROXY_FORM_TYPES = ["DEFM14A", "DEFM14C", "PREM14A", "PREM14C", "S-4", "F-4"]
+
+PROXY_FORM_TYPES = ["DEFM14A", "DEFM14C", "PREM14A",
+                    "PREM14C", "S-4", "F-4", "S-4/A", "F-4/A"]
 TEN_K_TEN_Q_FORM_TYPES = ["10-K", "10-Q"]
 
 LOG_PREFIX = "form by cik: "
@@ -560,6 +563,245 @@ def _ensure_sec_filing(item_data):
         log_and_print(
             f"{LOG_PREFIX} :_ensure_sec_filing: Failed to create SECFiling for {acc}: {e}", "error")
         return None, False
+
+
+# Form types that always use _process_proxy_item (no comparison lookup).
+PROXY_FORM_ALWAYS_STANDALONE = ["S-4", "F-4"]
+
+# For comparison path: form_type -> list of previous form_types to look up (by deal_id).
+PROXY_FORM_PREVIOUS_LOOKUP = {
+    "PREM14A": ["PREM14A"],
+    "PREM14C": ["PREM14C"],
+    "DEFM14A": ["PREM14A", "S-4", "S-4/A", "F-4", "F-4/A"],
+    "DEFM14C": ["PREM14C"],
+    "S-4/A": ["S-4", "S-4/A"],
+    "F-4/A": ["F-4", "F-4/A"],
+}
+
+
+def _get_previous_proxy_summary(deal_id, form_types, exclude_accession_number):
+    """Return the latest SECFilingSummary for this deal_id and form_type in list, excluding current accession."""
+    if not deal_id or not form_types:
+        return None
+    q = SECFilingSummary.objects(deal_id=deal_id, form_type__in=form_types)
+    if exclude_accession_number:
+        q = q.filter(accession_number__ne=exclude_accession_number)
+    return q.order_by("-created_at").first()
+
+
+def _get_current_proxy_summary(deal_id, accession_number, form_type):
+    """Return SECFilingSummary for the current filing (same deal_id and accession_number)."""
+    if not accession_number:
+        return None
+    doc = SECFilingSummary.objects(
+        deal_id=deal_id, accession_number=accession_number
+    ).first()
+    if doc:
+        return doc
+    return SECFilingSummary.objects(
+        accession_number=accession_number, form_type=form_type
+    ).first()
+
+
+def _sec_filing_summary_to_comparison_record(doc):
+    """Convert SECFilingSummary doc (or dict) to record shape for run_comparison."""
+    if doc is None:
+        return None
+    if hasattr(doc, "id"):
+        _id = str(doc.id)
+        sec_document_url = doc.sec_document_url
+        deal_id = doc.deal_id
+        form_type = doc.form_type
+        accession_number = doc.accession_number
+        cik_number = doc.cik_number
+        # Preserve proxy nested dict if present (orchestrator uses it for cache)
+        proxy = getattr(doc, "proxy", None)
+    else:
+        _id = str(doc.get("_id", doc.get("id", "")))
+        sec_document_url = doc.get("sec_document_url", "")
+        deal_id = doc.get("deal_id")
+        form_type = doc.get("form_type", "")
+        accession_number = doc.get("accession_number")
+        cik_number = doc.get("cik_number")
+        proxy = doc.get("proxy")
+    out = {
+        "_id": _id,
+        "sec_document_url": sec_document_url or "",
+        "deal_id": deal_id,
+        "form_type": form_type or "PROXY",
+        "accession_number": accession_number,
+        "cik_number": cik_number,
+    }
+    if proxy is not None:
+        out["proxy"] = proxy
+    return out
+
+
+def _send_proxy_comparison_email(
+    company_name,
+    form_type,
+    deal_id,
+    cik_number,
+    result_from_orchestrator,
+):
+    """Send proxy comparison summary email after run_comparison returns. Uses email_templates."""
+    try:
+        ticker = get_ticker_for_deal_and_cik(deal_id, cik_number)
+        subject, html = generate_proxy_comparison_summary_email_html(
+            company_name=company_name,
+            form_type=form_type,
+            ticker=ticker or "",
+            label=company_name or ticker,
+            deal_id=deal_id,
+            cik_number=cik_number,
+            past_record_id=result_from_orchestrator.get("past_id"),
+            latest_record_id=result_from_orchestrator.get("latest_id"),
+            change_docx_url=result_from_orchestrator.get("change_docx_url"),
+            change_txt_url=result_from_orchestrator.get("change_txt_url"),
+            changes_json_url=result_from_orchestrator.get("changes_json_url"),
+            tier1_changes=result_from_orchestrator.get("tier1_changes"),
+            tier2_changes=result_from_orchestrator.get("tier2_changes"),
+        )
+        payload = {
+            "subject": subject,
+            "html": html,
+            "company_name": company_name,
+            "form_type": form_type,
+            "email_type": "proxy_comparison_summary",
+            "change_docx_url": result_from_orchestrator.get("change_docx_url"),
+            "change_txt_url": result_from_orchestrator.get("change_txt_url"),
+            "changes_json_url": result_from_orchestrator.get("changes_json_url"),
+            "deal_id": deal_id,
+            "cik_number": cik_number,
+            "past_record_id": result_from_orchestrator.get("past_id"),
+            "latest_record_id": result_from_orchestrator.get("deal_id"),
+        }
+        send_webhook_notification(
+            N8N_WEBHOOK_URL_8K_SUMMARY, payload, "proxy comparison summary email"
+        )
+        log_and_print(
+            f"{LOG_PREFIX} :_send_proxy_comparison_email: ✅ Proxy comparison email sent for {form_type}"
+        )
+    except Exception as e:
+        log_and_print(
+            f"{LOG_PREFIX} :_send_proxy_comparison_email: ❌ Failed to send proxy comparison email: {e}",
+            "error",
+        )
+        logger.exception(
+            f"{LOG_PREFIX} :_send_proxy_comparison_email: error={e}"
+        )
+
+
+def _handle_proxy_form_by_type(item_data, html_data, filing):
+    """
+    Route proxy forms: run comparison (orchestrator + email) when a previous filing exists,
+    otherwise run _process_proxy_item (which sends email in its own flow).
+
+    - S-4, F-4: always _process_proxy_item.
+    - PREM14A (lookup previous PREM14A), PREM14C (lookup previous PREM14C), DEFM14A, DEFM14C,
+      S-4/A, F-4/A: lookup previous by deal_id + form_type list; if found -> run_comparison
+      then send proxy comparison email; if not found -> _process_proxy_item.
+    """
+    form_type = (
+        (item_data.get("form_type") or html_data.get(
+            "form_type") or "").strip().upper()
+    )
+    if form_type not in PROXY_FORM_TYPES:
+        logger.info(
+            f"{LOG_PREFIX} :_handle_proxy_form_by_type: form_type={form_type} not in PROXY_FORM_TYPES"
+        )
+        return
+
+    deal_id = item_data.get("deal_id") or _deal_id_for_cik(
+        item_data.get("cik_number") or html_data.get("cik_number")
+    )
+    accession_number = (
+        item_data.get("accession_number") or html_data.get("accession_number")
+    )
+    company_name = (
+        html_data.get("company_name") or item_data.get("company_name") or ""
+    )
+    cik_number = item_data.get("cik_number") or html_data.get("cik_number")
+
+    # Always standalone: no previous lookup, just process proxy item (email sent in that flow).
+    if form_type in PROXY_FORM_ALWAYS_STANDALONE:
+        logger.info(
+            f"{LOG_PREFIX} :_handle_proxy_form_by_type: form_type={form_type} using _process_proxy_item (standalone)"
+        )
+        _process_proxy_item(item_data, html_data, filing)
+        return
+
+    # Comparison path: need previous form_type list for this form_type.
+    previous_form_types = PROXY_FORM_PREVIOUS_LOOKUP.get(form_type)
+    if not previous_form_types:
+        logger.info(
+            f"{LOG_PREFIX} :_handle_proxy_form_by_type: form_type={form_type} no lookup map, using _process_proxy_item"
+        )
+        _process_proxy_item(item_data, html_data, filing)
+        return
+
+    previous_doc = _get_previous_proxy_summary(
+        deal_id, previous_form_types, exclude_accession_number=accession_number
+    )
+    if not previous_doc:
+        logger.info(
+            f"{LOG_PREFIX} :_handle_proxy_form_by_type: form_type={form_type} no previous filing found, using _process_proxy_item"
+        )
+        _process_proxy_item(item_data, html_data, filing)
+        return
+
+    # Both current and past are in DB: fetch current by deal_id + accession_number.
+    current_doc = _get_current_proxy_summary(
+        deal_id, accession_number, form_type)
+    if not current_doc:
+        log_and_print(
+            f"{LOG_PREFIX} :_handle_proxy_form_by_type: current summary not found in DB (deal_id={deal_id}, accession={accession_number}), falling back to _process_proxy_item",
+            "warning",
+        )
+        _process_proxy_item(item_data, html_data, filing)
+        return
+
+    # Convert DB docs to record dicts (same shape as test_runner / run_comparison expects).
+    current_record = _sec_filing_summary_to_comparison_record(current_doc)
+    past_record = _sec_filing_summary_to_comparison_record(previous_doc)
+    if not current_record or not past_record:
+        _process_proxy_item(item_data, html_data, filing)
+        return
+
+    logger.info(
+        f"{LOG_PREFIX} :_handle_proxy_form_by_type: form_type={form_type} running comparison (current={current_record.get('_id')}, past={past_record.get('_id')})"
+    )
+    try:
+        result = run_comparison(
+            latest_doc_record=current_record,
+            past_doc_record=past_record,
+        )
+        if result and result.get("status") == "complete":
+            _send_proxy_comparison_email(
+                company_name=company_name,
+                form_type=form_type,
+                deal_id=deal_id,
+                cik_number=cik_number,
+                result_from_orchestrator={
+                    **result,
+                    "past_id": past_record.get("_id"),
+                    "latest_id": current_record.get("_id"),
+                },
+            )
+        else:
+            log_and_print(
+                f"{LOG_PREFIX} :_handle_proxy_form_by_type: run_comparison did not return status=complete: {result}",
+                "warning",
+            )
+    except Exception as e:
+        log_and_print(
+            f"{LOG_PREFIX} :_handle_proxy_form_by_type: ❌ run_comparison failed: {e}",
+            "error",
+        )
+        logger.exception(
+            f"{LOG_PREFIX} :_handle_proxy_form_by_type: run_comparison error={e}"
+        )
+        _process_proxy_item(item_data, html_data, filing)
 
 
 def _process_proxy_item(item_data, html_data, filing):
@@ -1052,10 +1294,10 @@ def process_items(items):
             logger.exception(
                 f"{LOG_PREFIX} :process_items: _route_summarize_and_save error={summary_e}")
         try:
-            if form_type in PROXY_SUMMARY_FORM_TYPES:
+            if form_type in PROXY_FORM_TYPES:
                 logger.info(
-                    f"{LOG_PREFIX} :process_items: form_type={form_type} processing proxy item")
-                _process_proxy_item(item_data, html_data, filing)
+                    f"{LOG_PREFIX} :process_items: form_type={form_type} handling proxy (comparison or standalone)")
+                _handle_proxy_form_by_type(item_data, html_data, filing)
             elif form_type in TEN_K_TEN_Q_FORM_TYPES:
                 logger.info(
                     f"{LOG_PREFIX} :process_items: form_type={form_type} processing 10-K/10-Q item")

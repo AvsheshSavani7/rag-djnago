@@ -871,3 +871,78 @@ def generate_10k_10q_comparison_summary_email_html(
 </html>
 """
     return subject, html_email
+
+
+def generate_proxy_comparison_summary_email_html(
+    company_name: str,
+    form_type: str,
+    ticker: str,
+    label: str,
+    deal_id: str = None,
+    cik_number: str = None,
+    past_record_id: str = None,
+    latest_record_id: str = None,
+    change_docx_url: str = None,
+    change_txt_url: str = None,
+    changes_json_url: str = None,
+    tier1_changes: int = None,
+    tier2_changes: int = None,
+):
+    """Generate email HTML for proxy comparison (DEFM14A, S-4/A, etc.) with change report links.
+    Returns (subject, html). Used after proxy_comparision orchestrator run_comparison."""
+    company_esc = escape_html(company_name or "Unknown Company")
+    ticker_esc = escape_html(ticker or "")
+    form_esc = escape_html(form_type or "PROXY")
+    label_esc = escape_html(label or "")
+    subject = f"{label_esc} : ({form_esc}) - Proxy Comparison"
+
+    changes_line = ""
+    if tier1_changes is not None or tier2_changes is not None:
+        t1 = tier1_changes if tier1_changes is not None else 0
+        t2 = tier2_changes if tier2_changes is not None else 0
+        changes_line = f"<p style='color:#555;'>Tier 1 changes: <strong>{t1}</strong> | Tier 2 changes: <strong>{t2}</strong></p>"
+
+    links = []
+    if change_docx_url:
+        links.append(("Change report (DOCX)", change_docx_url))
+    if change_txt_url:
+        links.append(("Change report (TXT)", change_txt_url))
+    if changes_json_url:
+        links.append(("Changes data (JSON)", changes_json_url))
+
+    rows_html = "".join(
+        f'<tr><td style="padding:8px; border:1px solid #ddd;"><a href="{escape_html(url)}" style="color:#4a90e2;" target="_blank">{escape_html(label)}</a></td></tr>'
+        for label, url in links
+    )
+    links_table = (
+        f"""
+    <table style="width:100%; border-collapse:collapse; margin-top:10px;">
+      <thead><tr style="background-color:#f5f5f5;"><th style="padding:8px; border:1px solid #ddd; text-align:left;">Document</th></tr></thead>
+      <tbody>{rows_html}</tbody>
+    </table>
+"""
+        if rows_html
+        else "<p><em>No links available.</em></p>"
+    )
+
+    html_email = f"""
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><title>Proxy Comparison Summary</title></head>
+<body style="font-family: Arial, sans-serif; margin: 20px;">
+  <div style="max-width:900px;">
+    <h2 style="color:#333;">Proxy Comparison Summary</h2>
+    <p style="color:#555;">Company: <strong>{company_esc}</strong></p>
+    <p style="color:#555;">Form type: <strong>{form_esc}</strong></p>
+    <p style="color:#555;">Deal ID: <strong>{escape_html(deal_id or "")}</strong></p>
+    <p style="color:#555;">CIK Number: <strong>{escape_html(cik_number or "")}</strong></p>
+    <p style="color:#555;">Latest record ID: <strong>{escape_html(latest_record_id or "")}</strong></p>
+    <p style="color:#555;">Past record ID: <strong>{escape_html(past_record_id or "")}</strong></p>
+    {changes_line}
+    <p style="color:#555;">Links to change report and comparison data:</p>
+    {links_table}
+  </div>
+</body>
+</html>
+"""
+    return subject, html_email

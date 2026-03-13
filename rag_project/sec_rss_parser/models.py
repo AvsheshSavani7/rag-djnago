@@ -339,6 +339,27 @@ class SECFilingSummary(Document):
     #   "total_sections": int,
     #   "empty_sections": int,
     #   "iteration_count": int
+    #   "comparison": {   # Proxy comparison pipeline (S3 + MongoDB only)
+    #     "cache": {
+    #       "status": "pending|building|ready|error",
+    #       "form_type": str,
+    #       "form_family": str,
+    #       "filing_date": str,
+    #       "priority_facts_url": str,   # S3 URL (summary_json/proxy_comp_...)
+    #       "topic_blocks_url": str,
+    #       "sections_url": str,
+    #       "error": str|None
+    #     },
+    #     "result": {
+    #       "status": "pending|complete|error",
+    #       "changes_json_url": str,
+    #       "change_txt_url": str,
+    #       "change_docx_url": str,
+    #       "tier1_changes": int,
+    #       "tier2_changes": int,
+    #       "completed_at": str (ISO datetime)
+    #     }
+    #   }
     # }
     proxy = DictField(null=True)
 

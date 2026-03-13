@@ -67,31 +67,15 @@ def detect_filing_metadata(url: str, html: str = "") -> Tuple[str, str]:
     else:
         period_date = "unknown"
 
-    # Detect filing type from URL path or HTML
+    # Layer 1: Explicit match in URL
     url_lower = url.lower()
     if "10-k" in url_lower or "10k" in url_lower:
         filing_type = "10-K"
     elif "10-q" in url_lower or "10q" in url_lower:
         filing_type = "10-Q"
-    elif html:
-        # Search full HTML — XBRL preamble can push content past 10k chars
-        html_lower = html.lower()
-        # "form 10-q" / "form 10-k" is the most reliable marker in SEC filings
-        if re.search(r'form\s+10-k\b', html_lower) or "annual report" in html_lower[:50000]:
-            filing_type = "10-K"
-        elif re.search(r'form\s+10-q\b', html_lower) or "quarterly report" in html_lower[:50000]:
-            filing_type = "10-Q"
-        elif "10-k" in html_lower[:50000]:
-            filing_type = "10-K"
-        elif "10-q" in html_lower[:50000]:
-            filing_type = "10-Q"
-        else:
-            filing_type = "unknown"
-    else:
-        filing_type = "unknown"
 
-    # Heuristic: last-resort month/day inference (calendar fiscal years only)
-    if filing_type == "unknown" and period_date != "unknown":
+    # Layer 2: Period date heuristic — reliable for standard calendar fiscal years
+    elif period_date != "unknown":
         try:
             month = int(period_date.split("-")[1])
             day = int(period_date.split("-")[2])
@@ -99,8 +83,35 @@ def detect_filing_metadata(url: str, html: str = "") -> Tuple[str, str]:
                 filing_type = "10-K"
             elif month in (3, 6, 9) and day in (30, 31):
                 filing_type = "10-Q"
+            else:
+                filing_type = "unknown"   # non-standard fiscal year → fall to HTML
         except (IndexError, ValueError):
-            pass
+            filing_type = "unknown"
+
+    else:
+        filing_type = "unknown"
+
+    # Layer 3 & 4: HTML scan — only reached for non-standard fiscal years (e.g. AMWD April 30)
+    if filing_type == "unknown" and html:
+        html_lower = html.lower()
+
+        # Layer 3: strict — both form declaration AND report type must agree
+        if re.search(r'form\s+10-q\b', html_lower) and "quarterly report" in html_lower[:50000]:
+            filing_type = "10-Q"
+        elif re.search(r'form\s+10-k\b', html_lower) and "annual report" in html_lower[:50000]:
+            filing_type = "10-K"
+
+        # Layer 4: loose fallback — either signal alone
+        elif re.search(r'form\s+10-q\b', html_lower) or "quarterly report" in html_lower[:50000]:
+            filing_type = "10-Q"
+        elif re.search(r'form\s+10-k\b', html_lower) or "annual report" in html_lower[:50000]:
+            filing_type = "10-K"
+        elif "10-q" in html_lower[:50000]:
+            filing_type = "10-Q"
+        elif "10-k" in html_lower[:50000]:
+            filing_type = "10-K"
+        else:
+            filing_type = "unknown"
 
     return period_date, filing_type
 
