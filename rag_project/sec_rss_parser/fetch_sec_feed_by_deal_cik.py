@@ -1406,7 +1406,7 @@ def run_fetch_sec_feed_by_deal_cik(
                 logger.info(
                     f"{LOG_PREFIX} :run_fetch_sec_feed_by_deal_cik: raw={raw}")
                 feed_fetches += 1
-                if feed_fetches % 7 == 0:
+                if feed_fetches % 5 == 0:
                     time.sleep(1)
                 if not raw:
                     errors.append({"cik": cik, "deal_id": deal_id,
