@@ -120,6 +120,87 @@ def _deal_info_block(
     </div>"""
 
 
+def _render_l3_value(key: str, value: Any, level: int) -> str:
+    """
+    Render a single L3 key-value by type. Recursive for nested objects.
+    - string → L2-style block with key as label
+    - list of strings → key as label + <ul><li>...</li></ul>
+    - list of objects or single dict → recurse with level+1 and indent
+    """
+    indent_px = level * 20
+    margin_style = f"margin-left:{indent_px}px;" if indent_px else ""
+
+    if value is None:
+        return ""
+
+    if isinstance(value, str):
+        s = value.strip()
+        if not s:
+            return ""
+        return f"""
+    <div style="margin-bottom:12px; padding:10px; background-color:#eef5ff; border-left:4px solid #0b5ed7; border-radius:4px; {margin_style}">
+      <p style="margin:0 0 4px 0; font-size:11px; font-weight:bold; color:#0b5ed7; text-transform:uppercase; letter-spacing:0.5px;">{escape_html(key)}</p>
+      <p style="margin:0; font-size:13px; color:#333; line-height:1.5;">{escape_html(s)}</p>
+    </div>
+"""
+
+    if isinstance(value, list):
+        if not value:
+            return ""
+        if all(isinstance(item, str) for item in value):
+            items_html = "".join(
+                f'<li style="margin:4px 0; line-height:1.5;">{escape_html(str(item).strip())}</li>'
+                for item in value if str(item).strip()
+            )
+            if not items_html:
+                return ""
+            return f"""
+    <div style="margin-bottom:12px; padding:10px; background-color:#eef5ff; border-left:4px solid #0b5ed7; border-radius:4px; {margin_style}">
+      <p style="margin:0 0 6px 0; font-size:11px; font-weight:bold; color:#0b5ed7; text-transform:uppercase; letter-spacing:0.5px;">{escape_html(key)}</p>
+      <ul style="margin:0; padding-left:20px;">{items_html}</ul>
+    </div>
+"""
+        parts = []
+        for item in value:
+            if isinstance(item, dict):
+                parts.append(_render_l3_detailed(item, level + 1))
+            else:
+                parts.append(_render_l3_value(key, str(item), level))
+        if not parts:
+            return ""
+        key_label = f"""
+    <div style="margin-bottom:6px; {margin_style}">
+      <p style="margin:0; font-size:11px; font-weight:bold; color:#0b5ed7; text-transform:uppercase; letter-spacing:0.5px;">{escape_html(key)}</p>
+    </div>
+"""
+        return key_label + "".join(parts)
+
+    if isinstance(value, dict):
+        return _render_l3_detailed(value, level + 1)
+
+    return f"""
+    <div style="margin-bottom:12px; padding:10px; background-color:#eef5ff; border-left:4px solid #0b5ed7; border-radius:4px; {margin_style}">
+      <p style="margin:0 0 4px 0; font-size:11px; font-weight:bold; color:#0b5ed7; text-transform:uppercase; letter-spacing:0.5px;">{escape_html(key)}</p>
+      <p style="margin:0; font-size:13px; color:#333; line-height:1.5;">{escape_html(str(value))}</p>
+    </div>
+"""
+
+
+def _render_l3_detailed(l3_data: Dict[str, Any], level: int = 0) -> str:
+    """Recursively render L3 dict key-value pairs with type-based formatting and indent."""
+    if not l3_data or not isinstance(l3_data, dict):
+        return ""
+    parts = []
+    for k, v in l3_data.items():
+        if k is None:
+            continue
+        key_str = str(k).strip()
+        if not key_str:
+            continue
+        parts.append(_render_l3_value(key_str, v, level))
+    return "".join(parts)
+
+
 def _old_email_html(
     subject: str,
     feed_display_name_escaped: str,
@@ -220,12 +301,25 @@ def generate_rss_feed_item_email_html(
     # Optional summary block (from sec_rss_parser.sec_summarizers.filing_router)
     l1_headline = item.get("l1_headline")
     l2_brief = item.get("l2_brief")
+    l3_detailed = item.get("l3_detailed")
     s3_docx_url = item.get("s3_docx_url")
     s3_json_url = item.get("s3_json_url")
 
+    # L3: dict → recursive by type (string / list of strings / list of objects); str → legacy single block
+    l3_block = ""
+    if l3_detailed is not None:
+        if isinstance(l3_detailed, dict):
+            inner = (
+                '<p style="margin:0 0 6px 0; font-size:11px; font-weight:bold; color:#0b5ed7; text-transform:uppercase;">L3 — Detailed</p>'
+                + _render_l3_detailed(l3_detailed, 0)
+            )
+            l3_block = f'<div style="margin-top:12px;">{inner}</div>'
+        elif isinstance(l3_detailed, str) and l3_detailed.strip():
+            l3_block = f'<p style="margin:12px 0 0 0; font-size:13px; color:#333; line-height:1.5;">{escape_html(l3_detailed.strip())}</p>'
+
     summary_block = ""
-    if l1_headline or l2_brief or s3_docx_url or s3_json_url:
-        summary_parts = []
+    if l1_headline or l2_brief or l3_detailed or s3_docx_url or s3_json_url:
+        summary_parts: List[str] = []
         if l1_headline:
             summary_parts.append(
                 f'<p style="margin:0 0 4px 0; font-size:14px; font-weight:bold; color:#0b5ed7;">{escape_html(l1_headline)}</p>'
@@ -249,6 +343,8 @@ def generate_rss_feed_item_email_html(
             summary_parts.append(
                 f'<p style="margin:4px 0 0 0; font-size:12px; color:#555;">{"".join(link_bits)}</p>'
             )
+        if l3_block:
+            summary_parts.append(l3_block)
 
         if summary_parts:
             summary_block = (
