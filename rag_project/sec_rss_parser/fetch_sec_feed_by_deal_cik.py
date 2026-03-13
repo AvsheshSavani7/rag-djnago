@@ -12,6 +12,7 @@ Flow:
    - 8-K: generate summary for 8-K and EX-99.1 (if present), send emails, save to sec_filing_summary.eight_k.
    - TEN_K_TEN_Q_FORM_TYPES: save to sec_filing_summary.ten_k_ten_q (minimal record).
    - Other: generate summary (no email), save to sec_filing_summary.other_filings.
+   - change per second fetch 7 to 5
 
 Usage:
     cd rag_project && python sec_rss_parser/fetch_sec_feed_by_deal_cik.py
