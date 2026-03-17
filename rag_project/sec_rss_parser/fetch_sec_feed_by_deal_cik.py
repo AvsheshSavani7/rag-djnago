@@ -1252,12 +1252,19 @@ def process_items(items):
     processed = 0
     errors = []
     for idx, item_data in enumerate(unique):
-
         if idx > 0 and idx % 10 == 0:
             time.sleep(0.5)
         link = item_data.get("link")
         if not link:
             continue
+        acc = item_data.get("accession_number") or extract_accession_from_guid(item_data.get("guid"))
+        # Only process if we create the record; if it already exists, skip so we don't send duplicate summaries.
+        if acc:
+            _, created = AccessionLookedUp.objects.get_or_create(accession_number=acc)
+            if not created:
+                log_and_print(
+                    f"{LOG_PREFIX} :process_items: ⏭️ Skipping {acc} (already looked up)", "warning")
+                continue
         html_data = fetch_and_parse_html_by_form_type(
             link, form_type_from_feed=item_data.get("form_type")
         )
@@ -1274,14 +1281,6 @@ def process_items(items):
             item_data["cik_number"] = deal_cik
         item_data["deal_id"] = item_data.get(
             "deal_id") or _deal_id_for_cik(item_data.get("cik_number"))
-        # Mark accession as looked up immediately so overlapping runs (e.g. cron every minute)
-        # skip this item and don't process the same 10-K/proxy/8-K multiple times.
-        acc = item_data.get("accession_number")
-        if acc:
-            try:
-                AccessionLookedUp(accession_number=acc).save()
-            except Exception:
-                pass
         filing, _ = _ensure_sec_filing(item_data)
         form_type = (item_data.get("form_type") or "").strip().upper()
         logger.info(f"{LOG_PREFIX} :process_items: form_type={form_type}")
