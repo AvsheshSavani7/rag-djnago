@@ -1144,44 +1144,44 @@ def _route_summarize_and_save(item_data, html_data):
                     f"{LOG_PREFIX} :_route_summarize_and_save: 💾 Summary saved (parent-level) for {doc_form_type}")
 
                 # If 8-K with Item 5.02 (or 5.02): fetch one-year filings and send separate email
-                items_reported = result.get("items_reported") or []
-                _has_item_502 = any(
-                    "Item 5.02" in str(i) or str(i).strip() == "5.02"
-                    for i in items_reported
-                )
-                if form_type == "8-K" and doc_form_type == "8-K" and _has_item_502 and cik_number:
-                    try:
-                        start_date = (datetime.now() -
-                                      timedelta(days=365)).strftime("%Y-%m-%d")
-                        filings = fetch_sec_filings(
-                            str(cik_number), start_date=start_date)
-                        ticker_item502 = get_ticker_for_deal_and_cik(
-                            deal_id, cik_number)
-                        sec_subject, sec_html = generate_item_5_02_one_year_filings_email_html(
-                            company_name,
-                            filings,
-                            trigger_accession_number=accession_number,
-                            trigger_filing_date=filing_dt,
-                            cik_number=cik_number,
-                            ticker=ticker_item502,
-                        )
-                        payload = {
-                            "subject": sec_subject,
-                            "html": sec_html,
-                            "company_name": company_name,
-                            "email_type": "item_5_02_one_year_filings",
-                        }
-                        send_webhook_notification(
-                            N8N_WEBHOOK_URL_8K_SUMMARY, payload, "Item 5.02 one-year filings email"
-                        )
-                        log_and_print(
-                            f"{LOG_PREFIX} :_route_summarize_and_save: 📤 Sent Item 5.02 one-year filings email: {len(filings)} filings for {company_name}"
-                        )
-                    except Exception as item502_e:
-                        log_and_print(
-                            f"{LOG_PREFIX} :_route_summarize_and_save: ❌ Item 5.02 one-year filings email failed: {item502_e}",
-                            "error",
-                        )
+                # items_reported = result.get("items_reported") or []
+                # _has_item_502 = any(
+                #     "Item 5.02" in str(i) or str(i).strip() == "5.02"
+                #     for i in items_reported
+                # )
+                # if form_type == "8-K" and doc_form_type == "8-K" and _has_item_502 and cik_number:
+                #     try:
+                #         start_date = (datetime.now() -
+                #                       timedelta(days=365)).strftime("%Y-%m-%d")
+                #         filings = fetch_sec_filings(
+                #             str(cik_number), start_date=start_date)
+                #         ticker_item502 = get_ticker_for_deal_and_cik(
+                #             deal_id, cik_number)
+                #         sec_subject, sec_html = generate_item_5_02_one_year_filings_email_html(
+                #             company_name,
+                #             filings,
+                #             trigger_accession_number=accession_number,
+                #             trigger_filing_date=filing_dt,
+                #             cik_number=cik_number,
+                #             ticker=ticker_item502,
+                #         )
+                #         payload = {
+                #             "subject": sec_subject,
+                #             "html": sec_html,
+                #             "company_name": company_name,
+                #             "email_type": "item_5_02_one_year_filings",
+                #         }
+                #         send_webhook_notification(
+                #             N8N_WEBHOOK_URL_8K_SUMMARY, payload, "Item 5.02 one-year filings email"
+                #         )
+                #         log_and_print(
+                #             f"{LOG_PREFIX} :_route_summarize_and_save: 📤 Sent Item 5.02 one-year filings email: {len(filings)} filings for {company_name}"
+                #         )
+                #     except Exception as item502_e:
+                #         log_and_print(
+                #             f"{LOG_PREFIX} :_route_summarize_and_save: ❌ Item 5.02 one-year filings email failed: {item502_e}",
+                #             "error",
+                #         )
 
             # Send email with the generated summary (doc link + L1 headline)
             log_and_print(
@@ -1257,10 +1257,12 @@ def process_items(items):
         link = item_data.get("link")
         if not link:
             continue
-        acc = item_data.get("accession_number") or extract_accession_from_guid(item_data.get("guid"))
+        acc = item_data.get("accession_number") or extract_accession_from_guid(
+            item_data.get("guid"))
         # Only process if we create the record; if it already exists, skip so we don't send duplicate summaries.
         if acc:
-            _, created = AccessionLookedUp.objects.get_or_create(accession_number=acc)
+            _, created = AccessionLookedUp.objects.get_or_create(
+                accession_number=acc)
             if not created:
                 log_and_print(
                     f"{LOG_PREFIX} :process_items: ⏭️ Skipping {acc} (already looked up)", "warning")
