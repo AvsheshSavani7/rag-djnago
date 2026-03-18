@@ -1261,8 +1261,12 @@ def process_items(items):
             item_data.get("guid"))
         # Only process if we create the record; if it already exists, skip so we don't send duplicate summaries.
         if acc:
-            _, created = AccessionLookedUp.objects.get_or_create(
-                accession_number=acc)
+            existing = AccessionLookedUp.objects(accession_number=acc).first()
+            if existing:
+                created = False
+            else:
+                AccessionLookedUp(accession_number=acc).save()
+                created = True
             if not created:
                 log_and_print(
                     f"{LOG_PREFIX} :process_items: ⏭️ Skipping {acc} (already looked up)", "warning")
