@@ -60,8 +60,9 @@ def detect_filing_metadata(url: str, html: str = "") -> Tuple[str, str]:
     Extract period date and filing type from URL and/or HTML content.
     Returns (period_date, filing_type).
     """
-    # Try URL pattern first: ticker-YYYYMMDD.htm
-    date_match = re.search(r'(\d{4})(\d{2})(\d{2})\.htm', url)
+    # Try URL pattern first: ticker-YYYYMMDD.htm, YYYYMMDDx10k.htm, or YYYYMMDD_10k.htm
+    date_match = re.search(
+        r'(\d{4})(\d{2})(\d{2})(?:[x_]10[kq])?\.htm', url, re.IGNORECASE)
     if date_match:
         period_date = f"{date_match.group(1)}-{date_match.group(2)}-{date_match.group(3)}"
     else:

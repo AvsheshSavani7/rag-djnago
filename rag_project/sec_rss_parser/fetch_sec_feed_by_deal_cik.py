@@ -802,7 +802,7 @@ def _handle_proxy_form_by_type(item_data, html_data, filing):
         logger.exception(
             f"{LOG_PREFIX} :_handle_proxy_form_by_type: run_comparison error={e}"
         )
-        _process_proxy_item(item_data, html_data, filing)
+        # _process_proxy_item(item_data, html_data, filing)
 
 
 def _process_proxy_item(item_data, html_data, filing):
