@@ -111,8 +111,18 @@ class ProxyDB:
             upsert=True,
         )
 
+    def _ensure_proxy_object(self, record_id: str) -> None:
+        """Ensure proxy is an object (not null). MongoDB cannot set proxy.comparison.* when proxy is null."""
+        q = _id_filter(record_id)
+        # Only set proxy to {} when it is null or missing
+        self._coll.update_one(
+            {**q, "$or": [{"proxy": None}, {"proxy": {"$exists": False}}]},
+            {"$set": {"proxy": {}}},
+        )
+
     def set_cache_status(self, record_id: str, **fields: Any) -> None:
         """Update proxy.comparison.cache and updated_at for the document."""
+        self._ensure_proxy_object(record_id)
         update = {"$set": {"updated_at": datetime.now(timezone.utc)}}
         for k, v in fields.items():
             update["$set"][f"proxy.comparison.cache.{k}"] = v
@@ -126,6 +136,7 @@ class ProxyDB:
 
     def set_result_status(self, record_id: str, **fields: Any) -> None:
         """Update proxy.comparison.result and updated_at for the document."""
+        self._ensure_proxy_object(record_id)
         update = {"$set": {"updated_at": datetime.now(timezone.utc)}}
         for k, v in fields.items():
             update["$set"][f"proxy.comparison.result.{k}"] = v
