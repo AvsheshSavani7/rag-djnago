@@ -13,7 +13,8 @@ FEED_TITLE_DISPLAY_NAMES = {
     "All Acquisitions, Mergers and Takeovers News and Press Releases from PR Newswire": "PR News",
     "GlobeNewswire - Mergers and Acquisitions": "GlobeNewswire - Mergers and Acquisitions",
     "GlobeNewswire - Press Releases": "GlobeNewswire - Press Releases",
-    "news.cision.com": "Cision News"
+    "news.cision.com": "Cision News",
+    "NASDAQ": "NASDAQ"
 }
 
 FEED_TITLE_DISPLAY_NAME_2 = {
