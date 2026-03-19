@@ -178,8 +178,10 @@ class SECRSSParser:
     def _create_session(self):
         """Create requests session with retry strategy"""
         session = requests.Session()
+        # read=0: do not retry on ReadTimeoutError (avoids triple load when SEC is slow)
         retry_strategy = Retry(
             total=3,
+            read=0,
             backoff_factor=1,
             status_forcelist=[429, 500, 502, 503, 504],
         )
@@ -207,7 +209,7 @@ class SECRSSParser:
 
         try:
             response = rate_limited_get(
-                self.session, self.feed_url, headers=self.headers, timeout=30
+                self.session, self.feed_url, headers=self.headers, timeout=45
             )
             response.raise_for_status()
             return response.text
@@ -485,7 +487,7 @@ class SECRSSParser:
         """Fetch HTML from filing link and parse all relevant information"""
         try:
             response = rate_limited_get(
-                self.session, html_url, headers=self.headers, timeout=30
+                self.session, html_url, headers=self.headers, timeout=45
             )
             response.raise_for_status()
             html_content = response.text

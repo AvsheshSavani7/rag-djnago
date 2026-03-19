@@ -34,7 +34,7 @@ Currently wired into the two main feed/index paths that were hitting limits:
     - Now: single call via
       ```python
       response = rate_limited_get(
-          self.session, self.feed_url, headers=self.headers, timeout=30
+          self.session, self.feed_url, headers=self.headers, timeout=45
       )
       ```
     - Manual outer loop removed; retries are handled only by `urllib3.Retry`.
@@ -43,7 +43,7 @@ Currently wired into the two main feed/index paths that were hitting limits:
     - Now:
       ```python
       response = rate_limited_get(
-          self.session, html_url, headers=self.headers, timeout=30
+          self.session, html_url, headers=self.headers, timeout=45
       )
       ```
 
@@ -55,9 +55,9 @@ Currently wired into the two main feed/index paths that were hitting limits:
     - Before: manual `for attempt in range(3)` retry loop around `session.get(...)` **plus** a `Session` with `Retry(total=3, status_forcelist=[429, ...])`.
     - Now:
       ```python
-      resp = rate_limited_get(
-          session, url, headers=headers or DEFAULT_HEADERS, timeout=30
-      )
+        resp = rate_limited_get(
+            session, url, headers=headers or DEFAULT_HEADERS, timeout=45
+        )
       ```
     - Manual loop removed; only `Retry` on the adapter handles 429/5xx.
   - `fetch_and_parse_html_by_form_type(html_url, ...)`:
@@ -68,7 +68,7 @@ Currently wired into the two main feed/index paths that were hitting limits:
           requests,
           html_url,
           headers=DEFAULT_HEADERS,
-          timeout=30,
+          timeout=45,
       )
       ```
 
@@ -101,7 +101,22 @@ This combination greatly reduces the probability of sustained 429s from SEC due 
 
 ---
 
-### 4. Configuration & tuning
+### 4. Read timeouts and retries
+
+SEC sometimes responds slowly; the client can hit **ReadTimeoutError** (previously read timeout=30s, now 45s). By default, `urllib3.Retry` also retries on read errors, so one slow request became 3 attempts and produced "Retrying (Retry(total=1, ...)) after connection broken by 'ReadTimeoutError'" in logs.
+
+To avoid that:
+
+- **`read=0`** is set on all SEC `Retry` instances (`utils_8k.SECRSSParser._create_session` and `fetch_sec_feed_by_deal_cik.run_fetch_sec_feed_by_deal_cik`). We still retry on **429 / 5xx** (status_forcelist); we **do not** retry on read timeouts.
+- **Request timeout** for SEC GETs was increased from **30s to 45s** everywhere we call `rate_limited_get` (feed + index HTML), so SEC has more time to respond before we give up.
+
+Result: a slow SEC response either succeeds within 45s or fails once (no retry storm), and 429/5xx continue to be retried with backoff.
+
+**AccessionLookedUp and failures:** We only add an accession to `AccessionLookedUp` **after** the item has been successfully processed (HTML fetched, filing/summary logic run). If the request fails (e.g. read timeout) or we never get `html_data`, we do **not** add to the lookup, so the next run will retry that accession instead of skipping it forever.
+
+---
+
+### 5. Configuration & tuning
 
 - **Env var**: `SEC_MIN_REQ_INTERVAL`
   - Default: `0.2` (seconds) if unset.
@@ -114,7 +129,7 @@ Recommendation: keep the default `0.2` unless you have strong evidence that you 
 
 ---
 
-### 5. Limitations / future improvements
+### 6. Limitations / future improvements
 
 - **Per‑process only**:
   - The limiter is in‑memory. If you run multiple processes/containers from the same IP, each enforces its own rps, and the combined traffic could still exceed SEC’s global limit.
@@ -130,4 +145,34 @@ Use this file as the reference when:
 - Adjusting the SEC call rate, or
 - Debugging future SEC 429/rate‑limit issues, or
 - Extending rate limiting to other SEC HTTP callers under `sec_rss_parser`.
+
+---
+
+### 7. Concurrency lock and crash edge cases
+
+To prevent duplicate processing when `process_feed_8k.py` and `fetch_sec_feed_by_deal_cik.py` hit the same accession at nearly the same time, we added a Mongo lock:
+
+- **Model**: `AccessionProcessingLock` (`accession_number` unique, TTL on `expires_at`)
+- **Helpers**: `acquire_accession_lock`, `release_accession_lock`, `mark_accession_processed`
+
+Flow per accession:
+
+1. If already in `AccessionLookedUp` -> skip.
+2. Try to acquire lock:
+   - success -> process
+   - duplicate lock -> skip (another worker is processing)
+3. On success, mark accession in `AccessionLookedUp`.
+4. Release lock in `finally`.
+
+Crash edge case handling:
+
+- If a worker crashes, lock eventually expires (TTL), so the system can recover.
+- On stale-lock recovery, helper checks if `SECFilingSummary` or `SECFiling` already exists:
+  - if yes -> mark `AccessionLookedUp` and skip reprocessing (reduces duplicate side effects).
+  - if no -> delete stale lock and allow retry.
+
+Residual risk (cannot be fully eliminated without idempotent side effects):
+
+- If crash happens **after external side effect (e.g., email sent)** but **before any DB artifact / looked_up marker is written**, a later retry can still duplicate that side effect.
+- Full protection requires explicit idempotency keys for side-effect producers (email/webhook layer) keyed by `accession_number` + `email_type`.
 

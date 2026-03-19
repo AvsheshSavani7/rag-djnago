@@ -75,6 +75,11 @@ from sec_rss_parser.sec_summarizers.filing_router import route_and_summarize
 from sec_rss_parser.proxy_processor_helper import process_sec_document_for_filing_summary
 from sec_rss_parser.proxy_comparision.orchestrator import run_comparison
 from sec_rss_parser.sec_rate_limit import rate_limited_get
+from sec_rss_parser.accession_lock import (
+    acquire_accession_lock,
+    mark_accession_processed,
+    release_accession_lock,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -221,7 +226,7 @@ def fetch_and_parse_html_by_form_type(html_url, form_type_from_feed=None):
             requests,
             html_url,
             headers=DEFAULT_HEADERS,
-            timeout=30,
+            timeout=45,
         )
         resp.raise_for_status()
         soup = BeautifulSoup(resp.text, "html.parser")
@@ -343,7 +348,7 @@ def fetch_feed_for_cik(cik, session, headers=None):
     url = SEC_FEED_URL_TEMPLATE.format(cik=cik)
     try:
         resp = rate_limited_get(
-            session, url, headers=headers or DEFAULT_HEADERS, timeout=30
+            session, url, headers=headers or DEFAULT_HEADERS, timeout=45
         )
         resp.raise_for_status()
         return resp.text
@@ -1250,6 +1255,7 @@ def process_items(items):
     processed = 0
     errors = []
     for idx, item_data in enumerate(unique):
+        lock_owner = None
         if idx > 0 and idx % 10 == 0:
             time.sleep(0.5)
         link = item_data.get("link")
@@ -1257,17 +1263,18 @@ def process_items(items):
             continue
         acc = item_data.get("accession_number") or extract_accession_from_guid(
             item_data.get("guid"))
-        # Only process if we create the record; if it already exists, skip so we don't send duplicate summaries.
+        # Skip if already looked up; do not add to lookup here so read timeouts/failures can retry next run.
+        if acc and AccessionLookedUp.objects(accession_number=acc).first():
+            log_and_print(
+                f"{LOG_PREFIX} :process_items: ⏭️ Skipping {acc} (already looked up)", "warning")
+            continue
         if acc:
-            existing = AccessionLookedUp.objects(accession_number=acc).first()
-            if existing:
-                created = False
-            else:
-                AccessionLookedUp(accession_number=acc).save()
-                created = True
-            if not created:
+            lock_owner = acquire_accession_lock(acc, source="fetch_by_cik")
+            if not lock_owner:
                 log_and_print(
-                    f"{LOG_PREFIX} :process_items: ⏭️ Skipping {acc} (already looked up)", "warning")
+                    f"{LOG_PREFIX} :process_items: ⏭️ Skipping {acc} (in-progress by another worker or already finalized)",
+                    "warning",
+                )
                 continue
         html_data = fetch_and_parse_html_by_form_type(
             link, form_type_from_feed=item_data.get("form_type")
@@ -1310,11 +1317,17 @@ def process_items(items):
 
             logger.info(f"{LOG_PREFIX} :process_items: accession_number={acc}")
             processed += 1
+            # Only add to lookup after successful processing so read timeouts/failures can retry next run
+            if acc:
+                mark_accession_processed(acc)
         except Exception as e:
             errors.append({"accession": item_data.get(
                 "accession_number"), "message": str(e)})
             log_and_print(
                 f"{LOG_PREFIX} :process_items: ❌ Error processing item: {e}", "error")
+        finally:
+            if acc and lock_owner:
+                release_accession_lock(acc, lock_owner)
     return {"processed": processed, "errors": errors}
 
 
@@ -1387,7 +1400,8 @@ def run_fetch_sec_feed_by_deal_cik(
         }
     else:
         session = requests.Session()
-        retry = Retry(total=3, backoff_factor=1,
+        # read=0: do not retry on ReadTimeoutError (avoids triple load when SEC is slow)
+        retry = Retry(total=3, read=0, backoff_factor=1,
                       status_forcelist=[429, 500, 502, 503, 504])
         session.mount("https://", HTTPAdapter(max_retries=retry))
         session.mount("http://", HTTPAdapter(max_retries=retry))

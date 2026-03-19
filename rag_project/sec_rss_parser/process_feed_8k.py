@@ -43,6 +43,11 @@ from .sec_Last_Year import print_filings as fetch_sec_filings
 from document_processor.models import ProcessingJob
 from .services import process_8k_document_helper
 from .websocket_service import SECWebSocketService
+from .accession_lock import (
+    acquire_accession_lock,
+    mark_accession_processed,
+    release_accession_lock,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -220,9 +225,11 @@ class EightKFeedProcessor:
             }
 
     def _filter_unique_items(self, items):
-        """Filter items to only include new accession numbers"""
+        """Filter items to only include new accession numbers.
+        Do not add to AccessionLookedUp here; add only after successful processing
+        in _process_single_item so read timeouts / failures can be retried next run.
+        """
         unique_items = []
-        new_accession_numbers = []
         seen_accessions = set()
 
         for item_data in items:
@@ -270,23 +277,8 @@ class EightKFeedProcessor:
 
             seen_accessions.add(accession_number)
             unique_items.append(item_data)
-            new_accession_numbers.append(accession_number)
             logger.info(
                 f"{LOG_PREFIX} :_filter_unique_items: accession=%s reason=queued", accession_number)
-
-        # Bulk insert new accession numbers
-        if new_accession_numbers:
-            logger.info("filter_unique_items step=bulk_cache accessions_count=%s accessions=%s", len(
-                new_accession_numbers), new_accession_numbers[:10])
-            log_and_print(
-                f"{LOG_PREFIX} :_filter_unique_items: 💾 Adding {len(new_accession_numbers)} new accessions to AccessionLookedUp")
-            for acc_num in new_accession_numbers:
-                try:
-                    AccessionLookedUp(accession_number=acc_num).save()
-                except Exception as e:
-                    if 'duplicate' not in str(e).lower() and 'E11000' not in str(e):
-                        log_and_print(
-                            f"{LOG_PREFIX} :_filter_unique_items: Failed to save accession number {acc_num} to AccessionLookedUp: {e}", 'warning')
 
         return unique_items
 
@@ -583,6 +575,21 @@ class EightKFeedProcessor:
         """Process a single 8-K item"""
         accession_number = item_data.get(
             'accession_number') or extract_accession_from_guid(item_data.get('guid'))
+        lock_owner = None
+        if accession_number:
+            lock_owner = acquire_accession_lock(
+                accession_number, source="process_feed_8k"
+            )
+            if not lock_owner:
+                logger.info(
+                    f"{LOG_PREFIX} :_process_single_item: accession=%s step=skip reason=lock_or_looked_up",
+                    accession_number,
+                )
+                log_and_print(
+                    f"{LOG_PREFIX} :_process_single_item: ⏭️ Skipping {accession_number} (in-progress by another worker or already finalized)"
+                )
+                self.skipped_count += 1
+                return
         try:
             html_url = item_data.get('link')
             logger.info(f"{LOG_PREFIX} :_process_single_item: accession=%s step=start title=%s link=%s",
@@ -696,6 +703,12 @@ class EightKFeedProcessor:
                         self._process_ex99_filing(item_data, filing)
             logger.info(
                 f"{LOG_PREFIX} :_process_single_item: accession=%s step=done", accession_number)
+            # Only add to lookup after successful processing so read timeouts/failures can retry next run
+            if accession_number:
+                mark_accession_processed(accession_number)
+                logger.info(
+                    f"{LOG_PREFIX} :_process_single_item: accession=%s step=lookup_saved", accession_number
+                )
 
         except Exception as e:
             logger.exception(
@@ -706,6 +719,9 @@ class EightKFeedProcessor:
             log_and_print(
                 f"{LOG_PREFIX} :_process_single_item: {traceback.format_exc()}", 'error')
             self.error_count += 1
+        finally:
+            if accession_number and lock_owner:
+                release_accession_lock(accession_number, lock_owner)
 
     def _process_ex21_filing(self, item_data, filing_entry, other_filings=None):
         """Process 8-K filing with EX-2.1 (one document from filing_array).

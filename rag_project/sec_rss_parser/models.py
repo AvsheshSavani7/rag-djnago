@@ -182,6 +182,39 @@ class AccessionLookedUp(Document):
         return f"AccessionLookedUp - {self.accession_number}"
 
 
+class AccessionProcessingLock(Document):
+    """
+    Distributed lock per accession_number to prevent concurrent processing
+    across parallel workers/flows.
+    """
+    _id = StringField(primary_key=True, default=generate_object_id)
+
+    accession_number = StringField(required=True, unique=True, max_length=50)
+    owner_id = StringField(required=True, max_length=100)
+    expires_at = DateTimeField(required=True)
+
+    created_at = DateTimeField(default=datetime.utcnow)
+    updated_at = DateTimeField(default=datetime.utcnow)
+
+    v_version = IntField(default=0, db_field="__v")
+
+    meta = {
+        'collection': 'accession_processing_lock',
+        'indexes': [
+            {'fields': ['accession_number'], 'unique': True},
+            # TTL index: delete document when expires_at is reached
+            {'fields': ['expires_at'], 'expireAfterSeconds': 0},
+        ]
+    }
+
+    def save(self, *args, **kwargs):
+        self.updated_at = datetime.utcnow()
+        return super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"AccessionProcessingLock - {self.accession_number} - {self.owner_id}"
+
+
 class EightKSummary(Document):
     """Summary of an 8-K document (main 8-K filing document)."""
     _id = StringField(primary_key=True, default=generate_object_id)
