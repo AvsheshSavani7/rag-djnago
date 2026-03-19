@@ -16,6 +16,8 @@ import re
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin
 
+from sec_rss_parser.sec_rate_limit import rate_limited_get
+
 logger = logging.getLogger(__name__)
 
 # Constants
@@ -198,26 +200,20 @@ class SECRSSParser:
 
     def fetch_rss_feed(self):
         """Fetch RSS/Atom feed from SEC"""
-        max_retries = 3
         if not self.feed_url:
             log_and_print(
                 "Feed URL is not set; cannot fetch RSS/Atom feed", 'error')
             return None
 
-        for attempt in range(max_retries):
-            try:
-                time.sleep(2 + attempt)  # Progressive delay
-                response = self.session.get(
-                    self.feed_url, headers=self.headers, timeout=30)
-                response.raise_for_status()
-                return response.text
-            except Exception as e:
-                log_and_print(
-                    f"Error fetching RSS feed (attempt {attempt + 1}/{max_retries}): {e}", 'error')
-                if attempt == max_retries - 1:
-                    return None
-                time.sleep(5)
-        return None
+        try:
+            response = rate_limited_get(
+                self.session, self.feed_url, headers=self.headers, timeout=30
+            )
+            response.raise_for_status()
+            return response.text
+        except Exception as e:
+            log_and_print(f"Error fetching RSS feed: {e}", 'error')
+            return None
 
     def parse_rss_content(self, rss_content):
         """Parse the SEC Atom feed"""
@@ -488,9 +484,9 @@ class SECRSSParser:
     def fetch_and_parse_html(self, html_url, form_type_from_feed=None):
         """Fetch HTML from filing link and parse all relevant information"""
         try:
-            time.sleep(2)  # Be respectful to SEC servers
-            response = self.session.get(
-                html_url, headers=self.headers, timeout=30)
+            response = rate_limited_get(
+                self.session, html_url, headers=self.headers, timeout=30
+            )
             response.raise_for_status()
             html_content = response.text
 

@@ -74,6 +74,7 @@ from sec_rss_parser.Eight_k_summary import summarize_8k_filing
 from sec_rss_parser.sec_summarizers.filing_router import route_and_summarize
 from sec_rss_parser.proxy_processor_helper import process_sec_document_for_filing_summary
 from sec_rss_parser.proxy_comparision.orchestrator import run_comparison
+from sec_rss_parser.sec_rate_limit import rate_limited_get
 
 logger = logging.getLogger(__name__)
 
@@ -216,7 +217,8 @@ def fetch_and_parse_html_by_form_type(html_url, form_type_from_feed=None):
     Does not use services.py.
     """
     try:
-        resp = requests.get(
+        resp = rate_limited_get(
+            requests,
             html_url,
             headers=DEFAULT_HEADERS,
             timeout=30,
@@ -339,19 +341,15 @@ def get_ciks_for_deal(deal):
 
 def fetch_feed_for_cik(cik, session, headers=None):
     url = SEC_FEED_URL_TEMPLATE.format(cik=cik)
-    for attempt in range(3):
-        try:
-            resp = session.get(
-                url, headers=headers or DEFAULT_HEADERS, timeout=30)
-            resp.raise_for_status()
-            return resp.text
-        except Exception as e:
-            logger.warning(
-                "Fetch attempt %s for CIK %s failed: %s", attempt + 1, cik, e)
-            if attempt == 2:
-                return None
-            time.sleep(5)
-    return None
+    try:
+        resp = rate_limited_get(
+            session, url, headers=headers or DEFAULT_HEADERS, timeout=30
+        )
+        resp.raise_for_status()
+        return resp.text
+    except Exception as e:
+        logger.warning("Fetch for CIK %s failed: %s", cik, e)
+        return None
 
 
 def parse_atom_to_items(rss_content, cik_number=None, deal_id=None):
