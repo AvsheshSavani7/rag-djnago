@@ -428,6 +428,167 @@ def generate_8k_summary_async(deal_id, company_name, form_type, cik_number, sec_
         log_and_print(f"❌ Error in generate_8k_summary_async: {e}", 'error')
 
 
+def _fetch_recent_deals_excerpts(limit=10):
+    """
+    Fetch the N most recent deals and return a list of deal excerpts (deal_id + key fields)
+    for GPT matching. Returns list of dicts with deal_id, target_name, acquire_name, target_cik,
+    acquirer_cik, target_ticker, acquirer_ticker, announce_date.
+    """
+    try:
+        jobs = ProcessingJob.objects.order_by('-createdAt').limit(limit)
+        excerpts = []
+        for job in jobs:
+            aid = str(job.id)
+            ann = job.announce_date
+            ann_str = ann.strftime(
+                '%Y-%m-%d') if ann and hasattr(ann, 'strftime') else (str(ann) if ann else '')
+            excerpts.append({
+                "deal_id": aid,
+                "target_name": (job.target_name or '').strip(),
+                "acquire_name": (job.acquire_name or '').strip(),
+                "target_cik": (job.cik or '').strip() if job.cik else '',
+                "acquirer_cik": (job.acquirer_cik or '').strip() if job.acquirer_cik else '',
+                "target_ticker": (job.target_ticker or '').strip() if job.target_ticker else '',
+                "acquirer_ticker": (job.acquirer_ticker or '').strip() if job.acquirer_ticker else '',
+                "announce_date": ann_str,
+                "url": (job.sec_url or '').strip() if job.sec_url else '',
+            })
+        return excerpts
+    except Exception as e:
+        log_and_print(
+            f"⚠️ Failed to fetch recent deals for matching: {e}", 'warning')
+        return []
+
+
+def _match_deal_with_gpt(current_deal_str, excerpts_str):
+    """
+    Ask GPT whether the current deal details match any of the given deal excerpts.
+    Returns matched deal_id (str) if one match is found, else None.
+    """
+    if not openai or not os.environ.get("OPENAI_API_KEY"):
+        return None
+    if not excerpts_str or not current_deal_str:
+        return None
+    prompt = f"""You are an expert M&A deal matcher.
+
+Your task is to determine whether the "Current deal details" refer to the SAME M&A deal as one of the "Existing deals".
+
+Match deals using the following priority:
+
+1. STRONG MATCH (any of these is enough):
+   - Exact match of target_cik OR acquirer_cik
+   - Exact match of both target_name AND acquire_name
+
+2. MEDIUM MATCH:
+   - Similar target_name (ignore suffixes like Inc., Ltd., plc, Corp.)
+   - Similar acquire_name
+   - AND announcement dates are within ±3 days
+
+3. WEAK MATCH (only if no strong/medium match):
+   - Matching tickers (target_ticker or acquirer_ticker)
+   - OR strong partial name overlap (e.g., "AZEK" vs "The AZEK Company Inc.")
+
+Important rules:
+- Treat parent company and merger subsidiary as the SAME acquirer.
+- Ignore minor formatting differences in names.
+- If multiple matches exist, choose the BEST match (highest confidence).
+- If no confident match exists, return no match.
+
+
+Existing deals (each has deal_id; match to this if it's the same deal):
+{excerpts_str}
+
+Current deal details (from a new 8-K/EX-2.1 filing):
+{current_deal_str}
+
+Return ONLY valid JSON in this exact format:
+- If the current deal matches ONE existing deal: {{ "matched": true, "deal_id": "<that deal_id>" }}
+- If it does not match any existing deal: {{ "matched": false, "deal_id": null }}
+
+Use only the deal_id values from the Existing deals list. Return nothing else."""
+
+    try:
+        client = openai.OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+        response = client.responses.create(
+            model="gpt-5.2",
+            tools=[{"type": "web_search"}],
+            input=prompt,
+            reasoning={"effort": "high"},
+        )
+        text = None
+        for item in response.output:
+            if getattr(item, "type", None) == "message" and hasattr(item, "content"):
+                for content_item in item.content:
+                    if getattr(content_item, "type", None) == "output_text":
+                        text = getattr(content_item, "text", None)
+                        break
+            if text:
+                break
+        text = (text or "").strip()
+        print(f"GPT Response: {text}")
+        if not text:
+            return None
+        # Strip markdown code block if present
+        if "```" in text:
+            start = text.find("{")
+            end = text.rfind("}") + 1
+            if start != -1 and end > start:
+                text = text[start:end]
+        else:
+            start, end = text.find("{"), text.rfind("}") + 1
+            if start != -1 and end > start:
+                text = text[start:end]
+        parsed = json.loads(text)
+        if parsed.get("matched") and parsed.get("deal_id"):
+            return str(parsed["deal_id"]).strip()
+        return None
+    except Exception as e:
+        log_and_print(f"⚠️ GPT deal match failed: {e}", 'warning')
+        return None
+
+
+def _update_existing_deal_with_details(deal_id, data):
+    """
+    Update an existing ProcessingJob (deal) with current 8-K details.
+    data should have target_cik, target_name, acquirer_cik, acquirer_name, target_ticker,
+    acquirer_ticker, announce_data (date str), and optionally url (sec_url).
+    """
+    try:
+        job = ProcessingJob.objects.get(id=deal_id)
+    except Exception as e:
+        log_and_print(
+            f"⚠️ Could not load deal {deal_id} for update: {e}", 'warning')
+        return False
+    try:
+        if data.get('target_cik'):
+            job.cik = str(data['target_cik']).strip()
+        if data.get('target_name'):
+            job.target_name = str(data['target_name']).strip()
+        if data.get('acquirer_cik'):
+            job.acquirer_cik = str(data['acquirer_cik']).strip()
+        if data.get('acquirer_name'):
+            job.acquire_name = str(data['acquirer_name']).strip()
+        if data.get('target_ticker'):
+            job.target_ticker = str(data['target_ticker']).strip()
+        if data.get('acquirer_ticker'):
+            job.acquirer_ticker = str(data['acquirer_ticker']).strip()
+        if data.get('announce_data'):
+            job.announce_date = parse_filing_date(data['announce_data'])
+        if data.get('sec_filing_id'):
+            job.sec_filing_id = str(data['sec_filing_id']).strip()
+        if data.get('url'):
+            job.sec_url = str(data['url']).strip()
+        job.deal_status = "Open"
+        job.updatedAt = datetime.utcnow()
+        job.save()
+        log_and_print(
+            f"✅ Updated existing deal {deal_id} with current 8-K details")
+        return True
+    except Exception as e:
+        log_and_print(f"⚠️ Failed to update deal {deal_id}: {e}", 'warning')
+        return False
+
+
 def process_8k_document_async(ex21_url, cik_number, company_name, sec_filing_id, filing_date, item_data, company_details):
     """Async function to process 8-K document using Node API."""
     try:
@@ -473,27 +634,60 @@ def process_8k_document_async(ex21_url, cik_number, company_name, sec_filing_id,
                 sec_filing_id, "Fail", f"Could not obtain all required fields: {', '.join(missing_fields)}")
             return
 
+        # Fetch recent deals, build excerpts, and ask GPT if current deal matches any existing deal
+        matched_deal_id = None
+        recent_excerpts = _fetch_recent_deals_excerpts(limit=10)
+        if recent_excerpts:
+            excerpts_str = "\n\n".join(
+                f"deal_id: {e['deal_id']}\n  target_name: {e['target_name']}\n  acquire_name: {e['acquire_name']}\n  target_cik: {e['target_cik']}\n  acquirer_cik: {e['acquirer_cik']}\n  target_ticker: {e['target_ticker']}\n  acquirer_ticker: {e['acquirer_ticker']}\n  announce_date: {e['announce_date']}\n  url: {e['url']}"
+                for e in recent_excerpts
+            )
+            current_deal_str = (
+                f"target_name: {data.get('target_name', '')}\n"
+                f"acquire_name: {data.get('acquirer_name', '')}\n"
+                f"target_cik: {data.get('target_cik', '')}\n"
+                f"acquirer_cik: {data.get('acquirer_cik', '')}\n"
+                f"target_ticker: {data.get('target_ticker', '')}\n"
+                f"acquirer_ticker: {data.get('acquirer_ticker', '')}\n"
+                f"announce_data: {data.get('announce_data', '')}\n"
+                f"url: {data.get('url', '')}"
+            )
+            matched_deal_id = _match_deal_with_gpt(
+                current_deal_str, excerpts_str)
+            if matched_deal_id:
+                log_and_print(
+                    f"🔗 Current 8-K matched existing deal_id: {matched_deal_id}")
+                _update_existing_deal_with_details(matched_deal_id, data)
+            else:
+                log_and_print(
+                    "📋 No matching existing deal; will create new deal via Node API")
+
         # Send processing started event
         doc_processor = DocumentProcessingService()
         doc_processor._send_sec_filing_event(sec_filing_id, "In Progress")
 
+        # Build Node API payload (include deal_id when we matched an existing deal so backend can associate if supported)
+        node_payload = {
+            "url": ex21_url,
+            "target_cik": data.get('target_cik', ''),
+            "announce_data": data.get('announce_data'),
+            "target_name": data.get('target_name', ''),
+            "acquired_name": data.get('acquirer_name', ''),
+            "sec_filing_id": sec_filing_id,
+            "acquirer_cik": data.get('acquirer_cik', ''),
+            "target_ticker": data.get('target_ticker', ''),
+            "acquirer_ticker": data.get('acquirer_ticker', ''),
+            "is_from_ui": False
+        }
+        if matched_deal_id:
+            node_payload["deal_id"] = matched_deal_id
+
         # Call Node API
-        log_and_print(f"📞 Calling Node API with data: {data}")
+        log_and_print(f"📞 Calling Node API with data: {node_payload}")
         response = call_node_api(
             endpoint="deal/process-with-url",
             method="POST",
-            data={
-                "url": ex21_url,
-                "target_cik": data.get('target_cik', ''),
-                "announce_data": data.get('announce_data'),
-                "target_name": data.get('target_name', ''),
-                "acquired_name": data.get('acquirer_name', ''),
-                "sec_filing_id": sec_filing_id,
-                "acquirer_cik": data.get('acquirer_cik', ''),
-                "target_ticker": data.get('target_ticker', ''),
-                "acquirer_ticker": data.get('acquirer_ticker', ''),
-                "is_from_ui": False
-            }
+            data=node_payload
         )
 
         log_and_print(f"📥 Node API response: {response}")

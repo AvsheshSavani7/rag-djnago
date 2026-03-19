@@ -370,7 +370,8 @@ def prompt_1_deal_we_follow(
     Prompt 1: Does this article say anything about a deal we follow?
     Returns: { "match": bool, "deal_id": str|None, "matched_side": str|None, "match_keywords": list|None }
     """
-    out = {"match": False, "deal_id": None, "matched_side": None, "match_keywords": None}
+    out = {"match": False, "deal_id": None,
+           "matched_side": None, "match_keywords": None}
     parsed = _call_llm_json_with_web_search(
         PROMPT_1_DEAL_WE_FOLLOW.format(
             deals_record=deals_record_string or "(no deals)",
@@ -383,22 +384,23 @@ def prompt_1_deal_we_follow(
     did = parsed.get("deal_id")
     if did is not None:
         out["deal_id"] = str(did).strip() or None
-    
+
     # Parse and normalize matched_side
     matched_side = parsed.get("matched_side")
     if matched_side and isinstance(matched_side, str):
         matched_side_lower = matched_side.strip().lower()
         if matched_side_lower in ("target", "acquirer", "both"):
             out["matched_side"] = matched_side_lower
-    
+
     # Parse and normalize match_keywords (array of strings)
     match_keywords = parsed.get("match_keywords")
     if match_keywords is not None and isinstance(match_keywords, list):
-        keywords = [str(k).strip() for k in match_keywords if k is not None and str(k).strip()]
+        keywords = [str(k).strip()
+                    for k in match_keywords if k is not None and str(k).strip()]
         if keywords:
             # Cap at 20 keywords to avoid bloat
             out["match_keywords"] = keywords[:20]
-    
+
     return out
 
 
@@ -637,6 +639,7 @@ def create_deal_from_extracted(extracted: Dict[str, Any]) -> Optional[Any]:
         summary_using="openai-gpt-4",
         file_url="https://placeholder.com",
         pdf_url="https://placeholder.com",
+        deal_status="Unknown"
     )
     job.save()
     logger.info("Created new deal from RSS news: %s / %s (ID: %s)",
@@ -753,7 +756,7 @@ def resolve_rss_item_flow(
         result["email_note"] = "existing_deal"
         if result["deal_info"]:
             result["deal_info"]["in_db"] = True
-        
+
         # Add match details from Prompt 1
         match_details = {}
         if p1.get("matched_side"):
@@ -762,8 +765,9 @@ def resolve_rss_item_flow(
             match_details["match_keywords"] = p1["match_keywords"]
         if match_details:
             result["match_details"] = match_details
-        
-        logger.debug("Prompt 1 match deal_id: %s, matched_side: %s", deal_id, p1.get("matched_side"))
+
+        logger.debug("Prompt 1 match deal_id: %s, matched_side: %s",
+                     deal_id, p1.get("matched_side"))
         return result
 
     # Prompt 2: Is it self-announce new merger? Extract deal fields.
