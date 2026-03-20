@@ -15,10 +15,12 @@ import threading
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin
 from concurrent.futures import ThreadPoolExecutor, as_completed
+import importlib.util
 from django.core.mail import send_mail, EmailMultiAlternatives
 from django.conf import settings
 from bson import ObjectId
 from mongoengine.errors import NotUniqueError
+from .s3_upload_utils import build_parsed_jsons_s3_key, upload_json_file_to_s3
 from .models import SECFiling, SECFeedStatus, LastCronJob, AccessionLookedUp, EightKSummary, Ex99_1Summary, TenKTenQSummary
 from .document_analyzer import SECDocumentAnalyzer
 from .websocket_service import SECWebSocketService
@@ -28,6 +30,8 @@ from .email_templates import (
     generate_8k_summary_email_html,
     generate_sec_filings_email_html,
     generate_8k_99_1_summary_email_html,
+    generate_parsing_error_email_html,
+    generate_parsing_success_email_html,
 )
 from .sec_Last_Year import print_filings as fetch_sec_filings
 
@@ -49,6 +53,8 @@ logger = logging.getLogger(__name__)
 N8N_WEBHOOK_URL_8K_SUMMARY = "https://n8n-xwx1.onrender.com/webhook/b3007d21-6845-47b5-aece-7b26583758bc"  # to avs/kd/josh
 N8N_WEBHOOK_URL_FILING = "https://n8n-xwx1.onrender.com/webhook/3ff1b0ea-7114-4dda-940e-95ce81e08017"  # to all
 N8N_WEBHOOK_URL_FOR_TESTING = "https://n8n-xwx1.onrender.com/webhook/80830c6d-ff5b-45e3-9ef3-a061db1fbf0c"  # only avshesh
+N8N_WEBHOOK_URL_PARSING_ERROR = "https://n8n-xwx1.onrender.com/webhook/80830c6d-ff5b-45e3-9ef3-a061db1fbf0c"
+N8N_WEBHOOK_URL_PARSING_SUCCESS = "https://n8n-xwx1.onrender.com/webhook/80830c6d-ff5b-45e3-9ef3-a061db1fbf0c"
 
 SEC_BASE_URL = "https://www.sec.gov"
 ATOM_NAMESPACE = "http://www.w3.org/2005/Atom"
@@ -559,6 +565,7 @@ def _update_existing_deal_with_details(deal_id, data):
         log_and_print(
             f"⚠️ Could not load deal {deal_id} for update: {e}", 'warning')
         return False
+
     try:
         if data.get('target_cik'):
             job.cik = str(data['target_cik']).strip()
@@ -587,6 +594,83 @@ def _update_existing_deal_with_details(deal_id, data):
     except Exception as e:
         log_and_print(f"⚠️ Failed to update deal {deal_id}: {e}", 'warning')
         return False
+
+
+_EXTRACTION_2_1_MODULE = None
+
+
+def _get_extraction_worker():
+    """
+    Load worker() from document_processor/extraction_2-1.py.
+    The filename has a hyphen so we use importlib.
+    """
+    global _EXTRACTION_2_1_MODULE
+    if _EXTRACTION_2_1_MODULE is not None:
+        return _EXTRACTION_2_1_MODULE.worker
+
+    extraction_path = os.path.join(
+        os.path.dirname(os.path.dirname(__file__)),
+        "document_processor",
+        "extraction_2-1.py",
+    )
+    spec = importlib.util.spec_from_file_location(
+        "extraction_2_1",
+        extraction_path,
+    )
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    _EXTRACTION_2_1_MODULE = module
+    return module.worker
+
+
+def _create_processing_job_deal(data: dict, sec_filing_id: str, sec_url: str, parsed_json_url: str):
+    """
+    Create a ProcessingJob (deal) directly in MongoDB.
+    """
+    job = ProcessingJob(
+        cik=(data.get("target_cik") or "").strip() or None,
+        target_name=(data.get("target_name") or "").strip() or None,
+        acquirer_cik=(data.get("acquirer_cik") or "").strip() or None,
+        acquire_name=(data.get("acquirer_name") or "").strip() or None,
+        target_ticker=(data.get("target_ticker") or "").strip() or None,
+        acquirer_ticker=(data.get("acquirer_ticker") or "").strip() or None,
+        announce_date=parse_filing_date(data.get("announce_data") or ""),
+        embedding_status="PENDING",
+        summary_status="PENDING",
+        sec_filing_id=sec_filing_id,
+        parsed_json_url=parsed_json_url,
+        sec_url=sec_url,
+        deal_status="Open",
+    )
+    job.save()
+    return str(job.id)
+
+
+def _reset_job_for_reprocessing(deal_id: str, sec_filing_id: str, sec_url: str, parsed_json_url: str):
+    """
+    Reset fields that would otherwise cause summary generation to trigger immediately.
+    """
+    try:
+        job = ProcessingJob.objects.get(id=ObjectId(deal_id))
+    except Exception:
+        return
+
+    try:
+        job.parsed_json_url = parsed_json_url
+        job.sec_filing_id = sec_filing_id
+        job.sec_url = sec_url
+        job.embedding_status = "PENDING"
+        job.summary_status = "PENDING"
+        job.schema_results = None
+        job.schema_processing_completed = False
+        job.flattened_json_url = None
+        job.summary_docx_url = None
+        job.error_message = None
+        job.updatedAt = datetime.utcnow()
+        job.save()
+    except Exception:
+        # Best-effort: even if reset fails, process_document can still run.
+        return
 
 
 def process_8k_document_async(ex21_url, cik_number, company_name, sec_filing_id, filing_date, item_data, company_details):
@@ -660,13 +744,14 @@ def process_8k_document_async(ex21_url, cik_number, company_name, sec_filing_id,
                 _update_existing_deal_with_details(matched_deal_id, data)
             else:
                 log_and_print(
-                    "📋 No matching existing deal; will create new deal via Node API")
+                    "📋 No matching existing deal; will create deal via extraction/upload (fallback: Node API)")
 
         # Send processing started event
         doc_processor = DocumentProcessingService()
         doc_processor._send_sec_filing_event(sec_filing_id, "In Progress")
 
-        # Build Node API payload (include deal_id when we matched an existing deal so backend can associate if supported)
+        # Build Node API payload (include deal_id when we matched an existing deal)
+        # Note: we only call Node API if extraction/upload fails.
         node_payload = {
             "url": ex21_url,
             "target_cik": data.get('target_cik', ''),
@@ -682,61 +767,291 @@ def process_8k_document_async(ex21_url, cik_number, company_name, sec_filing_id,
         if matched_deal_id:
             node_payload["deal_id"] = matched_deal_id
 
-        # Call Node API
-        log_and_print(f"📞 Calling Node API with data: {node_payload}")
-        response = call_node_api(
-            endpoint="deal/process-with-url",
-            method="POST",
-            data=node_payload
-        )
+        sec_filing_accession_number = item_data.get(
+            "accession_number", "") or ""
+        extracted_json_url = None
+        deal_id = matched_deal_id
+        form_type = item_data.get("form_type", "8-K(2.1)")
+        extraction_result = None
+        extraction_warnings = []
+        parsing_error_sent = False
+        parsing_success_sent = False
 
-        log_and_print(f"📥 Node API response: {response}")
+        def _send_parsing_error_email(error_message: str, log_records: list):
+            nonlocal parsing_error_sent
+            if parsing_error_sent:
+                return
+            parsing_error_sent = True
 
-        # Check if we got a successful response with jsonUrl
-        if response.get('status') and response.get('data', {}).get('jsonUrl'):
-            deal_id = response['data'].get('deal_id')
-            json_url = response['data']['jsonUrl']
+            try:
+                subject, html_email = generate_parsing_error_email_html(
+                    company_name=company_name,
+                    form_type=form_type,
+                    sec_filing_id=sec_filing_id,
+                    sec_url=ex21_url,
+                    accession_number=sec_filing_accession_number,
+                    error_message=error_message,
+                    log_records=log_records,
+                )
 
-            if deal_id:
+                payload = {
+                    "subject": subject,
+                    "html": html_email,
+                    "company_name": company_name,
+                    "accession_number": sec_filing_accession_number,
+                    "form_type": form_type,
+                    "email_type": "parsing_error",
+                    "sec_filing_id": sec_filing_id,
+                    "sec_url": ex21_url,
+                }
+
+                send_webhook_notification(
+                    N8N_WEBHOOK_URL_PARSING_ERROR,
+                    payload,
+                    "parsing_error",
+                )
+            except Exception as email_e:
+                # Never block the main processing flow due to webhook/email issues.
+                log_and_print(
+                    f"❌ Failed to send parsing error email via webhook: {email_e}",
+                    "error",
+                )
+
+        def _send_parsing_success_email(log_records: list, parsed_json_url: str):
+            nonlocal parsing_success_sent
+            if parsing_success_sent:
+                return
+            parsing_success_sent = True
+
+            try:
+                subject, html_email = generate_parsing_success_email_html(
+                    company_name=company_name,
+                    form_type=form_type,
+                    sec_filing_id=sec_filing_id,
+                    sec_url=ex21_url,
+                    accession_number=sec_filing_accession_number,
+                    parsed_json_url=parsed_json_url,
+                    deal_id=deal_id,
+                    log_records=log_records,
+                )
+
+                payload = {
+                    "subject": subject,
+                    "html": html_email,
+                    "company_name": company_name,
+                    "accession_number": sec_filing_accession_number,
+                    "form_type": form_type,
+                    "email_type": "parsing_success",
+                    "sec_filing_id": sec_filing_id,
+                    "sec_url": ex21_url,
+                    "deal_id": deal_id,
+                    "parsed_json_url": parsed_json_url,
+                }
+
+                send_webhook_notification(
+                    N8N_WEBHOOK_URL_PARSING_SUCCESS,
+                    payload,
+                    "parsing_success",
+                )
+            except Exception as email_e:
+                # Never block the main processing flow due to webhook/email issues.
+                log_and_print(
+                    f"❌ Failed to send parsing success email via webhook: {email_e}",
+                    "error",
+                )
+
+        # 1) Try local extraction + S3 upload first
+        try:
+            worker = _get_extraction_worker()
+            extraction_result = worker(ex21_url)
+
+            if extraction_result and extraction_result.get("status") == "success":
+                output = extraction_result.get("output")
+                output_file = extraction_result.get("output_file")
+                extraction_warnings = extraction_result.get(
+                    "warnings") or []
+
+                # Valid means: non-empty JSON output + output file exists.
+                if (
+                    isinstance(output, list)
+                    and len(output) > 0
+                    and output_file
+                    and os.path.exists(output_file)
+                ):
+                    s3_key = build_parsed_jsons_s3_key(
+                        ex21_url,
+                        sec_filing_accession_number,
+                    )
+                    extracted_json_url = upload_json_file_to_s3(
+                        output_file,
+                        s3_key,
+                    )
+                else:
+                    error_message = (
+                        "Extraction returned empty/invalid JSON for "
+                        f"{ex21_url}"
+                    )
+                    log_and_print(
+                        f"❌ {error_message}",
+                        "error",
+                    )
+                    _send_parsing_error_email(
+                        error_message=error_message,
+                        log_records=extraction_warnings,
+                    )
+            else:
+                extraction_warnings = extraction_result.get(
+                    "warnings") or [] if extraction_result else []
+                extraction_reason = extraction_result.get(
+                    "reason") if extraction_result else None
+                error_message = (
+                    extraction_reason
+                    or f"Extraction failed for {ex21_url}: {extraction_result}"
+                )
+
+                log_and_print(
+                    f"❌ {error_message}",
+                    "error",
+                )
+                _send_parsing_error_email(
+                    error_message=error_message,
+                    log_records=extraction_warnings,
+                )
+        except Exception as e:
+            extraction_warnings = []
+            log_and_print(
+                f"❌ Extraction worker threw an error: {e}",
+                "error",
+            )
+
+        # 2) If extraction/upload succeeded, create/reset deal + process_document
+        if extracted_json_url:
+            try:
+                if not deal_id:
+                    deal_id = _create_processing_job_deal(
+                        data=data,
+                        sec_filing_id=sec_filing_id,
+                        sec_url=ex21_url,
+                        parsed_json_url=extracted_json_url,
+                    )
+                else:
+                    _reset_job_for_reprocessing(
+                        deal_id=deal_id,
+                        sec_filing_id=sec_filing_id,
+                        sec_url=ex21_url,
+                        parsed_json_url=extracted_json_url,
+                    )
+
                 log_and_print(f"✅ Processing started, deal_id: {deal_id}")
 
-                # Process the document using the JSON URL
+                # Send a "success parsing" email before kicking off doc processing.
+                _send_parsing_success_email(
+                    log_records=extraction_warnings,
+                    parsed_json_url=extracted_json_url,
+                )
+
                 process_result = doc_processor.process_document(
-                    file_url=json_url,
+                    file_url=extracted_json_url,
                     deal_id=deal_id,
                     sec_filing_id=sec_filing_id,
-                    embed_data=True
+                    embed_data=True,
                 )
 
                 log_and_print(
                     f"✅ Document processing started: {process_result}")
 
-                # Start monitoring for summary generation in a separate thread
                 summary_thread = threading.Thread(
                     target=generate_8k_summary_async,
                     args=(
                         deal_id,
                         company_name,
-                        item_data.get('form_type', '8-K'),
+                        item_data.get("form_type", "8-K"),
                         cik_number,
-                        item_data.get('link', ''),
-                        item_data.get('accession_number', '')
-                    )
+                        item_data.get("link", ""),
+                        item_data.get("accession_number", ""),
+                    ),
                 )
                 summary_thread.daemon = True
                 summary_thread.start()
 
                 log_and_print(
-                    f"✅ Started summary generation monitoring thread for deal_id: {deal_id}")
-            else:
-                log_and_print("❌ No deal_id in Node API response", 'error')
-                doc_processor._send_sec_filing_event(
-                    sec_filing_id, "Fail", "No deal_id returned from Node API")
-        else:
-            log_and_print(
-                f"❌ Node API response did not contain expected data: {response}", 'error')
-            doc_processor._send_sec_filing_event(
-                sec_filing_id, "Fail", "Invalid response from Node API")
+                    f"✅ Started summary generation monitoring thread for deal_id: {deal_id}"
+                )
+                return
+            except Exception as e:
+                log_and_print(
+                    f"❌ process_document failed after extraction/upload: {e}",
+                    "error",
+                )
+                # Fall through to Node API fallback below.
+
+        # 3) Extraction/upload failed -> call Node API
+        # log_and_print(
+        #     "📞 Extraction/upload failed; falling back to Node API",
+        #     "warning",
+        # )
+
+        # log_and_print(f"📞 Calling Node API with data: {node_payload}")
+        # response = call_node_api(
+        #     endpoint="deal/process-with-url",
+        #     method="POST",
+        #     data=node_payload,
+        # )
+
+        # log_and_print(f"📥 Node API response: {response}")
+
+        # if response.get("status") and response.get("data", {}).get("jsonUrl"):
+        #     deal_id = response["data"].get("deal_id")
+        #     json_url = response["data"]["jsonUrl"]
+
+        #     if deal_id and json_url:
+        #         log_and_print(f"✅ Processing started, deal_id: {deal_id}")
+
+        #         process_result = doc_processor.process_document(
+        #             file_url=json_url,
+        #             deal_id=deal_id,
+        #             sec_filing_id=sec_filing_id,
+        #             embed_data=True,
+        #         )
+
+        #         log_and_print(
+        #             f"✅ Document processing started: {process_result}")
+
+        #         summary_thread = threading.Thread(
+        #             target=generate_8k_summary_async,
+        #             args=(
+        #                 deal_id,
+        #                 company_name,
+        #                 item_data.get("form_type", "8-K"),
+        #                 cik_number,
+        #                 item_data.get("link", ""),
+        #                 item_data.get("accession_number", ""),
+        #             ),
+        #         )
+        #         summary_thread.daemon = True
+        #         summary_thread.start()
+
+        #         log_and_print(
+        #             f"✅ Started summary generation monitoring thread for deal_id: {deal_id}"
+        #         )
+        #     else:
+        #         log_and_print(
+        #             "❌ No deal_id/jsonUrl in Node API response", 'error')
+        #         doc_processor._send_sec_filing_event(
+        #             sec_filing_id,
+        #             "Fail",
+        #             "No deal_id/jsonUrl returned from Node API",
+        #         )
+        # else:
+        #     log_and_print(
+        #         f"❌ Node API response did not contain expected data: {response}",
+        #         "error",
+        #     )
+        #     doc_processor._send_sec_filing_event(
+        #         sec_filing_id,
+        #         "Fail",
+        #         "Invalid response from Node API",
+        #     )
 
     except Exception as e:
         log_and_print(f"❌ Error in process_8k_document_async: {e}", 'error')

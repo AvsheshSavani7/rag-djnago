@@ -1051,3 +1051,216 @@ def generate_proxy_comparison_summary_email_html(
 </html>
 """
     return subject, html_email
+
+
+def generate_parsing_error_email_html(
+    company_name: str,
+    form_type: str,
+    sec_filing_id: str,
+    sec_url: str,
+    accession_number: str,
+    error_message: str,
+    log_records: list,
+):
+    """
+    Generate an email HTML payload for parsing/extraction failures.
+
+    The main goal is to include the captured `log_records` (WARNING+ from the extraction worker)
+    so you can debug without needing to access logs/files.
+    """
+    company_esc = escape_html(company_name or "Unknown Company")
+    form_esc = escape_html(form_type or "8-K")
+    accession_esc = escape_html(accession_number or "")
+    sec_filing_id_esc = escape_html(sec_filing_id or "")
+    sec_url_esc = escape_html(sec_url or "")
+
+    error_esc = escape_html(error_message or "Unknown error")
+
+    logs = log_records or []
+    if isinstance(logs, str):
+        logs = [logs]
+
+    # Keep the email reasonably small; N8N/webhook payload size can be limited.
+    max_log_lines = 200
+    max_log_chars = 20000
+
+    logs_str = "\n".join(str(x) for x in logs)
+    truncated = False
+    if len(logs) > max_log_lines:
+        truncated = True
+        logs_str = "\n".join(str(x) for x in logs[:max_log_lines])
+
+    if len(logs_str) > max_log_chars:
+        truncated = True
+        logs_str = logs_str[:max_log_chars] + "\n...[truncated]"
+
+    logs_count = len(logs)
+    logs_esc = escape_html(logs_str)
+
+    subject = f"❌ Parsing Error - {company_esc} ({form_esc})"
+
+    html_email = f"""
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Parsing Error</title>
+</head>
+<body style="margin:0; padding:0; font-family:Arial,sans-serif; background-color:#f4f4f4;">
+  <div style="max-width:900px; margin:20px auto; background-color:#ffffff; padding:30px; border-radius:8px; box-shadow:0 2px 4px rgba(0,0,0,0.1);">
+    <h2 style="color:#333; text-align:center; margin-top:0; padding-bottom:20px; border-bottom:3px solid #dc3545;">
+      Parsing / Extraction Error
+    </h2>
+
+    <table style="width:100%; border-collapse:collapse; margin-bottom:20px;">
+      <tr style="background-color:#f9f9f9;">
+        <td style="padding:8px; font-weight:bold; width:170px; color:#555;">Company</td>
+        <td style="padding:8px; color:#333;">{company_esc}</td>
+      </tr>
+      <tr>
+        <td style="padding:8px; font-weight:bold; color:#555;">Form Type</td>
+        <td style="padding:8px; color:#333;">{form_esc}</td>
+      </tr>
+      <tr style="background-color:#f9f9f9;">
+        <td style="padding:8px; font-weight:bold; color:#555;">SEC Filing ID</td>
+        <td style="padding:8px; color:#333;">{sec_filing_id_esc}</td>
+      </tr>
+      <tr>
+        <td style="padding:8px; font-weight:bold; color:#555;">Accession Number</td>
+        <td style="padding:8px; color:#333;">{accession_esc}</td>
+      </tr>
+      <tr style="background-color:#f9f9f9;">
+        <td style="padding:8px; font-weight:bold; color:#555;">SEC URL</td>
+        <td style="padding:8px; color:#333;">
+          <a href="{sec_url_esc}" target="_blank" style="color:#4a90e2; text-decoration:none;">{sec_url_esc if sec_url_esc else "Link"}</a>
+        </td>
+      </tr>
+    </table>
+
+    <h3 style="color:#333; margin-top:20px; margin-bottom:10px;">Error</h3>
+    <pre style="white-space:pre-wrap; word-break:break-word; background:#fff7f7; border:1px solid #f1c0c0; padding:12px; border-radius:6px; font-size:12px;">{error_esc}</pre>
+
+    <h3 style="color:#333; margin-top:20px; margin-bottom:10px;">
+      log_records / warnings
+      <span style="color:#888; font-weight:normal;">({logs_count} entries{', truncated' if truncated else ''})</span>
+    </h3>
+    <pre style="white-space:pre-wrap; word-break:break-word; background:#f7f7f7; border:1px solid #e6e6e6; padding:12px; border-radius:6px; font-size:12px;">{logs_esc if logs_esc else "No log_records available."}</pre>
+
+    <div style="margin-top:22px; padding-top:18px; border-top:1px solid #e0e0e0; text-align:center; color:#999; font-size:12px;">
+      Sent via N8N webhook for debugging parsing failures.
+    </div>
+  </div>
+</body>
+</html>
+"""
+    return subject, html_email
+
+
+def generate_parsing_success_email_html(
+    company_name: str,
+    form_type: str,
+    sec_filing_id: str,
+    sec_url: str,
+    accession_number: str,
+    parsed_json_url: str,
+    deal_id: str,
+    log_records: list,
+):
+    """
+    Generate an email HTML payload for parsing/extraction success.
+
+    Includes the same `log_records` list (warnings/errors captured during extraction)
+    to make it easy to debug borderline extractions that still "succeed".
+    """
+    company_esc = escape_html(company_name or "Unknown Company")
+    form_esc = escape_html(form_type or "8-K")
+    accession_esc = escape_html(accession_number or "")
+    sec_filing_id_esc = escape_html(sec_filing_id or "")
+    sec_url_esc = escape_html(sec_url or "")
+    parsed_json_url_esc = escape_html(parsed_json_url or "")
+    deal_id_esc = escape_html(deal_id or "")
+
+    logs = log_records or []
+    if isinstance(logs, str):
+        logs = [logs]
+
+    # Keep the email reasonably small; N8N/webhook payload size can be limited.
+    max_log_lines = 200
+    max_log_chars = 20000
+
+    logs_str = "\n".join(str(x) for x in logs)
+    truncated = False
+    if len(logs) > max_log_lines:
+        truncated = True
+        logs_str = "\n".join(str(x) for x in logs[:max_log_lines])
+
+    if len(logs_str) > max_log_chars:
+        truncated = True
+        logs_str = logs_str[:max_log_chars] + "\n...[truncated]"
+
+    logs_count = len(logs)
+    logs_esc = escape_html(logs_str)
+
+    subject = f"✅ Parsing Success - {company_esc} ({form_esc})"
+
+    html_email = f"""
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Parsing Success</title>
+</head>
+<body style="margin:0; padding:0; font-family:Arial,sans-serif; background-color:#f4f4f4;">
+  <div style="max-width:900px; margin:20px auto; background-color:#ffffff; padding:30px; border-radius:8px; box-shadow:0 2px 4px rgba(0,0,0,0.1);">
+    <h2 style="color:#333; text-align:center; margin-top:0; padding-bottom:20px; border-bottom:3px solid #28a745;">
+      Parsing / Extraction Success
+    </h2>
+
+    <table style="width:100%; border-collapse:collapse; margin-bottom:20px;">
+      <tr style="background-color:#f9f9f9;">
+        <td style="padding:8px; font-weight:bold; width:170px; color:#555;">Company</td>
+        <td style="padding:8px; color:#333;">{company_esc}</td>
+      </tr>
+      <tr>
+        <td style="padding:8px; font-weight:bold; color:#555;">Form Type</td>
+        <td style="padding:8px; color:#333;">{form_esc}</td>
+      </tr>
+      <tr style="background-color:#f9f9f9;">
+        <td style="padding:8px; font-weight:bold; color:#555;">SEC Filing ID</td>
+        <td style="padding:8px; color:#333;">{sec_filing_id_esc}</td>
+      </tr>
+      <tr>
+        <td style="padding:8px; font-weight:bold; color:#555;">Deal ID</td>
+        <td style="padding:8px; color:#333;">{deal_id_esc}</td>
+      </tr>
+      <tr style="background-color:#f9f9f9;">
+        <td style="padding:8px; font-weight:bold; color:#555;">Accession Number</td>
+        <td style="padding:8px; color:#333;">{accession_esc}</td>
+      </tr>
+      <tr style="background-color:#f9f9f9;">
+        <td style="padding:8px; font-weight:bold; color:#555;">SEC URL</td>
+        <td style="padding:8px; color:#333;">
+          <a href="{sec_url_esc}" target="_blank" style="color:#4a90e2; text-decoration:none;">{sec_url_esc if sec_url_esc else "Link"}</a>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding:8px; font-weight:bold; color:#555;">Parsed JSON (S3)</td>
+        <td style="padding:8px; color:#333;">
+          <a href="{parsed_json_url_esc}" target="_blank" style="color:#4a90e2; text-decoration:none;">{parsed_json_url_esc if parsed_json_url_esc else "Link"}</a>
+        </td>
+      </tr>
+    </table>
+
+    <h3 style="color:#333; margin-top:20px; margin-bottom:10px;">log_records / warnings
+      <span style="color:#888; font-weight:normal;">({logs_count} entries{', truncated' if truncated else ''})</span>
+    </h3>
+    <pre style="white-space:pre-wrap; word-break:break-word; background:#f7f7f7; border:1px solid #e6e6e6; padding:12px; border-radius:6px; font-size:12px;">{logs_esc if logs_esc else "No log_records available."}</pre>
+
+    <div style="margin-top:22px; padding-top:18px; border-top:1px solid #e0e0e0; text-align:center; color:#999; font-size:12px;">
+      Sent via N8N webhook for debugging parsing success.
+    </div>
+  </div>
+</body>
+</html>
+"""
+    return subject, html_email
