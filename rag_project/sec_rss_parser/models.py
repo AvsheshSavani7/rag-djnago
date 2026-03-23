@@ -1,6 +1,18 @@
-from mongoengine import Document, StringField, DateTimeField, IntField, ListField, DictField, BooleanField, URLField, DynamicField
+from mongoengine import (
+    Document,
+    StringField,
+    DateTimeField,
+    IntField,
+    ListField,
+    DictField,
+    BooleanField,
+    URLField,
+    DynamicField,
+    ObjectIdField,
+)
 from datetime import datetime
 import uuid
+from bson import ObjectId
 
 
 def generate_object_id():
@@ -311,6 +323,69 @@ class TenKTenQSummary(Document):
 
     def __str__(self):
         return f"10K/10Q Summary - {self.accession_number} - {self.cik_number}"
+
+
+class DealDmaSummary(Document):
+    """
+    Store DMA (8-K) summary generation details for a deal.
+
+    Requirements:
+    - `deal_id` is unique
+    - if record exists, update it (upsert)
+    - maintain `createdAt` / `updatedAt` timestamps
+    """
+
+    deal_id = ObjectIdField(required=True, unique=True)
+
+    summary_docx_url = URLField(required=False, null=True, max_length=1000)
+    summary_status = StringField(required=True, max_length=20)
+    summary_using = StringField(required=False, null=True, max_length=100)
+
+    createdAt = DateTimeField(default=datetime.utcnow)
+    updatedAt = DateTimeField(default=datetime.utcnow)
+
+    meta = {
+        "collection": "deal_dma_summary",
+        "indexes": [
+            "deal_id",  # unique
+            "-createdAt",
+        ],
+    }
+
+    def save(self, *args, **kwargs):
+        self.updatedAt = datetime.utcnow()
+        return super().save(*args, **kwargs)
+
+    @classmethod
+    def save_or_update(
+        cls,
+        *,
+        deal_id,
+        summary_status: str,
+        summary_docx_url=None,
+        summary_using=None,
+    ):
+        now = datetime.utcnow()
+
+        if isinstance(deal_id, str):
+            deal_id = ObjectId(deal_id)
+
+        existing = cls.objects(deal_id=deal_id).first()
+        if existing:
+            existing.summary_status = summary_status
+            existing.summary_docx_url = summary_docx_url
+            existing.summary_using = summary_using
+            return existing.save()
+
+        record = cls(
+            deal_id=deal_id,
+            summary_status=summary_status,
+            summary_docx_url=summary_docx_url,
+            summary_using=summary_using,
+            createdAt=now,
+            updatedAt=now,
+        )
+        return record.save()
 
 
 class SECFilingSummary(Document):

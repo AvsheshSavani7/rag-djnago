@@ -21,7 +21,16 @@ from django.conf import settings
 from bson import ObjectId
 from mongoengine.errors import NotUniqueError
 from .s3_upload_utils import build_parsed_jsons_s3_key, upload_json_file_to_s3
-from .models import SECFiling, SECFeedStatus, LastCronJob, AccessionLookedUp, EightKSummary, Ex99_1Summary, TenKTenQSummary
+from .models import (
+    SECFiling,
+    SECFeedStatus,
+    LastCronJob,
+    AccessionLookedUp,
+    EightKSummary,
+    Ex99_1Summary,
+    TenKTenQSummary,
+    DealDmaSummary,
+)
 from .document_analyzer import SECDocumentAnalyzer
 from .websocket_service import SECWebSocketService
 from .email_templates import (
@@ -342,6 +351,7 @@ def send_8k_summary_email(deal_id, company_name, form_type, cik_number, sec_url,
 
 def generate_8k_summary_async(deal_id, company_name, form_type, cik_number, sec_url, accession_number, max_attempts=60, delay_seconds=30):
     """Async function to generate summary for 8-K after processing completes."""
+    object_id = None
     try:
         log_and_print(
             f"🔍 Starting summary generation monitoring for deal_id: {deal_id}")
@@ -355,6 +365,12 @@ def generate_8k_summary_async(deal_id, company_name, form_type, cik_number, sec_
 
                 if not job:
                     log_and_print(f"❌ Job {deal_id} not found", 'error')
+                    DealDmaSummary.save_or_update(
+                        deal_id=object_id,
+                        summary_status='FAILED',
+                        summary_docx_url=None,
+                        summary_using="gpt-5.2-2025-12-11",
+                    )
                     return
 
                 # Check if schema_results are available
@@ -365,6 +381,14 @@ def generate_8k_summary_async(deal_id, company_name, form_type, cik_number, sec_
                     # Update summary status to processing
                     job.summary_status = 'PROCESSING'
                     job.save()
+
+                    # Upsert PROCESSING state into dedicated collection.
+                    DealDmaSummary.save_or_update(
+                        deal_id=object_id,
+                        summary_status='PROCESSING',
+                        summary_docx_url=None,
+                        summary_using="gpt-5.2-2025-12-11",
+                    )
 
                     # Generate summary
                     summary_service = SummaryGenerationService()
@@ -382,6 +406,14 @@ def generate_8k_summary_async(deal_id, company_name, form_type, cik_number, sec_
                         job.summary_using = "gpt-5.2-2025-12-11"
                         job.summary_status = 'COMPLETED'
                         job.save()
+
+                        # Upsert COMPLETED state.
+                        DealDmaSummary.save_or_update(
+                            deal_id=object_id,
+                            summary_status='COMPLETED',
+                            summary_docx_url=result,
+                            summary_using=job.summary_using,
+                        )
 
                         log_and_print(
                             f"✅ Summary generated successfully for deal_id: {deal_id}")
@@ -412,12 +444,26 @@ def generate_8k_summary_async(deal_id, company_name, form_type, cik_number, sec_
                         job.summary_status = 'FAILED'
                         job.error_message = 'Summary generation returned None'
                         job.save()
+
+                        # Upsert FAILED state.
+                        DealDmaSummary.save_or_update(
+                            deal_id=object_id,
+                            summary_status='FAILED',
+                            summary_docx_url=None,
+                            summary_using=job.summary_using or "gpt-5.2-2025-12-11",
+                        )
                         return
 
             except Exception as e:
                 log_and_print(f"❌ Error checking job status: {e}", 'error')
                 if 'not found' in str(e).lower() or 'does not exist' in str(e).lower():
                     log_and_print(f"❌ Job {deal_id} not found", 'error')
+                    DealDmaSummary.save_or_update(
+                        deal_id=object_id,
+                        summary_status='FAILED',
+                        summary_docx_url=None,
+                        summary_using="gpt-5.2-2025-12-11",
+                    )
                     return
 
             # Wait before next attempt
@@ -431,6 +477,18 @@ def generate_8k_summary_async(deal_id, company_name, form_type, cik_number, sec_
             f"⚠️ Timeout waiting for schema_results for deal_id: {deal_id}", 'warning')
 
     except Exception as e:
+        # Ensure we record the FAILED state even if the status-check loop errors.
+        if object_id is not None:
+            try:
+                DealDmaSummary.save_or_update(
+                    deal_id=object_id,
+                    summary_status='FAILED',
+                    summary_docx_url=None,
+                    summary_using="gpt-5.2-2025-12-11",
+                )
+            except Exception:
+                # Don't mask the original error with DB issues.
+                pass
         log_and_print(f"❌ Error in generate_8k_summary_async: {e}", 'error')
 
 

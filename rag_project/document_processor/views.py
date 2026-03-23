@@ -21,6 +21,7 @@ from .serializers import (
 )
 from .services import FlattenProcessor, EmbeddingService, S3Service, ChatWithAIService, SummaryGenerationService
 from mongoengine.errors import DoesNotExist, ValidationError
+from sec_rss_parser.models import DealDmaSummary
 
 logger = logging.getLogger(__name__)
 
@@ -744,6 +745,16 @@ class SummaryEngineView(APIView):
     def _generate_summary_background(self, deal_id, temperature, provider, model):
         """Background task to generate summary"""
         try:
+            object_id = ObjectId(deal_id)
+
+            # Persist PROCESSING status in dedicated collection.
+            DealDmaSummary.save_or_update(
+                deal_id=object_id,
+                summary_status='PROCESSING',
+                summary_docx_url=None,
+                summary_using=f"{provider}-{model}",
+            )
+
             summary_service = SummaryGenerationService()
             result = summary_service.generate_summary_engine(
                 deal_id=deal_id,
@@ -754,14 +765,36 @@ class SummaryEngineView(APIView):
 
             # Update the job with the summary URL and provider info
             try:
-                object_id = ObjectId(deal_id)
                 job = ProcessingJob.objects.get(id=object_id)
                 job.summary_docx_url = result
                 job.summary_using = f"{provider}-{model}"
                 job.summary_status = 'COMPLETED'
                 job.save()
+
+                # Persist COMPLETED status in dedicated collection.
+                DealDmaSummary.save_or_update(
+                    deal_id=object_id,
+                    summary_status='COMPLETED',
+                    summary_docx_url=result,
+                    summary_using=job.summary_using,
+                )
             except Exception as e:
                 logger.error(f"Error updating job with summary URL: {str(e)}")
+                # If job update fails, record FAILED state as well.
+                try:
+                    job = ProcessingJob.objects.get(id=object_id)
+                    job.summary_status = 'FAILED'
+                    job.error_message = str(e)
+                    job.save()
+                except Exception:
+                    pass
+
+                DealDmaSummary.save_or_update(
+                    deal_id=object_id,
+                    summary_status='FAILED',
+                    summary_docx_url=None,
+                    summary_using=f"{provider}-{model}",
+                )
 
         except Exception as e:
             logger.error(f"Error in background summary generation: {str(e)}")
@@ -774,8 +807,29 @@ class SummaryEngineView(APIView):
                 job.summary_status = 'FAILED'
                 job.error_message = str(e)
                 job.save()
+                DealDmaSummary.save_or_update(
+                    deal_id=object_id,
+                    summary_status='FAILED',
+                    summary_docx_url=None,
+                    summary_using=f"{provider}-{model}",
+                )
             except Exception as inner_e:
                 logger.error(f"Error updating job status: {str(inner_e)}")
+
+                # Ensure FAILED record is still written to DMA summary.
+                try:
+                    object_id = ObjectId(deal_id)
+                except Exception:
+                    object_id = None
+
+                if object_id is not None:
+                    DealDmaSummary.save_or_update(
+                        deal_id=object_id,
+                        summary_status='FAILED',
+                        summary_docx_url=None,
+                        summary_using=f"{provider}-{model}",
+                    )
+            # Note: deal_dma_summary FAILED upsert is handled in both branches above.
 
     def post(self, request, format=None):
         # Get request parameters

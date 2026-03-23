@@ -16,10 +16,105 @@ import math
 from openai import OpenAI
 from urllib.parse import urlparse
 from bs4 import BeautifulSoup
+import threading
+import re
+import importlib.util
+from datetime import datetime
+from document_processor.models import ProcessingJob
+from sec_rss_parser.s3_upload_utils import (
+    build_parsed_jsons_s3_key,
+    upload_json_file_to_s3,
+)
+from sec_rss_parser.email_templates import (
+    generate_parsing_error_email_html,
+    generate_parsing_success_email_html,
+)
+from sec_rss_parser.utils_8k import send_webhook_notification
 
 logger = logging.getLogger(__name__)
 openai_client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
 MODEL = "gpt-5-nano-2025-08-07"
+
+# Keep these in sync with `sec_rss_parser/services.py`.
+N8N_WEBHOOK_URL_PARSING_ERROR = "https://n8n-xwx1.onrender.com/webhook/80830c6d-ff5b-45e3-9ef3-a061db1fbf0c"
+N8N_WEBHOOK_URL_PARSING_SUCCESS = "https://n8n-xwx1.onrender.com/webhook/80830c6d-ff5b-45e3-9ef3-a061db1fbf0c"
+
+_EXTRACTION_2_1_MODULE = None
+
+
+def _get_extraction_worker():
+    """
+    Load worker() from `document_processor/extraction_2-1.py`.
+    The filename has a hyphen, so we use importlib.
+    """
+    global _EXTRACTION_2_1_MODULE
+    if _EXTRACTION_2_1_MODULE is not None:
+        return _EXTRACTION_2_1_MODULE.worker
+
+    extraction_path = os.path.join(
+        os.path.dirname(os.path.dirname(__file__)),
+        "document_processor",
+        "extraction_2-1.py",
+    )
+    spec = importlib.util.spec_from_file_location(
+        "extraction_2_1",
+        extraction_path,
+    )
+    if spec is None or spec.loader is None:
+        raise ImportError(
+            f"Could not load extraction worker: {extraction_path}")
+
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    _EXTRACTION_2_1_MODULE = module
+    return module.worker
+
+
+def _normalize_cik(cik_value) -> str:
+    """Pad CIK to 10 digits (or return empty string)."""
+    if cik_value is None:
+        return ""
+    digits = "".join(ch for ch in str(cik_value) if ch.isdigit())
+    return digits.zfill(10) if digits else ""
+
+
+def _parse_filing_date(filing_date_str):
+    """Parse filing date from string to datetime object."""
+    if not filing_date_str:
+        return None
+    if isinstance(filing_date_str, datetime):
+        return filing_date_str
+    for date_format in ["%Y-%m-%d", "%m/%d/%Y", "%Y-%m-%d %H:%M:%S"]:
+        try:
+            return datetime.strptime(filing_date_str, date_format)
+        except ValueError:
+            continue
+    logger.warning(f"Could not parse filing_date: {filing_date_str}")
+    return None
+
+
+def _extract_sec_filing_accession_number(ex21_url: str) -> str:
+    """
+    Extract accession number in dashed form: 0001104659-26-029067
+    from a typical SEC URL:
+      /.../edgar/data/{cik}/{accession_no_dash}/{file}.htm
+    """
+    if not ex21_url:
+        return ""
+
+    # Primary: /edgar/data/<cik>/<18-digits>/
+    match = re.search(r"/edgar/data/\d+/(\d{18})/", ex21_url)
+    if match:
+        s = match.group(1)
+        if len(s) == 18:
+            return f"{s[:10]}-{s[10:12]}-{s[12:]}"
+
+    # Fallback: already dashed somewhere in the URL
+    match = re.search(r"(\d{10}-\d{2}-\d{6})", ex21_url)
+    if match:
+        return match.group(1)
+
+    return ""
 
 # Create your views here.
 
@@ -595,41 +690,229 @@ class AnnouncementWithUrlView(APIView):
 
             print(f"data1: {data}")
 
-            # Call Node API with complete data
-            response = call_node_api(
-                endpoint="deal/process-with-url",  # Using the correct endpoint for URL processing
-                method="POST",
-                data={
-                    "url": url,
-                    "target_cik": data.get('target_cik'),
-                    "announce_data": data.get('announce_data'),
-                    "target_name": data.get('target_name'),
-                    "acquired_name": data.get('acquirer_name'),
-                    "sec_filing_id": data.get('sec_filing_id') if data.get('sec_filing_id') else None,
-                    "acquirer_cik": data.get('acquirer_cik'),
-                    "is_from_ui": True
-                }
-            )
+            ex21_url = url
+            sec_filing_accession_number = _extract_sec_filing_accession_number(
+                ex21_url)
+            company_name = (data.get("target_name") or "").strip()
+            cik_number = (data.get("target_cik") or "").strip()
+            announce_dt = _parse_filing_date(data.get("announce_data"))
+            acquirer_name = (data.get("acquirer_name") or "").strip()
 
-            # Check if we got a successful response with jsonUrl
-            if response.get('status') and response.get('data', {}).get('jsonUrl'):
-                # Initialize document processing service
-                doc_processor = DocumentProcessingService()
+            form_type = "8-K(2.1)"
+            extracted_json_url = None
+            extraction_warnings = []
+            error_message = None
 
-                print(f"response: {response}")
+            def _send_parsing_error_email(error_msg: str, log_records: list):
+                try:
+                    subject, html_email = generate_parsing_error_email_html(
+                        company_name=company_name,
+                        form_type=form_type,
+                        sec_filing_id=sec_filing_id,
+                        sec_url=ex21_url,
+                        accession_number=sec_filing_accession_number,
+                        error_message=error_msg,
+                        log_records=log_records,
+                    )
+                    payload = {
+                        "subject": subject,
+                        "html": html_email,
+                        "company_name": company_name,
+                        "accession_number": sec_filing_accession_number,
+                        "form_type": form_type,
+                        "email_type": "parsing_error",
+                        "sec_filing_id": sec_filing_id,
+                        "sec_url": ex21_url,
+                    }
+                    send_webhook_notification(
+                        N8N_WEBHOOK_URL_PARSING_ERROR,
+                        payload,
+                        "parsing_error",
+                    )
+                except Exception as email_e:
+                    logger.error(
+                        f"❌ Failed to send parsing error email via webhook: {email_e}"
+                    )
 
-                # Process the document using the JSON URL
-                process_result = doc_processor.process_document(
-                    file_url=response['data']['jsonUrl'],
-                    # file_url="https://rag-mna.s3.eu-north-1.amazonaws.com/parsed_jsons/spirit_airlines__inc__2022-07-28_original.json",
-                    # file_url="https://rag-embedding.s3.eu-north-1.amazonaws.com/parsed_jsons/spirit_airlines__inc__2022-07-28_original.json",
-                    deal_id=response['data']['deal_id'],
-                    sec_filing_id=data.get('sec_filing_id')
+            def _send_parsing_success_email(
+                log_records: list, parsed_json_url: str, deal_id: str
+            ):
+                try:
+                    subject, html_email = generate_parsing_success_email_html(
+                        company_name=company_name,
+                        form_type=form_type,
+                        sec_filing_id=sec_filing_id,
+                        sec_url=ex21_url,
+                        accession_number=sec_filing_accession_number,
+                        parsed_json_url=parsed_json_url,
+                        deal_id=deal_id,
+                        log_records=log_records,
+                    )
+                    payload = {
+                        "subject": subject,
+                        "html": html_email,
+                        "company_name": company_name,
+                        "accession_number": sec_filing_accession_number,
+                        "form_type": form_type,
+                        "email_type": "parsing_success",
+                        "sec_filing_id": sec_filing_id,
+                        "sec_url": ex21_url,
+                        "deal_id": deal_id,
+                        "parsed_json_url": parsed_json_url,
+                    }
+                    send_webhook_notification(
+                        N8N_WEBHOOK_URL_PARSING_SUCCESS,
+                        payload,
+                        "parsing_success",
+                    )
+                except Exception as email_e:
+                    logger.error(
+                        f"❌ Failed to send parsing success email via webhook: {email_e}"
+                    )
+
+            # 1) Local extraction + S3 upload
+            try:
+                worker = _get_extraction_worker()
+                extraction_result = worker(ex21_url)
+
+                if extraction_result and extraction_result.get("status") == "success":
+                    output = extraction_result.get("output")
+                    output_file = extraction_result.get("output_file")
+                    extraction_warnings = (
+                        extraction_result.get("warnings") or []
+                    )
+
+                    if (
+                        isinstance(output, list)
+                        and len(output) > 0
+                        and output_file
+                        and os.path.exists(output_file)
+                    ):
+                        s3_key = build_parsed_jsons_s3_key(
+                            ex21_url,
+                            sec_filing_accession_number,
+                        )
+                        extracted_json_url = upload_json_file_to_s3(
+                            output_file,
+                            s3_key,
+                        )
+
+                        if not extracted_json_url:
+                            error_message = (
+                                f"Upload to S3 failed for extraction output: {ex21_url}"
+                            )
+                            logger.error(f"❌ {error_message}")
+                            _send_parsing_error_email(
+                                error_message, extraction_warnings
+                            )
+                    else:
+                        error_message = (
+                            "Extraction returned empty/invalid JSON for "
+                            f"{ex21_url}"
+                        )
+                        logger.error(f"❌ {error_message}")
+                        _send_parsing_error_email(
+                            error_message, extraction_warnings
+                        )
+                else:
+                    extraction_warnings = (
+                        extraction_result.get("warnings") or []
+                        if extraction_result
+                        else []
+                    )
+                    extraction_reason = (
+                        extraction_result.get("reason")
+                        if extraction_result
+                        else None
+                    )
+                    error_message = (
+                        extraction_reason
+                        or f"Extraction failed for {ex21_url}: {extraction_result}"
+                    )
+                    logger.error(f"❌ {error_message}")
+                    _send_parsing_error_email(
+                        error_message, extraction_warnings)
+            except Exception as e:
+                extraction_warnings = []
+                error_message = f"Extraction worker threw an error: {e}"
+                logger.error(f"❌ {error_message}")
+                _send_parsing_error_email(error_message, extraction_warnings)
+
+            if not extracted_json_url:
+                doc_processor._send_sec_filing_event(
+                    sec_filing_id, "Fail", error_message or "Extraction failed"
+                )
+                return Response(
+                    {
+                        "status": False,
+                        "error": error_message or "Extraction failed",
+                    },
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 )
 
-                # Add processing result to response
-                response['processing_result'] = process_result
+            # 2) Create/reset deal + process_document
+            cik_norm = _normalize_cik(cik_number) or None
+            acquirer_cik_norm = _normalize_cik(
+                data.get("acquirer_cik") or "") or None
 
+            existing_job = ProcessingJob.objects(sec_url=ex21_url).first()
+            if existing_job:
+                deal_id = str(existing_job.id)
+                existing_job.cik = cik_norm
+                existing_job.target_name = company_name or None
+                existing_job.acquirer_cik = acquirer_cik_norm
+                existing_job.acquire_name = acquirer_name or None
+                if announce_dt:
+                    existing_job.announce_date = announce_dt
+                existing_job.sec_filing_id = sec_filing_id
+                existing_job.parsed_json_url = extracted_json_url
+                existing_job.sec_url = ex21_url
+
+                existing_job.embedding_status = "PENDING"
+                existing_job.summary_status = "PENDING"
+                existing_job.schema_results = None
+                existing_job.schema_processing_completed = False
+                existing_job.flattened_json_url = None
+                existing_job.summary_docx_url = None
+                existing_job.error_message = None
+                existing_job.deal_status = "Open"
+                existing_job.updatedAt = datetime.utcnow()
+                existing_job.save()
+            else:
+                job = ProcessingJob(
+                    cik=cik_norm,
+                    target_name=company_name or None,
+                    acquirer_cik=acquirer_cik_norm,
+                    acquire_name=acquirer_name or None,
+                    announce_date=announce_dt,
+                    embedding_status="PENDING",
+                    summary_status="PENDING",
+                    sec_filing_id=sec_filing_id,
+                    parsed_json_url=extracted_json_url,
+                    sec_url=ex21_url,
+                    deal_status="Open",
+                )
+                job.save()
+                deal_id = str(job.id)
+
+            _send_parsing_success_email(
+                log_records=extraction_warnings,
+                parsed_json_url=extracted_json_url,
+                deal_id=deal_id,
+            )
+
+            process_result = doc_processor.process_document(
+                file_url=extracted_json_url,
+                deal_id=deal_id,
+                sec_filing_id=sec_filing_id,
+                embed_data=True,
+            )
+
+            response = {
+                "status": True,
+                "data": {"deal_id": deal_id, "jsonUrl": extracted_json_url},
+                "processing_result": process_result,
+            }
             return Response(response, status=status.HTTP_200_OK)
 
         except Exception as e:

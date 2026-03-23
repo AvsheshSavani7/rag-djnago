@@ -1,6 +1,7 @@
 from mongoengine import (
     Document,
     StringField,
+    ObjectIdField,
     URLField,
     DateTimeField,
     BooleanField,
@@ -12,6 +13,7 @@ from mongoengine import (
 )
 from datetime import datetime
 import json
+from bson import ObjectId
 
 
 class ProcessingJob(Document):
@@ -179,6 +181,75 @@ class ProcessingJob(Document):
         self.updatedAt = datetime.utcnow()
         self.save()
         return self
+
+
+class DealSchemaResults(Document):
+    """
+    Store schema parsing results in a dedicated collection.
+
+    Requirement:
+    - `deal_id` is unique
+    - if record exists, update it
+    - store `createdAt` and `updatedAt` timestamps
+    """
+
+    deal_id = ObjectIdField(required=True, unique=True)
+
+    schema_processing_completed = BooleanField(default=False)
+    schema_processing_timestamp = DateTimeField(required=False, null=True)
+    schema_results = DynamicField(null=True)
+
+    createdAt = DateTimeField(default=datetime.utcnow)
+    updatedAt = DateTimeField(default=datetime.utcnow)
+
+    meta = {
+        "collection": "deal_schema_results",
+        "ordering": ["-createdAt"],
+        "indexes": [
+            "deal_id",  # unique
+            "schema_processing_timestamp",
+            "createdAt",
+        ],
+    }
+
+    def save(self, *args, **kwargs):
+        """Keep `updatedAt` fresh on each write."""
+        self.updatedAt = datetime.utcnow()
+        return super(DealSchemaResults, self).save(*args, **kwargs)
+
+    @classmethod
+    def save_or_update(
+        cls,
+        *,
+        deal_id,
+        schema_results,
+        schema_processing_completed: bool = True,
+        schema_processing_timestamp=None,
+    ):
+        now = datetime.utcnow()
+        if isinstance(deal_id, str):
+            deal_id = ObjectId(deal_id)
+        existing = cls.objects(deal_id=deal_id).first()
+
+        if schema_processing_timestamp is None:
+            schema_processing_timestamp = now
+
+        if existing:
+            existing.schema_results = schema_results
+            existing.schema_processing_completed = schema_processing_completed
+            existing.schema_processing_timestamp = schema_processing_timestamp
+            # `save()` will update `updatedAt`.
+            return existing.save()
+
+        record = cls(
+            deal_id=deal_id,
+            schema_results=schema_results,
+            schema_processing_completed=schema_processing_completed,
+            schema_processing_timestamp=schema_processing_timestamp,
+            createdAt=now,
+            updatedAt=now,
+        )
+        return record.save()
 
 
 class SearchQuery(Document):

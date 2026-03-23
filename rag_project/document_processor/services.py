@@ -22,6 +22,7 @@ from pathlib import Path
 from .utils import get_impherior_prompt, get_experior_prompt
 import pytz
 from .models import ProcessingJob
+from .models import DealSchemaResults
 from mongoengine.errors import DoesNotExist
 from .summary_utils.clause_config_util import ClauseConfigUtil
 from .transform_json import simplify_json
@@ -518,6 +519,14 @@ Output JSON format (ONLY this)
 
             logger.info(f"Simplified data: {category_results}")
             job.save_json_to_db(simplified_data)
+
+            # Also persist schema results in dedicated collection (upsert by deal_id).
+            DealSchemaResults.save_or_update(
+                deal_id=object_id,
+                schema_results=simplified_data,
+                schema_processing_completed=job.schema_processing_completed,
+                schema_processing_timestamp=job.schema_processing_timestamp,
+            )
 
             # Update job status to completed
 
