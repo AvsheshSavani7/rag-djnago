@@ -9,7 +9,16 @@ import threading
 import concurrent.futures
 import json
 
-from .models import ProcessingJob, CompanyProducts, CompetitiveAnalysis, HighValueFollowers, SearchQuery, Tweet, RedditPost
+from .models import (
+    ProcessingJob,
+    CompanyProducts,
+    CompetitiveAnalysis,
+    HighValueFollowers,
+    SearchQuery,
+    Tweet,
+    RedditPost,
+    DealSchemaResults,
+)
 # Remove Celery imports for simple approach
 # from .tasks import run_daily_reddit_scraper, run_reddit_scraper_for_deal, run_reddit_scraper_for_deals
 from .serializers import (
@@ -27,6 +36,29 @@ logger = logging.getLogger(__name__)
 
 # Create a ThreadPoolExecutor for background tasks
 executor = concurrent.futures.ThreadPoolExecutor(max_workers=5)
+
+def _load_schema_results_for_job(job):
+    """
+    Hydrate `job.schema_results` from the dedicated `deal_schema_results` collection.
+    This keeps API responses consistent after schema writes moved.
+    """
+    try:
+        schema_record = DealSchemaResults.objects(deal_id=job.id).first()
+    except Exception:
+        return
+
+    if not schema_record or schema_record.schema_results is None:
+        job.schema_results = {}
+        return
+
+    schema_results = schema_record.schema_results
+    if isinstance(schema_results, str):
+        try:
+            job.schema_results = json.loads(schema_results)
+        except json.JSONDecodeError:
+            job.schema_results = {}
+    else:
+        job.schema_results = schema_results or {}
 
 
 def process_embeddings(job_id, flattened_json_url):
@@ -116,11 +148,9 @@ class ProcessFileView(APIView):
             job.flattened_json_url = result.get(
                 'flattened_json_url')  # Update the flattened URL
 
-            if job.schema_results is not None and not isinstance(job.schema_results, dict):
-                logger.warning(
-                    f"⚠️ Invalid schema_results type: {type(job.schema_results)}. Resetting to empty dict.")
-            else:
-                job.save()
+            # Persist flattened_json_url update regardless of how legacy `schema_results`
+            # is currently stored on ProcessingJob (schema is served from DealSchemaResults).
+            job.save()
 
             # Start embedding process in background if requested
             if embed_data:
@@ -170,12 +200,8 @@ class ProcessingJobDetailView(APIView):
             object_id = ObjectId(id)
             job = ProcessingJob.objects.get(id=object_id)
 
-            # Convert schema_results from a JSON string to a dictionary if applicable, ensuring valid DictField representation
-            if isinstance(job.schema_results, str):
-                try:
-                    job.schema_results = json.loads(job.schema_results)
-                except json.JSONDecodeError:
-                    job.schema_results = {}
+            # Hydrate schema_results from dedicated collection.
+            _load_schema_results_for_job(job)
 
             serializer = ProcessingJobSerializer(job)
             job_data = serializer.data
@@ -328,13 +354,8 @@ class ListAllDealsView(APIView):
             jobs = jobs_query.order_by(
                 '-createdAt').skip(offset).limit(limit)
 
-            # Convert schema_results from a JSON string to a dictionary if applicable, ensuring valid DictField representation
             for job in jobs:
-                if isinstance(job.schema_results, str):
-                    try:
-                        job.schema_results = json.loads(job.schema_results)
-                    except json.JSONDecodeError:
-                        job.schema_results = {}
+                _load_schema_results_for_job(job)
 
             # Serialize the deals
             serializer = ProcessingJobSerializer(jobs, many=True)
@@ -439,13 +460,8 @@ class ListAllDealsNoPaginationView(ListAllDealsView):
             # Get all deals
             jobs = ProcessingJob.objects.all().order_by('-createdAt')
 
-            # Convert schema_results from a JSON string to a dictionary if applicable, ensuring valid DictField representation
             for job in jobs:
-                if isinstance(job.schema_results, str):
-                    try:
-                        job.schema_results = json.loads(job.schema_results)
-                    except json.JSONDecodeError:
-                        job.schema_results = {}
+                _load_schema_results_for_job(job)
 
             # Serialize the deals
             serializer = ProcessingJobSerializer(jobs, many=True)
@@ -893,12 +909,8 @@ class JobStatusView(APIView):
             object_id = ObjectId(job_id)
             job = ProcessingJob.objects.get(id=object_id)
 
-            # Convert schema_results from a JSON string to a dictionary if needed
-            if isinstance(job.schema_results, str):
-                try:
-                    job.schema_results = json.loads(job.schema_results)
-                except json.JSONDecodeError:
-                    job.schema_results = {}
+            # Hydrate schema_results from dedicated collection.
+            _load_schema_results_for_job(job)
 
             # Serialize the job data
             serializer = ProcessingJobSerializer(job)

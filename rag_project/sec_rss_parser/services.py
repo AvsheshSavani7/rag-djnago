@@ -45,7 +45,7 @@ from .email_templates import (
 from .sec_Last_Year import print_filings as fetch_sec_filings
 
 from .Eight_k_summary import summarize_8k_filing
-from document_processor.models import ProcessingJob
+from document_processor.models import ProcessingJob, DealSchemaResults
 from document_processor.services import DocumentProcessingService, SummaryGenerationService
 from proxy_processor.views import process_sec_document_helper
 from node_proxy.utils import call_node_api
@@ -302,17 +302,17 @@ def send_summary_email_via_webhook(summary_doc_url, company_name, form_type, cik
 def send_8k_summary_email(deal_id, company_name, form_type, cik_number, sec_url, accession_number, summary_kind: str):
     """Send email notification with 8-K summary document URL."""
     try:
-        # Get the job to retrieve summary_docx_url
+        # Get DMA summary record to retrieve summary_docx_url
         try:
             object_id = ObjectId(deal_id)
-            job = ProcessingJob.objects.get(id=object_id)
+            dma_summary = DealDmaSummary.objects(deal_id=object_id).first()
         except Exception as e:
-            log_and_print(f"Error retrieving job {deal_id}: {e}", 'error')
+            log_and_print(f"Error retrieving deal_dma_summary for {deal_id}: {e}", 'error')
             return
 
-        if not job.summary_docx_url:
+        if not dma_summary or not dma_summary.summary_docx_url:
             log_and_print(
-                f"No summary document URL available for job {deal_id}", 'warning')
+                f"No summary document URL available for deal_dma_summary {deal_id}", 'warning')
             return
 
         log_and_print(
@@ -322,7 +322,7 @@ def send_8k_summary_email(deal_id, company_name, form_type, cik_number, sec_url,
         subject, html_email = generate_8k_summary_email_html(
             company_name=company_name,
             form_type=form_type,
-            summary_doc_url=job.summary_docx_url,
+            summary_doc_url=dma_summary.summary_docx_url,
             cik_number=cik_number,
             sec_url=sec_url,
             accession_number=accession_number,
@@ -336,7 +336,7 @@ def send_8k_summary_email(deal_id, company_name, form_type, cik_number, sec_url,
             'html': html_email,
             'company_name': company_name,
             'form_type': form_type,
-            'summary_doc_url': job.summary_docx_url,
+            'summary_doc_url': dma_summary.summary_docx_url,
             'deal_id': deal_id
         }
 
@@ -373,8 +373,14 @@ def generate_8k_summary_async(deal_id, company_name, form_type, cik_number, sec_
                     )
                     return
 
-                # Check if schema_results are available
-                if job.schema_results and job.embedding_status == 'COMPLETED':
+                # Check if schema_results are available (from dedicated collection)
+                schema_record = None
+                try:
+                    schema_record = DealSchemaResults.objects(deal_id=object_id).first()
+                except Exception:
+                    schema_record = None
+
+                if schema_record and schema_record.schema_results and job.embedding_status == 'COMPLETED':
                     log_and_print(
                         f"✅ Schema results available for deal_id: {deal_id}, generating summary")
 

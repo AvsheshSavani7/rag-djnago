@@ -231,14 +231,9 @@ class DocumentProcessingService:
                 logger.info(
                     f"Stored SEC filing ID {sec_filing_id} in job {job.id}")
 
-            if job.schema_results is not None and not isinstance(
-                job.schema_results, dict
-            ):
-                logger.warning(
-                    f"⚠️ Invalid schema_results type: {type(job.schema_results)}. Resetting to empty dict."
-                )
-            else:
-                job.save()
+            # Schema results are persisted in `deal_schema_results`.
+            # Always save the job updates made in this flow (e.g., flattened_json_url).
+            job.save()
 
             # Start embedding process in background if requested
             if embed_data:
@@ -1904,7 +1899,14 @@ class SummaryGenerationService:
                 print(f"Job: {job}")
                 logger.info(f"Found job in database: {job}")
 
-                schema_results = job.schema_results
+                # Pull schema results from dedicated collection.
+                schema_record = DealSchemaResults.objects(
+                    deal_id=object_id
+                ).first()
+                schema_results = (
+                    schema_record.schema_results
+                    if schema_record else None
+                )
 
                 if not schema_results:
                     logger.info(
@@ -1944,7 +1946,14 @@ class SummaryGenerationService:
                 job = ProcessingJob.objects.get(id=object_id)
                 logger.info(f"Found job in database: {job}")
 
-                schema_results = job.schema_results
+                # Pull schema results from dedicated collection.
+                schema_record = DealSchemaResults.objects(
+                    deal_id=object_id
+                ).first()
+                schema_results = (
+                    schema_record.schema_results
+                    if schema_record else None
+                )
 
                 if not schema_results:
                     logger.info("No schema results found")
@@ -2247,11 +2256,18 @@ class SummaryGenerationService:
                 return []
 
             # Check if schema_results exist
-            schema_results = job.schema_results
+            schema_record = DealSchemaResults.objects(deal_id=object_id).first()
+            schema_results = (
+                schema_record.schema_results if schema_record else None
+            )
             if not schema_results:
                 logger.warning(
                     f"No schema results found for deal_id {deal_id}")
                 return []
+
+            # Parse JSON string to dictionary if needed
+            if isinstance(schema_results, str):
+                schema_results = json.loads(schema_results)
 
             logger.info(f"Retrieved schema results for deal_id {deal_id}")
 
