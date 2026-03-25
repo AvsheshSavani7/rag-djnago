@@ -310,8 +310,10 @@ class RSSFeedService:
 
                 # Log how many items passed the merger filter (only these get AI summary)
                 n_total = len(flow_results)
-                n_skipped = sum(1 for _, r in flow_results if r.get("skip_email"))
-                n_not_merger = sum(1 for _, r in flow_results if r.get("email_note") == "not_merger_related")
+                n_skipped = sum(
+                    1 for _, r in flow_results if r.get("skip_email"))
+                n_not_merger = sum(1 for _, r in flow_results if r.get(
+                    "email_note") == "not_merger_related")
                 n_passed = n_total - n_skipped - n_not_merger
                 logger.info(
                     "Merger flow: %s items total, %s skipped, %s not_merger_related, %s passed (will get AI summary if route_and_summarize succeeds)",
@@ -358,7 +360,8 @@ class RSSFeedService:
                                 logger.warning(
                                     "route_and_summarize returned no S3 docx URL for %s (keys: %s)",
                                     url,
-                                    list(summary.keys()) if isinstance(summary, dict) else type(summary).__name__,
+                                    list(summary.keys()) if isinstance(
+                                        summary, dict) else type(summary).__name__,
                                 )
                         except Exception as e:
                             logger.warning(

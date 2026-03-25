@@ -24,7 +24,7 @@ Jinja2==3.1.6
 jiter==0.9.0
 jmespath==1.0.1
 MarkupSafe==3.0.2
-mongoengine==0.27.0
+mongoengine==0.29.3
 numpy==2.2.5
 openai>=1.81.0,<2
 openpyxl==3.1.5
@@ -34,7 +34,7 @@ pinecone==6.0.2
 pinecone-plugin-interface==0.0.7
 pydantic>=2.11.5,<3
 PyJWT==2.9.0
-pymongo==4.6.3
+pymongo==4.16.0
 PyPDF2==3.0.1
 python-dateutil==2.9.0.post0
 python-dotenv==1.0.0

@@ -100,6 +100,12 @@ def get_deals_record_string() -> str:
     Fetch all deals from DB and build a pipe-separated record per deal:
     deal_id|target_name|acquirer_name|target_aliases|parent_aliases
     Aliases are comma-separated (target_aliases and parent_aliases from ProcessingJob).
+    Only include deals whose `deal_status` is one of:
+      - "Open"
+      - "Unknown"
+      - null/None
+      - "" (empty string)
+    Deals that don't have a `deal_status` attribute are also included.
 
     Returns:
         Newline-separated string of records.
@@ -112,7 +118,28 @@ def get_deals_record_string() -> str:
         return ""
 
     records: List[str] = []
-    for job in ProcessingJob.objects.all():
+    # Prefer DB-side filtering when possible, but fall back to Python filtering
+    # if the model/field isn't compatible in the current environment.
+    try:
+        from django.db.models import Q  # type: ignore
+
+        jobs_qs = ProcessingJob.objects.filter(
+            Q(deal_status__in=["Open", "Unknown"]) |
+            Q(deal_status__isnull=True) |
+            Q(deal_status__exact=""))
+    except Exception:
+        jobs_qs = ProcessingJob.objects.all()
+
+    for job in jobs_qs:
+        # Include if:
+        # - `deal_status` attribute is missing (older/newer schema), or
+        # - value is exactly one of: "Open", "Unknown", None, "".
+        if hasattr(job, "deal_status"):
+            deal_status_val = getattr(job, "deal_status", None)
+            if deal_status_val not in ("Open", "Unknown", None, ""):
+                continue
+        # else: no deal_status attribute -> include
+
         deal_id = str(job.id)
         target = (job.target_name or "").strip() or "N/A"
         acquirer = (job.acquire_name or "").strip() or "N/A"
