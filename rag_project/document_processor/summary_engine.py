@@ -266,7 +266,18 @@ def evaluate_condition_branch(condition, data):
     output = {}
 
     if condition["type"] == "boolean":
-        result = bool(value)
+        if isinstance(value, bool):
+            result = value
+        elif isinstance(value, str):
+            v = value.strip().lower()
+            if v in {"true", "1", "yes", "y"}:
+                result = True
+            elif v in {"false", "0", "no", "n", ""}:
+                result = False
+            else:
+                raise ValueError(f"Cannot convert string to boolean: {value}")
+        else:
+            result = bool(value)
 
     elif condition["type"] == "enum":
         if isinstance(value, list):
