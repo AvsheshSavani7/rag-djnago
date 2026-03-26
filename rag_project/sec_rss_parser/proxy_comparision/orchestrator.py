@@ -30,6 +30,40 @@ from .docx_builder import create_changes_docx
 from .config import get_form_label, get_form_family
 
 
+def _load_deal_metadata(deal_id: str) -> dict:
+    """Best-effort fetch of deals metadata by deal_id (ObjectId string)."""
+    if not deal_id or deal_id == "unknown_deal":
+        return {}
+    try:
+        from pymongo import MongoClient
+    except Exception:
+        return {}
+    try:
+        from bson import ObjectId
+    except Exception:
+        ObjectId = None  # type: ignore
+
+    conn = os.environ.get("MONGODB_CONNECTION_STRING")
+    if not conn:
+        return {}
+    db_name = os.environ.get("MONGODB_NAME", "Deal_DB")
+
+    try:
+        client = MongoClient(conn)
+        db = client[db_name]
+        coll = db["deals"]
+        if ObjectId is None:
+            return {}
+        try:
+            oid = ObjectId(deal_id)
+        except Exception:
+            return {}
+        doc = coll.find_one({"_id": oid}) or {}
+        return dict(doc) if isinstance(doc, dict) else {}
+    except Exception:
+        return {}
+
+
 def _build_cache(record: dict, client, db: ProxyDB, deal_id: str) -> dict | None:
     """Ingest, classify, section-map, and extract facts for a single filing record.
     Uploads cached artifacts to S3 and updates MongoDB.
@@ -287,7 +321,23 @@ def run_comparison(
 
     old_label = get_form_label(past_can_doc.form_type)
     new_label = get_form_label(latest_can_doc.form_type)
-    ticker = latest_doc_record.get("ticker", deal_id)
+    deal_meta = _load_deal_metadata(deal_id)
+    ticker = (
+        deal_meta.get("target_ticker")
+        or latest_doc_record.get("ticker")
+        or deal_id
+    )
+    target = (
+        deal_meta.get("target_name")
+        or latest_doc_record.get("target")
+        or deal_id
+    )
+    acquirer = (
+        deal_meta.get("acquire_name")
+        or deal_meta.get("acquirer_name")
+        or latest_doc_record.get("acquirer")
+        or "TBD"
+    )
 
     # 10. Temp dir for diagnostic files only (not persisted)
     temp_dir = tempfile.mkdtemp(prefix="proxy_comp_")
@@ -333,8 +383,6 @@ def run_comparison(
     txt_key_suffix = proxy_comp_key_suffix(deal_id, latest_id, "change_report.txt")
     _, change_txt_url = upload_text(txt_key_suffix, txt_content)
 
-    target = latest_doc_record.get("target", deal_id)
-    acquirer = latest_doc_record.get("acquirer", "TBD")
     with tempfile.NamedTemporaryFile(suffix=".docx", delete=False) as tmp:
         tmp_path = tmp.name
     try:

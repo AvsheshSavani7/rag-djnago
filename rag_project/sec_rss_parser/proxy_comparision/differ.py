@@ -16,6 +16,7 @@ from .config import (
     MODEL_STANDARD, OUTPUT_FOLDER,
     TIER1_SECTION_IDS, TIER1_CATEGORIES,
     FACT_CATEGORY_MAP, _COMPARISON_PROMPTS,
+    _COMPARISON_RULES,
     _CATEGORY_TO_SECTIONS, _CATEGORY_TO_TOPICS,
     BACKGROUND_DIFF_INTERPRET_PROMPT,
     get_form_label,
@@ -61,19 +62,21 @@ def _values_are_semantically_same(old_val, new_val) -> bool:
             return True
         # Word-overlap similarity (catches reordering -- LLM extraction phrasing varies)
         STOP_WORDS = {"the", "a", "an", "of", "to", "and", "in", "for", "by", "at",
-                       "or", "is", "are", "was", "were", "be", "been", "its", "that",
-                       "with", "from", "on", "as", "not", "must", "shall", "may",
-                       "which", "have", "has", "had", "into", "upon", "certain",
-                       "subject", "terms", "conditions", "pursuant", "set", "forth",
-                       "such", "any", "all", "each", "other", "their", "this",
-                       "will", "would", "could", "should", "under", "including",
-                       "respect", "entered", "also", "than"}
+                      "or", "is", "are", "was", "were", "be", "been", "its", "that",
+                      "with", "from", "on", "as", "not", "must", "shall", "may",
+                      "which", "have", "has", "had", "into", "upon", "certain",
+                      "subject", "terms", "conditions", "pursuant", "set", "forth",
+                      "such", "any", "all", "each", "other", "their", "this",
+                      "will", "would", "could", "should", "under", "including",
+                      "respect", "entered", "also", "than"}
         old_words = set(n_old.split()) - STOP_WORDS
         new_words = set(n_new.split()) - STOP_WORDS
         if old_words and new_words:
-            overlap = len(old_words & new_words) / max(len(old_words), len(new_words))
+            overlap = len(old_words & new_words) / \
+                max(len(old_words), len(new_words))
             # Lower threshold for long descriptions -- LLM extraction adds/omits details
-            overlap_threshold = 0.60 if len(n_old) > 80 or len(n_new) > 80 else 0.70
+            overlap_threshold = 0.60 if len(
+                n_old) > 80 or len(n_new) > 80 else 0.70
             if overlap > overlap_threshold:
                 return True
         return False
@@ -127,7 +130,8 @@ def _diff_list_values(key: str, old_list: list, new_list: list, category: str) -
                 break
 
     added = [new_strs[j] for j in range(len(new_strs)) if j not in matched_new]
-    removed = [old_strs[i] for i in range(len(old_strs)) if i not in matched_old]
+    removed = [old_strs[i]
+               for i in range(len(old_strs)) if i not in matched_old]
 
     for item in added:
         events.append(ChangeEvent(
@@ -153,7 +157,8 @@ def diff_facts(old: PriorityFacts, new: PriorityFacts) -> List[ChangeEvent]:
         category = FACT_CATEGORY_MAP[attr]
 
         # Skip fields that duplicate other fact categories or are too noisy
-        SKIP_FIELDS = {"gating_items"}  # duplicates regulatory + closing_conditions
+        # duplicates regulatory + closing_conditions
+        SKIP_FIELDS = {"gating_items"}
 
         all_keys = set(list(old_dict.keys()) + list(new_dict.keys()))
         for key in all_keys:
@@ -172,7 +177,8 @@ def diff_facts(old: PriorityFacts, new: PriorityFacts) -> List[ChangeEvent]:
 
             # List-valued fields: diff item by item instead of dumping two arrays
             if isinstance(old_val, list) and isinstance(new_val, list):
-                events.extend(_diff_list_values(key, old_val, new_val, category))
+                events.extend(_diff_list_values(
+                    key, old_val, new_val, category))
                 continue
 
             if old_val is None and new_val is not None:
@@ -238,7 +244,8 @@ def diff_facts(old: PriorityFacts, new: PriorityFacts) -> List[ChangeEvent]:
 def _clean_filing_artifacts(text: str) -> str:
     """Remove SEC filing artifacts (page numbers, TOC markers, running headers)."""
     # Remove page number + TABLE OF CONTENTS artifacts
-    text = re.sub(r'\d+\s*\n?\s*TABLE OF CONTENTS\s*\n?', ' ', text, flags=re.I)
+    text = re.sub(r'\d+\s*\n?\s*TABLE OF CONTENTS\s*\n?',
+                  ' ', text, flags=re.I)
     # Remove standalone page numbers on their own line
     text = re.sub(r'\n\s*\d{1,3}\s*\n', ' ', text)
     # Collapse whitespace
@@ -271,9 +278,9 @@ def sentence_hash(s: str) -> str:
 
 
 def diff_background_with_llm(client: Anthropic,
-                              old_section: Optional[CanonicalSection],
-                              new_section: Optional[CanonicalSection],
-                              old_label: str, new_label: str) -> Dict[str, Any]:
+                             old_section: Optional[CanonicalSection],
+                             new_section: Optional[CanonicalSection],
+                             old_label: str, new_label: str) -> Dict[str, Any]:
     """Use Haiku to compare two Background sections and identify real changes.
 
     Returns dict with:
@@ -307,11 +314,15 @@ LATER VERSION ({new_label}):
 ---
 
 INSTRUCTIONS:
-- Ignore page numbers, "TABLE OF CONTENTS" headers, and whitespace/formatting differences.
-- Report ANY paragraphs or sentences that are ADDED in the later version (text present in later but not in earlier).
-- Report ANY paragraphs or sentences that are REMOVED in the later version (text present in earlier but not in later).
-- Report ANY sentences where the wording meaningfully changed between versions.
-- Do NOT make judgment calls about whether changes are "material" or "substantive" -- report ALL textual differences.
+- Report paragraphs or sentences that are ADDED in the later version (new factual content not in earlier).
+- Report paragraphs or sentences that are REMOVED in the later version (factual content present in earlier but deleted).
+- Report sentences where the SUBSTANCE meaningfully changed (different facts, dates, names, dollar amounts, or deal terms).
+- IGNORE these non-substantive differences — do NOT report them:
+  * List item renumbering (e.g., "(i)" → "(a)", "(ii)" → "(b)")
+  * Punctuation changes (commas, semicolons, periods)
+  * Formatting, whitespace, page numbers, "TABLE OF CONTENTS" headers
+  * Legal entity name corrections that refer to the same entity (e.g., "Citibank, N.A." → "Citigroup Global Markets Inc." when both are referred to as "Citi")
+  * Cross-reference or section number updates
 
 If the two versions contain exactly the same text (ignoring formatting), respond with exactly:
 NO_CHANGES
@@ -327,7 +338,8 @@ Be precise. Include specific facts, dates, names, and dollar amounts from the ch
     old_chars = len(old_text)
     new_chars = len(new_text)
     diag = []
-    diag.append(f"Background comparison: old={old_chars:,} chars, new={new_chars:,} chars, diff={new_chars - old_chars:+,} chars")
+    diag.append(
+        f"Background comparison: old={old_chars:,} chars, new={new_chars:,} chars, diff={new_chars - old_chars:+,} chars")
     diag.append(f"OLD ends with: \"...{old_text[-200:].strip()[:100]}\"")
     diag.append(f"NEW ends with: \"...{new_text[-200:].strip()[:100]}\"")
     print(f"    Comparing Background sections via Haiku...")
@@ -340,7 +352,8 @@ Be precise. Include specific facts, dates, names, and dollar amounts from the ch
         )
         answer = response.content[0].text.strip()
         diag.append(f"Haiku comparison response:\n---\n{answer}\n---")
-        print(f"    Background comparison Haiku response ({len(answer)} chars):")
+        print(
+            f"    Background comparison Haiku response ({len(answer)} chars):")
         for line in answer.split('\n'):
             print(f"      {line}")
 
@@ -384,18 +397,21 @@ def word_level_diff(old_text: str, new_text: str) -> str:
 
 
 def interpret_background_diff(client: Anthropic, diff_result: Dict[str, Any],
-                               doc1_label: str, doc2_label: str) -> str:
+                              doc1_label: str, doc2_label: str) -> str:
     """Send background diff to LLM for interpretation."""
     if not diff_result["inserted"] and not diff_result["deleted"] and not diff_result["modified"]:
         return "Background sections are substantially identical. No material changes."
 
-    inserted_text = "\n".join(f"- {s}" for s in diff_result["inserted"]) or "None"
-    deleted_text = "\n".join(f"- {s}" for s in diff_result["deleted"]) or "None"
+    inserted_text = "\n".join(
+        f"- {s}" for s in diff_result["inserted"]) or "None"
+    deleted_text = "\n".join(
+        f"- {s}" for s in diff_result["deleted"]) or "None"
 
     modified_parts = []
     for old_s, new_s in diff_result["modified"]:
         diff_markup = word_level_diff(old_s, new_s)
-        modified_parts.append(f"- OLD: {old_s}\n  NEW: {new_s}\n  DIFF: {diff_markup}")
+        modified_parts.append(
+            f"- OLD: {old_s}\n  NEW: {new_s}\n  DIFF: {diff_markup}")
     modified_text = "\n".join(modified_parts) or "None"
 
     response = client.messages.create(
@@ -435,15 +451,18 @@ def _gather_category_text(doc: CanonicalDocument, category: str, max_chars: int 
     topics_needed = _CATEGORY_TO_TOPICS.get(category, [])
 
     if topics_needed:
-        topic_text = _get_blocks_by_topic(doc, topics_needed, max_chars=max_chars // 2)
+        topic_text = _get_blocks_by_topic(
+            doc, topics_needed, max_chars=max_chars // 2)
         if topic_text.strip():
             parts.append(topic_text)
             total += len(topic_text)
 
     # Layer 2: Section text -- prioritize category-specific sections,
     # add merger_agreement_summary only if budget remains.
-    primary_ids = [sid for sid in section_ids if sid != "merger_agreement_summary"]
-    secondary_ids = [sid for sid in section_ids if sid == "merger_agreement_summary"]
+    primary_ids = [sid for sid in section_ids if sid !=
+                   "merger_agreement_summary"]
+    secondary_ids = [sid for sid in section_ids if sid ==
+                     "merger_agreement_summary"]
 
     for sid_group in [primary_ids, secondary_ids]:
         if total >= max_chars:
@@ -468,7 +487,8 @@ def _parse_comparison_response(raw: str, category: str) -> List[ChangeEvent]:
 
     # Strategy 1: Extract JSON from markdown fences -- use LAST block (LLM sometimes
     # self-corrects mid-response, so the final block is the most accurate)
-    fence_matches = list(re.finditer(r'```(?:json)?\s*(\[.*?\])\s*```', text, re.DOTALL))
+    fence_matches = list(re.finditer(
+        r'```(?:json)?\s*(\[.*?\])\s*```', text, re.DOTALL))
     if fence_matches:
         for fm in reversed(fence_matches):
             try:
@@ -549,9 +569,9 @@ def _build_change_events(items: list, category: str) -> List[ChangeEvent]:
 
 
 def _compare_category_direct(client: Anthropic, category: str,
-                              old_doc: CanonicalDocument, new_doc: CanonicalDocument,
-                              old_label: str, new_label: str,
-                              diag_path: str = None) -> List[ChangeEvent]:
+                             old_doc: CanonicalDocument, new_doc: CanonicalDocument,
+                             old_label: str, new_label: str,
+                             diag_path: str = None) -> List[ChangeEvent]:
     """Compare both filings' sections for a category in one LLM call.
 
     This is the 10K/10Q approach: send both texts to one call, ask what changed.
@@ -566,7 +586,8 @@ def _compare_category_direct(client: Anthropic, category: str,
     new_text = _gather_category_text(new_doc, category)
 
     if not old_text.strip() and not new_text.strip():
-        print(f"    Compare ({category}): no text in either filing -- skipping")
+        print(
+            f"    Compare ({category}): no text in either filing -- skipping")
         return []
 
     if not old_text.strip():
@@ -574,7 +595,8 @@ def _compare_category_direct(client: Anthropic, category: str,
     if not new_text.strip():
         new_text = "[Section not found in this filing]"
 
-    print(f"    Compare ({category}): old={len(old_text):,} chars, new={len(new_text):,} chars")
+    print(
+        f"    Compare ({category}): old={len(old_text):,} chars, new={len(new_text):,} chars")
 
     prompt = prompt_template.format(
         old_label=old_label,
@@ -596,7 +618,8 @@ def _compare_category_direct(client: Anthropic, category: str,
         if diag_path:
             with open(diag_path, "a") as df:
                 df.write(f"\n{'='*60}\n")
-                df.write(f"CATEGORY: {category} | old={len(old_text):,} chars, new={len(new_text):,} chars\n")
+                df.write(
+                    f"CATEGORY: {category} | old={len(old_text):,} chars, new={len(new_text):,} chars\n")
                 df.write(f"RAW RESPONSE:\n{answer}\n")
 
         events = _parse_comparison_response(answer, category)
@@ -604,8 +627,10 @@ def _compare_category_direct(client: Anthropic, category: str,
         if events:
             for i, e in enumerate(events[:3]):
                 field_preview = (e.field or "")[:50]
-                val_preview = (e.new_value or e.old_value or e.summary or "")[:60]
-                print(f"      [{i}] {e.change_type}: {field_preview} = {val_preview}")
+                val_preview = (
+                    e.new_value or e.old_value or e.summary or "")[:60]
+                print(
+                    f"      [{i}] {e.change_type}: {field_preview} = {val_preview}")
             if len(events) > 3:
                 print(f"      ... and {len(events) - 3} more")
         return events
@@ -614,10 +639,162 @@ def _compare_category_direct(client: Anthropic, category: str,
         return []
 
 
+def _compare_other_material(client: Anthropic,
+                            old_doc: CanonicalDocument,
+                            new_doc: CanonicalDocument,
+                            old_label: str, new_label: str) -> List[ChangeEvent]:
+    """Catch-all sweep for material, deal-specific changes in 'general' blocks.
+
+    Finds paragraphs in the new filing that are new or substantially changed
+    compared to the old filing, then screens them for materiality.
+    """
+    # Collect general-tagged blocks from both filings
+    old_texts = [b.text.strip() for b in old_doc.blocks
+                 if b.topic == "general" and b.text.strip() and len(b.text.split()) >= 20]
+    new_texts = [b.text.strip() for b in new_doc.blocks
+                 if b.topic == "general" and b.text.strip() and len(b.text.split()) >= 20]
+
+    if not new_texts:
+        print(f"    Compare (other_material): no general blocks in new filing — skipping")
+        return []
+
+    # Build lookup of old blocks: fingerprint (first 200 chars) -> full text
+    # This lets us detect both brand-new paragraphs AND paragraphs whose
+    # opening is the same but whose body was substantially modified.
+    old_by_fingerprint: Dict[str, str] = {}
+    for t in old_texts:
+        fp = t[:200].strip().lower()
+        old_by_fingerprint[fp] = t
+
+    # Find new or substantially changed paragraphs, scored by degree of change
+    # so we can prioritize the most-changed content within the token budget.
+    delta_scored = []  # (change_score, text)  — higher = more changed
+    for t in new_texts:
+        fp = t[:200].strip().lower()
+        old_match = old_by_fingerprint.get(fp)
+        if old_match is None:
+            # Brand-new paragraph — high priority
+            delta_scored.append((1.0, t))
+        else:
+            # Same opening — check if body changed substantially
+            len_ratio = abs(len(t) - len(old_match)) / max(len(old_match), 1)
+            if len_ratio > 0.10:
+                # Score by degree of change (larger length delta = more new content)
+                delta_scored.append((len_ratio, t))
+
+    if not delta_scored:
+        print(f"    Compare (other_material): no new/changed general blocks — skipping")
+        return []
+
+    # Split into brand-new vs modified paragraphs, then allocate budget
+    # so both types get representation. Modified paragraphs (existing text
+    # with new content inserted) are easy to miss if brand-new blocks
+    # consume the entire budget.
+    brand_new = [(s, t) for s, t in delta_scored if s >= 1.0]
+    modified = [(s, t) for s, t in delta_scored if s < 1.0]
+    modified.sort(key=lambda x: x[0], reverse=True)
+
+    max_budget = 60000
+    if brand_new and modified:
+        mod_budget = max_budget // 2
+    elif modified:
+        mod_budget = max_budget
+    else:
+        mod_budget = 0
+
+    delta_text_parts = []
+    total_chars = 0
+
+    # Fill modified bucket first (existing paragraphs with new content added)
+    for _score, p in modified:
+        if total_chars + len(p) > mod_budget:
+            continue
+        delta_text_parts.append(p)
+        total_chars += len(p)
+
+    # Fill remaining budget with brand-new paragraphs
+    for _score, p in brand_new:
+        if total_chars + len(p) > max_budget:
+            continue
+        delta_text_parts.append(p)
+        total_chars += len(p)
+
+    delta_text = "\n\n---\n\n".join(delta_text_parts)
+    print(f"    Compare (other_material): {len(delta_scored)} new/changed general blocks, "
+          f"sending {len(delta_text_parts)} ({total_chars:,} chars) for materiality screen")
+
+    prompt = f"""\
+You are screening NEW or CHANGED paragraphs from an SEC merger filing for material, deal-specific disclosures that fall outside the standard categories (dates, consideration, financing, shareholder approval, HSR, regulatory, closing conditions, termination fees, background).
+
+These paragraphs appeared in the LATER filing ({new_label}) but NOT in the EARLIER filing ({old_label}), or were substantially changed.
+
+NEW/CHANGED PARAGRAPHS:
+{delta_text}
+
+INSTRUCTIONS:
+Only flag items that meet BOTH criteria:
+(a) DEAL-SPECIFIC: directly about this transaction, the parties, or consequences of the merger — not generic market/industry risks
+(b) MATERIAL: could meaningfully affect deal value, timing, certainty, or post-closing operations — not trivial or immaterial
+
+Examples of what TO flag:
+- Potential significant tax liabilities arising from the merger
+- New litigation or regulatory investigations related to the deal
+- Material adverse changes in either party's business disclosed for the first time
+- New material conditions or commitments not covered by other sections
+- Significant cost estimates or write-downs tied to the transaction
+
+Examples of what NOT to flag:
+- Generic risk factors about market conditions, interest rates, cyber risk
+- Boilerplate forward-looking statement disclaimers
+- Procedural/administrative disclosures (how to submit proxies, etc.)
+- Minor cost items or immaterial amounts
+- Risk factors that simply restate deal terms already covered elsewhere
+
+{_COMPARISON_RULES}
+
+Format:
+- New material item: {{"field": "short descriptive name", "type": "new", "value": "concise description of the material disclosure (1-2 sentences)"}}
+
+Return a JSON array. If nothing meets BOTH materiality AND deal-specificity thresholds, return: []"""
+
+    try:
+        response = client.messages.create(
+            model=MODEL_STANDARD,
+            max_tokens=4000,
+            temperature=0,
+            messages=[{"role": "user", "content": prompt}]
+        )
+        answer = response.content[0].text.strip()
+
+        # Diagnostic logging
+        diag_path = os.path.join(
+            OUTPUT_FOLDER, "compare_diagnostic_latest.txt")
+        with open(diag_path, "a") as df:
+            df.write(f"\n{'='*60}\n")
+            df.write(f"CATEGORY: other_material | delta={total_chars:,} chars, "
+                     f"{len(delta_text_parts)} paragraphs\n")
+            df.write(f"RAW RESPONSE:\n{answer}\n")
+
+        events = _parse_comparison_response(answer, "other_material")
+        print(
+            f"    Compare (other_material): {len(events)} material items flagged")
+        if events:
+            for i, e in enumerate(events[:3]):
+                field_preview = (e.field or "")[:50]
+                val_preview = (e.new_value or e.summary or "")[:60]
+                print(
+                    f"      [{i}] {e.change_type}: {field_preview} = {val_preview}")
+            if len(events) > 3:
+                print(f"      ... and {len(events) - 3} more")
+        return events
+    except Exception as e:
+        print(f"    Compare (other_material): LLM call failed: {e}")
+        return []
+
+
 # =============================================================================
 # 4.6: Full Pairwise Diff
 # =============================================================================
-
 # Background section detection patterns (promoted to module level)
 _BG_START_PATTERNS = [
     re.compile(r"^Background of the Mergers?$", re.IGNORECASE),
@@ -629,10 +806,13 @@ _BG_START_PATTERNS = [
 ]
 
 _BG_INLINE_PATTERNS = [
-    re.compile(r"(?:^|\n)\s*Background of the Mergers?\s*(?:\n|$)", re.IGNORECASE),
-    re.compile(r"(?:^|\n)\s*Background of the Transactions?\s*(?:\n|$)", re.IGNORECASE),
+    re.compile(r"(?:^|\n)\s*Background of the Mergers?\s*(?:\n|$)",
+               re.IGNORECASE),
+    re.compile(
+        r"(?:^|\n)\s*Background of the Transactions?\s*(?:\n|$)", re.IGNORECASE),
     re.compile(r"(?:^|\n)\s*Background of the Offers?\s*(?:\n|$)", re.IGNORECASE),
-    re.compile(r"(?:^|\n)\s*Background of the Acquisitions?\s*(?:\n|$)", re.IGNORECASE),
+    re.compile(
+        r"(?:^|\n)\s*Background of the Acquisitions?\s*(?:\n|$)", re.IGNORECASE),
 ]
 
 _BG_END_PATTERNS = [
@@ -655,7 +835,7 @@ _BG_END_PATTERNS = [
 
 
 def _extract_bg_deterministic(doc: CanonicalDocument, label: str,
-                               bg_log=None) -> Optional[CanonicalSection]:
+                              bg_log=None) -> Optional[CanonicalSection]:
     """Find the Background section using deterministic text matching.
 
     No LLM calls -- uses regex patterns to identify start and end
@@ -709,7 +889,8 @@ def _extract_bg_deterministic(doc: CanonicalDocument, label: str,
                 bg_start = i
                 method = f"anchor: \"{text}\""
                 break
-            m = re.match(r"^(?:Anchor\s+)?Background of the Mergers?\s+(?:The |In |On |During )", text, re.IGNORECASE)
+            m = re.match(
+                r"^(?:Anchor\s+)?Background of the Mergers?\s+(?:The |In |On |During )", text, re.IGNORECASE)
             if m:
                 bg_start = i
                 method = f"anchor_with_text: \"{text[:80]}\""
@@ -762,7 +943,8 @@ def _extract_bg_deterministic(doc: CanonicalDocument, label: str,
     )
 
     log(f"    Background ({label}): blocks [{bg_start}:{bg_end}] = {len(content_blocks)} content blocks, {len(bg_text):,} chars")
-    first_text = content_blocks[0].text.strip()[:100] if content_blocks else "N/A"
+    first_text = content_blocks[0].text.strip(
+    )[:100] if content_blocks else "N/A"
     last_text = content_blocks[-1].text.strip()[:100] if content_blocks else "N/A"
     log(f"    Background ({label}): FIRST: \"{first_text}...\"")
     log(f"    Background ({label}): LAST:  \"{last_text}...\"")
@@ -783,10 +965,10 @@ def route_tier(event: ChangeEvent) -> int:
 
 
 def compute_pairwise_diff(client: Anthropic,
-                           old_doc: CanonicalDocument,
-                           new_doc: CanonicalDocument,
-                           deal_output_dir: str = None,
-                           filing_id: str = None) -> List[ChangeEvent]:
+                          old_doc: CanonicalDocument,
+                          new_doc: CanonicalDocument,
+                          deal_output_dir: str = None,
+                          filing_id: str = None) -> List[ChangeEvent]:
     """Compute all change events between two filings.
 
     Uses direct comparison (10K/10Q approach): send both filings' relevant
@@ -804,10 +986,13 @@ def compute_pairwise_diff(client: Anthropic,
 
     # Determine diagnostic file paths
     if deal_output_dir and filing_id:
-        diag_path = os.path.join(deal_output_dir, f"{filing_id}_compare_diagnostic.txt")
-        bg_diag_path = os.path.join(deal_output_dir, f"{filing_id}_bg_diagnostic.txt")
+        diag_path = os.path.join(
+            deal_output_dir, f"{filing_id}_compare_diagnostic.txt")
+        bg_diag_path = os.path.join(
+            deal_output_dir, f"{filing_id}_bg_diagnostic.txt")
     else:
-        diag_path = os.path.join(OUTPUT_FOLDER, "compare_diagnostic_latest.txt")
+        diag_path = os.path.join(
+            OUTPUT_FOLDER, "compare_diagnostic_latest.txt")
         bg_diag_path = os.path.join(OUTPUT_FOLDER, "bg_diagnostic_latest.txt")
 
     # Clear comparison diagnostic file for this run
@@ -821,12 +1006,18 @@ def compute_pairwise_diff(client: Anthropic,
     ]
     for cat in comparison_categories:
         cat_events = _compare_category_direct(client, cat, old_doc, new_doc,
-                                               old_label, new_label,
-                                               diag_path=diag_path)
+                                              old_label, new_label,
+                                              diag_path=diag_path)
         events.extend(cat_events)
 
-    print(f"    Direct comparison: {len(events)} changes across {len(comparison_categories)} categories")
+    print(
+        f"    Direct comparison: {len(events)} changes across {len(comparison_categories)} categories")
     print(f"    Raw LLM responses saved to: {diag_path}")
+
+    # 4.1b: Other material changes (catch-all for deal-specific material items in general blocks)
+    other_events = _compare_other_material(
+        client, old_doc, new_doc, old_label, new_label)
+    events.extend(other_events)
 
     # 4.2: Background diff (deterministic boundary detection + LLM comparison)
     _bg_diag_lines = []
@@ -839,7 +1030,8 @@ def compute_pairwise_diff(client: Anthropic,
     old_bg = _extract_bg_deterministic(old_doc, "old", bg_log=_bg_log)
     new_bg = _extract_bg_deterministic(new_doc, "new", bg_log=_bg_log)
     if old_bg or new_bg:
-        bg_result = diff_background_with_llm(client, old_bg, new_bg, old_label, new_label)
+        bg_result = diff_background_with_llm(
+            client, old_bg, new_bg, old_label, new_label)
 
         # Capture comparison diagnostics
         if "_diag" in bg_result:
