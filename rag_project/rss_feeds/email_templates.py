@@ -287,7 +287,27 @@ def generate_rss_feed_item_email_html(
         raw_feed_title, raw_feed_title
     )
     feed_display_name_escaped = escape_html(feed_display_name)
-    subject = f"{feed_display_name} : {item_title}"
+    base_subject = f"{feed_display_name} : {item_title}"
+
+    # Subject prefix rules (requested):
+    # - Deal we follow (existing deal match) => prefix by matched_side
+    # - Deal we not follow (new deal paths) => prefix by target US listed + market cap > $100M
+    # - Otherwise keep subject unchanged
+    subject_prefix = ""
+    if deal_info and email_note == "existing_deal":
+        matched_side = (match_details or {}).get("matched_side")
+        if matched_side == "both":
+            subject_prefix = "NWB:"
+        elif matched_side == "acquirer":
+            subject_prefix = "NWA:"
+        elif matched_side == "target":
+            subject_prefix = "NWT:"
+    elif deal_info and email_note in ("new_deal_in_db", "new_deal_not_in_db"):
+        is_us_listed = bool(deal_info.get("is_target_us_listed"))
+        is_market_cap_gt_100m = bool(deal_info.get("is_target_market_cap_gt_100m"))
+        subject_prefix = "NWNDWT:" if (is_us_listed and is_market_cap_gt_100m) else "NWNDW/OT:"
+
+    subject = f"{subject_prefix}{base_subject}" if subject_prefix else base_subject
 
     url = item.get("url") or "#"
     desc = item.get("description_text") or ""

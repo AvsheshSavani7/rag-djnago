@@ -200,7 +200,7 @@ CHARTER_STOP_PATTERN = re.compile(
 # ---------------------------
 urls = [
     # "https://www.sec.gov/Archives/edgar/data/835324/000143774926002223/ex_912528.htm",
-    "https://www.sec.gov/Archives/edgar/data/1898496/000110465925001732/tm252186d1_ex2-1.htm",
+    "https://www.sec.gov/Archives/edgar/data/1889539/000114036126011260/ef20068723_ex2-1.htm",
     # "https://www.sec.gov/Archives/edgar/data/1661460/000119312524265591/d881793dex21.htm",
 ]
 
@@ -762,6 +762,7 @@ def process_definitions_section(text_part: str):
         r'with respect to an Entity shall mean(?:s)?|'
         r'with respect to Parent or the Company|'
         r'(?:as applied\s+)?with respect to the Company|'
+        r'with respect to [A-Z][A-Za-z0-9&,\- ]+,\s*mean(?:s)?|'
         r'shall mean(?:s)?|'
         r'is defined(?:s)?|'
         r'mean(?:s)?'
