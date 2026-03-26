@@ -187,94 +187,97 @@ STAGE_2A_STRICT_SUMMARY_PROMPT = """You are a financial analyst creating a chron
 
 Using the detailed extraction provided, create a summary following this EXACT format:
 
-If any individual consortium member made an earlier informal approach prior to the formal starting point, this must be noted in the opening context sentences as it establishes prior buyer interest.
-
 # CRITICAL FORMATTING RULES:
-1. Start with 1-2 sentences summarizing events BEFORE the starting point (no header)
+
+1. Start with 1-2 sentences summarizing events BEFORE the starting point, including any informal approaches by individual consortium members that predate the formal starting point (no header)
 2. Then provide numbered points in chronological order
-3. Each numbered item is EXACTLY ONE SENTENCE (maximum 35 words)
-4. DO NOT add bold headers - just "1. [sentence]"
-5. If an item doesn't apply, SKIP that number entirely
-6. Maintain original numbering even if items skipped
+3. Each numbered item is EXACTLY ONE SENTENCE (maximum 35 words), EXCEPT Point 8 which allows two sentences
+4. DO NOT add bold headers - just “1. [sentence]”
+5. If an item doesn’t apply, SKIP that number entirely
+5. If an item doesn’t apply, OMIT it
+6. Format the items as bullet points instead of numbered points. The final output should use consistent bullet styling throughout, with no numbering.
 
 # NUMBERED POINTS REQUIREMENTS:
 
 **Point 1: Sales Process Metrics**
 IF there was a sales process, include ALL of:
-When it occurred (date range)
-How many parties contacted
-Breakdown (financial vs. strategic)
-How many signed CAs/NDAs
-How many submitted IOIs or received data room access
+- When it occurred (date range)
+- How many parties contacted
+- Breakdown (financial vs. strategic)
+- How many signed CAs/NDAs
+- How many submitted IOIs or received data room access
+- If a go-shop was conducted post-signing, include as a second sentence: parties contacted, NDAs signed, and proposals received
 
 IF no formal process, state:
-Whether negotiations were exclusive (formal or informal)
-Why board didn't conduct market check
+- Whether negotiations were exclusive (formal or informal)
+- Why board didn’t conduct market check
 
-**Point 2: Exclusivity (if no sales process)**
+**Point 2: Other Parties**
+IF not captured in points 1 and 3 to 9, list other buyers with:
+- Detailed descriptions
+- What happened with them
+
+**Point 3: Exclusivity (if no sales process)**
 Only include if there was NO sales process. Otherwise SKIP.
 
-**Point 3: Final Bidders**
+**Point 4: Final Bidders**
 IF multiple bidders, include:
-Who submitted final bids
-DESCRIPTION of each party (e.g., "large global pharmaceutical company")
-Amount of each final bid
+- Who submitted final bids
+- DESCRIPTION of each party (e.g., “large global pharmaceutical company”)
+- Amount of each final bid as submitted - CRITICAL: If the winning bidder’s final submitted bid differs from the ultimate signed merger consideration, you MUST note both figures in this point using the format: “$X.XX/share as submitted, subsequently negotiated to $Y.YY prior to signing” - Failure to include both figures when they differ will create a contradiction with Point 4
 
-**Point 4: Board Selection Rationale**
-Summarize why board selected the acquirer's bid:
-Focus on PRIMARY reasons (price, timing, certainty)
-Note if they did NOT select highest offer
-Keep regulatory details for Point 5
+**Point 5: Board Selection Rationale**
+Summarize why board selected the acquirer’s bid:
+- Focus on PRIMARY reasons (price, timing, certainty)
+- Note if they did NOT select highest offer
+- Keep regulatory details for Point 5
 
-**Point 5: Regulatory Considerations**
+**Point 6: Regulatory Considerations**
 IF antitrust/regulatory was a factor, include:
-How regulatory considerations differentiated bidders
-Specific terms (reverse termination fees, approval obligations)
-How this factored into the decision
+- How regulatory considerations differentiated bidders
+- Specific terms (reverse termination fees, approval obligations)
+- How this factored into the decision
 SKIP if not applicable.
 
-**Point 6: Financing Considerations**
-IF financing certainty was a factor, include:
-How financing differentiated bidders
-How this factored into the decision
-SKIP if not applicable.
+**Point 7: Financing Considerations**
+IF financing certainty was a factor, state whether the merger agreement includes a financing condition and how the buyer expects to fund the transaction.
+Do not compare the buyer’s financing to the target’s standalone financing needs.
 
-**Point 7: Press Leaks**
+**Point 8: Press Leaks**
 IF process leaked to press, indicate when.
 SKIP if no leak.
 
-**Point 8: Bid Trajectory**
+**Point 9: Bid Trajectory — TWO SENTENCES ALLOWED FOR THIS POINT ONLY**
+Sentence 1: List each proposal by the winning bidder in chronological order with date and price.
+Sentence 2: State the final accepted offer relative to the bidder’s initial proposal and indicate whether the final price was higher or lower than the initial proposal.
 
-TWO SENTENCES ALLOWED FOR THIS POINT ONLY.
-Sentence 1: Describe any bid withdrawals, re-submissions, or down-bids including the date and stated reason.
-Sentence 2: State the final accepted offer relative to that party’s initial proposal and characterize overall as up-bid or down-bid.
 
-**Point 9: Other Parties**
-IF not captured above, list other buyers with:
-Detailed descriptions
-What happened with them
 
 # EXAMPLE (CORRECT FORMAT):
 
 Following preliminary 2023 discussions at conferences, Company executed NDAs with three parties but received no formal proposals before 2024.
 
-1. The company conducted a targeted auction from March to May 2024, contacting 15 parties (10 strategic, 5 financial), with 8 signing NDAs and 5 submitting IOIs.
+1. The company conducted a targeted auction from March to May 2024, contacting 15 parties (10 strategic, 5 financial), with 8 signing NDAs and 5 submitting IOIs. A 30-day go-shop contacted 20 parties with two signing NDAs but none submitting proposals.
 
-3. Two parties submitted final bids: Party A (large multinational pharmaceutical) at $52/share all-cash and Party B (financial sponsor) at $48/share.
+4. Two parties submitted final bids: Party A (large multinational pharmaceutical) at $52/share all-cash and Party B (financial sponsor) at $48/share.
 
-4. The board selected Party A's $52/share bid as the highest offer with superior execution certainty and favorable timeline.
+5. The board selected Party A’s $52/share bid as the highest offer with superior execution certainty and favorable timeline.
 
-5. Regulatory risk was minimal for both parties, with Party A offering a $200M reverse termination fee versus Party B's $150M fee.
+6. Regulatory risk was minimal for both parties, with Party A offering a $200M reverse termination fee versus Party B’s $150M fee.
 
-8. Party A's final $52/share offer increased 18% from its prior $44/share bid, and the final round represented a strong up-bid.
+9. Party A withdrew its offer on October 15 citing market deterioration before re-tabling at $50/share on November 1. The final $52/share offer exceeded Party A’s initial $44/share proposal, characterizing the final round as an up-bid overall.
 
 # CRITICAL REMINDERS:
-NO bold headers (just "1. [sentence]")
-Maximum 35 words per sentence
-Skip inapplicable numbers
-Include ALL sales process metrics in Point 1
-Include party DESCRIPTIONS in Point 3
-Separate board rationale (Point 4) from regulatory details (Point 5)
+- TONE: State only facts from the filing. Do NOT speculate on motives, interpret what actions "signal" or "suggest", assess confidence levels, or draw conclusions beyond what is explicitly stated. GOOD: "Company suspended earnings calls due to pending transaction." BAD: "Company suspended earnings calls, signaling high confidence in deal completion."
+- Do not describe actions that did not occur (e.g., “did not withdraw”, “did not walk away”, “remained committed”). Only summarize actions explicitly described in the document.
+- Avoid narrative verbs such as: remained committed, demonstrated confidence, stayed engaged, did not withdraw. Use only transactional verbs such as: proposed, increased, reduced, withdrew, re-tabled, accepted.
+- NO bold headers (just “1. [sentence]“)
+- Maximum 35 words per sentence EXCEPT Point 8 which allows two sentences
+- Skip inapplicable numbers
+- Include ALL sales process metrics in Point 1, including go-shop if applicable
+- Include party DESCRIPTIONS in Point 4
+- Separate board rationale (Point 4) from regulatory details (Point 6)
+- Point 9 MUST distinguish between a withdrawal+re-tabling and a simple down-bid if a withdrawal occurred
 
 Now create your summary."""
 
