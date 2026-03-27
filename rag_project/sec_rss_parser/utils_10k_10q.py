@@ -11,6 +11,7 @@ Similar to utils_8k.py but specifically for 10-K/10-Q processing.
 """
 
 import logging
+import traceback
 from datetime import datetime, timedelta
 from mongoengine.errors import NotUniqueError
 from mongoengine.queryset.visitor import Q
@@ -33,6 +34,40 @@ DEAL_STATUS_OPEN_OR_UNKNOWN = ["Open", "Unknown"]
 
 # N8N webhook URL for 10-K/10-Q emails
 N8N_WEBHOOK_URL_10K_10Q = "https://n8n-xwx1.onrender.com/webhook/b3007d21-6845-47b5-aece-7b26583758bc"
+
+N8N_WEBHOOK_URL_10K_10Q_ERROR = "https://n8n-xwx1.onrender.com/webhook/80830c6d-ff5b-45e3-9ef3-a061db1fbf0c"
+
+
+def send_10k_10q_pipeline_failure_email(
+    company_name,
+    cik_number,
+    deal_id,
+    urls_count,
+    error_details,
+):
+    """Send an email notification when the 10-K/10-Q pipeline fails."""
+    subject = f"10-K/10-Q Pipeline Failed - {company_name or 'Unknown Company'}"
+    html = f"""
+    <html>
+      <body>
+        <h3>10-K/10-Q Summary Pipeline Failure</h3>
+        <p><strong>Company:</strong> {company_name or 'N/A'}</p>
+        <p><strong>CIK:</strong> {cik_number or 'N/A'}</p>
+        <p><strong>Deal ID:</strong> {deal_id or 'N/A'}</p>
+        <p><strong>Filings Attempted:</strong> {urls_count or 0}</p>
+        <p><strong>Timestamp (UTC):</strong> {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')}</p>
+        <h4>Error Details</h4>
+        <pre>{error_details}</pre>
+      </body>
+    </html>
+    """
+    payload = {
+        "subject": subject,
+        "html": html,
+        "company_name": company_name,
+        "email_type": "sec_filings_pipeline_failure",
+    }
+    send_webhook_notification(N8N_WEBHOOK_URL_10K_10Q_ERROR, payload, "email")
 
 
 def _extract_announce_date_with_llm(company_details_str):
@@ -278,11 +313,27 @@ def fetch_and_save_additional_10k_10q_filings(
                 run_pipeline(urls=urls_from_filings, deal_id=deal_id)
                 log_and_print("✅ 10-K/10-Q summary pipeline completed.")
             except Exception as pipeline_e:
-                logger.exception("10-K/10-Q summary pipeline failed: %s", pipeline_e)
+                logger.exception(
+                    "10-K/10-Q summary pipeline failed: %s", pipeline_e)
                 log_and_print(
                     f"❌ 10-K/10-Q summary pipeline failed: {pipeline_e}", "error")
+                try:
+                    send_10k_10q_pipeline_failure_email(
+                        company_name=company_name,
+                        cik_number=cik_number,
+                        deal_id=deal_id,
+                        urls_count=len(urls_from_filings),
+                        error_details=traceback.format_exc(),
+                    )
+                    log_and_print("📤 Sent 10-K/10-Q pipeline failure email.")
+                except Exception as notify_e:
+                    log_and_print(
+                        f"❌ Error sending 10-K/10-Q pipeline failure email: {notify_e}",
+                        "error",
+                    )
             finally:
-                log_and_print("10-K/10-Q pipeline block finished (check above for success or error).")
+                log_and_print(
+                    "10-K/10-Q pipeline block finished (check above for success or error).")
         elif not deal_id:
             log_and_print(
                 "⏭️ Skipping summary pipeline: no deal_id.", "warning")

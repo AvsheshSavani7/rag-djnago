@@ -306,8 +306,8 @@ def generate_rss_feed_item_email_html(
         is_us_listed = bool(deal_info.get("is_target_us_listed"))
         is_market_cap_gt_100m = bool(
             deal_info.get("is_target_market_cap_gt_100m"))
-        subject_prefix = "[NWNDWT]" if (
-            is_us_listed and is_market_cap_gt_100m) else "[NWNDW/OT]"
+        subject_prefix = "NWNDWT" if (
+            is_us_listed and is_market_cap_gt_100m) else "NWNDW/OT"
 
     subject = f"[{subject_prefix}] {base_subject}" if subject_prefix else base_subject
 
