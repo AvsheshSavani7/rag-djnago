@@ -818,8 +818,12 @@ class EightKFeedProcessor:
                             url_ex99 = f.get('url')
                             log_and_print(f"url_ex99: {url_ex99}")
                             if url_ex99:
-                                self._generate_ex99_summary(
+                                ex99_result = self._generate_ex99_summary(
                                     item_data, url_ex99)
+                                # Extract press release data when both EX-2.1 and EX-99.1 are present
+                                if ex99_result:
+                                    self._extract_press_release_data(
+                                        item_data, ex99_result, url_ex99)
                 self.ex21_processed_count += 1
             else:
                 logger.info(f"{LOG_PREFIX} :_process_ex21_filing: accession=%s step=not_qualified is_us_listed=%s market_cap_gt_100m=%s",
@@ -1343,7 +1347,10 @@ class EightKFeedProcessor:
                 f"{LOG_PREFIX} :_process_ex21_via_8k_helper: {traceback.format_exc()}", 'error')
 
     def _generate_ex99_summary(self, item_data, url_ex99):
-        """Generate summary for EX-99.1 via filing router; save to sec_filing_summary 99_1 node only (parent-level summary null)."""
+        """
+        Generate summary for EX-99.1 via filing router; save to sec_filing_summary 99_1 node only.
+        Returns the summary result dict (with L1_headline, L2_brief, L3_detailed, s3_docx_url, etc.) or None.
+        """
         accession_number = item_data.get('accession_number', 'N/A')
         try:
             logger.info(f"{LOG_PREFIX} :_generate_ex99_summary: accession=%s step=start url=%s",
@@ -1416,6 +1423,7 @@ class EightKFeedProcessor:
                             self.summary_ex99_count += 1
                             self._send_ex99_summary_email(
                                 item_data, result_99, url_ex99)
+                            return result_99
                         except Exception as db_e:
                             logger.exception(
                                 f"{LOG_PREFIX} :_generate_ex99_summary: accession=%s step=db_error error=%s", accession_number, str(db_e))
@@ -1431,6 +1439,7 @@ class EightKFeedProcessor:
                 f"{LOG_PREFIX} :_generate_ex99_summary: accession=%s error=%s", accession_number, str(e))
             log_and_print(
                 f"{LOG_PREFIX} :_generate_ex99_summary: ❌ Error in _generate_ex99_summary: {e}", 'error')
+        return None
 
     def _send_8k_summary_email(self, item_data, summary_result, doc_url):
         """Send email with 8-K summary document link"""
@@ -1541,6 +1550,107 @@ class EightKFeedProcessor:
                 f"{LOG_PREFIX} :_send_ex99_summary_email: accession=%s error=%s", accession_number, str(e))
             log_and_print(
                 f"{LOG_PREFIX} :_send_ex99_summary_email: ❌ Error sending EX-99.1 summary email: {e}", 'error')
+
+    def _extract_press_release_data(self, item_data, summary_result, url_ex99):
+        """
+        Extract structured deal financial data from EX-99.1 (Press Release) summary.
+        Uses Claude Haiku via press_release_processor, saves to fo_press_release_extraction.
+        """
+        accession_number = item_data.get('accession_number', 'N/A')
+        try:
+            logger.info(
+                f"{LOG_PREFIX} :_extract_press_release_data: accession=%s step=start",
+                accession_number
+            )
+            log_and_print(
+                f"{LOG_PREFIX} :_extract_press_release_data: 📊 Extracting structured data from Press Release"
+            )
+
+            l1 = summary_result.get('L1_headline') or ''
+            l2 = summary_result.get('L2_brief') or ''
+            l3 = summary_result.get('L3_detailed') or {}
+
+            if isinstance(l3, dict):
+                l3_text_parts = []
+                for key, val in l3.items():
+                    if val:
+                        l3_text_parts.append(f"{key}: {val}")
+                l3_text = "\n".join(l3_text_parts)
+            else:
+                l3_text = str(l3) if l3 else ''
+
+            summary_text = f"""L1 HEADLINE:
+{l1}
+
+L2 BRIEF:
+{l2}
+
+L3 DETAILED:
+{l3_text}
+"""
+
+            if not l1.strip() and not l2.strip():
+                logger.warning(
+                    f"{LOG_PREFIX} :_extract_press_release_data: accession=%s step=skip reason=no_summary_content",
+                    accession_number
+                )
+                log_and_print(
+                    f"{LOG_PREFIX} :_extract_press_release_data: ⚠️ No summary content to extract from",
+                    'warning'
+                )
+                return
+
+            from sec_rss_parser.summary_processor.press_release_processor import extract_from_press_release
+
+            deal_id = item_data.get('deal_id')
+            company_name = item_data.get('company_name')
+            cik_number = item_data.get('cik_number')
+            filing_date = item_data.get('filing_date')
+            if isinstance(filing_date, datetime):
+                filing_date = filing_date.strftime('%Y-%m-%d')
+
+            s3_docx_url = summary_result.get('s3_docx_url') or summary_result.get('s3_url')
+
+            existing_summary = SECFilingSummary.objects(
+                accession_number=accession_number, form_type='8-K'
+            ).first()
+            press_release_id = str(existing_summary._id) if existing_summary else None
+
+            result = extract_from_press_release(
+                summary_text=summary_text,
+                deal_id=deal_id,
+                accession_number=accession_number,
+                company_name=company_name,
+                cik_number=cik_number,
+                press_release_id=press_release_id,
+                press_release_docx=s3_docx_url,
+                filing_date=filing_date,
+                send_email=True,
+            )
+
+            if result:
+                logger.info(
+                    f"{LOG_PREFIX} :_extract_press_release_data: accession=%s step=extracted target=%s",
+                    accession_number, result.get('extracted', {}).get('target', 'N/A')
+                )
+                log_and_print(
+                    f"{LOG_PREFIX} :_extract_press_release_data: ✅ Press Release extraction completed and saved"
+                )
+            else:
+                logger.warning(
+                    f"{LOG_PREFIX} :_extract_press_release_data: accession=%s step=no_result",
+                    accession_number
+                )
+
+        except Exception as e:
+            logger.exception(
+                f"{LOG_PREFIX} :_extract_press_release_data: accession=%s error=%s",
+                accession_number, str(e)
+            )
+            log_and_print(
+                f"{LOG_PREFIX} :_extract_press_release_data: ❌ Press Release extraction failed: {e}",
+                'error'
+            )
 
 
 def run_8k_processor(rss_content=None, rss_file=None):

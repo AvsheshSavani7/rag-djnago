@@ -666,9 +666,24 @@ Do not reply with anything except true or false."""},
 
         try:
             try:
-                from .extract_sections_html_class import SECDocumentProcessor
+                from rag_project.proxy_processor.extract_sections_html_class import SECDocumentProcessor
             except ImportError:
-                from extract_sections_html_class import SECDocumentProcessor
+                try:
+                    from proxy_processor.extract_sections_html_class import SECDocumentProcessor
+                except ImportError:
+                    # Fallback for direct-script execution where package imports are not resolvable
+                    import importlib.util
+                    from pathlib import Path
+                    module_path = Path(__file__).resolve().parents[1] / \
+                        "proxy_processor" / "extract_sections_html_class.py"
+                    spec = importlib.util.spec_from_file_location(
+                        "extract_sections_html_class", str(module_path))
+                    if spec is None or spec.loader is None:
+                        raise ImportError(
+                            f"Could not load module spec from {module_path}")
+                    module = importlib.util.module_from_spec(spec)
+                    spec.loader.exec_module(module)
+                    SECDocumentProcessor = module.SECDocumentProcessor
             processor = SECDocumentProcessor(self.sec_url, self.toc_path)
             sections = processor.process_document()
 
@@ -1512,7 +1527,7 @@ if __name__ == "__main__":
         sys.exit(1)
 
     # Example usage
-    sec_url = "https://www.sec.gov/Archives/edgar/data/1509589/000110465925123530/tm2533879-1_defm14a.htm"
+    sec_url = "https://www.sec.gov/Archives/edgar/data/2016561/000149315226013001/forms-4.htm"
     logger.info(f"Processing SEC document: {sec_url}")
 
     try:

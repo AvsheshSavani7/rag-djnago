@@ -499,3 +499,89 @@ class SECFilingSummary(Document):
 
     def __str__(self):
         return f"SECFilingSummary - {self.form_type} - {self.accession_number or self.sec_document_url[:50]}"
+
+
+class FOPressReleaseExtraction(Document):
+    """
+    Store structured extraction from EX-99.1 (Press Release) summaries.
+    Extracted using Claude Haiku from L1/L2/L3 summary text.
+    """
+    _id = StringField(primary_key=True, default=generate_object_id)
+
+    deal_id = StringField(required=False, max_length=50, null=True)
+    accession_number = StringField(required=False, max_length=50, null=True)
+
+    extracted = DictField(required=False, null=True)
+    source_text = StringField(required=False, null=True)
+    extracted_at = DateTimeField(default=datetime.utcnow)
+    filing_date = StringField(required=False, max_length=20, null=True)
+
+    press_release_id = StringField(required=False, max_length=50, null=True)
+    press_release_docx = StringField(required=False, max_length=2000, null=True)
+
+    company_name = StringField(required=False, max_length=255, null=True)
+    cik_number = StringField(required=False, max_length=20, null=True)
+
+    created_at = DateTimeField(default=datetime.utcnow)
+    updated_at = DateTimeField(default=datetime.utcnow)
+
+    meta = {
+        'collection': 'fo_press_release_extraction',
+        'indexes': [
+            'deal_id',
+            'accession_number',
+            'cik_number',
+            'filing_date',
+        ],
+    }
+
+    def save(self, *args, **kwargs):
+        self.updated_at = datetime.utcnow()
+        return super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"FOPressReleaseExtraction - {self.deal_id or self.accession_number}"
+
+
+class FODmaExtraction(Document):
+    """
+    Store structured extraction from EX-2.1 (DMA - Definitive Merger Agreement) summaries.
+    Extracted using Claude Haiku from DMA summary text.
+    Cross-references with press release extraction for inconsistencies.
+    """
+    _id = StringField(primary_key=True, default=generate_object_id)
+
+    deal_id = StringField(required=False, max_length=50, null=True)
+    accession_number = StringField(required=False, max_length=50, null=True)
+
+    extracted = DictField(required=False, null=True)
+    inconsistencies = ListField(DictField(), default=[])
+    source_text = StringField(required=False, null=True)
+    extracted_at = DateTimeField(default=datetime.utcnow)
+    filing_date = StringField(required=False, max_length=20, null=True)
+
+    dma_summary_id = StringField(required=False, max_length=50, null=True)
+    dma_summary_docx = StringField(required=False, max_length=2000, null=True)
+
+    company_name = StringField(required=False, max_length=255, null=True)
+    cik_number = StringField(required=False, max_length=20, null=True)
+
+    created_at = DateTimeField(default=datetime.utcnow)
+    updated_at = DateTimeField(default=datetime.utcnow)
+
+    meta = {
+        'collection': 'fo_dma_extraction',
+        'indexes': [
+            'deal_id',
+            'accession_number',
+            'cik_number',
+            'filing_date',
+        ],
+    }
+
+    def save(self, *args, **kwargs):
+        self.updated_at = datetime.utcnow()
+        return super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"FODmaExtraction - {self.deal_id or self.accession_number}"

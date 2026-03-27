@@ -1264,3 +1264,300 @@ def generate_parsing_success_email_html(
 </html>
 """
     return subject, html_email
+
+
+def _build_extracted_data_table(extracted: dict, title: str = "Extracted Data") -> str:
+    """Build HTML table for extracted data fields from press release or DMA extraction."""
+    if not extracted or not isinstance(extracted, dict):
+        return "<p><em>No extracted data available.</em></p>"
+
+    rows = []
+    idx = 0
+    for key, value in extracted.items():
+        if value is None:
+            display_value = "—"
+        elif isinstance(value, list):
+            if not value:
+                display_value = "—"
+            else:
+                items = [escape_html(str(v)) for v in value if v is not None]
+                display_value = "<br>".join(items) if items else "—"
+        elif isinstance(value, bool):
+            display_value = "Yes" if value else "No"
+        elif isinstance(value, (int, float)):
+            display_value = escape_html(str(value))
+        else:
+            display_value = escape_html(str(value))
+
+        bg = "#ffffff" if idx % 2 == 0 else "#f9f9f9"
+        key_display = key.replace("_", " ").title()
+        rows.append(f"""
+      <tr style="background-color:{bg};">
+        <td style="padding:10px; border:1px solid #ddd; font-weight:bold; color:#555; width:220px;">{escape_html(key_display)}</td>
+        <td style="padding:10px; border:1px solid #ddd; color:#333;">{display_value}</td>
+      </tr>
+""")
+        idx += 1
+
+    rows_html = "".join(rows)
+    return f"""
+    <h3 style="color:#333; margin-top:20px; margin-bottom:10px;">{escape_html(title)}</h3>
+    <table style="width:100%; border-collapse:collapse; margin-top:10px;">
+      <tbody>
+{rows_html}
+      </tbody>
+    </table>
+"""
+
+
+def _build_inconsistencies_table(inconsistencies: list) -> str:
+    """Build HTML table for DMA vs Press Release inconsistencies."""
+    if not inconsistencies:
+        return ""
+
+    rows = []
+    for idx, item in enumerate(inconsistencies):
+        bg = "#ffffff" if idx % 2 == 0 else "#fff3cd"
+        field = escape_html(item.get('label', item.get('field', '')))
+        dma_val = escape_html(item.get('dma_value', ''))
+        pr_val = escape_html(item.get('pr_value', ''))
+        rows.append(f"""
+      <tr style="background-color:{bg};">
+        <td style="padding:10px; border:1px solid #ddd; font-weight:bold; color:#555;">{field}</td>
+        <td style="padding:10px; border:1px solid #ddd; color:#dc3545;">{dma_val}</td>
+        <td style="padding:10px; border:1px solid #ddd; color:#28a745;">{pr_val}</td>
+      </tr>
+""")
+
+    rows_html = "".join(rows)
+    return f"""
+    <h3 style="color:#dc3545; margin-top:30px; margin-bottom:10px;">⚠️ Inconsistencies (DMA vs Press Release)</h3>
+    <table style="width:100%; border-collapse:collapse; margin-top:10px;">
+      <thead>
+        <tr style="background-color:#fff3cd;">
+          <th style="padding:10px; border:1px solid #ddd; text-align:left;">Field</th>
+          <th style="padding:10px; border:1px solid #ddd; text-align:left;">DMA Value</th>
+          <th style="padding:10px; border:1px solid #ddd; text-align:left;">PR Value</th>
+        </tr>
+      </thead>
+      <tbody>
+{rows_html}
+      </tbody>
+    </table>
+"""
+
+
+def generate_press_release_extraction_email_html(
+    company_name: str,
+    deal_id: str,
+    accession_number: str,
+    extracted: dict,
+    filing_date: str = None,
+    cik_number: str = None,
+    press_release_docx: str = None,
+) -> tuple:
+    """
+    Generate HTML email for Press Release (EX-99.1) extraction notification.
+
+    Args:
+        company_name: Name of the company
+        deal_id: Deal ID
+        accession_number: SEC accession number
+        extracted: Extracted structured data dict
+        filing_date: Filing date
+        cik_number: CIK number
+        press_release_docx: S3 URL of the press release summary DOCX
+
+    Returns:
+        tuple: (subject, html_email)
+    """
+    company_esc = escape_html(company_name or "Unknown Company")
+    deal_id_esc = escape_html(deal_id or "N/A")
+    accession_esc = escape_html(accession_number or "N/A")
+    filing_date_esc = escape_html(filing_date or "N/A")
+    cik_esc = escape_html(cik_number or "N/A")
+
+    subject = f"Press Release Extraction – {company_esc}"
+
+    extracted_table = _build_extracted_data_table(extracted, "Extracted Deal Financial Data")
+
+    docx_link_html = ""
+    if press_release_docx:
+        docx_link_html = f"""
+    <div style="text-align:center; margin:20px 0;">
+      <a href="{escape_html(press_release_docx)}"
+         style="display:inline-block; background-color:#4a90e2; color:#ffffff; padding:12px 24px; text-decoration:none; border-radius:5px; font-size:14px; font-weight:bold;">
+        Download Press Release Summary
+      </a>
+    </div>
+"""
+
+    html_email = f"""
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>{escape_html(subject)}</title>
+</head>
+<body style="margin:0; padding:0; font-family:Arial,sans-serif; background-color:#f4f4f4;">
+  <div style="max-width:900px; margin:20px auto; background-color:#ffffff; padding:30px; border-radius:8px; box-shadow:0 2px 4px rgba(0,0,0,0.1);">
+    <h2 style="color:#333; text-align:center; margin-top:0; padding-bottom:20px; border-bottom:3px solid #28a745;">
+      Press Release Extraction (EX-99.1)
+    </h2>
+
+    <div style="background-color:#d4edda; padding:15px; border-radius:5px; margin:20px 0; border-left:4px solid #28a745;">
+      <p style="margin:0; color:#155724; font-size:14px;">
+        <strong>Structured deal financial data has been extracted from the EX-99.1 Press Release summary.</strong>
+      </p>
+    </div>
+
+    <table style="width:100%; border-collapse:collapse; margin-bottom:20px;">
+      <tr style="background-color:#f9f9f9;">
+        <td style="padding:10px; font-weight:bold; width:170px; color:#555;">Deal ID:</td>
+        <td style="padding:10px; color:#333; font-family:monospace;">{deal_id_esc}</td>
+      </tr>
+      <tr>
+        <td style="padding:10px; font-weight:bold; color:#555;">Company:</td>
+        <td style="padding:10px; color:#333;">{company_esc}</td>
+      </tr>
+      <tr style="background-color:#f9f9f9;">
+        <td style="padding:10px; font-weight:bold; color:#555;">Accession Number:</td>
+        <td style="padding:10px; color:#333;">{accession_esc}</td>
+      </tr>
+      <tr>
+        <td style="padding:10px; font-weight:bold; color:#555;">CIK:</td>
+        <td style="padding:10px; color:#333;">{cik_esc}</td>
+      </tr>
+      <tr style="background-color:#f9f9f9;">
+        <td style="padding:10px; font-weight:bold; color:#555;">Filing Date:</td>
+        <td style="padding:10px; color:#333;">{filing_date_esc}</td>
+      </tr>
+    </table>
+
+{extracted_table}
+{docx_link_html}
+
+    <div style="margin-top:30px; padding-top:20px; border-top:1px solid #e0e0e0; text-align:center; color:#999; font-size:12px;">
+      <p>This is an automated extraction from EX-99.1 (Press Release) summary using Claude Haiku.</p>
+    </div>
+  </div>
+</body>
+</html>
+"""
+    return subject, html_email
+
+
+def generate_dma_extraction_email_html(
+    company_name: str,
+    deal_id: str,
+    accession_number: str,
+    extracted: dict,
+    inconsistencies: list = None,
+    filing_date: str = None,
+    cik_number: str = None,
+    dma_summary_docx: str = None,
+) -> tuple:
+    """
+    Generate HTML email for DMA (EX-2.1 Definitive Merger Agreement) extraction notification.
+
+    Args:
+        company_name: Name of the company
+        deal_id: Deal ID
+        accession_number: SEC accession number
+        extracted: Extracted structured data dict
+        inconsistencies: List of inconsistencies between DMA and Press Release
+        filing_date: Filing date
+        cik_number: CIK number
+        dma_summary_docx: S3 URL of the DMA summary DOCX
+
+    Returns:
+        tuple: (subject, html_email)
+    """
+    company_esc = escape_html(company_name or "Unknown Company")
+    deal_id_esc = escape_html(deal_id or "N/A")
+    accession_esc = escape_html(accession_number or "N/A")
+    filing_date_esc = escape_html(filing_date or "N/A")
+    cik_esc = escape_html(cik_number or "N/A")
+
+    subject = f"DMA Extraction – {company_esc}"
+
+    extracted_table = _build_extracted_data_table(extracted, "Extracted DMA Data")
+    inconsistencies_table = _build_inconsistencies_table(inconsistencies or [])
+
+    docx_link_html = ""
+    if dma_summary_docx:
+        docx_link_html = f"""
+    <div style="text-align:center; margin:20px 0;">
+      <a href="{escape_html(dma_summary_docx)}"
+         style="display:inline-block; background-color:#4a90e2; color:#ffffff; padding:12px 24px; text-decoration:none; border-radius:5px; font-size:14px; font-weight:bold;">
+        Download DMA Summary
+      </a>
+    </div>
+"""
+
+    inconsistency_alert = ""
+    if inconsistencies:
+        inconsistency_alert = f"""
+    <div style="background-color:#fff3cd; padding:15px; border-radius:5px; margin:20px 0; border-left:4px solid #ffc107;">
+      <p style="margin:0; color:#856404; font-size:14px;">
+        <strong>⚠️ {len(inconsistencies)} inconsistency(ies) detected between DMA and Press Release data.</strong>
+      </p>
+    </div>
+"""
+
+    html_email = f"""
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>{escape_html(subject)}</title>
+</head>
+<body style="margin:0; padding:0; font-family:Arial,sans-serif; background-color:#f4f4f4;">
+  <div style="max-width:900px; margin:20px auto; background-color:#ffffff; padding:30px; border-radius:8px; box-shadow:0 2px 4px rgba(0,0,0,0.1);">
+    <h2 style="color:#333; text-align:center; margin-top:0; padding-bottom:20px; border-bottom:3px solid #4a90e2;">
+      DMA Extraction (EX-2.1 Definitive Merger Agreement)
+    </h2>
+
+    <div style="background-color:#e7f3ff; padding:15px; border-radius:5px; margin:20px 0; border-left:4px solid #4a90e2;">
+      <p style="margin:0; color:#004085; font-size:14px;">
+        <strong>Structured deal data has been extracted from the EX-2.1 DMA summary.</strong>
+      </p>
+    </div>
+
+{inconsistency_alert}
+
+    <table style="width:100%; border-collapse:collapse; margin-bottom:20px;">
+      <tr style="background-color:#f9f9f9;">
+        <td style="padding:10px; font-weight:bold; width:170px; color:#555;">Deal ID:</td>
+        <td style="padding:10px; color:#333; font-family:monospace;">{deal_id_esc}</td>
+      </tr>
+      <tr>
+        <td style="padding:10px; font-weight:bold; color:#555;">Company:</td>
+        <td style="padding:10px; color:#333;">{company_esc}</td>
+      </tr>
+      <tr style="background-color:#f9f9f9;">
+        <td style="padding:10px; font-weight:bold; color:#555;">Accession Number:</td>
+        <td style="padding:10px; color:#333;">{accession_esc}</td>
+      </tr>
+      <tr>
+        <td style="padding:10px; font-weight:bold; color:#555;">CIK:</td>
+        <td style="padding:10px; color:#333;">{cik_esc}</td>
+      </tr>
+      <tr style="background-color:#f9f9f9;">
+        <td style="padding:10px; font-weight:bold; color:#555;">Filing Date:</td>
+        <td style="padding:10px; color:#333;">{filing_date_esc}</td>
+      </tr>
+    </table>
+
+{extracted_table}
+{inconsistencies_table}
+{docx_link_html}
+
+    <div style="margin-top:30px; padding-top:20px; border-top:1px solid #e0e0e0; text-align:center; color:#999; font-size:12px;">
+      <p>This is an automated extraction from EX-2.1 (DMA) summary using Claude Haiku.</p>
+    </div>
+  </div>
+</body>
+</html>
+"""
+    return subject, html_email

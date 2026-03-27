@@ -443,6 +443,23 @@ def generate_8k_summary_async(deal_id, company_name, form_type, cik_number, sec_
                             log_and_print(
                                 f"❌ Error sending 8-K summary email: {str(email_error)}", 'error')
 
+                        # Extract structured data from DMA summary
+                        try:
+                            log_and_print(
+                                f"📊 Extracting structured data from DMA summary for deal_id: {deal_id}")
+                            _extract_dma_data(
+                                deal_id=deal_id,
+                                company_name=company_name,
+                                cik_number=cik_number,
+                                accession_number=accession_number,
+                                dma_summary_docx=result,
+                            )
+                            log_and_print(
+                                f"✅ DMA extraction completed for deal_id: {deal_id}")
+                        except Exception as dma_error:
+                            log_and_print(
+                                f"❌ Error extracting DMA data: {str(dma_error)}", 'error')
+
                         return
                     else:
                         log_and_print(
@@ -496,6 +513,128 @@ def generate_8k_summary_async(deal_id, company_name, form_type, cik_number, sec_
                 # Don't mask the original error with DB issues.
                 pass
         log_and_print(f"❌ Error in generate_8k_summary_async: {e}", 'error')
+
+
+def _extract_dma_data(deal_id, company_name, cik_number, accession_number, dma_summary_docx):
+    """
+    Extract structured deal data from DMA (EX-2.1) summary using Claude Haiku.
+    Saves to fo_dma_extraction collection and sends email.
+
+    This function also updates the corresponding press release extraction record
+    (fo_press_release_extraction) with the deal_id, since it was saved earlier
+    without deal_id (deal wasn't created yet at that point).
+
+    Args:
+        deal_id: Deal ID
+        company_name: Company name
+        cik_number: CIK number
+        accession_number: SEC accession number
+        dma_summary_docx: S3 URL of the DMA summary DOCX
+    """
+    from sec_rss_parser.models import FOPressReleaseExtraction
+
+    try:
+        log_and_print(
+            f"📊 Starting DMA extraction for deal_id: {deal_id}")
+
+        # Update press release extraction with deal_id (it was saved without deal_id earlier)
+        if accession_number and deal_id:
+            try:
+                pr_record = FOPressReleaseExtraction.objects(
+                    accession_number=accession_number
+                ).first()
+                if pr_record and not pr_record.deal_id:
+                    pr_record.deal_id = deal_id
+                    pr_record.save()
+                    log_and_print(
+                        f"✅ Updated press release extraction with deal_id: {deal_id}")
+            except Exception as pr_e:
+                log_and_print(
+                    f"⚠️ Failed to update press release extraction with deal_id: {pr_e}",
+                    'warning'
+                )
+
+        dma_summary_record = DealDmaSummary.objects(
+            deal_id=ObjectId(deal_id)
+        ).first()
+
+        dma_summary_id = str(dma_summary_record.id) if dma_summary_record else None
+
+        summary_text = None
+
+        if dma_summary_docx:
+            try:
+                import docx
+                response = requests.get(dma_summary_docx, timeout=60)
+                if response.status_code == 200:
+                    with tempfile.NamedTemporaryFile(suffix='.docx', delete=False) as tmp:
+                        tmp.write(response.content)
+                        tmp_path = tmp.name
+
+                    doc = docx.Document(tmp_path)
+                    paragraphs = [p.text for p in doc.paragraphs if p.text.strip()]
+                    summary_text = "\n\n".join(paragraphs)
+
+                    os.unlink(tmp_path)
+
+                    log_and_print(
+                        f"📄 Extracted {len(paragraphs)} paragraphs from DMA summary DOCX")
+                else:
+                    log_and_print(
+                        f"⚠️ Failed to download DMA summary DOCX: HTTP {response.status_code}",
+                        'warning'
+                    )
+            except Exception as docx_e:
+                log_and_print(
+                    f"⚠️ Error reading DMA summary DOCX: {docx_e}", 'warning')
+
+        if not summary_text:
+            try:
+                job = ProcessingJob.objects(id=ObjectId(deal_id)).first()
+                if job and hasattr(job, 'summary_text') and job.summary_text:
+                    summary_text = job.summary_text
+                    log_and_print("📄 Using summary_text from ProcessingJob")
+            except Exception:
+                pass
+
+        if not summary_text:
+            log_and_print(
+                f"⚠️ No DMA summary text available for deal_id: {deal_id}",
+                'warning'
+            )
+            return
+
+        from sec_rss_parser.summary_processor.dma_summary_processor import extract_from_dma_summary
+
+        # DMA extraction will use accession_number to load press release for comparison
+        result = extract_from_dma_summary(
+            summary_text=summary_text,
+            deal_id=deal_id,
+            accession_number=accession_number,
+            company_name=company_name,
+            cik_number=cik_number,
+            dma_summary_id=dma_summary_id,
+            dma_summary_docx=dma_summary_docx,
+            filing_date=None,
+            send_email=True,
+        )
+
+        if result:
+            inconsistencies_count = len(result.get('inconsistencies', []))
+            log_and_print(
+                f"✅ DMA extraction completed for deal_id: {deal_id} "
+                f"(target: {result.get('extracted', {}).get('target', 'N/A')}, "
+                f"inconsistencies: {inconsistencies_count})"
+            )
+        else:
+            log_and_print(
+                f"⚠️ DMA extraction returned no result for deal_id: {deal_id}",
+                'warning'
+            )
+
+    except Exception as e:
+        log_and_print(
+            f"❌ Error in _extract_dma_data for deal_id {deal_id}: {e}", 'error')
 
 
 def _fetch_recent_deals_excerpts(limit=10):
