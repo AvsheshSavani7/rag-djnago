@@ -87,7 +87,8 @@ def _filename_from_sec_url(url: str) -> str:
 def _get_s3_client():
     """S3 client using same bucket/env as document_processor S3Service."""
     if not boto3:
-        raise ValueError("boto3 is required for S3 upload. Install with: pip install boto3")
+        raise ValueError(
+            "boto3 is required for S3 upload. Install with: pip install boto3")
     bucket = os.environ.get("AWS_S3_BUCKET")
     if not bucket:
         raise ValueError("AWS_S3_BUCKET is not set in environment")
@@ -168,7 +169,7 @@ def summarize(text: str, model: str = "claude-opus-4-5-20251101") -> dict:
 
     msg = client.messages.create(
         model=model,
-        max_tokens=1500,
+        max_tokens=2500,
         messages=[{
             "role": "user",
             "content": SUMMARY_PROMPT + "\n\n" + text

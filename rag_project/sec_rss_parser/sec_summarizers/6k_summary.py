@@ -3,6 +3,12 @@
 Usage: python 6k_summary.py
 """
 
+import anthropic
+import re
+import json
+import sys
+import os
+import io
 from pathlib import Path
 
 from ._naming import filing_uid
@@ -13,12 +19,6 @@ FILING_URL = ""
 OUTPUT_DIR = Path(__file__).resolve().parents[1] / "Output Summaries"
 # ─────────────────────────────────
 
-import io
-import os
-import sys
-import json
-import re
-import anthropic
 
 try:
     import requests
@@ -99,12 +99,13 @@ def fetch_filing_text(source: str) -> str:
 def summarize(text: str, model: str = "claude-opus-4-6") -> dict:
     """Call Claude API to produce multi-level summary."""
     if not ANTHROPIC_API_KEY:
-        raise ValueError("ANTHROPIC_API_KEY not set. Set it in .env or Django settings (ANTHROPIC_API_KEY).")
+        raise ValueError(
+            "ANTHROPIC_API_KEY not set. Set it in .env or Django settings (ANTHROPIC_API_KEY).")
     client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
 
     msg = client.messages.create(
         model=model,
-        max_tokens=1500,
+        max_tokens=2500,
         messages=[{
             "role": "user",
             "content": SUMMARY_PROMPT + "\n\n" + text
@@ -124,7 +125,8 @@ def print_summary(s: dict):
     print("  6-K SUMMARY (Foreign Private Issuer)")
     print("=" * 70)
 
-    print(f"\n   Company:  {s.get('company', 'N/A')} ({s.get('ticker', 'N/A')})")
+    print(
+        f"\n   Company:  {s.get('company', 'N/A')} ({s.get('ticker', 'N/A')})")
     print(f"   Country:  {s.get('home_country', 'N/A')}")
     print(f"   Type:     {s.get('report_type', 'N/A')}")
     print(f"   Date:     {s.get('filing_date', 'N/A')}")

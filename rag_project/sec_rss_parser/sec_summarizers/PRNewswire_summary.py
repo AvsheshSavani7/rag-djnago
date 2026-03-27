@@ -3,6 +3,12 @@ PRNewswire Merger Press Release Summarizer — Multi-level summaries via Claude 
 Usage: python PRNewswire_summary.py
 """
 
+import anthropic
+import re
+import json
+import sys
+import os
+import io
 from pathlib import Path
 
 try:
@@ -16,12 +22,6 @@ FILING_URL = ""
 OUTPUT_DIR = Path(__file__).resolve().parents[1] / "Output Summaries"
 # ─────────────────────────────────
 
-import io
-import os
-import sys
-import json
-import re
-import anthropic
 
 try:
     import requests
@@ -222,13 +222,15 @@ def fetch_article_text(source: str) -> str:
             # Tier 2: cloudscraper (handles older Cloudflare JS challenges)
             if _cloudscraper_mod is not None:
                 try:
-                    print(f"  ⚠️  HTTP {resp.status_code} — retrying with cloudscraper...")
+                    print(
+                        f"  ⚠️  HTTP {resp.status_code} — retrying with cloudscraper...")
                     scraper = _cloudscraper_mod.create_scraper()
                     cs_resp = scraper.get(source, headers=headers, timeout=30)
                     if cs_resp.status_code == 200:
                         html = cs_resp.text
                     else:
-                        print(f"  ⚠️  cloudscraper returned HTTP {cs_resp.status_code}")
+                        print(
+                            f"  ⚠️  cloudscraper returned HTTP {cs_resp.status_code}")
                 except Exception as e:
                     print(f"  ⚠️  cloudscraper failed: {e}")
 
@@ -302,12 +304,13 @@ def fetch_article_text(source: str) -> str:
 def summarize(text: str, model: str = "claude-opus-4-6") -> dict:
     """Call Claude API to produce multi-level summary."""
     if not ANTHROPIC_API_KEY:
-        raise ValueError("ANTHROPIC_API_KEY not set. Set it in .env or Django settings (ANTHROPIC_API_KEY).")
+        raise ValueError(
+            "ANTHROPIC_API_KEY not set. Set it in .env or Django settings (ANTHROPIC_API_KEY).")
     client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
 
     msg = client.messages.create(
         model=model,
-        max_tokens=1500,
+        max_tokens=2500,
         messages=[{
             "role": "user",
             "content": SUMMARY_PROMPT + "\n\n" + text
@@ -339,7 +342,8 @@ def search_perplexity(query: str):
     }
 
     try:
-        resp = requests.post(PERPLEXITY_API_URL, headers=headers, json=payload, timeout=30)
+        resp = requests.post(PERPLEXITY_API_URL,
+                             headers=headers, json=payload, timeout=30)
         resp.raise_for_status()
         return resp.json()["choices"][0]["message"]["content"]
     except Exception as e:
@@ -367,7 +371,8 @@ def check_target_company(acquirer: str, target: str, target_ticker: str = None) 
         )
         perplexity_context = search_perplexity(query) or ""
         if perplexity_context:
-            print(f"  ✓ Perplexity: {len(perplexity_context.split())} words received")
+            print(
+                f"  ✓ Perplexity: {len(perplexity_context.split())} words received")
     else:
         print("  ⚠️  PERPLEXITY_API_KEY not set — skipping Perplexity search")
 
@@ -462,7 +467,8 @@ def print_summary(s: dict):
     a_tick = s.get("acquirer_ticker") or "—"
     t_tick = s.get("target_ticker") or "—"
 
-    print(f"\n   Deal:    {acquirer} ({a_tick})  acquires  {target} ({t_tick})")
+    print(
+        f"\n   Deal:    {acquirer} ({a_tick})  acquires  {target} ({t_tick})")
     print(f"   Type:    {s.get('deal_type', 'N/A')}")
     print(f"   Date:    {s.get('announcement_date', 'N/A')}")
 
@@ -502,12 +508,14 @@ def print_summary(s: dict):
     cc = s.get("company_check")
     if cc:
         print(f"\n🔍 TARGET COMPANY INTELLIGENCE CHECK  (Perplexity + Claude Opus 4.6)")
-        pub  = _bool_label(cc.get("is_us_publicly_traded"))
-        cap  = _bool_label(cc.get("market_cap_over_100m"))
-        flag = " ✅" if (cc.get("is_us_publicly_traded") and cc.get("market_cap_over_100m")) else " ❌"
+        pub = _bool_label(cc.get("is_us_publicly_traded"))
+        cap = _bool_label(cc.get("market_cap_over_100m"))
+        flag = " ✅" if (cc.get("is_us_publicly_traded")
+                        and cc.get("market_cap_over_100m")) else " ❌"
         print(f"   US Publicly Traded:      {pub}")
         print(f"   Market Cap > $100M:      {cap}{flag}")
-        print(f"   Estimated Market Cap:    {cc.get('estimated_market_cap', 'Unknown')}")
+        print(
+            f"   Estimated Market Cap:    {cc.get('estimated_market_cap', 'Unknown')}")
         print(f"   Exchange:                {cc.get('exchange', 'Unknown')}")
         if cc.get("ticker_confirmed"):
             print(f"   Ticker (confirmed):      {cc['ticker_confirmed']}")
@@ -623,9 +631,12 @@ def export_docx(s: dict, s3_key_suffix: str):
         intro.add_run("Perplexity web search + Claude Opus 4.6")
 
         verdict = doc.add_paragraph()
-        verdict.add_run("Qualifies (US public, market cap > $100M): ").bold = True
-        vrun = verdict.add_run("YES" if qualifies else "NO" if (is_pub is False or is_cap is False) else "UNCERTAIN")
-        vrun.font.color.rgb = RGBColor(0, 128, 0) if qualifies else RGBColor(192, 0, 0)
+        verdict.add_run(
+            "Qualifies (US public, market cap > $100M): ").bold = True
+        vrun = verdict.add_run("YES" if qualifies else "NO" if (
+            is_pub is False or is_cap is False) else "UNCERTAIN")
+        vrun.font.color.rgb = RGBColor(
+            0, 128, 0) if qualifies else RGBColor(192, 0, 0)
         vrun.bold = True
 
         details = doc.add_paragraph()
@@ -652,10 +663,12 @@ def export_docx(s: dict, s3_key_suffix: str):
     # -- Article-Specific Questions --
     qa = s.get("article_questions")
     if qa:
-        doc.add_heading("Article-Specific Questions (Claude Opus 4.6)", level=1)
+        doc.add_heading(
+            "Article-Specific Questions (Claude Opus 4.6)", level=1)
 
         merger = qa.get("announces_new_merger", {})
-        doc.add_heading("Q1: Does this announce a new merger or acquisition?", level=2)
+        doc.add_heading(
+            "Q1: Does this announce a new merger or acquisition?", level=2)
         p_m = doc.add_paragraph()
         p_m.add_run("Answer: ").bold = True
         ans_run = p_m.add_run(merger.get("answer", "Unknown"))
@@ -665,7 +678,8 @@ def export_docx(s: dict, s3_key_suffix: str):
         doc.add_paragraph(merger.get("explanation", ""))
 
         reg = qa.get("significant_regulatory_development", {})
-        doc.add_heading("Q2: Does this discuss a significant regulatory development?", level=2)
+        doc.add_heading(
+            "Q2: Does this discuss a significant regulatory development?", level=2)
         p_r = doc.add_paragraph()
         p_r.add_run("Answer: ").bold = True
         ans_run2 = p_r.add_run(reg.get("answer", "Unknown"))
@@ -708,7 +722,8 @@ def main():
     uid = filing_uid(FILING_URL)
     from .s3_utils import upload_json
 
-    s3_json_path, s3_json_url = upload_json(result, f"PRNewswire_summary_{uid}.json")
+    s3_json_path, s3_json_url = upload_json(
+        result, f"PRNewswire_summary_{uid}.json")
     print(f"\nJSON uploaded to S3: {s3_json_url}")
 
     target_name = result.get("target") or "UNKNOWN"

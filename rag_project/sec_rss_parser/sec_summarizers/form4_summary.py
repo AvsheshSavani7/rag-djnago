@@ -3,6 +3,12 @@ Form 4 Filing Summarizer — Multi-level summaries via Claude API
 Usage: python form4_summary.py
 """
 
+import anthropic
+import re
+import json
+import sys
+import os
+import io
 from pathlib import Path
 from ._naming import filing_uid
 
@@ -12,12 +18,6 @@ FILING_URL = ""
 OUTPUT_DIR = Path(__file__).resolve().parents[1] / "Output Summaries"
 # ─────────────────────────────────
 
-import io
-import os
-import sys
-import json
-import re
-import anthropic
 
 try:
     import requests
@@ -107,12 +107,13 @@ def fetch_filing_text(source: str) -> str:
 def summarize(text: str, model: str = "claude-opus-4-6") -> dict:
     """Call Claude API to produce multi-level summary."""
     if not ANTHROPIC_API_KEY:
-        raise ValueError("ANTHROPIC_API_KEY not set. Set it in .env or Django settings (ANTHROPIC_API_KEY).")
+        raise ValueError(
+            "ANTHROPIC_API_KEY not set. Set it in .env or Django settings (ANTHROPIC_API_KEY).")
     client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
 
     msg = client.messages.create(
         model=model,
-        max_tokens=1500,
+        max_tokens=2500,
         messages=[{
             "role": "user",
             "content": SUMMARY_PROMPT + "\n\n" + text
@@ -132,8 +133,10 @@ def print_summary(s: dict):
     print("  FORM 4 SUMMARY (Insider Ownership Change)")
     print("=" * 70)
 
-    print(f"\n   Issuer:   {s.get('issuer', 'N/A')} ({s.get('ticker', 'N/A')})")
-    print(f"   Insider:  {s.get('insider_name', 'N/A')} — {s.get('insider_title', 'N/A')}")
+    print(
+        f"\n   Issuer:   {s.get('issuer', 'N/A')} ({s.get('ticker', 'N/A')})")
+    print(
+        f"   Insider:  {s.get('insider_name', 'N/A')} — {s.get('insider_title', 'N/A')}")
     print(f"   Role:     {s.get('relationship', 'N/A')}")
     print(f"   Date:     {s.get('filing_date', 'N/A')}")
 
@@ -180,7 +183,8 @@ def export_docx(s: dict, s3_key_suffix: str):
     meta.add_run(f"Issuer: ").bold = True
     meta.add_run(s.get("issuer", "N/A"))
     meta.add_run(f"    Insider: ").bold = True
-    meta.add_run(f"{s.get('insider_name', 'N/A')} ({s.get('insider_title', 'N/A')})")
+    meta.add_run(
+        f"{s.get('insider_name', 'N/A')} ({s.get('insider_title', 'N/A')})")
 
     date = s.get("filing_date", "")
     meta2 = doc.add_paragraph()
@@ -251,7 +255,8 @@ def main():
     uid = filing_uid(FILING_URL)
     from .s3_utils import upload_json
 
-    s3_json_path, s3_json_url = upload_json(result, f"form4_summary_{uid}.json")
+    s3_json_path, s3_json_url = upload_json(
+        result, f"form4_summary_{uid}.json")
     print(f"\nJSON uploaded to S3: {s3_json_url}")
 
     ticker = result.get("ticker", "UNKNOWN")

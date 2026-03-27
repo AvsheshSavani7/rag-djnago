@@ -3,6 +3,12 @@
 Usage: python summarize_8k.py
 """
 
+import anthropic
+import re
+import json
+import sys
+import os
+import io
 from pathlib import Path
 from ._naming import filing_uid
 
@@ -12,12 +18,6 @@ FILING_URL = "https://www.sec.gov/Archives/edgar/data/1434868/000110465925097988
 OUTPUT_DIR = Path(__file__).resolve().parents[1] / "Output Summaries"
 # ─────────────────────────────────
 
-import io
-import os
-import sys
-import json
-import re
-import anthropic
 
 try:
     import requests
@@ -28,7 +28,7 @@ try:
     from docx.enum.text import WD_ALIGN_PARAGRAPH
 except ImportError:
     import subprocess
-    subprocess.check_call([sys.executable, "-m", "pip", "install", 
+    subprocess.check_call([sys.executable, "-m", "pip", "install",
                           "requests", "beautifulsoup4", "python-dotenv", "python-docx", "-q"])
     import requests
     from bs4 import BeautifulSoup
@@ -91,23 +91,24 @@ def fetch_8k_text(source: str) -> str:
 def summarize(text: str, model: str = "claude-opus-4-6") -> dict:
     """Call Claude API to produce multi-level summary."""
     if not ANTHROPIC_API_KEY:
-        raise ValueError("ANTHROPIC_API_KEY not set. Set it in .env or Django settings (ANTHROPIC_API_KEY).")
+        raise ValueError(
+            "ANTHROPIC_API_KEY not set. Set it in .env or Django settings (ANTHROPIC_API_KEY).")
     client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
-    
+
     msg = client.messages.create(
         model=model,
-        max_tokens=1500,
+        max_tokens=2500,
         messages=[{
             "role": "user",
             "content": SUMMARY_PROMPT + "\n\n" + text
         }]
     )
-    
+
     raw = msg.content[0].text.strip()
     # Strip markdown fences if present
     raw = re.sub(r"^```json\s*", "", raw)
     raw = re.sub(r"\s*```$", "", raw)
-    
+
     return json.loads(raw)
 
 
@@ -116,15 +117,15 @@ def print_summary(s: dict):
     print("\n" + "=" * 70)
     print("  8-K SUMMARY")
     print("=" * 70)
-    
+
     # L1 — Headline
     print(f"\n📌 L1 | HEADLINE")
     print(f"   {s['L1_headline']}")
-    
+
     # L2 — Brief
     print(f"\n📋 L2 | BRIEF")
     print(f"   {s['L2_brief']}")
-    
+
     # L3 — Detailed
     d = s["L3_detailed"]
     print(f"\n📊 L3 | DETAILED")
@@ -141,7 +142,7 @@ def print_summary(s: dict):
         print(f"   Risks:")
         for r in d["risks_flagged"]:
             print(f"     • {r}")
-    
+
     print(f"\n   Items: {', '.join(s.get('items_reported', []))}")
     print("=" * 70)
 
@@ -209,15 +210,15 @@ def export_docx(s: dict, s3_key_suffix: str):
 
 def main():
     source = FILING_URL
-    
+
     print(f"Fetching 8-K from: {source}")
-    
+
     text = fetch_8k_text(source)
     print(f"Extracted {len(text.split())} words of text")
-    
+
     print("Generating summary via Claude Opus 4.5...")
     result = summarize(text)
-    
+
     print_summary(result)
 
     uid = filing_uid(FILING_URL)
