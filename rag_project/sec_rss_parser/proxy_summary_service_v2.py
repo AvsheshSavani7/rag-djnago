@@ -104,9 +104,13 @@ class ProxySummaryServiceV2:
             # Search for background section chunks using title filters
             filters = [
                 {"title": {"$eq": "Background of the Mergers"}},
+                {"title": {"$eq": "BACKGROUND OF THE MERGERS"}},
                 {"title": {"$eq": "Background of the Transaction"}},
+                {"title": {"$eq": "BACKGROUND OF THE TRANSACTION"}},
                 {"title": {"$eq": "Background of the Merger"}},
+                {"title": {"$eq": "BACKGROUND OF THE MERGER"}},
                 {"title": {"$eq": "Background of the Transactions"}},
+                {"title": {"$eq": "BACKGROUND OF THE TRANSACTIONS"}},
             ]
 
             # Use a dummy vector for filter-only search
