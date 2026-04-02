@@ -87,6 +87,56 @@ class DocumentProcessingService:
             logger.error(f"Error running MAE pipeline: {e}")
             logger.error(traceback.format_exc())
 
+    @staticmethod
+    def _extract_accession_from_url(sec_url: str) -> str:
+        """Extract formatted accession number (e.g. 0001193125-26-134889) from an SEC EDGAR URL."""
+        for segment in sec_url.split('/'):
+            if len(segment) == 18 and segment.isdigit():
+                return f"{segment[:10]}-{segment[10:12]}-{segment[12:]}"
+        return ""
+
+    def _run_termination_analysis_pipeline(self, deal_id: str, sec_url: str,
+                                           deal_name: str = ""):
+        """
+        Run the S3-based termination analysis pipeline for a 2.1 (merger agreement) filing.
+
+        Args:
+            deal_id: ProcessingJob ID (from deals collection)
+            sec_url: SEC EDGAR URL for the EX-2.1 document
+            deal_name: human-readable deal name for the dashboard header
+        """
+        if not sec_url:
+            logger.warning("No sec_url available — skipping termination analysis pipeline")
+            return
+
+        accession_number = self._extract_accession_from_url(sec_url)
+        if not accession_number:
+            logger.warning(f"Could not extract accession number from {sec_url} — skipping termination analysis")
+            return
+
+        try:
+            logger.info(f"Starting termination analysis pipeline for deal_id={deal_id}, accession={accession_number}")
+
+            _covenant_dir = Path(__file__).resolve().parent.parent / "sec_rss_parser" / "Covenenat Project Feb 2026"
+            if str(_covenant_dir) not in sys.path:
+                sys.path.insert(0, str(_covenant_dir))
+
+            from termination_pipeline import run_termination_pipeline_s3
+
+            run_termination_pipeline_s3(
+                deal_id=str(deal_id),
+                url=sec_url,
+                accession_number=accession_number,
+                doc_type="2.1",
+                deal_name=deal_name,
+            )
+
+            logger.info(f"Termination analysis pipeline completed for deal_id={deal_id}")
+
+        except Exception as e:
+            logger.error(f"Error running termination analysis pipeline: {e}")
+            logger.error(traceback.format_exc())
+
     def _send_sec_filing_event(self, sec_filing_id, following_status, error_message=None):
         """
         Send WebSocket event for SEC filing status update
@@ -553,6 +603,14 @@ Output JSON format (ONLY this)
 
             # Run MAE extraction pipeline
             self._run_mae_extraction_pipeline(job_id)
+
+            # Run termination analysis pipeline
+            deal_name = ""
+            if getattr(job, "acquire_name", None) and getattr(job, "target_name", None):
+                deal_name = f"{job.acquire_name} / {job.target_name}"
+            elif getattr(job, "target_name", None):
+                deal_name = job.target_name
+            self._run_termination_analysis_pipeline(job_id, job.sec_url, deal_name=deal_name)
 
             # Send completion event if sec_filing_id exists
             if job.sec_filing_id:
