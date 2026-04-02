@@ -585,3 +585,87 @@ class FODmaExtraction(Document):
 
     def __str__(self):
         return f"FODmaExtraction - {self.deal_id or self.accession_number}"
+
+
+class TerminationAnalysis(Document):
+    """
+    Track termination analysis pipeline results per accession/doc_type.
+    All outputs are stored as S3 URLs.
+    Unique on (accession_number, doc_type).
+    """
+    _id = StringField(primary_key=True, default=generate_object_id)
+
+    deal_id = StringField(null=True)
+    sec_url = StringField(required=True)
+    accession_number = StringField(required=True)
+    doc_type = StringField(required=True)
+
+    # Scraping outputs (S3 URLs)
+    full_json = StringField(null=True)
+    triggers_json = StringField(null=True)
+    fees_json = StringField(null=True)
+    triggers_raw_json = StringField(null=True)
+    triggers_8k_json = StringField(null=True)
+    fees_8k_json = StringField(null=True)
+
+    # Stage 6 outputs
+    classification_json = StringField(null=True)
+    summary_csv = StringField(null=True)
+
+    # Stage 7 output
+    assessment_json = StringField(null=True)
+
+    # Stage 9 output
+    provision_checks_json = StringField(null=True)
+
+    # Stage 10 output
+    dashboard_html = StringField(null=True)
+
+    created_at = DateTimeField(default=datetime.utcnow)
+    updated_at = DateTimeField(default=datetime.utcnow)
+
+    meta = {
+        'collection': 'termination_analysis',
+        'indexes': [
+            {'fields': ['accession_number', 'doc_type'], 'unique': True},
+            'deal_id',
+            'accession_number',
+        ],
+    }
+
+    def save(self, *args, **kwargs):
+        self.updated_at = datetime.utcnow()
+        return super().save(*args, **kwargs)
+
+    @classmethod
+    def save_or_update(cls, *, accession_number: str, doc_type: str,
+                       sec_url: str = "", deal_id: str = None, **fields):
+        """Upsert by (accession_number, doc_type). Extra kwargs become field updates."""
+        existing = cls.objects(
+            accession_number=accession_number,
+            doc_type=doc_type,
+        ).first()
+
+        if existing:
+            update_fields = {k: v for k, v in fields.items() if v is not None}
+            if sec_url:
+                update_fields['sec_url'] = sec_url
+            if deal_id:
+                update_fields['deal_id'] = deal_id
+            update_fields['updated_at'] = datetime.utcnow()
+            existing.update(**{f'set__{k}': v for k, v in update_fields.items()})
+            existing.reload()
+            return existing
+
+        record = cls(
+            accession_number=accession_number,
+            doc_type=doc_type,
+            sec_url=sec_url,
+            deal_id=deal_id,
+            **{k: v for k, v in fields.items() if v is not None},
+        )
+        record.save()
+        return record
+
+    def __str__(self):
+        return f"TerminationAnalysis - {self.accession_number}/{self.doc_type}"
