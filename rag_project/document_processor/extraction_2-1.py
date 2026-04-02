@@ -200,7 +200,7 @@ CHARTER_STOP_PATTERN = re.compile(
 # ---------------------------
 urls = [
     # "https://www.sec.gov/Archives/edgar/data/835324/000143774926002223/ex_912528.htm",
-    "https://www.sec.gov/Archives/edgar/data/1889539/000114036126011260/ef20068723_ex2-1.htm",
+    "https://www.sec.gov/Archives/edgar/data/1823406/000119312526134773/d138375dex21.htm",
     # "https://www.sec.gov/Archives/edgar/data/1661460/000119312524265591/d881793dex21.htm",
 ]
 
@@ -501,7 +501,8 @@ def text_clean(full_text: str, sequence: list, output_dir: str) -> str:
         #   "ARTICLE 1.\nDEFINITIONS"
         #   "ARTICLE 1. DEFINITIONS"
         rx = re.compile(
-            rf"{re.escape(id_)}(?:\s*\.)?(?:[ \t]+|\n)+{re.escape(title)}",
+            rf"(?:{re.escape(id_)}|(?:Section|ARTICLE)\s*{re.escape(id_.split()[-1])}(?:\s*\.)?|{re.escape(id_.split()[-1])}(?:\s*\.)?)"
+            rf"(?:\s*[-–—]{{1,2}}\s*|(?:[ \t]+|\n)+){re.escape(title).replace(r'\ ', r'(?:[ \t]+|\n)+').replace(r'\-', r'[-–—]{1,2}')}",
             re.IGNORECASE
         )
 
@@ -605,7 +606,8 @@ def partition_zone_text(zone_text: str, sequence_array: list, output_dir: str, t
 
         title_rx = r"\s+".join(map(re.escape, title.split()))
         pattern = re.compile(
-            rf"{re.escape(id_)}(?:\s*\.)?\s*{title_rx}\s*[:.\-–]*",
+            rf"(?:{re.escape(id_)}|(?:Section|ARTICLE)\s*{re.escape(id_.split()[-1])}(?:\s*\.)?|{re.escape(id_.split()[-1])}(?:\s*\.)?)"
+            rf"(?:\s*[-–—]{{1,2}}\s*|\s+){title_rx.replace(r'\-', r'[-–—]{1,2}')}\s*[:.\-–—]*",
             re.IGNORECASE
         )
         match = pattern.search(zone_norm, search_pos)
@@ -781,12 +783,14 @@ def process_definitions_section(text_part: str):
 
     start_label_quoted = re.compile(
         rf'^(?P<label>[A-Za-z][A-Za-z0-9_-]*(?:\s+[A-Za-z][A-Za-z0-9_-]*)*)\.\s*'
+        rf'(?:(?:The\s+term)\s*)?'
         rf'(?P<head>"[^"]+"(?:\s*(?:,|and|or)\s*"[^"]+")*)\s*'
         rf'(?:\([^)]*\))?\s*(?:or similar terms)?\s*(?P<leadin>{leadin})\s*[,;:]?\s*',
         re.I)
-
+    
     start_heading_quoted = re.compile(
         rf'^(?P<label>[A-Za-z0-9&\-., ]+)\.\s*'
+        rf'(?:(?:The\s+term)\s*)?'
         rf'(?P<head>"[^"]+"(?:\s*(?:,|and|or)\s*"[^"]+")*)\s*'
         rf'(?:\([^)]*\))?\s*(?:or similar terms)?\s*(?P<leadin>{leadin})\s*[,;:]?\s*',
         re.I)
@@ -1310,7 +1314,7 @@ def worker(url):
             if m_start:
                 abs_start = toc_end_pos + m_start.start()
                 m_end = re.search(
-                    END_PATTERN, full_text[abs_start:], re.IGNORECASE)
+                    END_PATTERN, full_text[abs_start:abs_start+5000], re.IGNORECASE)
                 if m_end:
                     abs_end = abs_start + m_end.end()
                     preamble = full_text[abs_start:abs_end].strip()
@@ -1333,7 +1337,8 @@ def worker(url):
 
                         # Matches: "1 Title", "1. Title", "1\tTitle", "1\nTitle"
                         rx = re.compile(
-                            rf"{re.escape(id_)}(?:\s*\.)?(?:[ \t]+|\n)+{re.escape(title)}",
+                            rf"(?:{re.escape(id_)}|(?:Section|ARTICLE)\s*{re.escape(id_.split()[-1])}(?:\s*\.)?|{re.escape(id_.split()[-1])}(?:\s*\.)?)"
+                            rf"(?:\s*[-–—]{{1,2}}\s*|(?:[ \t]+|\n)+){re.escape(title).replace(r'\ ', r'(?:[ \t]+|\n)+').replace(r'\-', r'[-–—]{1,2}')}",
                             re.IGNORECASE
                         )
 
