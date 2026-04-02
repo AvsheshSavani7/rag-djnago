@@ -1241,7 +1241,7 @@ Return ONLY the JSON object. No explanation."""
 
     # Write fees output (tagged as 8K source)
     s3_urls = {}
-    if pipeline_deal_id and pipeline_doc_type:
+    if pipeline_doc_type:
         from Termination_Embeddings_v1.termination_s3_utils import upload_json as _s3_upload_json
         _, fees_8k_url = _s3_upload_json(fees_data, accession, pipeline_doc_type, "fees_8k_json.json")
         s3_urls["fees_8k_json"] = fees_8k_url
@@ -1312,7 +1312,7 @@ Return ONLY the JSON object. No explanation."""
         logger.error(f"Trigger extraction from 8-K failed: {e}")
 
     # Write triggers output (tagged as 8K source)
-    if pipeline_deal_id and pipeline_doc_type:
+    if pipeline_doc_type:
         from Termination_Embeddings_v1.termination_s3_utils import upload_json as _s3_upload_json
         _, triggers_8k_url = _s3_upload_json(triggers_data, accession, pipeline_doc_type, "triggers_8k_json.json")
         s3_urls["triggers_8k_json"] = triggers_8k_url
@@ -1429,7 +1429,7 @@ def worker(url, pipeline_deal_id: str = None, pipeline_accession: str = None,
         loaded_from_cache = False
 
         existing_full = f"openai_response_{accession}_full.json"
-        if not pipeline_deal_id:
+        if not pipeline_doc_type:
             if not os.path.exists(existing_full):
                 file_stem_only = url.split('/')[-1].split('.')[0]
                 stem_only_path = f"openai_response_{file_stem_only}_full.json"
@@ -1578,7 +1578,7 @@ def worker(url, pipeline_deal_id: str = None, pipeline_accession: str = None,
                     "warnings": log_records
                 }
 
-            if not pipeline_deal_id:
+            if not pipeline_doc_type:
                 with open(filename, "w", encoding="utf-8") as f:
                     f.write(api_response)
 
@@ -1768,7 +1768,7 @@ def worker(url, pipeline_deal_id: str = None, pipeline_accession: str = None,
             "clauses": all_trigger_clauses
         }
         s3_urls = {}
-        if pipeline_deal_id and pipeline_doc_type:
+        if pipeline_doc_type:
             from Termination_Embeddings_v1.termination_s3_utils import upload_json as _s3_upload_json
             _, triggers_url = _s3_upload_json(triggers_payload, accession, pipeline_doc_type, "triggers_json.json")
             s3_urls["triggers_json"] = triggers_url
@@ -1814,7 +1814,7 @@ def worker(url, pipeline_deal_id: str = None, pipeline_accession: str = None,
             logger.warning("No termination fees section identified in TOC")
 
         # Write fees output
-        if pipeline_deal_id and pipeline_doc_type:
+        if pipeline_doc_type:
             from Termination_Embeddings_v1.termination_s3_utils import upload_json as _s3_upload_json
             _, fees_url = _s3_upload_json(fees_data, accession, pipeline_doc_type, "fees_json.json")
             s3_urls["fees_json"] = fees_url
@@ -1834,7 +1834,7 @@ def worker(url, pipeline_deal_id: str = None, pipeline_accession: str = None,
 
 # -------------------------Termination Extraction End-------------------------
 
-        if pipeline_deal_id and pipeline_doc_type:
+        if pipeline_doc_type:
             from Termination_Embeddings_v1.termination_s3_utils import upload_json as _s3_upload_json
             _, full_url = _s3_upload_json(enriched, accession, pipeline_doc_type, "full_json.json")
             s3_urls["full_json"] = full_url
@@ -1873,8 +1873,8 @@ def worker(url, pipeline_deal_id: str = None, pipeline_accession: str = None,
         # Detach this handler from the global logger
         logger.removeHandler(list_handler)
 
-        # Only write a log file if there was at least one WARNING/ERROR (old flow only)
-        if log_records and not pipeline_deal_id:
+        # Only write a log file if there was at least one WARNING/ERROR (standalone CLI only)
+        if log_records and not pipeline_doc_type:
             with open(log_txt_path, "w", encoding="utf-8") as f:
                 f.write("\n".join(log_records))
 
