@@ -211,7 +211,7 @@ def _send_dashboard_email(dashboard_url: str, deal_id: str, deal_name: str,
     """Send covenant dashboard HTML link via n8n webhook email."""
     try:
         import requests
-        N8N_WEBHOOK_URL = "https://n8n-xwx1.onrender.com/webhook/d50502ea-6746-4d4b-8dfe-fb7bd71e0a1f"
+        N8N_WEBHOOK_URL = "https://n8n-xwx1.onrender.com/webhook/80830c6d-ff5b-45e3-9ef3-a061db1fbf0c"
 
         title = deal_name or deal_id or accession_number
         subject = f"Covenant Analysis — {title}"
