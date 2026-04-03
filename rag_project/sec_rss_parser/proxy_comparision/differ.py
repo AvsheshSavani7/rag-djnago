@@ -642,7 +642,8 @@ def _compare_category_direct(client: Anthropic, category: str,
 def _compare_other_material(client: Anthropic,
                             old_doc: CanonicalDocument,
                             new_doc: CanonicalDocument,
-                            old_label: str, new_label: str) -> List[ChangeEvent]:
+                            old_label: str, new_label: str,
+                            diag_path: str = None) -> List[ChangeEvent]:
     """Catch-all sweep for material, deal-specific changes in 'general' blocks.
 
     Finds paragraphs in the new filing that are new or substantially changed
@@ -767,13 +768,16 @@ Return a JSON array. If nothing meets BOTH materiality AND deal-specificity thre
         answer = response.content[0].text.strip()
 
         # Diagnostic logging
-        diag_path = os.path.join(
-            OUTPUT_FOLDER, "compare_diagnostic_latest.txt")
-        with open(diag_path, "a") as df:
-            df.write(f"\n{'='*60}\n")
-            df.write(f"CATEGORY: other_material | delta={total_chars:,} chars, "
-                     f"{len(delta_text_parts)} paragraphs\n")
-            df.write(f"RAW RESPONSE:\n{answer}\n")
+        _diag = diag_path or os.path.join(OUTPUT_FOLDER, "compare_diagnostic_latest.txt")
+        try:
+            os.makedirs(os.path.dirname(_diag), exist_ok=True)
+            with open(_diag, "a") as df:
+                df.write(f"\n{'='*60}\n")
+                df.write(f"CATEGORY: other_material | delta={total_chars:,} chars, "
+                         f"{len(delta_text_parts)} paragraphs\n")
+                df.write(f"RAW RESPONSE:\n{answer}\n")
+        except OSError as diag_err:
+            print(f"    Compare (other_material): diagnostic write failed: {diag_err}")
 
         events = _parse_comparison_response(answer, "other_material")
         print(
@@ -1016,7 +1020,8 @@ def compute_pairwise_diff(client: Anthropic,
 
     # 4.1b: Other material changes (catch-all for deal-specific material items in general blocks)
     other_events = _compare_other_material(
-        client, old_doc, new_doc, old_label, new_label)
+        client, old_doc, new_doc, old_label, new_label,
+        diag_path=diag_path)
     events.extend(other_events)
 
     # 4.2: Background diff (deterministic boundary detection + LLM comparison)
