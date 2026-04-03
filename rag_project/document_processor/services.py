@@ -137,6 +137,40 @@ class DocumentProcessingService:
             logger.error(f"Error running termination analysis pipeline: {e}")
             logger.error(traceback.format_exc())
 
+    def _run_covenant_analysis_pipeline(self, deal_id: str, sec_url: str,
+                                        deal_name: str = ""):
+        """Run the S3-based covenant analysis pipeline for a 2.1 (merger agreement) filing."""
+        if not sec_url:
+            logger.warning("No sec_url available — skipping covenant analysis pipeline")
+            return
+
+        accession_number = self._extract_accession_from_url(sec_url)
+        if not accession_number:
+            logger.warning(f"Could not extract accession number from {sec_url} — skipping covenant analysis")
+            return
+
+        try:
+            logger.info(f"Starting covenant analysis pipeline for deal_id={deal_id}, accession={accession_number}")
+
+            _covenant_dir = Path(__file__).resolve().parent.parent / "sec_rss_parser" / "Covenenat Project Feb 2026"
+            if str(_covenant_dir) not in sys.path:
+                sys.path.insert(0, str(_covenant_dir))
+
+            from covenant_pipeline import run_covenant_pipeline_s3
+
+            run_covenant_pipeline_s3(
+                url=sec_url,
+                accession_number=accession_number,
+                deal_id=str(deal_id),
+                deal_name=deal_name,
+            )
+
+            logger.info(f"Covenant analysis pipeline completed for deal_id={deal_id}")
+
+        except Exception as e:
+            logger.error(f"Error running covenant analysis pipeline: {e}")
+            logger.error(traceback.format_exc())
+
     def _send_sec_filing_event(self, sec_filing_id, following_status, error_message=None):
         """
         Send WebSocket event for SEC filing status update
@@ -611,6 +645,9 @@ Output JSON format (ONLY this)
             elif getattr(job, "target_name", None):
                 deal_name = job.target_name
             self._run_termination_analysis_pipeline(job_id, job.sec_url, deal_name=deal_name)
+
+            # Run covenant analysis pipeline
+            self._run_covenant_analysis_pipeline(job_id, job.sec_url, deal_name=deal_name)
 
             # Send completion event if sec_filing_id exists
             if job.sec_filing_id:

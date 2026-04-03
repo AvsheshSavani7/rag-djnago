@@ -1,0 +1,49 @@
+{
+  "timestamps": {
+    "embeddings": "20260221_153130",
+    "assessment": "20260221_155510"
+  },
+  "quality_summary": {
+    "total_clauses": 1464,
+    "valid_covenants": 1458,
+    "excluded_from_clustering": 16,
+    "completeness_distribution": {
+      "complete": 1338,
+      "header_only": 126
+    }
+  },
+  "covenant_summary": {
+    "avg_restrictiveness": 7.032786885245901,
+    "median_restrictiveness": 7.0,
+    "restrictiveness_distribution": {
+      "very_permissive (0-2)": 30,
+      "moderate (3-5)": 116,
+      "restrictive (6-8)": 1053,
+      "extremely_restrictive (9-10)": 265
+    },
+    "theme_distribution": {
+      "operations_and_conduct": 1347,
+      "mergers_and_acquisitions": 252,
+      "compensation_and_benefits": 171,
+      "contracts_and_commitments": 162,
+      "debt_and_financing": 137,
+      "tax_matters": 120,
+      "capital_expenditures": 110,
+      "litigation_and_settlements": 77,
+      "asset_dispositions": 67,
+      "intellectual_property": 65,
+      "dividends_and_distributions": 58,
+      "accounting_and_reporting": 52,
+      "insurance": 21,
+      "related_party_transactions": 18,
+      "other": 16
+    },
+    "investigation_required": 1038,
+    "priority_distribution": {
+      "urgent": 833,
+      "review": 341,
+      "routine": 290
+    },
+    "seller_favorable_count": 1013
+  }
+}

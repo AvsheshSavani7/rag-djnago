@@ -669,3 +669,82 @@ class TerminationAnalysis(Document):
 
     def __str__(self):
         return f"TerminationAnalysis - {self.accession_number}/{self.doc_type}"
+
+
+class CovenantAnalysis(Document):
+    """
+    Track covenant analysis pipeline results per accession_number.
+    All outputs are stored as S3 URLs.
+    Unique on accession_number.
+    """
+    _id = StringField(primary_key=True, default=generate_object_id)
+
+    deal_id = StringField(null=True)
+    sec_url = StringField(required=True)
+    accession_number = StringField(required=True, unique=True)
+
+    # Scraping outputs (S3 URLs)
+    full_json = StringField(null=True)
+    covenants_json = StringField(null=True)
+    individual_clauses_json = StringField(null=True)
+
+    # Stage 6 outputs
+    classification_json = StringField(null=True)
+    summary_csv = StringField(null=True)
+
+    # Stage 7 output
+    assessment_json = StringField(null=True)
+
+    # Stage 8 outputs
+    benchmark_comparison_json = StringField(null=True)
+    benchmark_summary_csv = StringField(null=True)
+
+    # Stage 9 output
+    specific_provisions_json = StringField(null=True)
+
+    # Stage 10 output
+    dashboard_html = StringField(null=True)
+
+    created_at = DateTimeField(default=datetime.utcnow)
+    updated_at = DateTimeField(default=datetime.utcnow)
+
+    meta = {
+        'collection': 'covenant_analysis',
+        'indexes': [
+            'deal_id',
+            'accession_number',
+        ],
+    }
+
+    def save(self, *args, **kwargs):
+        self.updated_at = datetime.utcnow()
+        return super().save(*args, **kwargs)
+
+    @classmethod
+    def save_or_update(cls, *, accession_number: str, sec_url: str = "",
+                       deal_id: str = None, **fields):
+        """Upsert by accession_number. Extra kwargs become field updates."""
+        existing = cls.objects(accession_number=accession_number).first()
+
+        if existing:
+            update_fields = {k: v for k, v in fields.items() if v is not None}
+            if sec_url:
+                update_fields['sec_url'] = sec_url
+            if deal_id:
+                update_fields['deal_id'] = deal_id
+            update_fields['updated_at'] = datetime.utcnow()
+            existing.update(**{f'set__{k}': v for k, v in update_fields.items()})
+            existing.reload()
+            return existing
+
+        record = cls(
+            accession_number=accession_number,
+            sec_url=sec_url,
+            deal_id=deal_id,
+            **{k: v for k, v in fields.items() if v is not None},
+        )
+        record.save()
+        return record
+
+    def __str__(self):
+        return f"CovenantAnalysis - {self.accession_number}"
