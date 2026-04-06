@@ -164,7 +164,8 @@ def fetch_mae_text_from_pinecone(deal_id: str) -> tuple[str, str] | None:
         target_labels = [
             "Definition > Company Material Adverse Effect",
             "Company Material Adverse Effect",
-            "Definition > Material Adverse Effect"
+            "Definition > Material Adverse Effect",
+            "Material Adverse Effect",
         ]
 
         for chunk in all_chunks:
@@ -178,7 +179,20 @@ def fetch_mae_text_from_pinecone(deal_id: str) -> tuple[str, str] | None:
         if not mae_chunks:
             print(
                 f"❌ No MAE chunks found with labels: {', '.join(target_labels)}")
-            return None
+            print("🔁 Fallback: semantic search in Pinecone (top 5)")
+            fallback_chunks = fetcher.semantic_search_chunks_for_deal(
+                deal_id=deal_id,
+                query_text="Company Material Adverse Effect definition",
+                top_k=5,
+            )
+            if not fallback_chunks:
+                print("❌ Fallback search returned no results")
+                return None
+            mae_text = "\n\n".join([c.get("text", "")
+                                   for c in fallback_chunks])
+            print(
+                f"✅ Fallback extracted MAE text: {len(mae_text)} characters from {len(fallback_chunks)} chunks")
+            return deal_name, mae_text
 
         # Combine text from all MAE chunks
         mae_text = "\n\n".join([chunk.get('text', '') for chunk in mae_chunks])
@@ -363,7 +377,8 @@ def run_pipeline_for_deal_id(deal_id: str) -> dict | None:
 
         # Save or update in MongoDB
         mae_record = MAEAnalysis.save_or_update(deal_id, mongo_data)
-        print(f"✅ Saved to MongoDB: Collection 'mae_analyses', Deal ID: {deal_id}")
+        print(
+            f"✅ Saved to MongoDB: Collection 'mae_analyses', Deal ID: {deal_id}")
         print(f"   MongoDB Document ID: {mae_record.id}")
 
     except Exception as e:

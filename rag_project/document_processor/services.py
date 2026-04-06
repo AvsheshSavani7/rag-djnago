@@ -106,18 +106,22 @@ class DocumentProcessingService:
             deal_name: human-readable deal name for the dashboard header
         """
         if not sec_url:
-            logger.warning("No sec_url available — skipping termination analysis pipeline")
+            logger.warning(
+                "No sec_url available — skipping termination analysis pipeline")
             return
 
         accession_number = self._extract_accession_from_url(sec_url)
         if not accession_number:
-            logger.warning(f"Could not extract accession number from {sec_url} — skipping termination analysis")
+            logger.warning(
+                f"Could not extract accession number from {sec_url} — skipping termination analysis")
             return
 
         try:
-            logger.info(f"Starting termination analysis pipeline for deal_id={deal_id}, accession={accession_number}")
+            logger.info(
+                f"Starting termination analysis pipeline for deal_id={deal_id}, accession={accession_number}")
 
-            _covenant_dir = Path(__file__).resolve().parent.parent / "sec_rss_parser" / "Covenenat Project Feb 2026"
+            _covenant_dir = Path(__file__).resolve(
+            ).parent.parent / "sec_rss_parser" / "Covenenat Project Feb 2026"
             if str(_covenant_dir) not in sys.path:
                 sys.path.insert(0, str(_covenant_dir))
 
@@ -131,7 +135,8 @@ class DocumentProcessingService:
                 deal_name=deal_name,
             )
 
-            logger.info(f"Termination analysis pipeline completed for deal_id={deal_id}")
+            logger.info(
+                f"Termination analysis pipeline completed for deal_id={deal_id}")
 
         except Exception as e:
             logger.error(f"Error running termination analysis pipeline: {e}")
@@ -141,18 +146,22 @@ class DocumentProcessingService:
                                         deal_name: str = ""):
         """Run the S3-based covenant analysis pipeline for a 2.1 (merger agreement) filing."""
         if not sec_url:
-            logger.warning("No sec_url available — skipping covenant analysis pipeline")
+            logger.warning(
+                "No sec_url available — skipping covenant analysis pipeline")
             return
 
         accession_number = self._extract_accession_from_url(sec_url)
         if not accession_number:
-            logger.warning(f"Could not extract accession number from {sec_url} — skipping covenant analysis")
+            logger.warning(
+                f"Could not extract accession number from {sec_url} — skipping covenant analysis")
             return
 
         try:
-            logger.info(f"Starting covenant analysis pipeline for deal_id={deal_id}, accession={accession_number}")
+            logger.info(
+                f"Starting covenant analysis pipeline for deal_id={deal_id}, accession={accession_number}")
 
-            _covenant_dir = Path(__file__).resolve().parent.parent / "sec_rss_parser" / "Covenenat Project Feb 2026"
+            _covenant_dir = Path(__file__).resolve(
+            ).parent.parent / "sec_rss_parser" / "Covenenat Project Feb 2026"
             if str(_covenant_dir) not in sys.path:
                 sys.path.insert(0, str(_covenant_dir))
 
@@ -165,7 +174,8 @@ class DocumentProcessingService:
                 deal_name=deal_name,
             )
 
-            logger.info(f"Covenant analysis pipeline completed for deal_id={deal_id}")
+            logger.info(
+                f"Covenant analysis pipeline completed for deal_id={deal_id}")
 
         except Exception as e:
             logger.error(f"Error running covenant analysis pipeline: {e}")
@@ -644,10 +654,12 @@ Output JSON format (ONLY this)
                 deal_name = f"{job.acquire_name} / {job.target_name}"
             elif getattr(job, "target_name", None):
                 deal_name = job.target_name
-            self._run_termination_analysis_pipeline(job_id, job.sec_url, deal_name=deal_name)
+            self._run_termination_analysis_pipeline(
+                job_id, job.sec_url, deal_name=deal_name)
 
             # Run covenant analysis pipeline
-            self._run_covenant_analysis_pipeline(job_id, job.sec_url, deal_name=deal_name)
+            self._run_covenant_analysis_pipeline(
+                job_id, job.sec_url, deal_name=deal_name)
 
             # Send completion event if sec_filing_id exists
             if job.sec_filing_id:
@@ -1490,7 +1502,14 @@ class FlattenProcessor:
             path = []
 
         outputs = []
-        if article.get("article", "").lower() == "definitions":
+        article_title_lower = (article.get("title") or "").strip().lower()
+        article_name_lower = (article.get("article") or "").strip().lower()
+        is_definitions_article = article_name_lower in {
+            "definitions", "defined terms", "defined term"}
+        is_definitions_title = article_title_lower in {
+            "definitions", "defined terms", "defined term"}
+
+        if is_definitions_article:
 
             outputs = []
 
@@ -1515,7 +1534,7 @@ class FlattenProcessor:
             article_text = self.clean_unicode_quotes(
                 article.get("text", "")).strip()
 
-            if article.get("title", "").lower() == "definitions":
+            if is_definitions_title:
                 if article.get("definitions"):
                     for item in article.get("definitions"):
                         outputs.append(
@@ -1543,7 +1562,10 @@ class FlattenProcessor:
             for section in article["sections"]:
 
                 if (
-                    "definition" in section.get("title", "").lower()
+                    (
+                        "definition" in section.get("title", "").lower()
+                        or "defined term" in section.get("title", "").lower()
+                    )
                     and "definitions" in section
                     and section.get("definitions") is not None
                 ):
@@ -2351,7 +2373,8 @@ class SummaryGenerationService:
                 return []
 
             # Check if schema_results exist
-            schema_record = DealSchemaResults.objects(deal_id=object_id).first()
+            schema_record = DealSchemaResults.objects(
+                deal_id=object_id).first()
             schema_results = (
                 schema_record.schema_results if schema_record else None
             )

@@ -240,6 +240,65 @@ class PineconeSectionFetcher:
 
             return []
 
+    def semantic_search_chunks_for_deal(
+        self,
+        deal_id: str,
+        query_text: str,
+        top_k: int = 5,
+        *,
+        include_metadata: bool = True,
+    ) -> List[Dict[str, Any]]:
+        """
+        Semantic search within a deal using query embedding.
+
+        Returns list of dicts with keys: label, text, score.
+        """
+        if not query_text:
+            return []
+
+        embedding_model = os.getenv(
+            "OPENAI_EMBEDDING_MODEL", "text-embedding-3-large")
+
+        try:
+            emb = self.openai_client.embeddings.create(
+                model=embedding_model,
+                input=query_text,
+            )
+            vector = emb.data[0].embedding
+        except Exception as e:
+            logger.error(f"Error creating embedding for semantic search: {e}")
+            return []
+
+        try:
+            res = self.index.query(
+                vector=vector,
+                top_k=top_k,
+                include_values=False,
+                include_metadata=include_metadata,
+                filter={"deal_id": deal_id},
+            )
+
+        except Exception as e:
+            logger.error(f"Error querying Pinecone (semantic search): {e}")
+            return []
+
+        matches = getattr(res, "matches", None) or []
+        results: List[Dict[str, Any]] = []
+        for match in matches:
+            md = getattr(match, "metadata", None) or {}
+            results.append(
+                {
+                    "label": md.get("label", ""),
+                    "text": md.get("combined_text")
+                    or md.get("text")
+                    or md.get("chunk_text")
+                    or md.get("original_text")
+                    or "",
+                    "score": getattr(match, "score", None),
+                }
+            )
+        return results
+
     def process_definition_chunk(self, chunk: Dict) -> Dict:
         """Process a single definition chunk with GPT - worker method"""
         try:
