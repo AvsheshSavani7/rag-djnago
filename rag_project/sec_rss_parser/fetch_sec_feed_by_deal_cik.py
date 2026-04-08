@@ -107,6 +107,19 @@ SEC_BASE_URL = "https://www.sec.gov"
 CIK_LENGTH = 10
 
 
+def _extract_cik_from_url(url):
+    """Extract filer CIK from SEC filing URL like /Archives/edgar/data/{CIK}/..."""
+    if not url:
+        return None
+    m = re.search(r"/Archives/edgar/data/(\d+)", url)
+    if m:
+        return m.group(1).zfill(CIK_LENGTH)
+    m = re.search(r"[?&]CIK=(\d+)", url, re.IGNORECASE)
+    if m:
+        return m.group(1).zfill(CIK_LENGTH)
+    return None
+
+
 def _extract_company_info(company_info):
     """Extract company_name and cik_number from SEC companyInfo div."""
     result = {"company_name": None, "cik_number": None}
@@ -1284,12 +1297,16 @@ def process_items(items):
             errors.append({"accession": item_data.get(
                 "accession_number"), "message": "Failed to parse HTML"})
             continue
-        # Preserve deal CIK (from parse_atom_to_items) before HTML overwrites it.
+
+           # Preserve deal CIK (from parse_atom_to_items) before HTML overwrites it.
         # We use deal_cik for saving SECFilingSummary and email; html_data has filer CIK.
-        deal_cik = item_data.get("cik_number")
+        # deal_cik = item_data.get("cik_number")
+        # Always use filer CIK extracted from the filing URL.
         item_data.update(html_data)
-        if deal_cik is not None:
-            item_data["cik_number"] = deal_cik
+        # if deal_cik is not None:
+        #     item_data["cik_number"] = deal_cik
+        item_data["cik_number"] = _extract_cik_from_url(
+            link) or item_data.get("cik_number")
         item_data["deal_id"] = item_data.get(
             "deal_id") or _deal_id_for_cik(item_data.get("cik_number"))
         filing, _ = _ensure_sec_filing(item_data)

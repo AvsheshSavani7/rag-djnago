@@ -210,7 +210,7 @@ def run_pipeline(
     logger.info(
         "10-K/10-Q pipeline: processing loop done, starting comparison step")
     print(f"\n[COMPARISON]")
-    all_records = db.get_by_deal_id(deal_id)
+    all_records = db.get_by_deal_id_and_cik(deal_id)
     processed_records = [r for r in all_records if r.get(
         "processed") and r.get("s3_json_url")]
 

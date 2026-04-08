@@ -13,6 +13,7 @@ This module processes only 8-K filings from SEC RSS feed with the following work
 
 import copy
 import logging
+import re
 from datetime import datetime, timedelta
 from mongoengine.errors import NotUniqueError
 from mongoengine.queryset.visitor import Q
@@ -66,6 +67,22 @@ N8N_WEBHOOK_URL_FILING = "https://n8n-xwx1.onrender.com/webhook/3ff1b0ea-7114-4d
 MAX_DESCRIPTION_LENGTH = 50
 
 LOG_PREFIX = "form by form_type: 8-K"
+
+CIK_PAD_LENGTH = 10
+
+
+def _extract_cik_from_url(url):
+    """Extract filer CIK from SEC filing URL like /Archives/edgar/data/{CIK}/..."""
+    if not url:
+        return None
+    m = re.search(r"/Archives/edgar/data/(\d+)", url)
+    if m:
+        return m.group(1).zfill(CIK_PAD_LENGTH)
+    m = re.search(r"[?&]CIK=(\d+)", url, re.IGNORECASE)
+    if m:
+        return m.group(1).zfill(CIK_PAD_LENGTH)
+    return None
+
 
 ALLOWED_FILING_FIELDS = {
     'title', 'link', 'guid', 'description', 'pubDate',
@@ -630,8 +647,9 @@ class EightKFeedProcessor:
                 self.error_count += 1
                 return
 
-            # Merge HTML data into item_data
+            # Merge HTML data into item_data; always use filer CIK from URL.
             item_data.update(html_data)
+            item_data['cik_number'] = _extract_cik_from_url(html_url) or item_data.get('cik_number')
             filing_array = item_data.get('filing_array', [])
             logger.info(f"{LOG_PREFIX} :_process_single_item: accession=%s step=html_merged cik=%s filing_array_len=%s doc_types=%s",
                         accession_number, item_data.get('cik_number'), len(filing_array or []), [f.get('document_type') for f in (filing_array or [])])
