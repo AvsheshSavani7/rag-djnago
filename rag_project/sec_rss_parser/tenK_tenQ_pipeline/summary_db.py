@@ -77,6 +77,15 @@ class SummaryDB:
         ).all()
         return [_doc_to_record(d) for d in docs]
 
+    def get_by_deal_id_and_cik(self, deal_id: str, cik_number: str) -> List[dict]:
+        """Return all 10-K/10-Q summary records for the given deal_id and cik_number."""
+        docs = SECFilingSummary.objects(
+            deal_id=deal_id,
+            cik_number=cik_number,
+            form_type__in=["10-K", "10-Q"],
+        ).all()
+        return [_doc_to_record(d) for d in docs]
+
     def upsert_by_url(self, url: str, fields: dict) -> dict:
         """
         If a record with sec_document_url == url exists, update it with fields (merged into ten_k_ten_q).

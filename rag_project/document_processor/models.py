@@ -101,7 +101,8 @@ class ProcessingJob(Document):
 
     meta = {
         'collection': 'deals',
-        'ordering': ['-createdAt']
+        'ordering': ['-createdAt'],
+        'strict': False,
     }
 
     def __getattr__(self, name):
