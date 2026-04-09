@@ -78,7 +78,8 @@ class NewDealClassifier:
         clustering_files = sorted([f for f in os.listdir(cache_dir)
                                   if f.startswith('covenant_clustering_') and f.endswith('.json')])
         if not clustering_files:
-            raise FileNotFoundError("No clustering files found in cache directory")
+            raise FileNotFoundError(
+                "No clustering files found in cache directory")
 
         clustering_file = clustering_files[-1]
         clustering_path = os.path.join(cache_dir, clustering_file)
@@ -92,12 +93,15 @@ class NewDealClassifier:
 
         # Extract cluster centroids from metrics
         self.cluster_centroids = {}
-        cluster_thresholds = self.benchmark_data['metrics'].get('cluster_thresholds', {})
+        cluster_thresholds = self.benchmark_data['metrics'].get(
+            'cluster_thresholds', {})
         for cluster_id, cluster_info in cluster_thresholds.items():
-            self.cluster_centroids[int(cluster_id)] = np.array(cluster_info['centroid'])
+            self.cluster_centroids[int(cluster_id)] = np.array(
+                cluster_info['centroid'])
 
         # Find corresponding analysis file
-        embedding_ts = self.benchmark_data['embedding_timestamp'].replace('_', '')[:8]
+        embedding_ts = self.benchmark_data['embedding_timestamp'].replace('_', '')[
+            :8]
         analysis_files = sorted([f for f in os.listdir(cache_dir)
                                 if f.startswith('covenant_cluster_analysis_')
                                 and embedding_ts in f])
@@ -133,7 +137,8 @@ class NewDealClassifier:
         # Prepare texts
         texts = []
         for clause in clauses:
-            text = clause.get('original_text') or clause.get('processed_text') or clause.get('text', '')
+            text = clause.get('original_text') or clause.get(
+                'processed_text') or clause.get('text', '')
             processed = self.preprocessor.preprocess(text)
             texts.append(processed)
 
@@ -193,14 +198,15 @@ class NewDealClassifier:
         return classifications
 
     def generate_deal_report(self, deal_data: Dict, classifications: List[Dict],
-                            output_dir: str) -> str:
+                             output_dir: str) -> str:
         """Generate comprehensive report for the new deal.
         Writes to local output_dir. Returns local file path."""
         report, timestamp = self._build_report(deal_data, classifications)
 
         deal_id = report['deal_id']
         os.makedirs(output_dir, exist_ok=True)
-        report_file = os.path.join(output_dir, f"deal_classification_{deal_id}_{timestamp}.json")
+        report_file = os.path.join(
+            output_dir, f"deal_classification_{deal_id}_{timestamp}.json")
 
         with open(report_file, 'w') as f:
             json.dump(report, f, indent=2)
@@ -240,7 +246,8 @@ class NewDealClassifier:
         """Build the classification report dict. Returns (report, timestamp)."""
         print("\n📊 Generating deal report...")
 
-        deal_id = deal_data.get('deal_id') or deal_data.get('document_id', 'unknown')
+        deal_id = deal_data.get('deal_id') or deal_data.get(
+            'document_id', 'unknown')
         clauses = deal_data['clauses']
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
@@ -258,10 +265,13 @@ class NewDealClassifier:
             cluster_id = cls['assigned_cluster']
             category = cls['cluster_category']
 
-            cluster_distribution[cluster_id] = cluster_distribution.get(cluster_id, 0) + 1
-            category_distribution[category] = category_distribution.get(category, 0) + 1
+            cluster_distribution[cluster_id] = cluster_distribution.get(
+                cluster_id, 0) + 1
+            category_distribution[category] = category_distribution.get(
+                category, 0) + 1
 
-        avg_similarity = np.mean([c['similarity_score'] for c in classifications])
+        avg_similarity = np.mean([c['similarity_score']
+                                 for c in classifications])
 
         report = {
             'deal_id': deal_id,
@@ -285,11 +295,12 @@ class NewDealClassifier:
         return report, timestamp
 
     def _generate_insights(self, classified_clauses: List[Dict],
-                          classifications: List[Dict]) -> Dict:
+                           classifications: List[Dict]) -> Dict:
         """Generate insights about the deal"""
 
         # Low similarity clauses (potentially unusual)
-        low_similarity = [c for c in classifications if c['similarity_score'] < 0.7]
+        low_similarity = [
+            c for c in classifications if c['similarity_score'] < 0.7]
 
         # Category breakdown
         categories = {}
@@ -297,13 +308,14 @@ class NewDealClassifier:
             cat = cls['cluster_category']
             categories[cat] = categories.get(cat, 0) + 1
 
-        top_categories = sorted(categories.items(), key=lambda x: x[1], reverse=True)[:5]
+        top_categories = sorted(
+            categories.items(), key=lambda x: x[1], reverse=True)[:5]
 
         return {
             'unusual_clauses_count': len(low_similarity),
             'unusual_clause_indices': [c['clause_index'] for c in low_similarity],
             'top_covenant_categories': [{'category': cat, 'count': count}
-                                       for cat, count in top_categories],
+                                        for cat, count in top_categories],
             'coverage_quality': 'good' if len(low_similarity) < len(classifications) * 0.1 else 'review_needed'
         }
 
@@ -323,11 +335,12 @@ class NewDealClassifier:
         return rows
 
     def _generate_summary_csv(self, classified_clauses: List[Dict], deal_id: str,
-                             timestamp: str, output_dir: str):
+                              timestamp: str, output_dir: str):
         """Generate summary CSV for easy review (local file)."""
         rows = self._build_summary_rows(classified_clauses)
         df = pd.DataFrame(rows)
-        csv_file = os.path.join(output_dir, f"deal_summary_{deal_id}_{timestamp}.csv")
+        csv_file = os.path.join(
+            output_dir, f"deal_summary_{deal_id}_{timestamp}.csv")
         df.to_csv(csv_file, index=False)
         print(f"  ✓ Summary CSV: {csv_file}")
 
@@ -345,19 +358,23 @@ class NewDealClassifier:
         print("="*80)
 
         print(f"\n🆔 Deal: {report_data['deal_id']}")
-        print(f"📊 Clauses analyzed: {report_data['deal_summary']['total_clauses']}")
-        print(f"🎯 Avg similarity to benchmark: {report_data['deal_summary']['avg_similarity_to_clusters']:.2%}")
-        print(f"📦 Clusters matched: {report_data['deal_summary']['clusters_matched']}/{report_data['benchmark_info']['benchmark_clusters']}")
+        print(
+            f"📊 Clauses analyzed: {report_data['deal_summary']['total_clauses']}")
+        print(
+            f"🎯 Avg similarity to benchmark: {report_data['deal_summary']['avg_similarity_to_clusters']:.2%}")
+        print(
+            f"📦 Clusters matched: {report_data['deal_summary']['clusters_matched']}/{report_data['benchmark_info']['benchmark_clusters']}")
 
         print(f"\n📂 Covenant Categories:")
         for category, count in sorted(report_data['category_distribution'].items(),
-                                     key=lambda x: x[1], reverse=True)[:10]:
+                                      key=lambda x: x[1], reverse=True)[:10]:
             pct = count / report_data['deal_summary']['total_clauses'] * 100
             print(f"  • {category}: {count} clauses ({pct:.1f}%)")
 
         insights = report_data['insights']
         print(f"\n💡 Insights:")
-        print(f"  • Unusual clauses (low similarity): {insights['unusual_clauses_count']}")
+        print(
+            f"  • Unusual clauses (low similarity): {insights['unusual_clauses_count']}")
         print(f"  • Coverage quality: {insights['coverage_quality']}")
 
         if insights['unusual_clauses_count'] > 0:
@@ -453,7 +470,8 @@ def main():
         return
 
     print(f"  ✓ Loaded {len(deal_data['clauses'])} clauses")
-    print(f"  ✓ Deal ID: {deal_data.get('deal_id') or deal_data.get('document_id', 'unknown')}")
+    print(
+        f"  ✓ Deal ID: {deal_data.get('deal_id') or deal_data.get('document_id', 'unknown')}")
 
     # Get API key
     cohere_key = os.getenv('COHERE_API_KEY')
