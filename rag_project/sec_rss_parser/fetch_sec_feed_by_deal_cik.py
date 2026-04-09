@@ -1207,6 +1207,7 @@ def _route_summarize_and_save(item_data, html_data):
             # Deal match: target vs acquirer for "(target)" or "(acquirer)" beside company name; acquirer-only LLM
             matched_cik_label = None
             form_affects_deal = None
+            email_company_name = company_name
             if deal_id and cik_number:
                 try:
                     deal = ProcessingJob.objects(id=ObjectId(deal_id)).only(
@@ -1216,6 +1217,7 @@ def _route_summarize_and_save(item_data, html_data):
                     if deal and cik_n:
                         if normalize_cik(deal.acquirer_cik) == cik_n:
                             matched_cik_label = "(acquirer)"
+                            email_company_name = deal.acquire_name or company_name
                             form_affects_deal = _llm_form_affects_deal(
                                 target_name=deal.target_name or "",
                                 acquirer_name=deal.acquire_name or "",
@@ -1224,6 +1226,7 @@ def _route_summarize_and_save(item_data, html_data):
                             )
                         elif normalize_cik(deal.cik) == cik_n:
                             matched_cik_label = "(target)"
+                            email_company_name = deal.target_name or company_name
                 except Exception as deal_e:
                     log_and_print(
                         f"{LOG_PREFIX} :_route_summarize_and_save: Deal lookup for match/LLM: {deal_e}", "warning")
@@ -1231,7 +1234,7 @@ def _route_summarize_and_save(item_data, html_data):
             try:
                 send_summary_email_via_webhook(
                     summary_doc_url=s3_docx_url,
-                    company_name=company_name,
+                    company_name=email_company_name,
                     form_type="8-K (EX-99.1)" if is_ex99 else doc_form_type,
                     cik_number=cik_number or "",
                     sec_url=link or url,

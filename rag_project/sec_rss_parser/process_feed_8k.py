@@ -663,6 +663,26 @@ class EightKFeedProcessor:
                 cik_number)
             item_data['deal_id'] = deal_id
             item_data['cik_matches_deal'] = cik_matches_deal
+
+            # Resolve deal party name for emails (target vs acquirer)
+            if deal_id and cik_number:
+                try:
+                    from bson import ObjectId
+                    deal = ProcessingJob.objects(id=ObjectId(deal_id)).only(
+                        "cik", "acquirer_cik", "target_name", "acquire_name"
+                    ).first()
+                    cik_n = normalize_cik(cik_number)
+                    if deal and cik_n:
+                        if normalize_cik(deal.acquirer_cik) == cik_n:
+                            item_data['matched_cik_label'] = "(acquirer)"
+                            item_data['email_company_name'] = deal.acquire_name or item_data.get('company_name')
+                        elif normalize_cik(deal.cik) == cik_n:
+                            item_data['matched_cik_label'] = "(target)"
+                            item_data['email_company_name'] = deal.target_name or item_data.get('company_name')
+                except Exception as deal_e:
+                    logger.warning(
+                        f"{LOG_PREFIX} :_process_single_item: Deal name lookup failed: {deal_e}")
+
             logger.info(f"{LOG_PREFIX} :_process_single_item: accession=%s step=cik_check cik_matches_deal=%s deal_id=%s",
                         accession_number, cik_matches_deal, deal_id)
 
@@ -1475,9 +1495,11 @@ class EightKFeedProcessor:
             ticker = get_ticker_for_deal_and_cik(
                 item_data.get('deal_id'), item_data.get('cik_number'))
             filing_date = item_data.get('filing_date')
+            email_company_name = item_data.get('email_company_name') or item_data.get('company_name') or ''
+            matched_cik_label = item_data.get('matched_cik_label')
 
             subject, html_email = generate_8k_99_1_summary_email_html(
-                company_name=item_data.get('company_name') or '',
+                company_name=email_company_name,
                 form_type='8-K',
                 summary_doc_url=summary_doc_url,
                 cik_number=item_data.get('cik_number') or '',
@@ -1488,12 +1510,13 @@ class EightKFeedProcessor:
                 l2_brief=summary_result.get('L2_brief'),
                 ticker=ticker,
                 filing_date=filing_date,
+                matched_cik_label=matched_cik_label,
             )
 
             payload = {
                 'subject': subject,
                 'html': html_email,
-                'company_name': item_data.get('company_name', 'Unknown Company'),
+                'company_name': email_company_name,
                 'form_type': '8-K',
                 'summary_doc_url': summary_doc_url,
                 'accession_number': item_data.get('accession_number'),
@@ -1530,9 +1553,11 @@ class EightKFeedProcessor:
             ticker = get_ticker_for_deal_and_cik(
                 item_data.get('deal_id'), item_data.get('cik_number'))
             filing_date = item_data.get('filing_date')
+            email_company_name = item_data.get('email_company_name') or item_data.get('company_name') or ''
+            matched_cik_label = item_data.get('matched_cik_label')
 
             subject, html_email = generate_8k_99_1_summary_email_html(
-                company_name=item_data.get('company_name') or '',
+                company_name=email_company_name,
                 form_type='8-K (EX-99.1)',
                 summary_doc_url=summary_doc_url,
                 cik_number=item_data.get('cik_number') or '',
@@ -1543,12 +1568,13 @@ class EightKFeedProcessor:
                 l2_brief=summary_result.get('L2_brief'),
                 ticker=ticker,
                 filing_date=filing_date,
+                matched_cik_label=matched_cik_label,
             )
 
             payload = {
                 'subject': subject,
                 'html': html_email,
-                'company_name': item_data.get('company_name', 'Unknown Company'),
+                'company_name': email_company_name,
                 'form_type': '8-K (EX-99.1)',
                 'summary_doc_url': summary_doc_url,
                 'accession_number': item_data.get('accession_number'),

@@ -45,7 +45,8 @@ def _doc_to_record(doc: SECFilingSummary) -> dict:
         "processed": tq.get("processed"),
         "s3_json_url": tq.get("s3_json_url"),
         "s3_docx_url": tq.get("s3_docx_url"),
-        "local_json_path": tq.get("s3_json_url"),  # orchestrator may still look for this
+        # orchestrator may still look for this
+        "local_json_path": tq.get("s3_json_url"),
         "local_docx_path": tq.get("s3_docx_url"),
         "local_comparison_json_path": tq.get("s3_comparison_json_url"),
         "local_redline_docx_path": tq.get("s3_redline_docx_url"),
@@ -80,7 +81,7 @@ class SummaryDB:
     def get_by_deal_id_and_cik(self, deal_id: str, cik_number: str) -> List[dict]:
         """Return all 10-K/10-Q summary records for the given deal_id and cik_number."""
         docs = SECFilingSummary.objects(
-            deal_id=deal_id,
+            # deal_id=deal_id,
             cik_number=cik_number,
             form_type__in=["10-K", "10-Q"],
         ).all()
@@ -114,9 +115,11 @@ class SummaryDB:
         # Create new
         cik_number, accession_number = parse_sec_document_url(url)
         period_date, filing_type = detect_filing_metadata(url)
-        form_type = filing_type if filing_type in ("10-K", "10-Q") else "10-Q"  # fallback
+        form_type = filing_type if filing_type in (
+            "10-K", "10-Q") else "10-Q"  # fallback
         if not accession_number:
-            accession_number = url.strip("/").split("/")[-2] if "/" in url else None
+            accession_number = url.strip(
+                "/").split("/")[-2] if "/" in url else None
         if not cik_number:
             # Try to get from URL again: /edgar/data/123/
             import re
