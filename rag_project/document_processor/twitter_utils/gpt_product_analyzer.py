@@ -66,10 +66,6 @@ Focus on:
 6. Do not stop at portfolio or suite names. Always expand them into their major **individual sub-products and applications**. Include not only current offerings but also **specialized or legacy tools that remain relevant**. Each sub-product should appear as a separate entry with its own name and description. Only include the suite name itself if it provides unique functionality beyond its sub-products.
 
 
-
-
-
-
 Format your response strictly as JSON with the following schema:
 {{
                 "products": [

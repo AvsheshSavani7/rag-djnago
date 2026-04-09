@@ -70,9 +70,13 @@ class TwitterSearchService:
             List of tweet data
         """
         all_tweets = []
+        seen_tweet_ids = set()
         cursor = ""
+        max_iterations = 300
+        iteration_count = 0
 
-        while len(all_tweets) < max_results:
+        while len(all_tweets) < max_results and iteration_count < max_iterations:
+            iteration_count += 1
             params = {
                 'query': query,
                 'queryType': 'Latest',
@@ -86,28 +90,48 @@ class TwitterSearchService:
 
                 data = response.json()
                 tweets = data.get('tweets', [])
-                self.logger.info(f"data: {data}")
 
                 if not tweets:
                     break
 
-                all_tweets.extend(tweets)
+                new_count = 0
+                for tweet in tweets:
+                    tweet_id = tweet.get('id', '')
+                    if tweet_id and tweet_id not in seen_tweet_ids:
+                        seen_tweet_ids.add(tweet_id)
+                        all_tweets.append(tweet)
+                        new_count += 1
 
-                # Check if there are more pages
+                self.logger.info(
+                    f"Page {iteration_count}: {len(tweets)} fetched, {new_count} new, {len(all_tweets)} total unique")
+
+                if new_count == 0:
+                    self.logger.warning(
+                        "No new tweets in this page, stopping pagination")
+                    break
+
                 if not data.get('has_next_page', False):
                     break
 
-                cursor = data.get('next_cursor', '')
-                self.logger.info(f"next_cursor: {cursor}")
-                if not cursor:
+                next_cursor = data.get('next_cursor', '')
+                self.logger.info(f"next_cursor: {next_cursor}")
+                self.logger.info(f"cursor: {cursor}")
+                if not next_cursor or next_cursor == cursor:
+                    if next_cursor == cursor:
+                        self.logger.warning(
+                            f"Cursor unchanged, stopping pagination at {len(all_tweets)} tweets")
                     break
 
-                # Rate limiting - wait between requests
+                cursor = next_cursor
                 time.sleep(1)
 
             except requests.exceptions.RequestException as e:
                 self.logger.error(f"Error fetching tweets: {e}")
                 break
+
+        if iteration_count >= max_iterations:
+            self.logger.warning(
+                f"Max iterations ({max_iterations}) reached at {len(all_tweets)} tweets")
 
         return all_tweets[:max_results]
 
@@ -217,17 +241,18 @@ class DealTwitterAnalyzer:
         if isinstance(target_subs, dict):
             answer = target_subs.get('answer', '')
             if answer and answer != 'Not found' and answer != 'No target subsidiaries explicitly involved in the merger structure are mentioned.':
-                # Try to parse JSON if it's a JSON string
+                # Try to parse JSON if it's a JSON string or already a list
                 try:
-                    if answer.startswith('['):
+                    if isinstance(answer, list):
+                        subs_list = answer
+                    elif isinstance(answer, str) and answer.startswith('['):
                         subs_list = json.loads(answer)
-                        for sub in subs_list:
-                            if isinstance(sub, dict) and 'name' in sub:
-                                companies.append(sub['name'])
                     else:
-                        # If it's a plain text description, we might need to parse it differently
-                        # For now, we'll skip complex parsing
-                        pass
+                        subs_list = []
+
+                    for sub in subs_list:
+                        if isinstance(sub, dict) and 'name' in sub:
+                            companies.append(sub['name'])
                 except json.JSONDecodeError:
                     pass
 
@@ -237,11 +262,16 @@ class DealTwitterAnalyzer:
             answer = acquirer_subs.get('answer', '')
             if answer and answer != 'Not found':
                 try:
-                    if answer.startswith('['):
+                    if isinstance(answer, list):
+                        subs_list = answer
+                    elif isinstance(answer, str) and answer.startswith('['):
                         subs_list = json.loads(answer)
-                        for sub in subs_list:
-                            if isinstance(sub, dict) and 'name' in sub:
-                                companies.append(sub['name'])
+                    else:
+                        subs_list = []
+
+                    for sub in subs_list:
+                        if isinstance(sub, dict) and 'name' in sub:
+                            companies.append(sub['name'])
                 except json.JSONDecodeError:
                     pass
 
@@ -272,7 +302,7 @@ class DealTwitterAnalyzer:
         combinations = list(itertools.combinations(companies, 2))
         return combinations
 
-    def build_twitter_query(self, company1: str, company2: str, announce_date: str, years_back: int = 5) -> str:
+    def build_twitter_query(self, company1: str, company2: str, announce_date: str, years_back: int = 2) -> str:
         """
         Build Twitter search query for company combination
 

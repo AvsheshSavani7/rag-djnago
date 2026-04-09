@@ -67,10 +67,13 @@ class CompetitiveProductsTwitterSearchService:
             List of tweet data
         """
         all_tweets = []
+        seen_tweet_ids = set()
         cursor = ""
+        max_iterations = 300
+        iteration_count = 0
 
-        while len(all_tweets) < max_results:
-            self.logger.info(f"Searching for tweets with query: {query}")
+        while len(all_tweets) < max_results and iteration_count < max_iterations:
+            iteration_count += 1
             params = {
                 'query': query,
                 'queryType': 'Latest',
@@ -84,28 +87,50 @@ class CompetitiveProductsTwitterSearchService:
 
                 data = response.json()
                 tweets = data.get('tweets', [])
-                self.logger.info(
-                    f"Found {len(tweets)} tweets for query: {query}")
 
                 if not tweets:
                     break
 
-                all_tweets.extend(tweets)
+                new_count = 0
+                for tweet in tweets:
+                    tweet_id = tweet.get('id', '')
+                    if tweet_id and tweet_id not in seen_tweet_ids:
+                        seen_tweet_ids.add(tweet_id)
+                        all_tweets.append(tweet)
+                        new_count += 1
 
-                # Check if there are more pages
+                self.logger.info(
+                    f"Page {iteration_count}: {len(tweets)} fetched, {new_count} new, {len(all_tweets)} total unique")
+
+                if new_count == 0:
+                    self.logger.warning(
+                        "No new tweets in this page, stopping pagination")
+                    break
+
+                self.logger.info(
+                    f"has_next_page: {data.get('has_next_page', False)}")
+                self.logger.info(f"cursor: {cursor}")
                 if not data.get('has_next_page', False):
                     break
 
-                cursor = data.get('next_cursor', '')
-                if not cursor:
+                next_cursor = data.get('next_cursor', '')
+                self.logger.info(f"next_cursor: {next_cursor}")
+                if not next_cursor or next_cursor == cursor:
+                    if next_cursor == cursor:
+                        self.logger.warning(
+                            f"Cursor unchanged, stopping pagination at {len(all_tweets)} tweets")
                     break
 
-                # Rate limiting - wait between requests
+                cursor = next_cursor
                 time.sleep(1)
 
             except requests.exceptions.RequestException as e:
                 self.logger.error(f"Error fetching tweets: {e}")
                 break
+
+        if iteration_count >= max_iterations:
+            self.logger.warning(
+                f"Max iterations ({max_iterations}) reached, breaking pagination loop at {len(all_tweets)} tweets")
 
         return all_tweets[:max_results]
 
@@ -212,7 +237,7 @@ class CompetitiveProductsDealAnalyzer:
 
         return competitive_pairs
 
-    def build_competitive_product_query(self, target_product: str, acquire_product: str, target_company: str = "", acquire_company: str = "", announce_date: str = None, years_back: int = 5, daily_mode: bool = False) -> str:
+    def build_competitive_product_query(self, target_product: str, acquire_product: str, target_company: str = "", acquire_company: str = "", announce_date: str = None, years_back: int = 2, daily_mode: bool = False) -> str:
         """
         Build Twitter search query for competitive product combination
 
