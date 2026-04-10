@@ -210,7 +210,16 @@ def run_pipeline(
     logger.info(
         "10-K/10-Q pipeline: processing loop done, starting comparison step")
     print(f"\n[COMPARISON]")
-    all_records = db.get_by_deal_id_and_cik(deal_id)
+    cik_number = None
+    for url in urls:
+        rec = db.get_by_url(url)
+        if rec and rec.get("cik_number"):
+            cik_number = rec["cik_number"]
+            break
+    if not cik_number:
+        raise ValueError(
+            f"Could not determine CIK number from input URLs for deal_id={deal_id}")
+    all_records = db.get_by_deal_id_and_cik(deal_id, cik_number)
     processed_records = [r for r in all_records if r.get(
         "processed") and r.get("s3_json_url")]
 
