@@ -4,7 +4,7 @@ classifier.py — Content-based block classification using Haiku LLM batches.
 
 import json
 import re
-from typing import List
+from typing import List, Optional
 
 from anthropic import Anthropic
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -14,6 +14,7 @@ from .config import (
     BLOCK_CLASSIFY_PROMPT, MODEL_CLASSIFY,
     CLASSIFY_BATCH_SIZE, CLASSIFY_MAX_WORKERS, CLASSIFY_MIN_WORDS,
     _TOPIC_PRIORITY,
+    _TOPIC_KEYWORD_PATTERNS, _TOPIC_COMPATIBLE
 )
 
 
@@ -29,7 +30,8 @@ def _classify_batch(batch: List[Block], client: Anthropic) -> List[str]:
         response = client.messages.create(
             model=MODEL_CLASSIFY,
             max_tokens=1024,
-            messages=[{"role": "user", "content": BLOCK_CLASSIFY_PROMPT + "\n\nPARAGRAPHS:\n" + para_block}],
+            messages=[{"role": "user", "content": BLOCK_CLASSIFY_PROMPT +
+                       "\n\nPARAGRAPHS:\n" + para_block}],
         )
         raw = response.content[0].text.strip()
         # Strip markdown fences
@@ -40,7 +42,8 @@ def _classify_batch(batch: List[Block], client: Anthropic) -> List[str]:
         if isinstance(results, list):
             topics = []
             for r in results:
-                topic = r.get("topic", "general") if isinstance(r, dict) else "general"
+                topic = r.get("topic", "general") if isinstance(
+                    r, dict) else "general"
                 topics.append(topic)
             # Pad if LLM returned fewer than batch size
             while len(topics) < len(batch):
@@ -94,6 +97,15 @@ def classify_blocks(doc: CanonicalDocument, client: Anthropic) -> None:
             block.topic = topic
             topic_counts[topic] = topic_counts.get(topic, 0) + 1
 
+    # Keyword safety net: catch critical blocks Haiku may have misclassified
+    _apply_keyword_overrides(doc)
+
+    # Recount after overrides
+    topic_counts = {}
+    for b in doc.blocks:
+        if b.topic:
+            topic_counts[b.topic] = topic_counts.get(b.topic, 0) + 1
+
     # Tag headings with the topic of the first subsequent paragraph
     for i, block in enumerate(doc.blocks):
         if block.type == "heading" and not block.topic:
@@ -105,8 +117,38 @@ def classify_blocks(doc: CanonicalDocument, client: Anthropic) -> None:
     print(f"    Topic distribution: {json.dumps(topic_counts, indent=None)}")
 
 
+def _apply_keyword_overrides(doc: CanonicalDocument) -> None:
+    """Post-classification keyword safety net. Override Haiku when signal is unambiguous."""
+    override_count = 0
+    for block in doc.blocks:
+        if not block.text.strip() or block.type == "heading":
+            continue
+        # Don't override background blocks — they often quote deal terms in passing
+        if block.topic == "background":
+            continue
+        # Check more text than Haiku sees (800)
+        text_preview = block.text[:1500]
+
+        for topic, patterns in _TOPIC_KEYWORD_PATTERNS.items():
+            # Don't override if already in a compatible topic
+            compatible = _TOPIC_COMPATIBLE.get(topic, {topic})
+            if block.topic in compatible:
+                continue
+            for pat in patterns:
+                if pat.search(text_preview):
+                    block.topic = topic
+                    override_count += 1
+                    break
+            else:
+                continue
+            break  # Already overridden, move to next block
+
+    if override_count:
+        print(f"    Keyword overrides: {override_count} blocks corrected")
+
+
 def _get_blocks_by_topic(doc: CanonicalDocument, topics: List[str],
-                          max_chars: int = 60000) -> str:
+                         max_chars: int = 60000, exclude_indices: Optional[set] = None) -> str:
     """Get combined text from blocks tagged with the given topics, grouped by topic.
 
     Topics are ordered by priority (minority topics first) so that if
@@ -114,12 +156,16 @@ def _get_blocks_by_topic(doc: CanonicalDocument, topics: List[str],
     """
     by_topic = {}
     for b in doc.blocks:
+        if exclude_indices and b.index in exclude_indices:
+            continue
+
         if b.topic in topics and b.text.strip():
             by_topic.setdefault(b.topic, []).append(b.text)
 
     # Sort topics by priority order (minority first)
     ordered = sorted(topics, key=lambda t: (
-        _TOPIC_PRIORITY.index(t) if t in _TOPIC_PRIORITY else len(_TOPIC_PRIORITY)
+        _TOPIC_PRIORITY.index(
+            t) if t in _TOPIC_PRIORITY else len(_TOPIC_PRIORITY)
     ))
 
     parts = []

@@ -19,6 +19,7 @@ from .config import (
     _COMPARISON_RULES,
     _CATEGORY_TO_SECTIONS, _CATEGORY_TO_TOPICS,
     BACKGROUND_DIFF_INTERPRET_PROMPT,
+    _CATEGORY_KEYWORD_PATTERNS,
     get_form_label,
 )
 from .classifier import _get_blocks_by_topic
@@ -436,26 +437,79 @@ def interpret_background_diff(client: Anthropic, diff_result: Dict[str, Any],
 # 4.5: Direct Category Comparison (10K/10Q approach)
 # =============================================================================
 
+def _get_keyword_matched_blocks(doc: CanonicalDocument, category: str,
+                                exclude_indices: set,
+                                max_chars: int = 5000) -> str:
+    """Scan ALL blocks for category-specific keywords, excluding already-included blocks.
+
+    This is the belt-and-suspenders layer: catches blocks that both Haiku classification
+    AND the keyword override missed. Independent of topic tags — pure text search.
+    """
+    patterns = _CATEGORY_KEYWORD_PATTERNS.get(category, [])
+    if not patterns:
+        return ""
+
+    matched_texts = []
+    total = 0
+    for b in doc.blocks:
+        if b.index in exclude_indices:
+            continue
+        if not b.text.strip() or b.type == "heading":
+            continue
+        text_preview = b.text[:1500]
+        for pat in patterns:
+            if pat.search(text_preview):
+                if total + len(b.text) > max_chars:
+                    break
+                matched_texts.append(b.text)
+                total += len(b.text)
+                exclude_indices.add(b.index)
+                break
+
+    return "\n\n".join(matched_texts) if matched_texts else ""
+
+
 def _gather_category_text(doc: CanonicalDocument, category: str, max_chars: int = 30000) -> str:
     """Gather text from category-specific sections for comparison.
 
-    Unlike _get_section_text_for_extraction (which adds summary/Q&A fallbacks
-    for comprehensive first-filing extraction), this function gathers only
-    targeted text so comparisons stay focused on real differences.
+      Three layers:
+        Layer 0: Keyword-matched blocks (catches misclassified blocks — NOT already tagged)
+        Layer 1: Topic-tagged blocks (primary — content-based, survives mega-sections)
+        Layer 2: Section text (fallback — only when Layers 0+1 are sparse)
+
+    merger_agreement_summary is only included as Layer 2 when Layers 0+1
+    provide < 5,000 chars, preventing boilerplate dilution.
+
     """
     section_ids = _CATEGORY_TO_SECTIONS.get(category, [])
     parts = []
     total = 0
 
-    # Layer 1: Topic-tagged blocks (primary -- content-based, survives mega-sections)
+    exclude_indices = set()  # Track blocks already included to avoid duplicates
+
+    # Layer 1: Topic-tagged blocks (primary — content-based)
+    # Give topic blocks the majority of the budget (25K of 30K)
     topics_needed = _CATEGORY_TO_TOPICS.get(category, [])
 
     if topics_needed:
         topic_text = _get_blocks_by_topic(
-            doc, topics_needed, max_chars=max_chars // 2)
+            doc, topics_needed, max_chars=int(max_chars * 0.85))
         if topic_text.strip():
             parts.append(topic_text)
             total += len(topic_text)
+
+            # Track which blocks were included
+            for b in doc.blocks:
+                if b.topic in topics_needed and b.text.strip():
+                    exclude_indices.add(b.index)
+
+    # Layer 0: Keyword-matched blocks — catches blocks missed by classification.
+    # Only adds blocks NOT already included by topic tag.
+    kw_text = _get_keyword_matched_blocks(
+        doc, category, exclude_indices, max_chars=5000)
+    if kw_text.strip():
+        parts.append(f"[Keyword matches]\n{kw_text}")
+        total += len(kw_text) + len("[Keyword matches]\n")
 
     # Layer 2: Section text -- prioritize category-specific sections,
     # add merger_agreement_summary only if budget remains.
@@ -464,10 +518,23 @@ def _gather_category_text(doc: CanonicalDocument, category: str, max_chars: int 
     secondary_ids = [sid for sid in section_ids if sid ==
                      "merger_agreement_summary"]
 
-    for sid_group in [primary_ids, secondary_ids]:
-        if total >= max_chars:
-            break
-        sections = get_sections_by_ids(doc, sid_group)
+    # Always try primary sections (e.g., "regulatory", "termination")
+    if total < max_chars:
+        sections = get_sections_by_ids(doc, primary_ids)
+        for s in sections:
+            remaining = max_chars - total
+            if remaining < 2000:
+                break
+            chunk = f"[Section: {s.raw_title}]\n{s.text}"
+            if len(chunk) > remaining:
+                chunk = chunk[:remaining] + "\n[TRUNCATED]"
+            parts.append(chunk)
+            total += len(chunk)
+
+    # Only add merger_agreement_summary when topic text is sparse (< 5K chars)
+    if total < 5000 and secondary_ids:
+        sections = get_sections_by_ids(doc, secondary_ids)
+
         for s in sections:
             remaining = max_chars - total
             if remaining < 2000:
@@ -765,6 +832,15 @@ Return a JSON array. If nothing meets BOTH materiality AND deal-specificity thre
             messages=[{"role": "user", "content": prompt}]
         )
         answer = response.content[0].text.strip()
+
+        # Diagnostic logging
+        diag_path = os.path.join(
+            OUTPUT_FOLDER, "compare_diagnostic_latest.txt")
+        with open(diag_path, "a") as df:
+            df.write(f"\n{'='*60}\n")
+            df.write(f"CATEGORY: other_material | delta={total_chars:,} chars, "
+                     f"{len(delta_text_parts)} paragraphs\n")
+            df.write(f"RAW RESPONSE:\n{answer}\n")
 
         events = _parse_comparison_response(answer, "other_material")
         print(

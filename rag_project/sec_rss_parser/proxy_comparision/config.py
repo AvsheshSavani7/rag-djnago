@@ -469,15 +469,24 @@ CHANGES:
 # =============================================================================
 
 SECTION_CONFIGS = [
-    {"key": "dates",           "topics": ["dates", "sh_approval", "closing", "termination"], "model": "standard", "max_chars": 20000, "thinking": False},
-    {"key": "consideration",   "topics": ["consideration"],             "model": "standard", "max_chars": 20000, "thinking": False},
-    {"key": "financing",       "topics": ["financing"],                 "model": "standard", "max_chars": 15000, "thinking": False},
-    {"key": "sh_approval",     "topics": ["sh_approval", "dates"],      "model": "standard", "max_chars": 15000, "thinking": False},
-    {"key": "hsr",             "topics": ["hsr", "regulatory"],         "model": "opus",     "max_chars": 15000, "thinking": True},
-    {"key": "other_regulatory","topics": ["regulatory", "hsr", "closing"], "model": "standard", "max_chars": 30000, "thinking": False},
-    {"key": "closing",         "topics": ["closing"],                   "model": "standard", "max_chars": 15000, "thinking": False},
-    {"key": "conditions",      "topics": ["closing", "regulatory"],     "model": "standard", "max_chars": 20000, "thinking": False},
-    {"key": "termination",     "topics": ["termination"],               "model": "opus",     "max_chars": 25000, "thinking": True},
+    {"key": "dates",           "topics": ["dates", "sh_approval", "closing",
+                                          "termination"], "model": "standard", "max_chars": 20000, "thinking": False},
+    {"key": "consideration",   "topics": [
+        "consideration"],             "model": "standard", "max_chars": 20000, "thinking": False},
+    {"key": "financing",       "topics": [
+        "financing"],                 "model": "standard", "max_chars": 15000, "thinking": False},
+    {"key": "sh_approval",     "topics": [
+        "sh_approval", "dates"],      "model": "standard", "max_chars": 15000, "thinking": False},
+    {"key": "hsr",             "topics": ["hsr", "regulatory"],
+        "model": "opus",     "max_chars": 15000, "thinking": True},
+    {"key": "other_regulatory", "topics": [
+        "regulatory", "hsr", "closing"], "model": "standard", "max_chars": 30000, "thinking": False},
+    {"key": "closing",         "topics": [
+        "closing"],                   "model": "standard", "max_chars": 15000, "thinking": False},
+    {"key": "conditions",      "topics": [
+        "closing", "regulatory"],     "model": "standard", "max_chars": 20000, "thinking": False},
+    {"key": "termination",     "topics": [
+        "termination"],               "model": "opus",     "max_chars": 25000, "thinking": True},
 ]
 
 _TOPIC_TO_SECTION_IDS = {
@@ -631,6 +640,98 @@ _TOPIC_PRIORITY = [
     "dates", "consideration", "closing", "background",
 ]
 
+# =============================================================================
+# POST-CLASSIFICATION KEYWORD SAFETY NET
+# =============================================================================
+# Haiku classification is non-deterministic. These keyword patterns catch
+# critical blocks that Haiku might misclassify. Patterns are broad enough
+# to avoid whack-a-mole (e.g., regulatory uses "competition authority" not
+# just individual agency names) while specific enough to avoid false positives.
+
+_TOPIC_KEYWORD_PATTERNS = {
+    "hsr": [
+        re.compile(r"(?:HSR|Hart.Scott.Rodino)\s+Act", re.IGNORECASE),
+        re.compile(
+            r"(?:HSR|Hart.Scott.Rodino).{0,60}(?:filing|notification|waiting period|second request|early termination)", re.IGNORECASE),
+        re.compile(
+            r"(?:withdrew|refiled|pull.and.refile).{0,40}(?:HSR|notification|antitrust)", re.IGNORECASE),
+    ],
+    "termination": [
+        re.compile(r"termination fee", re.IGNORECASE),
+        re.compile(r"break.?up fee", re.IGNORECASE),
+        re.compile(r"reverse termination fee", re.IGNORECASE),
+        re.compile(
+            r"(?:go.shop|no.shop|no.solicitation|non.solicitation)\s+(?:period|provision|covenant|restriction)", re.IGNORECASE),
+        re.compile(r"superior proposal", re.IGNORECASE),
+        re.compile(r"fiduciary.{0,10}out", re.IGNORECASE),
+        re.compile(r"matching right", re.IGNORECASE),
+    ],
+    "consideration": [
+        re.compile(r"(?:exchange|conversion)\s+ratio", re.IGNORECASE),
+        re.compile(r"merger consideration", re.IGNORECASE),
+        re.compile(r"per.share.{0,30}(?:\$[\d,.]+|cash|stock)", re.IGNORECASE),
+        re.compile(r"(?:price|value)\s+collar", re.IGNORECASE),
+        re.compile(r"contingent value right|CVR\b", re.IGNORECASE),
+        re.compile(r"proration", re.IGNORECASE),
+    ],
+    "financing": [
+        re.compile(r"commitment letter", re.IGNORECASE),
+        re.compile(r"(?:debt|equity)\s+commitment", re.IGNORECASE),
+        re.compile(r"limited guarantee", re.IGNORECASE),
+        re.compile(r"marketing period", re.IGNORECASE),
+        re.compile(r"financing condition", re.IGNORECASE),
+    ],
+    "sh_approval": [
+        re.compile(
+            r"(?:stockholder|shareholder).{0,30}(?:approval|vote|quorum)", re.IGNORECASE),
+        re.compile(
+            r"(?:majority|two.thirds|supermajority) of.{0,30}(?:outstanding|shares|voting)", re.IGNORECASE),
+        re.compile(r"broker non.vote", re.IGNORECASE),
+    ],
+    "regulatory": [
+        # Broad patterns — catch unknown agencies without whack-a-mole
+        re.compile(
+            r"(?:regulatory|antitrust|competition).{0,20}(?:approval|clearance|consent|condition|review|filing)", re.IGNORECASE),
+        re.compile(
+            r"(?:merger control|competition authority|antitrust authority)", re.IGNORECASE),
+        # Known agencies — supplement, not primary mechanism
+        re.compile(
+            r"\b(?:CFIUS|SAMR|CADE|ACCC|CMA|KFTC|JFTC|COFECE|FIRB|NDRC)\b"),
+        re.compile(r"(?:European Commission|EC merger|EU merger)",
+                   re.IGNORECASE),
+        re.compile(r"Investment Canada", re.IGNORECASE),
+        re.compile(r"\b(?:PUC|PSC|FERC|FCC|FINRA|OCC|FDIC)\b"),
+        re.compile(r"(?:public (?:utility|service) commission)", re.IGNORECASE),
+        re.compile(
+            r"(?:state|foreign|international).{0,20}(?:regulatory|antitrust|competition).{0,20}(?:approv|clear|review)", re.IGNORECASE),
+    ],
+    "closing": [
+        re.compile(
+            r"condition.{0,10}(?:to|of|for).{0,10}(?:closing|completion|consummation)", re.IGNORECASE),
+        re.compile(r"conditions precedent", re.IGNORECASE),
+    ],
+    "dates": [
+        re.compile(r"(?:record|outside|drop.dead)\s+date", re.IGNORECASE),
+        re.compile(
+            r"special meeting.{0,20}(?:date|held|scheduled|convened)", re.IGNORECASE),
+    ],
+}
+
+# Topics that are "compatible" — don't override between these pairs
+# (e.g., a block tagged "regulatory" mentioning HSR is fine — both feed into
+# the right comparison categories via _CATEGORY_TO_TOPICS overlaps)
+_TOPIC_COMPATIBLE = {
+    "hsr": {"hsr", "regulatory", "closing"},
+    "regulatory": {"regulatory", "hsr", "closing"},
+    "closing": {"closing", "regulatory", "hsr"},
+    "termination": {"termination"},
+    "consideration": {"consideration"},
+    "financing": {"financing"},
+    "sh_approval": {"sh_approval", "dates"},
+    "dates": {"dates", "sh_approval"},
+}
+
+
 # Map section IDs to their relevant topics for extraction
 _SECTION_ID_TO_TOPICS = {
     "regulatory": ["regulatory", "hsr"],
@@ -666,6 +767,20 @@ _CATEGORY_TO_TOPICS = {
     "termination": ["termination"],
 }
 
+# Keyword patterns for comparison-time block retrieval (Layer 0).
+# Maps comparison categories to the keyword patterns that should pull blocks in
+# regardless of topic tag. Reuses _TOPIC_KEYWORD_PATTERNS where category matches topic.
+_CATEGORY_KEYWORD_PATTERNS = {
+    "hsr": _TOPIC_KEYWORD_PATTERNS["hsr"],
+    "regulatory": _TOPIC_KEYWORD_PATTERNS["regulatory"],
+    "termination": _TOPIC_KEYWORD_PATTERNS["termination"],
+    "consideration": _TOPIC_KEYWORD_PATTERNS["consideration"],
+    "financing": _TOPIC_KEYWORD_PATTERNS["financing"],
+    "sh_votes": _TOPIC_KEYWORD_PATTERNS["sh_approval"],
+    "closing": _TOPIC_KEYWORD_PATTERNS["closing"],
+    "dates": _TOPIC_KEYWORD_PATTERNS["dates"],
+}
+
 FACT_CATEGORY_MAP = {
     "dates": "dates",
     "consideration": "consideration",
@@ -679,4 +794,5 @@ FACT_CATEGORY_MAP = {
 # DOCX COLOR CONSTANTS
 # =============================================================================
 
-_PRESERVE_UPPER = {"HSR", "SH", "NYSE", "SEC", "FTC", "DOJ", "OCC", "CFIUS", "FIRB"}
+_PRESERVE_UPPER = {"HSR", "SH", "NYSE", "SEC",
+                   "FTC", "DOJ", "OCC", "CFIUS", "FIRB"}
