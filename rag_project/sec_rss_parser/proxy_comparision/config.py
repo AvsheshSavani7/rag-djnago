@@ -70,11 +70,16 @@ TIER1_SECTION_IDS = {
 # =============================================================================
 
 FORM_TYPE_FAMILIES = {
-    # proxy_like
+    # proxy_like (14A)
     "PREM14A": "proxy_like",
     "PREM14A/A": "proxy_like",
     "DEFM14A": "proxy_like",
     "DEFA14A": "proxy_like",
+    # proxy_like (14C)
+    "PREM14C": "proxy_like",
+    "PREM14C/A": "proxy_like",
+    "DEFM14C": "proxy_like",
+    "DEFA14C": "proxy_like",
     # registration_like
     "S-4": "registration_like",
     "S-4/A": "registration_like",
@@ -94,6 +99,10 @@ FORM_TYPE_LABELS = {
     "PREM14A/A": "Amended Preliminary Proxy (PREM14A/A)",
     "DEFM14A": "Definitive Proxy (DEFM14A)",
     "DEFA14A": "Additional Definitive Proxy (DEFA14A)",
+    "PREM14C": "Preliminary Information Statement (PREM14C)",
+    "PREM14C/A": "Amended Preliminary Information Statement (PREM14C/A)",
+    "DEFM14C": "Definitive Information Statement (DEFM14C)",
+    "DEFA14C": "Additional Definitive Information Statement (DEFA14C)",
     "S-4": "Registration Statement (S-4)",
     "S-4/A": "Amended Registration Statement (S-4/A)",
     "F-4": "Registration Statement (F-4)",

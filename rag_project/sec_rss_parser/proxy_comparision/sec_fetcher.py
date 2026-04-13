@@ -16,11 +16,17 @@ def fetch_html(url: str) -> str:
 def guess_form_type(url: str) -> str:
     """Detect filing type from SEC URL filename."""
     fname = url.split("/")[-1].lower()
-    # Order matters: more specific patterns first
+    # Order matters: specific 14C variants before broad 14-catch-all
+    if "defm14c" in fname:
+        return "DEFM14C"
     if "defm14a" in fname or "defm14" in fname:
         return "DEFM14A"
+    if "defa14c" in fname:
+        return "DEFA14C"
     if "defa14a" in fname or "defa14" in fname:
         return "DEFA14A"
+    if "prem14c" in fname:
+        return "PREM14C"
     if "prem14a" in fname or "prem14" in fname:
         return "PREM14A"
     if "sc14d9" in fname or "14d9" in fname or "14d-9" in fname:
