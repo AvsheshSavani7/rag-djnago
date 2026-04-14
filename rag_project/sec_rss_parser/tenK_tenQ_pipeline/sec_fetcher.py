@@ -68,9 +68,11 @@ def detect_filing_metadata(url: str, html: str = "") -> Tuple[str, str]:
     else:
         period_date = "unknown"
 
-    # Layer 1: Explicit match in URL
+    # Layer 1: Explicit match in URL (check amendment before base form)
     url_lower = url.lower()
-    if "10-k" in url_lower or "10k" in url_lower:
+    if "10-k/a" in url_lower or "10ka" in url_lower:
+        filing_type = "10-K/A"
+    elif "10-k" in url_lower or "10k" in url_lower:
         filing_type = "10-K"
     elif "10-q" in url_lower or "10q" in url_lower:
         filing_type = "10-Q"
@@ -97,16 +99,23 @@ def detect_filing_metadata(url: str, html: str = "") -> Tuple[str, str]:
         html_lower = html.lower()
 
         # Layer 3: strict — both form declaration AND report type must agree
-        if re.search(r'form\s+10-q\b', html_lower) and "quarterly report" in html_lower[:50000]:
+        # Check amendment before base form
+        if re.search(r'form\s+10-k/a\b', html_lower) and "annual report" in html_lower[:50000]:
+            filing_type = "10-K/A"
+        elif re.search(r'form\s+10-q\b', html_lower) and "quarterly report" in html_lower[:50000]:
             filing_type = "10-Q"
         elif re.search(r'form\s+10-k\b', html_lower) and "annual report" in html_lower[:50000]:
             filing_type = "10-K"
 
         # Layer 4: loose fallback — either signal alone
+        elif re.search(r'form\s+10-k/a\b', html_lower) or "amendment" in html_lower[:50000] and "10-k" in html_lower[:50000]:
+            filing_type = "10-K/A"
         elif re.search(r'form\s+10-q\b', html_lower) or "quarterly report" in html_lower[:50000]:
             filing_type = "10-Q"
         elif re.search(r'form\s+10-k\b', html_lower) or "annual report" in html_lower[:50000]:
             filing_type = "10-K"
+        elif "10-k/a" in html_lower[:50000]:
+            filing_type = "10-K/A"
         elif "10-q" in html_lower[:50000]:
             filing_type = "10-Q"
         elif "10-k" in html_lower[:50000]:
@@ -124,7 +133,9 @@ def make_filing_label(period_date: str, filing_type: str) -> str:
 
     try:
         dt = datetime.strptime(period_date, "%Y-%m-%d")
-        if filing_type == "10-K":
+        if filing_type == "10-K/A":
+            return f"FY{dt.strftime('%y')} 10-K/A"
+        elif filing_type == "10-K":
             return f"FY{dt.strftime('%y')} 10-K"
         elif filing_type == "10-Q":
             month = dt.month

@@ -226,7 +226,7 @@ def fetch_and_save_additional_10k_10q_filings(
         filings = fetch_sec_filings(
             str(cik_number),
             start_date=start_date,
-            form_types=["10-K", "10-Q"],
+            form_types=["10-K", "10-Q", "10-K/A"],
         )
 
         if not filings:
