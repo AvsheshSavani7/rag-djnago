@@ -267,6 +267,218 @@ def generate_filing_email_html(filing_data, doc_files):
     return subject, html_email
 
 
+def _build_existing_deal_section(deal_details):
+    """Build HTML section showing existing deal match info."""
+    if not deal_details:
+        return ""
+
+    html = """
+      <tr>
+        <td colspan="2" style="padding:14px 8px 8px 8px;">
+          <div style="background-color:#fff3cd; border:1px solid #ffc107; border-radius:6px; padding:12px 16px; margin-bottom:4px;">
+            <strong style="color:#856404; font-size:14px;">Existing Deal Match Found</strong>
+            <p style="color:#856404; margin:6px 0 0 0; font-size:13px;">
+              This filing's CIK matches a deal already tracked in our system.
+            </p>
+          </div>
+        </td>
+      </tr>
+      <tr>
+        <td colspan="2" style="padding:8px; font-weight:bold; color:#e67e22; font-size:14px; border-top:2px solid #ffc107;">
+          Matched Deal Details
+        </td>
+      </tr>
+"""
+    target_name = deal_details.get('target_name', '')
+    if target_name:
+        html += f"""
+      <tr style="background-color:#fff8e1;">
+        <td style="padding:8px; font-weight:bold; color:#555;">Deal Target:</td>
+        <td style="padding:8px; color:#333;">{escape_html(target_name)}</td>
+      </tr>
+"""
+    acquire_name = deal_details.get('acquire_name', '')
+    if acquire_name:
+        html += f"""
+      <tr style="background-color:#fffde7;">
+        <td style="padding:8px; font-weight:bold; color:#555;">Deal Acquirer:</td>
+        <td style="padding:8px; color:#333;">{escape_html(acquire_name)}</td>
+      </tr>
+"""
+    deal_status = deal_details.get('deal_status', '')
+    if deal_status:
+        html += f"""
+      <tr style="background-color:#fff8e1;">
+        <td style="padding:8px; font-weight:bold; color:#555;">Deal Status:</td>
+        <td style="padding:8px; color:#333;">{escape_html(deal_status)}</td>
+      </tr>
+"""
+    announce_date = deal_details.get('announce_date', '')
+    if announce_date:
+        if isinstance(announce_date, datetime):
+            announce_date = announce_date.strftime('%Y-%m-%d')
+        html += f"""
+      <tr style="background-color:#fffde7;">
+        <td style="padding:8px; font-weight:bold; color:#555;">Announce Date:</td>
+        <td style="padding:8px; color:#333;">{escape_html(str(announce_date))}</td>
+      </tr>
+"""
+    target_ticker = deal_details.get('target_ticker', '')
+    acquirer_ticker = deal_details.get('acquirer_ticker', '')
+    if target_ticker or acquirer_ticker:
+        ticker_parts = []
+        if target_ticker:
+            ticker_parts.append(f"Target: {target_ticker}")
+        if acquirer_ticker:
+            ticker_parts.append(f"Acquirer: {acquirer_ticker}")
+        html += f"""
+      <tr style="background-color:#fff8e1;">
+        <td style="padding:8px; font-weight:bold; color:#555;">Tickers:</td>
+        <td style="padding:8px; color:#333;">{escape_html(' | '.join(ticker_parts))}</td>
+      </tr>
+"""
+    target_cik = deal_details.get('cik', '')
+    acquirer_cik = deal_details.get('acquirer_cik', '')
+    if target_cik or acquirer_cik:
+        cik_parts = []
+        if target_cik:
+            cik_parts.append(f"Target: {target_cik}")
+        if acquirer_cik:
+            cik_parts.append(f"Acquirer: {acquirer_cik}")
+        html += f"""
+      <tr style="background-color:#fffde7;">
+        <td style="padding:8px; font-weight:bold; color:#555;">Deal CIKs:</td>
+        <td style="padding:8px; color:#333;">{escape_html(' | '.join(cik_parts))}</td>
+      </tr>
+"""
+    matched_label = deal_details.get('matched_cik_label', '')
+    if matched_label:
+        html += f"""
+      <tr style="background-color:#fff8e1;">
+        <td style="padding:8px; font-weight:bold; color:#555;">Filing CIK Role:</td>
+        <td style="padding:8px; color:#333; font-weight:bold;">{escape_html(matched_label)}</td>
+      </tr>
+"""
+    return html
+
+
+def generate_filing_email_with_deal_html(filing_data, doc_files, deal_details):
+    """
+    Generate HTML email for EX-2.1 filing when CIK matches an existing deal.
+    Same as generate_filing_email_html but with an additional 'Existing Deal Match' section.
+    """
+    form_type = filing_data.get('form_type', 'N/A')
+    company_name = filing_data.get('company_name', 'Unknown Company')
+    accession_no = filing_data.get('accession_number', 'N/A')
+    filing_date = filing_data.get('filing_date', 'N/A')
+    company_details = filing_data.get('company_details', None)
+    if isinstance(filing_date, datetime):
+        filing_date = filing_date.strftime('%Y-%m-%d')
+    accepted_date = filing_data.get('acceptance_datetime_utc', 'N/A')
+    if isinstance(accepted_date, datetime):
+        accepted_date = accepted_date.strftime('%Y-%m-%d %H:%M:%S')
+    elif isinstance(accepted_date, str):
+        try:
+            dt = datetime.fromisoformat(accepted_date.replace('Z', '+00:00'))
+            accepted_date = dt.strftime('%Y-%m-%d %H:%M:%S')
+        except Exception:
+            pass
+    period = filing_data.get('period', 'N/A')
+    cik = filing_data.get('cik_number', 'N/A')
+    filing_url = filing_data.get('link', '')
+    documents_count = len(doc_files) if doc_files else 0
+
+    doc_files_html = build_doc_files_table(doc_files)
+
+    deal_target = (deal_details or {}).get('target_name', '')
+    deal_acquirer = (deal_details or {}).get('acquire_name', '')
+    deal_label = f"{deal_target} / {deal_acquirer}" if deal_target and deal_acquirer else deal_target or deal_acquirer or company_name
+    title_text = f"{form_type} – {company_name} (Existing Deal: {deal_label})"
+    subject = f"SEC Filing – EX-2.1 – {company_name} – Existing CIK Matched"
+
+    company_details_html = ""
+    if form_type == '8-K' and company_details:
+        company_details_html = _build_company_details_rows(company_details)
+
+    deal_section_html = _build_existing_deal_section(deal_details)
+
+    filing_url_html = ""
+    if filing_url:
+        filing_url_html = f"""
+      <tr>
+        <td style="padding:8px; font-weight:bold; color:#555;">Filing URL:</td>
+        <td style="padding:8px;">
+          <a href="{escape_html(filing_url)}" style="color:#4a90e2; text-decoration:none;" target="_blank">
+            View Filing Detail Page
+          </a>
+        </td>
+      </tr>
+"""
+
+    html_email = f"""
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>{escape_html(subject)}</title>
+</head>
+<body style="margin:0; padding:0; font-family:Arial,sans-serif; background-color:#f4f4f4;">
+  <div style="max-width:900px; margin:20px auto; background-color:#ffffff; padding:30px; border-radius:8px; box-shadow:0 2px 4px rgba(0,0,0,0.1);">
+    <h2 style="color:#333; text-align:center; margin-top:0; padding-bottom:20px; border-bottom:3px solid #e67e22;">
+      {escape_html(title_text)}
+    </h2>
+
+    <table style="width:100%; border-collapse:collapse; margin-bottom:20px;">
+      <tr>
+        <td style="padding:8px; font-weight:bold; width:170px; color:#555;">Form Type:</td>
+        <td style="padding:8px; color:#333;">{escape_html(form_type)}</td>
+      </tr>
+      <tr style="background-color:#f9f9f9;">
+        <td style="padding:8px; font-weight:bold; color:#555;">Accession No.:</td>
+        <td style="padding:8px; color:#333;">{escape_html(accession_no)}</td>
+      </tr>
+      <tr>
+        <td style="padding:8px; font-weight:bold; color:#555;">Filing Date:</td>
+        <td style="padding:8px; color:#333;">{escape_html(filing_date)}</td>
+      </tr>
+      <tr style="background-color:#f9f9f9;">
+        <td style="padding:8px; font-weight:bold; color:#555;">Accepted:</td>
+        <td style="padding:8px; color:#333;">{escape_html(accepted_date)}</td>
+      </tr>
+      <tr>
+        <td style="padding:8px; font-weight:bold; color:#555;">Period of Report:</td>
+        <td style="padding:8px; color:#333;">{escape_html(period)}</td>
+      </tr>
+      <tr style="background-color:#f9f9f9;">
+        <td style="padding:8px; font-weight:bold; color:#555;">Documents Count:</td>
+        <td style="padding:8px; color:#333;">{escape_html(str(documents_count))}</td>
+      </tr>
+      <tr>
+        <td style="padding:8px; font-weight:bold; color:#555;">Company:</td>
+        <td style="padding:8px; color:#333;">{escape_html(company_name)}</td>
+      </tr>
+      <tr style="background-color:#f9f9f9;">
+        <td style="padding:8px; font-weight:bold; color:#555;">CIK:</td>
+        <td style="padding:8px; color:#333;">{escape_html(cik)}</td>
+      </tr>
+{deal_section_html}
+{company_details_html}
+{filing_url_html}
+    </table>
+
+    <h3 style="color:#333; margin-top:20px; margin-bottom:10px;">Document Format Files</h3>
+    {doc_files_html}
+
+    <div style="margin-top:30px; padding-top:20px; border-top:1px solid #e0e0e0; text-align:center; color:#999; font-size:12px;">
+      <p>This is an automated email generated from SEC EDGAR filing detail pages.</p>
+    </div>
+  </div>
+</body>
+</html>
+"""
+    return subject, html_email
+
+
 def generate_8k_document_email_html(filing_data, doc_files):
     """
     Generate HTML email for main 8-K document notification.
@@ -1379,7 +1591,8 @@ def generate_press_release_extraction_email_html(
 
     subject = f"Press Release Extraction – {company_esc}"
 
-    extracted_table = _build_extracted_data_table(extracted, "Extracted Deal Financial Data")
+    extracted_table = _build_extracted_data_table(
+        extracted, "Extracted Deal Financial Data")
 
     docx_link_html = ""
     if press_release_docx:
@@ -1481,7 +1694,8 @@ def generate_dma_extraction_email_html(
 
     subject = f"DMA Extraction – {company_esc}"
 
-    extracted_table = _build_extracted_data_table(extracted, "Extracted DMA Data")
+    extracted_table = _build_extracted_data_table(
+        extracted, "Extracted DMA Data")
     inconsistencies_table = _build_inconsistencies_table(inconsistencies or [])
 
     docx_link_html = ""

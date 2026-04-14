@@ -34,6 +34,7 @@ from .models import SECFiling, AccessionLookedUp, SECFilingSummary
 from .document_analyzer_new import SECDocumentAnalyzer
 from .email_templates import (
     generate_filing_email_html,
+    generate_filing_email_with_deal_html,
     generate_8k_document_email_html,
     generate_ex99_1_merger_email_html,
     generate_sec_filings_email_html,
@@ -827,9 +828,41 @@ class EightKFeedProcessor:
 
             # Process EX-2.1 via 8-K document helper (Node API) if US-related and market cap > $100M
             if document_kind == "Definitive Merger Agreement" and is_us_listed and market_cap_gt_100m:
-                # Send email
+                # Fetch deal details when CIK matches an existing deal
+                deal_details = None
+                if item_data.get('cik_matches_deal') and item_data.get('deal_id'):
+                    try:
+                        from bson import ObjectId
+                        matched_deal = ProcessingJob.objects(
+                            id=ObjectId(item_data['deal_id'])
+                        ).only(
+                            "target_name", "acquire_name", "cik", "acquirer_cik",
+                            "deal_status", "announce_date", "target_ticker", "acquirer_ticker"
+                        ).first()
+                        if matched_deal:
+                            deal_details = {
+                                'target_name': matched_deal.target_name or '',
+                                'acquire_name': matched_deal.acquire_name or '',
+                                'cik': matched_deal.cik or '',
+                                'acquirer_cik': matched_deal.acquirer_cik or '',
+                                'deal_status': matched_deal.deal_status or '',
+                                'announce_date': matched_deal.announce_date,
+                                'target_ticker': getattr(matched_deal, 'target_ticker', '') or '',
+                                'acquirer_ticker': getattr(matched_deal, 'acquirer_ticker', '') or '',
+                                'matched_cik_label': item_data.get('matched_cik_label', ''),
+                            }
+                            logger.info(
+                                f"{LOG_PREFIX} :_process_ex21_filing: accession=%s step=deal_details_fetched deal_id=%s target=%s acquirer=%s",
+                                accession_number, item_data['deal_id'],
+                                deal_details.get('target_name'), deal_details.get('acquire_name'))
+                    except Exception as deal_e:
+                        logger.warning(
+                            f"{LOG_PREFIX} :_process_ex21_filing: accession=%s step=deal_details_failed error=%s",
+                            accession_number, str(deal_e))
+
+                # Send email (deal-aware template when deal_details available)
                 self._send_ex21_email(
-                    item_data, company_details, filing_entry=filing_entry)
+                    item_data, company_details, filing_entry=filing_entry, deal_details=deal_details)
                 logger.info(
                     f"{LOG_PREFIX} :_process_ex21_filing: accession=%s step=qualified sending_historical_and_helper", accession_number)
                 # Send historical 8-K filings email (last 1 year)
@@ -1097,12 +1130,13 @@ class EightKFeedProcessor:
 
         return item_data
 
-    def _send_ex21_email(self, item_data, company_details, filing_entry=None):
-        """Send email for EX-2.1 filing. If filing_entry is provided, use it for doc table (file/size from SEC)."""
+    def _send_ex21_email(self, item_data, company_details, filing_entry=None, deal_details=None):
+        """Send email for EX-2.1 filing. If filing_entry is provided, use it for doc table (file/size from SEC).
+        If deal_details is provided, uses the deal-aware email template with existing deal info."""
         accession_number = item_data.get('accession_number', 'N/A')
         try:
-            logger.info(f"{LOG_PREFIX} :_send_ex21_email: accession=%s step=start company=%s",
-                        accession_number, item_data.get('company_name', ''))
+            logger.info(f"{LOG_PREFIX} :_send_ex21_email: accession=%s step=start company=%s deal_match=%s",
+                        accession_number, item_data.get('company_name', ''), bool(deal_details))
             log_and_print(
                 f"{LOG_PREFIX} :_send_ex21_email: 📧 Generating and sending EX-2.1 email")
 
@@ -1119,9 +1153,13 @@ class EightKFeedProcessor:
             else:
                 doc_files = item_data.get('xbrl_files') or []
 
-            # Generate email HTML
-            subject, html_email = generate_filing_email_html(
-                item_data, doc_files)
+            # Use deal-aware template when CIK matches an existing deal
+            if deal_details:
+                subject, html_email = generate_filing_email_with_deal_html(
+                    item_data, doc_files, deal_details)
+            else:
+                subject, html_email = generate_filing_email_html(
+                    item_data, doc_files)
 
             # Prepare payload
             payload = {

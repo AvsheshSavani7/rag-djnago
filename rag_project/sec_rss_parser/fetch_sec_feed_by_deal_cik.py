@@ -7,9 +7,9 @@ Flow:
 3. For each CIK, call SEC browse-edgar URL and parse the Atom feed.
 4. Filter items: skip if accession already in AccessionLookedUp; find unique items by accession.
 5. Iterate items; for each, branch by form_type:
+   - 8-K: SKIPPED here — handled entirely by process_feed_8k.py (which has full EX-2.1 flow).
    - PROXY_FORM_TYPES: process via proxy_processor_helper.process_sec_document_for_filing_summary(), 
      which creates/updates SECFilingSummary.proxy directly (no ProxyDocument, no sync).
-   - 8-K: generate summary for 8-K and EX-99.1 (if present), send emails, save to sec_filing_summary.eight_k.
    - TEN_K_TEN_Q_FORM_TYPES: save to sec_filing_summary.ten_k_ten_q (minimal record).
    - Other: generate summary (no email), save to sec_filing_summary.other_filings.
    - change per second fetch 7 to 5
@@ -1262,8 +1262,8 @@ def _route_summarize_and_save(item_data, html_data):
 
 def process_items(items):
     """
-    For each item: check accession lookup, fetch HTML by form type, create SECFiling if needed, then branch by form_type.
-    Uses fetch_and_parse_html_by_form_type: for 8-K only 8-K/EX-99.1 files; otherwise only files matching form_type.
+    For each item: skip 8-K (handled by process_feed_8k.py), check accession lookup,
+    fetch HTML by form type, create SECFiling if needed, then branch by form_type.
     """
     unique = _filter_unique_items(items)
     logger.info(f"{LOG_PREFIX} :process_items: unique={len(unique)}")
@@ -1276,6 +1276,13 @@ def process_items(items):
             time.sleep(0.5)
         link = item_data.get("link")
         if not link:
+            continue
+        # Skip 8-K form type entirely — handled by process_feed_8k.py which has
+        # the full EX-2.1 qualification flow (document_kind, us_listed, market_cap).
+        feed_form_type = (item_data.get("form_type") or "").strip().upper()
+        if feed_form_type == "8-K":
+            log_and_print(
+                f"{LOG_PREFIX} :process_items: ⏭️ Skipping 8-K (handled by process_feed_8k.py): {item_data.get('title', 'N/A')[:80]}")
             continue
         acc = item_data.get("accession_number") or extract_accession_from_guid(
             item_data.get("guid"))
