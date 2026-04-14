@@ -607,7 +607,7 @@ def partition_zone_text(zone_text: str, sequence_array: list, output_dir: str, t
         title_rx = r"\s+".join(map(re.escape, title.split()))
         pattern = re.compile(
             rf"(?:{re.escape(id_)}|(?:Section|ARTICLE)\s*{re.escape(id_.split()[-1])}(?:\s*\.)?|{re.escape(id_.split()[-1])}(?:\s*\.)?)"
-            rf"(?:\s*[-–—]{{1,2}}\s*|\s+){title_rx.replace(r'\-', r'[-–—]{1,2}')}\s*[:.\-–—]*",
+            rf"(?:\s*[-–—]{{1,2}}\s*|\s*){title_rx.replace(r'\-', r'[-–—]{1,2}')}\s*[:.\-–—]*",
             re.IGNORECASE
         )
         match = pattern.search(zone_norm, search_pos)
@@ -787,7 +787,7 @@ def process_definitions_section(text_part: str):
         rf'(?P<head>"[^"]+"(?:\s*(?:,|and|or)\s*"[^"]+")*)\s*'
         rf'(?:\([^)]*\))?\s*(?:or similar terms)?\s*(?P<leadin>{leadin})\s*[,;:]?\s*',
         re.I)
-    
+
     start_heading_quoted = re.compile(
         rf'^(?P<label>[A-Za-z0-9&\-., ]+)\.\s*'
         rf'(?:(?:The\s+term)\s*)?'
