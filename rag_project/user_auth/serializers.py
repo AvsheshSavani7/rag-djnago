@@ -10,7 +10,8 @@ from django.conf import settings
 
 class UserRegistrationSerializer(serializers.Serializer):
     email = serializers.EmailField(required=True)
-    password = serializers.CharField(write_only=True, required=True, style={'input_type': 'password'})
+    password = serializers.CharField(write_only=True, required=True, style={
+                                     'input_type': 'password'})
     role = serializers.CharField(default='admin')
 
     def create(self, validated_data):
@@ -27,7 +28,8 @@ class UserRegistrationSerializer(serializers.Serializer):
 
 class UserLoginSerializer(serializers.Serializer):
     email = serializers.EmailField(required=True)
-    password = serializers.CharField(write_only=True, required=True, style={'input_type': 'password'})
+    password = serializers.CharField(write_only=True, required=True, style={
+                                     'input_type': 'password'})
 
     def validate(self, data):
         email = data.get('email')
@@ -44,27 +46,34 @@ class UserLoginSerializer(serializers.Serializer):
             'user_id': str(user._id),
             'email': user.email,
             'role': user.role,
-            'exp': datetime.utcnow() + timedelta(hours=1000000),
+            'token_type': 'access',
+            'exp': datetime.utcnow() + timedelta(minutes=60),
             'iat': datetime.utcnow()
         }
 
         refresh_token_payload = {
             'user_id': str(user._id),
-            'exp': datetime.utcnow() + timedelta(days=7000),
+            'token_type': 'refresh',
+            'exp': datetime.utcnow() + timedelta(days=7),
             'iat': datetime.utcnow()
         }
 
-        access = jwt.encode(access_token_payload, settings.JWT_SECRET_KEY, algorithm='HS256')
-        refresh = jwt.encode(refresh_token_payload, settings.JWT_SECRET_KEY, algorithm='HS256')
+        access = jwt.encode(access_token_payload,
+                            settings.JWT_SECRET_KEY, algorithm='HS256')
+        refresh = jwt.encode(refresh_token_payload,
+                             settings.JWT_SECRET_KEY, algorithm='HS256')
 
         data['user'] = user
         data['access'] = access
         data['refresh'] = refresh
         return data
 
+
 class ChangePasswordSerializer(serializers.Serializer):
-    old_password = serializers.CharField(required=True, write_only=True, style={'input_type': 'password'})
-    new_password = serializers.CharField(required=True, write_only=True, style={'input_type': 'password'}, min_length=8)
+    old_password = serializers.CharField(
+        required=True, write_only=True, style={'input_type': 'password'})
+    new_password = serializers.CharField(required=True, write_only=True, style={
+                                         'input_type': 'password'}, min_length=8)
 
     def validate_old_password(self, value):
         user = self.context['request'].user
@@ -74,13 +83,15 @@ class ChangePasswordSerializer(serializers.Serializer):
 
     def validate(self, data):
         if data['old_password'] == data['new_password']:
-            raise serializers.ValidationError({"new_password": "New password must differ from the old password."})
+            raise serializers.ValidationError(
+                {"new_password": "New password must differ from the old password."})
         return data
 
 
 class AdminResetPasswordSerializer(serializers.Serializer):
     email = serializers.EmailField(required=True)
-    new_password = serializers.CharField(required=True, write_only=True, style={'input_type': 'password'}, min_length=8)
+    new_password = serializers.CharField(required=True, write_only=True, style={
+                                         'input_type': 'password'}, min_length=8)
 
     def validate_email(self, value):
         user = User.objects(email=value).first()

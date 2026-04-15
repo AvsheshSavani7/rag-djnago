@@ -1,7 +1,10 @@
+import jwt
+from datetime import datetime, timedelta
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.permissions import AllowAny, IsAuthenticated
+from django.conf import settings
 from .serializers import (
     UserRegistrationSerializer,
     UserLoginSerializer,
@@ -47,6 +50,60 @@ class UserLoginView(APIView):
                 'access': serializer.validated_data['access'],
             }, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_401_UNAUTHORIZED)
+
+
+class CustomTokenRefreshView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        refresh_token = request.data.get('refresh')
+        if not refresh_token:
+            return Response(
+                {'error': 'Refresh token is required.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            payload = jwt.decode(
+                refresh_token, settings.JWT_SECRET_KEY, algorithms=['HS256']
+            )
+        except jwt.ExpiredSignatureError:
+            return Response(
+                {'error': 'Refresh token has expired. Please log in again.'},
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+        except jwt.InvalidTokenError:
+            return Response(
+                {'error': 'Invalid refresh token.'},
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+
+        if payload.get('token_type') != 'refresh':
+            return Response(
+                {'error': 'Invalid token type. Expected a refresh token.'},
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+
+        user = User.objects(_id=payload['user_id']).first()
+        if not user:
+            return Response(
+                {'error': 'User not found.'},
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+
+        new_access_payload = {
+            'user_id': str(user._id),
+            'email': user.email,
+            'role': user.role,
+            'token_type': 'access',
+            'exp': datetime.utcnow() + timedelta(minutes=30),
+            'iat': datetime.utcnow(),
+        }
+        new_access = jwt.encode(
+            new_access_payload, settings.JWT_SECRET_KEY, algorithm='HS256'
+        )
+
+        return Response({'access': new_access}, status=status.HTTP_200_OK)
 
 
 class ChangePasswordView(APIView):
