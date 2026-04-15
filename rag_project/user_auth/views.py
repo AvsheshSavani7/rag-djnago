@@ -2,7 +2,14 @@ from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.permissions import AllowAny, IsAuthenticated
-from .serializers import UserRegistrationSerializer, UserLoginSerializer
+from .serializers import (
+    UserRegistrationSerializer,
+    UserLoginSerializer,
+    ChangePasswordSerializer,
+    AdminResetPasswordSerializer,
+    ChangeRoleSerializer,
+)
+from django.contrib.auth.hashers import make_password
 from user_auth.models import User
 
 
@@ -40,6 +47,80 @@ class UserLoginView(APIView):
                 'access': serializer.validated_data['access'],
             }, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_401_UNAUTHORIZED)
+
+
+class ChangePasswordView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def put(self, request):
+        serializer = ChangePasswordSerializer(data=request.data, context={'request': request})
+        if serializer.is_valid():
+            user = request.user
+            user.password = make_password(serializer.validated_data['new_password'])
+            user.save()
+            return Response({'message': 'Password changed successfully.'}, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class AdminResetPasswordView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def put(self, request):
+        if request.user.role != 'admin':
+            return Response({'error': 'Only admins can reset passwords.'}, status=status.HTTP_403_FORBIDDEN)
+
+        serializer = AdminResetPasswordSerializer(data=request.data)
+        if serializer.is_valid():
+            email = serializer.validated_data['email']
+            target_user = User.objects(email=email).first()
+            target_user.password = make_password(serializer.validated_data['new_password'])
+            target_user.save()
+            return Response(
+                {'message': f'Password reset successfully for {email}.'},
+                status=status.HTTP_200_OK,
+            )
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class ListUsersView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        if request.user.role != 'admin':
+            return Response({'error': 'Only admins can view users.'}, status=status.HTTP_403_FORBIDDEN)
+
+        users = User.objects.all()
+        users_list = [
+            {
+                '_id': str(user._id),
+                'email': user.email,
+                'role': user.role,
+                'createdAt': user.createdAt.isoformat() if user.createdAt else None,
+                'last_login': user.last_login.isoformat() if user.last_login else None,
+            }
+            for user in users
+        ]
+        return Response({'users': users_list}, status=status.HTTP_200_OK)
+
+
+class ChangeRoleView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def put(self, request):
+        if request.user.role != 'admin':
+            return Response({'error': 'Only admins can change roles.'}, status=status.HTTP_403_FORBIDDEN)
+
+        serializer = ChangeRoleSerializer(data=request.data)
+        if serializer.is_valid():
+            email = serializer.validated_data['email']
+            target_user = User.objects(email=email).first()
+            target_user.role = serializer.validated_data['role']
+            target_user.save()
+            return Response(
+                {'message': f'Role updated to "{target_user.role}" for {email}.'},
+                status=status.HTTP_200_OK,
+            )
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class ProtectedTestView(APIView):

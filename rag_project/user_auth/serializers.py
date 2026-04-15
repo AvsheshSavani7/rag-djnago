@@ -62,6 +62,47 @@ class UserLoginSerializer(serializers.Serializer):
         data['refresh'] = refresh
         return data
 
+class ChangePasswordSerializer(serializers.Serializer):
+    old_password = serializers.CharField(required=True, write_only=True, style={'input_type': 'password'})
+    new_password = serializers.CharField(required=True, write_only=True, style={'input_type': 'password'}, min_length=8)
+
+    def validate_old_password(self, value):
+        user = self.context['request'].user
+        if not check_password(value, user.password):
+            raise serializers.ValidationError("Old password is incorrect.")
+        return value
+
+    def validate(self, data):
+        if data['old_password'] == data['new_password']:
+            raise serializers.ValidationError({"new_password": "New password must differ from the old password."})
+        return data
+
+
+class AdminResetPasswordSerializer(serializers.Serializer):
+    email = serializers.EmailField(required=True)
+    new_password = serializers.CharField(required=True, write_only=True, style={'input_type': 'password'}, min_length=8)
+
+    def validate_email(self, value):
+        user = User.objects(email=value).first()
+        if not user:
+            raise serializers.ValidationError("No user found with this email.")
+        return value
+
+
+ROLE_CHOICES = ['admin', 'user']
+
+
+class ChangeRoleSerializer(serializers.Serializer):
+    email = serializers.EmailField(required=True)
+    role = serializers.ChoiceField(choices=ROLE_CHOICES, required=True)
+
+    def validate_email(self, value):
+        user = User.objects(email=value).first()
+        if not user:
+            raise serializers.ValidationError("No user found with this email.")
+        return value
+
+
 # class UserLoginSerializer(serializers.Serializer):
 #     email = serializers.EmailField(required=True)
 #     password = serializers.CharField(write_only=True, required=True, style={

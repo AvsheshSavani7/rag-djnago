@@ -19,6 +19,7 @@ class User(Document):
     meta = {
         'collection': 'users',
         'indexes': ['email'],
+        'strict': False,
     }
 
     def save(self, *args, **kwargs):
