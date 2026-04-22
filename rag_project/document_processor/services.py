@@ -867,15 +867,16 @@ class EmbeddingService:
         # Sort keys by importance (edit this order as needed)
         priority_keys = [
             "chunk_index",
-            "clause_summary",
-            "combined_text",
             "deal_id",
             "deal_name",
             "label",
-            "reference_section",
-            "section",
-            "categories",
+            "Section",
+            "combined_text",
+            "definition_terms",
             "original_text",
+            "categories",
+            "clause_summary",
+            "reference_section",
         ]
 
         trimmed = {}
