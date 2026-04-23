@@ -456,7 +456,7 @@ def extract_and_match_definitions(pinecone_context_text, definitions_dict):
 
     # Pattern 5: Multi-word capitalized phrases (e.g., "Parent Credit Facilities")
     # Matches 2+ consecutive capitalized words (mixed case only)
-    multi_word_pattern = r'\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)\b'
+    multi_word_pattern = r"\b([A-Z][a-z]+(?:[-\s][A-Z][a-z]+)+)\b"
 
     # Pattern 6: Single capitalized words or acronyms (e.g., "Order", "NYSE")
     # Matches single capital word or all-caps acronyms
