@@ -425,6 +425,15 @@ def _parse_extraction_for_document_a(extraction_text: str) -> List[Tuple[str, st
         '13. Key Dates Summary': []
     }
 
+    # Map section number → canonical key so LLM variants like
+    # "4. Bidder Universe (Complete Census)" or
+    # "9. Risk Analysis - Regulatory/Antitrust" still match.
+    section_num_map = {}
+    for key in required_sections:
+        m = re.match(r'^(\d+)\.', key)
+        if m:
+            section_num_map[m.group(1)] = key
+
     lines = extraction_text.split('\n')
     current_section = None
     current_content = []
@@ -440,7 +449,13 @@ def _parse_extraction_for_document_a(extraction_text: str) -> List[Tuple[str, st
                 current_section = section_name
                 current_content = []
             else:
-                current_section = None
+                # Fall back to number-prefix matching to handle LLM header variations
+                m = re.match(r'^(\d+)\.', section_name)
+                if m and m.group(1) in section_num_map:
+                    current_section = section_num_map[m.group(1)]
+                    current_content = []
+                else:
+                    current_section = None
         elif current_section:
             current_content.append(line)
 
