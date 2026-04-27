@@ -74,6 +74,7 @@ def generate_excerpts_json(
         "excerpts": excerpts,
     }
 
+    output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(json.dumps(output, indent=2), encoding="utf-8")
     print(f"  Saved: {output_path} ({len(excerpts)} excerpts)")
 

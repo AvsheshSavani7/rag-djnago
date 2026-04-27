@@ -172,7 +172,9 @@ def run_pipeline(
             paragraphs = assess_with_claude(
                 paragraphs, deal, anthropic_key, threshold)
 
-        basename = f"{ticker}_{period_date.replace('-', '')}_{filing_type.replace('-', '')}"
+        safe_ticker = ticker.replace("/", "_")
+        safe_filing = filing_type.replace("-", "").replace("/", "_")
+        basename = f"{safe_ticker}_{period_date.replace('-', '')}_{safe_filing}"
         excerpts_path = output_dir / f"{basename}_excerpts.json"
         generate_excerpts_json(
             paragraphs, deal, threshold, excerpts_path,
