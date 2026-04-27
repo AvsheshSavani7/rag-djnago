@@ -21,7 +21,8 @@ def generate_excerpts_json(
     filing_type: str = "",
 ) -> None:
     relevant = sorted(
-        [p for p in paragraphs if p.relevance_score >= threshold and not p.is_header],
+        [p for p in paragraphs if p.relevance_score >=
+            threshold and not p.is_header],
         key=lambda x: x.index,
     )
 
@@ -95,7 +96,8 @@ def _parse_excerpts_data(data: dict, threshold: int, source_label: str) -> Tuple
             "acquirer": data.get("acquirer"),
         }
     else:
-        raise ValueError("Unrecognized JSON format: missing 'excerpts' or 'paragraphs'")
+        raise ValueError(
+            "Unrecognized JSON format: missing 'excerpts' or 'paragraphs'")
 
     for p in paragraphs:
         p["_filing_source"] = source_label
@@ -114,5 +116,6 @@ def load_excerpts_from_url(url: str, threshold: int = 6, source_label: str = Non
     resp = requests.get(url, timeout=60)
     resp.raise_for_status()
     data = resp.json()
-    label = source_label or url.split("/")[-1].replace(".json", "") if url else "unknown"
+    label = source_label or url.split(
+        "/")[-1].replace(".json", "") if url else "unknown"
     return _parse_excerpts_data(data, threshold, label)

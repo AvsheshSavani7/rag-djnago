@@ -74,7 +74,7 @@ class SummaryDB:
         """Return all 10-K/10-Q summary records for the given deal_id."""
         docs = SECFilingSummary.objects(
             deal_id=deal_id,
-            form_type__in=["10-K", "10-Q"],
+            form_type__in=["10-K", "10-Q", "10-K/A"],
         ).all()
         return [_doc_to_record(d) for d in docs]
 
@@ -83,7 +83,7 @@ class SummaryDB:
         docs = SECFilingSummary.objects(
             # deal_id=deal_id,
             cik_number=cik_number,
-            form_type__in=["10-K", "10-Q"],
+            form_type__in=["10-K", "10-Q", "10-K/A"],
         ).all()
         return [_doc_to_record(d) for d in docs]
 
@@ -116,7 +116,7 @@ class SummaryDB:
         cik_number, accession_number = parse_sec_document_url(url)
         period_date, filing_type = detect_filing_metadata(url)
         form_type = filing_type if filing_type in (
-            "10-K", "10-Q") else "10-Q"  # fallback
+            "10-K", "10-Q", "10-K/A") else "10-Q"  # fallback
         if not accession_number:
             accession_number = url.strip(
                 "/").split("/")[-2] if "/" in url else None
