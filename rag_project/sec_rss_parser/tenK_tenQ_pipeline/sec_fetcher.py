@@ -68,6 +68,36 @@ def detect_filing_metadata(url: str, html: str = "") -> Tuple[str, str]:
     else:
         period_date = "unknown"
 
+    # Fallback: extract period date from HTML content
+    if period_date == "unknown" and html:
+        # 1) XBRL ISO tag: <dei:DocumentPeriodEndDate>2025-12-31</dei:...>
+        xbrl_date = re.search(
+            r'DocumentPeriodEndDate[^>]*>(\d{4}-\d{2}-\d{2})<', html)
+        if xbrl_date:
+            period_date = xbrl_date.group(1)
+
+        # 2) xbrli:endDate (context period): <xbrli:endDate>2026-01-03</xbrli:endDate>
+        if period_date == "unknown":
+            end_date = re.search(r'endDate>(\d{4}-\d{2}-\d{2})<', html)
+            if end_date:
+                period_date = end_date.group(1)
+
+        # 3) Prose: "fiscal year ended January 3, 2026" (handles &#160; / &nbsp;)
+        if period_date == "unknown":
+            html_clean = re.sub(r'&#\d+;|&nbsp;', ' ', html[:80000])
+            prose_date = re.search(
+                r'(?:period|year|quarter)\s+ended?\s+'
+                r'(January|February|March|April|May|June|July|August|'
+                r'September|October|November|December)\s+(\d{1,2}),?\s+(\d{4})',
+                html_clean, re.IGNORECASE,
+            )
+            if prose_date:
+                import calendar
+                month_names = {m: i for i, m in enumerate(calendar.month_name) if m}
+                month_num = month_names.get(prose_date.group(1).capitalize())
+                if month_num:
+                    period_date = f"{prose_date.group(3)}-{month_num:02d}-{int(prose_date.group(2)):02d}"
+
     # Layer 1: Explicit match in URL (check amendment before base form)
     url_lower = url.lower()
     if "10-k/a" in url_lower or "10ka" in url_lower:
