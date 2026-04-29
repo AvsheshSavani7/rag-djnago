@@ -157,7 +157,7 @@ def extract_from_dma_summary(
     from sec_rss_parser.email_templates import generate_dma_extraction_email_html
     from sec_rss_parser.utils_8k import send_webhook_notification
 
-    N8N_WEBHOOK_URL = "https://n8n-xwx1.onrender.com/webhook-test/80830c6d-ff5b-45e3-9ef3-a061db1fbf0c"
+    N8N_WEBHOOK_URL = "https://n8n-xwx1.onrender.com/webhook/80830c6d-ff5b-45e3-9ef3-a061db1fbf0c"
 
     logger.info(
         "dma_summary_processor: extract_from_dma_summary deal_id=%s accession=%s",

@@ -22,7 +22,7 @@ def parse_sec_document_url(url: str) -> Tuple[str, str]:
     m = re.search(r"/edgar/data/(\d+)/(\d+)/", url)
     if not m:
         return (None, None)
-    cik = m.group(1).lstrip("0") or "0"
+    cik = m.group(1).zfill(10)
     acc_raw = m.group(2)
     if len(acc_raw) >= 18:
         # SEC format: NNNNNNNNNN-NN-NNNNNN (10-2-6)
@@ -124,12 +124,11 @@ def detect_filing_metadata(url: str, html: str = "") -> Tuple[str, str]:
     else:
         filing_type = "unknown"
 
-    # Layer 3 & 4: HTML scan — only reached for non-standard fiscal years (e.g. AMWD April 30)
+    # Layer 3 & 4: HTML scan — reached for unknown filing type (non-standard fiscal years)
     if filing_type == "unknown" and html:
         html_lower = html.lower()
 
         # Layer 3: strict — both form declaration AND report type must agree
-        # Check amendment before base form
         if re.search(r'form\s+10-k/a\b', html_lower) and "annual report" in html_lower[:50000]:
             filing_type = "10-K/A"
         elif re.search(r'form\s+10-q\b', html_lower) and "quarterly report" in html_lower[:50000]:
@@ -138,7 +137,7 @@ def detect_filing_metadata(url: str, html: str = "") -> Tuple[str, str]:
             filing_type = "10-K"
 
         # Layer 4: loose fallback — either signal alone
-        elif re.search(r'form\s+10-k/a\b', html_lower) or "amendment" in html_lower[:50000] and "10-k" in html_lower[:50000]:
+        elif re.search(r'form\s+10-k/a\b', html_lower) or ("amendment" in html_lower[:50000] and "10-k" in html_lower[:50000]):
             filing_type = "10-K/A"
         elif re.search(r'form\s+10-q\b', html_lower) or "quarterly report" in html_lower[:50000]:
             filing_type = "10-Q"
@@ -152,6 +151,17 @@ def detect_filing_metadata(url: str, html: str = "") -> Tuple[str, str]:
             filing_type = "10-K"
         else:
             filing_type = "unknown"
+
+    # Amendment upgrade: a 10-K/A has the same period_date as the 10-K it
+    # amends, so Layers 1-2 (URL / period-date heuristic) can never
+    # distinguish them.  When HTML is available, always check for amendment
+    # markers to upgrade "10-K" → "10-K/A".
+    if filing_type == "10-K" and html:
+        html_lower = html.lower()
+        if (re.search(r'form\s+10-k/a\b', html_lower)
+                or re.search(r'\bamendment\s+no\b', html_lower[:50000])
+                or "10-k/a" in html_lower[:50000]):
+            filing_type = "10-K/A"
 
     return period_date, filing_type
 

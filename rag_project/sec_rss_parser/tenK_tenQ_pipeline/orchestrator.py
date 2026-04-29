@@ -238,7 +238,13 @@ def run_pipeline(
             f"  Only {len(processed_records)} processed filing(s) — skipping comparison (no comparison summary, no email)")
     else:
         def _sort_key(r):
-            return r.get("period_date") or "9999"
+            pd = r.get("period_date") or ""
+            if not pd or pd == "unknown":
+                pd = "0000-00-00"
+            # Amendments (e.g. 10-K/A) are filed after their base (10-K)
+            # and must sort later when period_date ties.
+            is_amendment = 1 if "/A" in (r.get("filing_type") or "") else 0
+            return (pd, is_amendment)
 
         sorted_records = sorted(processed_records, key=_sort_key)
         newest_record = sorted_records[-1]

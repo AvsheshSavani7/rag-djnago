@@ -80,9 +80,11 @@ class SummaryDB:
 
     def get_by_deal_id_and_cik(self, deal_id: str, cik_number: str) -> List[dict]:
         """Return all 10-K/10-Q summary records for the given deal_id and cik_number."""
+        cik_stripped = (cik_number or "").lstrip("0") or "0"
+        cik_padded = cik_stripped.zfill(10)
         docs = SECFilingSummary.objects(
             # deal_id=deal_id,
-            cik_number=cik_number,
+            cik_number__in=[cik_stripped, cik_padded],
             form_type__in=["10-K", "10-Q", "10-K/A"],
         ).all()
         return [_doc_to_record(d) for d in docs]
@@ -90,12 +92,24 @@ class SummaryDB:
     def upsert_by_url(self, url: str, fields: dict) -> dict:
         """
         If a record with sec_document_url == url exists, update it with fields (merged into ten_k_ten_q).
+        Otherwise, if a record with the same accession_number exists (e.g. index
+        URL vs document URL for the same filing), reuse that record.
         Otherwise create a new SECFilingSummary with ten_k_ten_q stub.
         Returns the record as dict.
         """
         doc = SECFilingSummary.objects(sec_document_url=url).first()
+
+        # Fallback: match by accession_number to avoid duplicates when the
+        # same filing is referenced by different URLs (index vs document).
+        if not doc:
+            _, acc = parse_sec_document_url(url)
+            if acc:
+                doc = SECFilingSummary.objects(
+                    accession_number=acc,
+                    form_type__in=["10-K", "10-Q", "10-K/A"],
+                ).first()
+
         if doc:
-            # Merge fields into ten_k_ten_q and top-level where applicable
             tq = doc.ten_k_ten_q or _default_ten_k_ten_q()
             for k, v in fields.items():
                 if k in (
@@ -121,10 +135,9 @@ class SummaryDB:
             accession_number = url.strip(
                 "/").split("/")[-2] if "/" in url else None
         if not cik_number:
-            # Try to get from URL again: /edgar/data/123/
             import re
             m = re.search(r"/edgar/data/(\d+)/", url)
-            cik_number = m.group(1) if m else None
+            cik_number = m.group(1).zfill(10) if m else None
 
         tq = _default_ten_k_ten_q()
         tq["period_date"] = period_date
