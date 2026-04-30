@@ -93,7 +93,7 @@ def extract_from_press_release(
     from sec_rss_parser.email_templates import generate_press_release_extraction_email_html
     from sec_rss_parser.utils_8k import send_webhook_notification
 
-    N8N_WEBHOOK_URL = "https://n8n-xwx1.onrender.com/webhook/80830c6d-ff5b-45e3-9ef3-a061db1fbf0c"
+    N8N_WEBHOOK_URL = "https://n8n-xwx1.onrender.com/webhook/b3007d21-6845-47b5-aece-7b26583758bc"
 
     logger.info(
         "press_release_processor: extract_from_press_release deal_id=%s accession=%s",
