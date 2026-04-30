@@ -1,4 +1,5 @@
 from django.shortcuts import render
+from django.http import HttpResponse
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
@@ -8,6 +9,9 @@ from bson import ObjectId
 import threading
 import concurrent.futures
 import json
+from io import BytesIO
+from openpyxl import Workbook
+from openpyxl.styles import Font, PatternFill, Alignment
 
 from .models import (
     ProcessingJob,
@@ -29,6 +33,7 @@ from .serializers import (
     RedditPostSerializer
 )
 from .services import FlattenProcessor, EmbeddingService, S3Service, ChatWithAIService, SummaryGenerationService
+from mongoengine import Q
 from mongoengine.errors import DoesNotExist, ValidationError
 from sec_rss_parser.models import DealDmaSummary
 
@@ -36,6 +41,7 @@ logger = logging.getLogger(__name__)
 
 # Create a ThreadPoolExecutor for background tasks
 executor = concurrent.futures.ThreadPoolExecutor(max_workers=5)
+
 
 def _load_schema_results_for_job(job):
     """
@@ -339,6 +345,9 @@ class ListAllDealsView(APIView):
             offset = int(request.query_params.get('offset', 0))
             limit = int(request.query_params.get('limit', 10))
 
+            # Optional search filter (matches target_name, acquire_name, cik, acquirer_cik)
+            search = request.query_params.get('search', '').strip()
+
             # Optional embedding status filter (All means no filter)
             embedding_status = request.query_params.get(
                 'embedding_status', 'All')
@@ -346,6 +355,17 @@ class ListAllDealsView(APIView):
             if embedding_status and embedding_status.upper() != 'ALL':
                 jobs_query = jobs_query.filter(
                     embedding_status=embedding_status.upper())
+
+            if search:
+                search_q = (
+                    Q(target_name__icontains=search) |
+                    Q(acquire_name__icontains=search) |
+                    Q(cik__icontains=search) |
+                    Q(acquirer_cik__icontains=search)
+                )
+                if ObjectId.is_valid(search):
+                    search_q = search_q | Q(id=ObjectId(search))
+                jobs_query = jobs_query.filter(search_q)
 
             # Get total count before pagination
             total_count = jobs_query.count()
@@ -1162,8 +1182,6 @@ class RedditPostsView(APIView):
             # Add relevance_score range filter if provided
             if relevance_score_from or relevance_score_to:
                 try:
-                    from mongoengine import Q
-
                     # Set default values if not provided
                     from_value = float(
                         relevance_score_from) if relevance_score_from else 0.0
@@ -1344,3 +1362,153 @@ class RedditScraperTaskView(APIView):
             return Response({
                 'error': str(e)
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class ExportDealsExcelView(APIView):
+    """
+    GET  - returns the list of exportable field names (for the frontend checkbox popup)
+    POST - accepts selected fields + optional search/filter, returns an Excel file
+    """
+
+    EXPORTABLE_FIELDS = {
+        'id': 'ID',
+        'cik': 'CIK',
+        'acquirer_cik': 'Acquirer CIK',
+        'acquire_name': 'Acquirer Name',
+        'target_name': 'Target Name',
+        'announce_date': 'Announce Date',
+        'embedding_status': 'Embedding Status',
+        'summary_status': 'Summary Status',
+        'summary_using': 'Summary Using',
+        'sec_filing_id': 'SEC Filing ID',
+        'file_url': 'File URL',
+        'pdf_url': 'PDF URL',
+        'parsed_json_url': 'Parsed JSON URL',
+        'flattened_json_url': 'Flattened JSON URL',
+        'summary_docx_url': 'Summary DOCX URL',
+        'sec_url': 'SEC URL',
+        'target_ticker': 'Target Ticker',
+        'acquirer_ticker': 'Acquirer Ticker',
+        'deal_status': 'Deal Status',
+        'schema_processing_completed': 'Schema Processing Completed',
+        'schema_processing_timestamp': 'Schema Processing Timestamp',
+        'RF1_approach_done': 'RF1 Approach Done',
+        'RF2_approach_done': 'RF2 Approach Done',
+        'RF3_approach_done': 'RF3 Approach Done',
+        'GUNSHOT_approach_done': 'GUNSHOT Approach Done',
+        'parent_aliases': 'Parent Aliases',
+        'target_aliases': 'Target Aliases',
+        'createdAt': 'Created At',
+        'updatedAt': 'Updated At',
+    }
+
+    def get(self, request, format=None):
+        """Return the list of exportable fields for the frontend popup."""
+        fields = [
+            {'key': key, 'label': label}
+            for key, label in self.EXPORTABLE_FIELDS.items()
+        ]
+        return Response({'fields': fields}, status=status.HTTP_200_OK)
+
+    def post(self, request, format=None):
+        """
+        Generate and return an Excel file for the selected fields.
+
+        Payload:
+        {
+            "fields": ["target_name", "acquire_name", "cik", ...],
+            "search": "optional search text",
+            "embedding_status": "ALL"
+        }
+        """
+        try:
+            selected_fields = request.data.get('fields', [])
+            search = request.data.get('search', '').strip()
+            embedding_status = request.data.get('embedding_status', 'All')
+
+            if not selected_fields:
+                return Response(
+                    {'error': 'At least one field must be selected.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            valid_fields = [
+                f for f in selected_fields if f in self.EXPORTABLE_FIELDS]
+            if not valid_fields:
+                return Response(
+                    {'error': 'None of the provided fields are valid.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            jobs_query = ProcessingJob.objects
+            if embedding_status and embedding_status.upper() != 'ALL':
+                jobs_query = jobs_query.filter(
+                    embedding_status=embedding_status.upper())
+
+            if search:
+                jobs_query = jobs_query.filter(
+                    Q(target_name__icontains=search) |
+                    Q(acquire_name__icontains=search) |
+                    Q(cik__icontains=search) |
+                    Q(acquirer_cik__icontains=search)
+                )
+
+            jobs = jobs_query.order_by('-createdAt')
+
+            wb = Workbook()
+            ws = wb.active
+            ws.title = 'Deals'
+
+            header_font = Font(bold=True, color='FFFFFF', size=11)
+            header_fill = PatternFill(
+                start_color='4472C4', end_color='4472C4', fill_type='solid')
+            header_alignment = Alignment(
+                horizontal='center', vertical='center', wrap_text=True)
+
+            headers = [self.EXPORTABLE_FIELDS[f] for f in valid_fields]
+            for col_idx, header in enumerate(headers, 1):
+                cell = ws.cell(row=1, column=col_idx, value=header)
+                cell.font = header_font
+                cell.fill = header_fill
+                cell.alignment = header_alignment
+
+            for row_idx, job in enumerate(jobs, 2):
+                for col_idx, field in enumerate(valid_fields, 1):
+                    value = getattr(job, field, None)
+                    if isinstance(value, list):
+                        value = ', '.join(str(v) for v in value)
+                    elif hasattr(value, 'isoformat'):
+                        value = value.strftime('%Y-%m-%d %H:%M:%S')
+                    elif isinstance(value, dict):
+                        value = json.dumps(value, default=str)
+                    ws.cell(row=row_idx, column=col_idx, value=str(
+                        value) if value is not None else '')
+
+            for col_idx in range(1, len(valid_fields) + 1):
+                max_len = max(
+                    len(str(ws.cell(row=r, column=col_idx).value or ''))
+                    for r in range(1, ws.max_row + 1)
+                )
+                ws.column_dimensions[ws.cell(row=1, column=col_idx).column_letter].width = min(
+                    max_len + 4, 50)
+
+            ws.auto_filter.ref = ws.dimensions
+
+            buffer = BytesIO()
+            wb.save(buffer)
+            buffer.seek(0)
+
+            response = HttpResponse(
+                buffer.getvalue(),
+                content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            )
+            response['Content-Disposition'] = 'attachment; filename="deals_export.xlsx"'
+            return response
+
+        except Exception as e:
+            logger.error(f"Error exporting deals: {str(e)}")
+            logger.error(traceback.format_exc())
+            return Response(
+                {'error': str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
