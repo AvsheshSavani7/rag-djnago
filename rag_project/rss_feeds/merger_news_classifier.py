@@ -295,7 +295,7 @@ Use deal_id only when match is true.
 """
 
 
-def _call_llm_json_simple(prompt: str, model: str = "gpt-4.1") -> Optional[Dict[str, Any]]:
+def _call_llm_json_simple(prompt: str, model: str = "gpt-5.2") -> Optional[Dict[str, Any]]:
     """Call OpenAI API without web search; parse first JSON object from output_text."""
     if not openai or not os.environ.get("OPENAI_API_KEY"):
         return None
@@ -344,7 +344,8 @@ def classify_feed_item_by_title_description(
             deals_record=deals_record_string or "(no deals)",
             title=(title or "").strip() or "(no title)",
             description=(description or "").strip() or "(no description)",
-        )
+        ),
+        model="gpt-5.2",
     )
     if not parsed or not isinstance(parsed, dict):
         return out
