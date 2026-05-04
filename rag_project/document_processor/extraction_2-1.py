@@ -826,7 +826,8 @@ def process_definitions_section(text_part: str):
         if line.strip().isdigit():   # single number line that is page number will be skipped
             continue
 
-        if ((TERM_INDEX_INTRO_PATTERN.search(line) or re.search(r'\bTerm\b\s+\bSection\b', line, re.I)) and idx > 5):
+        if ((TERM_INDEX_INTRO_PATTERN.search(line) or re.search(r'\bTerm\b\s+\bSection\b', line, re.I)) and idx > 5 and (current_terms or definitions)):
+
             flush(is_last=True)
             break
 
