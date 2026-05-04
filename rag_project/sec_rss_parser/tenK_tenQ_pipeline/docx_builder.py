@@ -823,3 +823,4 @@ def generate_exec_summary_report(
 
     doc.save(output_path)
     print(f"  Exec summary saved: {output_path}")
+    return bullets

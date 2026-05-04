@@ -1131,6 +1131,48 @@ def generate_item_5_02_one_year_filings_email_html(company_name, filings, trigge
     return subject, html_email
 
 
+def _render_exec_summary_bullets_html(bullets: list) -> str:
+    """Render executive summary bullets as inline HTML for email body.
+    Mirrors the category structure and color scheme from the DOCX builder."""
+    if not bullets:
+        return '<p style="color:#555; font-style:italic;">No material changes identified across all filings.</p>'
+
+    CATEGORY_COLORS = {
+        "Timing":        "#1565c0",
+        "Regulatory":    "#ad1457",
+        "Business/Risk": "#2e7d32",
+        "Legal":         "#3c3c3c",
+        "Other":         "#3c3c3c",
+    }
+
+    headline_items = [b for b in bullets if b.get("category") == "__headline__"]
+    body_bullets = [b for b in bullets if b.get("category") != "__headline__"]
+
+    parts = []
+    if headline_items:
+        hl = escape_html(headline_items[0].get("bullet", ""))
+        parts.append(f'<p style="font-size:14px; font-weight:bold; color:#1e1e1e; margin:0 0 12px 0;">{hl}</p>')
+
+    cat_order = ["Timing", "Regulatory", "Business/Risk", "Legal", "Other"]
+    grouped: dict = {}
+    for item in body_bullets:
+        cat = item.get("category", "Other")
+        grouped.setdefault(cat, []).append(item.get("bullet", ""))
+
+    for cat in cat_order:
+        if cat not in grouped:
+            continue
+        color = CATEGORY_COLORS.get(cat, "#3c3c3c")
+        parts.append(f'<p style="font-size:11px; font-weight:bold; color:{color}; margin:10px 0 4px 0; text-transform:uppercase;">{escape_html(cat)}</p>')
+        for bullet_text in grouped[cat]:
+            parts.append(
+                f'<p style="font-size:13px; color:#333; margin:2px 0 4px 10px;">'
+                f'<span style="color:{color};">&#8226;</span> {escape_html(bullet_text)}</p>'
+            )
+
+    return "\n    ".join(parts)
+
+
 def generate_10k_10q_comparison_summary_email_html(
     ticker: str,
     target_company: str,
@@ -1139,6 +1181,7 @@ def generate_10k_10q_comparison_summary_email_html(
     s3_exec_summary_docx_url: str,
     s3_redline_docx_url: str = None,
     s3_client_report_docx_url: str = None,
+    exec_summary_bullets: list = None,
 ):
     """Generate email HTML for 10-K/10-Q comparison final summary with JSON and DOCX links.
     Returns (subject, html). Used after orchestrator comparison run."""
@@ -1150,6 +1193,8 @@ def generate_10k_10q_comparison_summary_email_html(
                             for l in (filing_labels or [])[:10])
     if filing_labels and len(filing_labels) > 10:
         labels_line += " …"
+
+    exec_summary_html = _render_exec_summary_bullets_html(exec_summary_bullets or [])
 
     links = []
     if s3_exec_summary_docx_url:
@@ -1181,7 +1226,13 @@ def generate_10k_10q_comparison_summary_email_html(
     <h2 style="color:#333;">10-K/10-Q Comparison Summary</h2>
     <p style="color:#555;">Company: <strong>{company_esc}</strong></p>
     <p style="color:#555;">Filings compared: <strong>{labels_line}</strong></p>
-    <p style="color:#555;">Links to final summary and comparison data:</p>
+
+    <div style="background-color:#f9f9f9; border-left:4px solid #4a90e2; padding:14px 18px; margin:16px 0;">
+      <h3 style="color:#333; margin:0 0 10px 0; font-size:15px;">Executive Summary</h3>
+      {exec_summary_html}
+    </div>
+
+    <p style="color:#555;">Links to full reports and comparison data:</p>
     {links_table}
   </div>
 </body>

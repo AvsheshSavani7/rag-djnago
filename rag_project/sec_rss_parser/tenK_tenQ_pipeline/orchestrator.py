@@ -320,7 +320,7 @@ def run_pipeline(
         )
 
         exec_path = output_dir / f"{base}_exec_summary.docx"
-        generate_exec_summary_report(
+        exec_bullets = generate_exec_summary_report(
             all_comparison_steps, deal, filing_labels, exec_path, anthropic_key
         )
         s3_exec = upload_file(
@@ -356,6 +356,7 @@ def run_pipeline(
                 s3_exec_summary_docx_url=s3_exec,
                 s3_redline_docx_url=s3_redline,
                 s3_client_report_docx_url=s3_client,
+                exec_summary_bullets=exec_bullets,
             )
             payload = {
                 "subject": subject,
