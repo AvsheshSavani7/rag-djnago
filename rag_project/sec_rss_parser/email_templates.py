@@ -5,6 +5,7 @@ Centralized module for all email template generation.
 Easier to maintain, debug, and update without touching services logic.
 """
 from datetime import datetime
+import urllib.parse
 
 
 def escape_html(text):
@@ -730,7 +731,48 @@ def generate_ex99_1_merger_email_html(filing_data, doc_files):
     return subject, html_email
 
 
-def generate_8k_summary_email_html(company_name: str, form_type: str, summary_doc_url: str, cik_number: str, sec_url: str, accession_number: str, summary_kind: str = "8-K") -> tuple:
+def _render_concise_sections_html(concise_sections: list) -> str:
+    """Build inline HTML for concise summary sections matching the DOCX hierarchy."""
+    if not concise_sections:
+        return ""
+
+    section_rows = ""
+    for section in concise_sections:
+        section_name = escape_html(section.get("name", ""))
+        clauses_html = ""
+        for clause in section.get("clauses", []):
+            clause_text = escape_html(clause.get("text", ""))
+            refs = clause.get("references", [])
+            refs_html = ""
+            if refs:
+                refs_joined = escape_html("; ".join(refs))
+                refs_html = f"""
+          <p style="margin:4px 0 0 22px; color:#888; font-size:12px; line-height:1.5;">
+            &#9900;&nbsp; References: {refs_joined}
+          </p>"""
+            clauses_html += f"""
+        <div style="margin-bottom:10px;">
+          <p style="margin:0 0 0 8px; font-size:13px; line-height:1.6; color:#333;">
+            <span style="font-weight:bold; margin-right:14px; color:#333;">+</span>{clause_text}
+          </p>{refs_html}
+        </div>"""
+
+        section_rows += f"""
+      <div style="margin-bottom:18px;">
+        <p style="margin:0 0 8px 0; font-size:14px; font-weight:bold; color:#4a90e2;">{section_name}</p>
+        {clauses_html}
+      </div>"""
+
+    return f"""
+    <div style="margin:30px 0; border-top:2px solid #e0e0e0; padding-top:20px;">
+      <p style="margin:0 0 16px 0; font-size:15px; font-weight:bold; color:#333; text-decoration:underline;">
+        Concise Summary
+      </p>
+      {section_rows}
+    </div>"""
+
+
+def generate_8k_summary_email_html(company_name: str, form_type: str, summary_doc_url: str, cik_number: str, sec_url: str, accession_number: str, summary_kind: str = "8-K", concise_sections: list = None) -> tuple:
     """
     Generate HTML email for 8-K summary document notification.
 
@@ -745,6 +787,8 @@ def generate_8k_summary_email_html(company_name: str, form_type: str, summary_do
         tuple: (subject, html_email)
     """
     subject = f"New {summary_kind} Summary Document – {form_type} – {company_name}"
+
+    inline_summary_html = _render_concise_sections_html(concise_sections)
 
     html_email = f"""
 <!DOCTYPE html>
@@ -783,10 +827,12 @@ def generate_8k_summary_email_html(company_name: str, form_type: str, summary_do
       </div>
     </div>
 
+    {inline_summary_html}
+
     <div style="text-align:center; margin:30px 0;">
       <a href="{escape_html(summary_doc_url)}"
          style="display:inline-block; background-color:#4a90e2; color:#ffffff; padding:15px 30px; text-decoration:none; border-radius:5px; font-size:16px; font-weight:bold; box-shadow:0 2px 4px rgba(0,0,0,0.2);">
-        Download Summary Document
+        Download Full Summary Document
       </a>
     </div>
 
@@ -1145,13 +1191,15 @@ def _render_exec_summary_bullets_html(bullets: list) -> str:
         "Other":         "#3c3c3c",
     }
 
-    headline_items = [b for b in bullets if b.get("category") == "__headline__"]
+    headline_items = [b for b in bullets if b.get(
+        "category") == "__headline__"]
     body_bullets = [b for b in bullets if b.get("category") != "__headline__"]
 
     parts = []
     if headline_items:
         hl = escape_html(headline_items[0].get("bullet", ""))
-        parts.append(f'<p style="font-size:14px; font-weight:bold; color:#1e1e1e; margin:0 0 12px 0;">{hl}</p>')
+        parts.append(
+            f'<p style="font-size:14px; font-weight:bold; color:#1e1e1e; margin:0 0 12px 0;">{hl}</p>')
 
     cat_order = ["Timing", "Regulatory", "Business/Risk", "Legal", "Other"]
     grouped: dict = {}
@@ -1163,7 +1211,8 @@ def _render_exec_summary_bullets_html(bullets: list) -> str:
         if cat not in grouped:
             continue
         color = CATEGORY_COLORS.get(cat, "#3c3c3c")
-        parts.append(f'<p style="font-size:11px; font-weight:bold; color:{color}; margin:10px 0 4px 0; text-transform:uppercase;">{escape_html(cat)}</p>')
+        parts.append(
+            f'<p style="font-size:11px; font-weight:bold; color:{color}; margin:10px 0 4px 0; text-transform:uppercase;">{escape_html(cat)}</p>')
         for bullet_text in grouped[cat]:
             parts.append(
                 f'<p style="font-size:13px; color:#333; margin:2px 0 4px 10px;">'
@@ -1171,6 +1220,207 @@ def _render_exec_summary_bullets_html(bullets: list) -> str:
             )
 
     return "\n    ".join(parts)
+
+
+def _diff_text_html(prior_text: str, current_text: str) -> str:
+    """Produce word-level redline diff as HTML spans.
+    Mirrors _add_diff_text from docx_builder:
+      equal   → plain text
+      delete  → red strikethrough
+      replace → red strikethrough (deleted) + green bold highlight (inserted)
+      insert  → green bold highlight
+    """
+    import difflib
+    old_words = (prior_text or "").split()
+    new_words = (current_text or "").split()
+    matcher = difflib.SequenceMatcher(
+        None, old_words, new_words, autojunk=False)
+    parts = []
+    for tag, i1, i2, j1, j2 in matcher.get_opcodes():
+        if tag == "equal":
+            chunk = escape_html(" ".join(old_words[i1:i2]))
+            if chunk:
+                parts.append(chunk + " ")
+        elif tag in ("replace", "delete"):
+            old_chunk = escape_html(" ".join(old_words[i1:i2]))
+            if old_chunk:
+                parts.append(
+                    f'<span style="text-decoration:line-through; color:#b71c1c;">{old_chunk}</span> '
+                )
+            if tag == "replace":
+                new_chunk = escape_html(" ".join(new_words[j1:j2]))
+                if new_chunk:
+                    parts.append(
+                        f'<span style="font-weight:bold; color:#1b5e20; background:#c8e6c9; padding:0 1px;">{new_chunk}</span> '
+                    )
+        elif tag == "insert":
+            new_chunk = escape_html(" ".join(new_words[j1:j2]))
+            if new_chunk:
+                parts.append(
+                    f'<span style="font-weight:bold; color:#1b5e20; background:#c8e6c9; padding:0 1px;">{new_chunk}</span> '
+                )
+    return "".join(parts)
+
+
+def _render_redline_summary_html(redline_items: list) -> str:
+    """Render redline change items as inline HTML faithfully mirroring the DOCX redline builder.
+
+    Per-entry structure matches generate_redline_report():
+      1. Header bar: light severity-colored background, [SEV] badge + type labels + section
+      2. Side-by-side table: green header (Current) / red header (Prior), word-level diff in
+         Current cell, plain prior text in Prior cell
+      3. New-disclosure table: full-width green header + green body text
+      4. Specific Phrase Changes table (if legal_language notable_changes present)
+      5. Analysis bullets per active pass (• TIMING: ..., • REGULATORY: ..., etc.)
+    """
+    if not redline_items:
+        return '<p style="color:#555; font-style:italic;">No redline changes detected.</p>'
+
+    # Matches config.py COLOR_* hex values and RGBColor sev_fg values from docx_builder
+    SEV_BADGE_BG = {
+        "significant": "#ffcdd2",
+        "moderate":    "#ffe0b2",
+        "minor":       "#fff9c4",
+    }
+    SEV_BADGE_FG = {
+        "significant": "#b71c1c",
+        "moderate":    "#e65100",
+        "minor":       "#9c6e00",
+    }
+    NEW_BADGE_BG = "#c8e6c9"
+    NEW_BADGE_FG = "#1b5e20"
+
+    PASS_LABEL_COLOR = {
+        "timing":         ("TIMING",         "#1565c0"),
+        "regulatory":     ("REGULATORY",     "#ad1457"),
+        "legal_language": ("LEGAL LANGUAGE", "#9c6e00"),
+    }
+
+    parts = []
+    for idx, item in enumerate(redline_items, 1):
+        severity = item.get("overall_severity", "none")
+        is_new = item.get("is_new", False)
+        section = escape_html((item.get("section") or "")[:80])
+        current_text = (item.get("current_text") or "")[:600]
+        prior_text = (item.get("prior_text") or "")[:600]
+        active_passes = item.get("active_passes") or []
+        current_label = escape_html(item.get("current_label") or "Current")
+        prior_label = escape_html(item.get("prior_label") or "Prior")
+        notable_changes = item.get("notable_changes") or []
+        analysis = item.get("analysis") or {}
+
+        if is_new and severity == "none":
+            badge_bg, badge_fg = NEW_BADGE_BG, NEW_BADGE_FG
+            sev_label = "NEW"
+        else:
+            badge_bg = SEV_BADGE_BG.get(severity, "#f5f5f5")
+            badge_fg = SEV_BADGE_FG.get(severity, "#505050")
+            sev_label = severity.upper() if severity != "none" else "UNCHANGED"
+
+        types_str = "  |  ".join(
+            PASS_LABEL_COLOR.get(pk, (pk.upper(), "#555"))[0]
+            for pk in active_passes
+        )
+        meta_text = escape_html(
+            f"  {types_str}  —  {item.get('section', '')[:80]}" if types_str else section)
+
+        # --- 1. Header bar ---
+        header_html = f"""
+      <div style="padding:5px 10px; background:{badge_bg}; border-bottom:1px solid #ddd;">
+        <span style="font-size:10px; font-weight:bold; color:{badge_fg}; background:{badge_bg}; padding:1px 5px; border:1px solid {badge_fg}; border-radius:2px; margin-right:6px;">{idx}. [{sev_label}]</span><span style="font-size:10px; color:#505050;">{meta_text}</span>
+      </div>"""
+
+        # --- 2 & 3. Text table ---
+        if current_text and prior_text:
+            diff_html = _diff_text_html(prior_text, current_text)
+            prior_html = escape_html(prior_text)
+            text_table = f"""
+      <table style="width:100%; border-collapse:collapse; font-size:11px; margin:0;">
+        <tr>
+          <td style="width:50%; background:#ccffcc; border:1px solid #aaddaa; padding:4px 6px; font-weight:bold; font-size:10px; color:#006400;">Current: {current_label}</td>
+          <td style="width:50%; background:#ffcccc; border:1px solid #ddaaaa; padding:4px 6px; font-weight:bold; font-size:10px; color:#780000;">Prior: {prior_label}</td>
+        </tr>
+        <tr>
+          <td style="background:#f8fff8; border:1px solid #aaddaa; padding:6px 8px; vertical-align:top; line-height:1.5;">{diff_html}</td>
+          <td style="background:#fff8f8; border:1px solid #ddaaaa; padding:6px 8px; vertical-align:top; color:#641414; line-height:1.5;">{prior_html}</td>
+        </tr>
+      </table>"""
+        elif current_text:
+            cur_html = escape_html(current_text)
+            text_table = f"""
+      <table style="width:100%; border-collapse:collapse; font-size:11px; margin:0;">
+        <tr>
+          <td style="background:#ccffcc; border:1px solid #aaddaa; padding:4px 6px; font-weight:bold; font-size:10px; color:#006400;">Current: {current_label} — New Disclosure</td>
+        </tr>
+        <tr>
+          <td style="background:#f8fff8; border:1px solid #aaddaa; padding:6px 8px; font-weight:bold; color:#006400; line-height:1.5;">{cur_html}</td>
+        </tr>
+      </table>"""
+        else:
+            text_table = ""
+
+        # --- 4. Specific Phrase Changes ---
+        phrase_html = ""
+        if notable_changes and "legal_language" in active_passes:
+            phrase_rows = []
+            for change in notable_changes[:6]:
+                old_phrase = escape_html(
+                    (change.get("old_phrase") or "").strip())
+                new_phrase = escape_html(
+                    (change.get("new_phrase") or "").strip())
+                interp = escape_html(
+                    (change.get("interpretation") or "").strip())
+                if not old_phrase and not new_phrase:
+                    continue
+                phrase_rows.append(f"""
+        <table style="width:100%; border-collapse:collapse; font-size:10px; margin-top:4px;">
+          <tr>
+            <td style="width:50%; background:#e5ffe5; border:1px solid #aaddaa; padding:3px 6px; font-weight:bold; color:#1b5e20;">Current Phrase</td>
+            <td style="width:50%; background:#ffe5e5; border:1px solid #ddaaaa; padding:3px 6px; font-weight:bold; color:#b71c1c;">Prior Phrase</td>
+          </tr>
+          <tr>
+            <td style="background:#c8e6c9; border:1px solid #aaddaa; padding:4px 6px; font-weight:bold; color:#1b5e20;">"{new_phrase}"</td>
+            <td style="background:#fff8f8; border:1px solid #ddaaaa; padding:4px 6px; color:#b71c1c; text-decoration:line-through;">"{old_phrase}"</td>
+          </tr>
+        </table>""")
+                if interp:
+                    phrase_rows.append(
+                        f'<p style="margin:2px 0 4px 12px; font-size:10px; font-style:italic; color:#646464;">{interp}</p>'
+                    )
+            if phrase_rows:
+                phrase_html = (
+                    '<p style="font-size:10px; font-weight:bold; color:#9c6e00; margin:8px 0 4px 8px;">Specific Phrase Changes:</p>'
+                    + "".join(phrase_rows)
+                )
+
+        # --- 5. Analysis bullets ---
+        analysis_html = ""
+        if analysis:
+            bullets = []
+            for pk in active_passes:
+                text = (analysis.get(pk) or "").strip()
+                if not text:
+                    continue
+                lbl, col = PASS_LABEL_COLOR.get(pk, (pk.upper(), "#555"))
+                bullets.append(
+                    f'<p style="margin:3px 0 3px 10px; font-size:10px;">'
+                    f'<span style="font-weight:bold; color:{col};">&#8226; {escape_html(lbl)}: </span>'
+                    f'{escape_html(text)}</p>'
+                )
+            if bullets:
+                analysis_html = "".join(bullets)
+
+        parts.append(f"""
+    <div style="margin-bottom:10px; border:1px solid #ddd; border-radius:3px; overflow:hidden;">
+      {header_html}
+      {text_table}
+      <div style="padding:0 8px 6px 8px; background:#fff;">
+        {phrase_html}
+        {analysis_html}
+      </div>
+    </div>""")
+
+    return "\n".join(parts)
 
 
 def generate_10k_10q_comparison_summary_email_html(
@@ -1182,6 +1432,7 @@ def generate_10k_10q_comparison_summary_email_html(
     s3_redline_docx_url: str = None,
     s3_client_report_docx_url: str = None,
     exec_summary_bullets: list = None,
+    redline_summary_items: list = None,
 ):
     """Generate email HTML for 10-K/10-Q comparison final summary with JSON and DOCX links.
     Returns (subject, html). Used after orchestrator comparison run."""
@@ -1194,7 +1445,9 @@ def generate_10k_10q_comparison_summary_email_html(
     if filing_labels and len(filing_labels) > 10:
         labels_line += " …"
 
-    exec_summary_html = _render_exec_summary_bullets_html(exec_summary_bullets or [])
+    redline_html = _render_redline_summary_html(redline_summary_items or [])
+    exec_summary_html = _render_exec_summary_bullets_html(
+        exec_summary_bullets or [])
 
     links = []
     if s3_exec_summary_docx_url:
@@ -1226,6 +1479,11 @@ def generate_10k_10q_comparison_summary_email_html(
     <h2 style="color:#333;">10-K/10-Q Comparison Summary</h2>
     <p style="color:#555;">Company: <strong>{company_esc}</strong></p>
     <p style="color:#555;">Filings compared: <strong>{labels_line}</strong></p>
+
+    <div style="background-color:#f9f9f9; border-left:4px solid #c62828; padding:14px 18px; margin:16px 0;">
+      <h3 style="color:#333; margin:0 0 10px 0; font-size:15px;">Redline Summary</h3>
+      {redline_html}
+    </div>
 
     <div style="background-color:#f9f9f9; border-left:4px solid #4a90e2; padding:14px 18px; margin:16px 0;">
       <h3 style="color:#333; margin:0 0 10px 0; font-size:15px;">Executive Summary</h3>

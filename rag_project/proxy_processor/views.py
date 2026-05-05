@@ -18,6 +18,7 @@ from .sec_processor_and_pinecone import SectionProcessor
 from sec_rss_parser.websocket_service import SECWebSocketService
 from sec_rss_parser.models import SECFiling
 from proxy_processor.proxy_summary_service import ProxySummaryService
+from proxy_processor.proxy_docx_parser import parse_proxy_summary_docx
 
 logger = logging.getLogger(__name__)
 
@@ -44,7 +45,49 @@ def escape_html(text):
     return text
 
 
-def generate_summary_email_html(company_name: str, form_type: str, summary_doc_url: str, cik_number: str, proxy_sec_url: str) -> tuple:
+def _render_proxy_qa_html(qa_items: list, chronological_summary: list = None) -> str:
+    """Build inline HTML for the 5 proxy Q&A items and optional Chronological Summary."""
+    if not qa_items and not chronological_summary:
+        return ""
+
+    rows = ""
+    for item in (qa_items or []):
+        question = escape_html(item.get("question", ""))
+        answer = escape_html(item.get("answer", ""))
+        rows += f"""
+      <div style="margin-bottom:20px;">
+        <p style="margin:0 0 6px 0; font-size:14px; font-weight:bold; color:#4a90e2;">{question}</p>
+        <p style="margin:0 0 0 14px; font-size:13px; line-height:1.6; color:#333;">
+          <span style="font-weight:bold; margin-right:6px; color:#333;">+</span>{answer}
+        </p>
+      </div>"""
+
+    chrono_html = ""
+    if chronological_summary:
+        chrono_rows = "".join(
+            f'<p style="margin:0 0 0 14px; font-size:13px; line-height:1.6; color:#333;">'
+            f'<span style="font-weight:bold; margin-right:6px; color:#333;">+</span>{escape_html(line)}</p>'
+            for line in chronological_summary
+        )
+        chrono_html = f"""
+      <div style="margin-top:24px; padding-top:18px; border-top:1px solid #e8e8e8;">
+        <p style="margin:0 0 12px 0; font-size:14px; font-weight:bold; color:#4a90e2;">
+          Chronological Summary
+        </p>
+        {chrono_rows}
+      </div>"""
+
+    return f"""
+    <div style="margin:30px 0; border-top:2px solid #e0e0e0; padding-top:20px;">
+      <p style="margin:0 0 16px 0; font-size:15px; font-weight:bold; color:#333; text-decoration:underline;">
+        Proxy Summary
+      </p>
+      {rows}
+      {chrono_html}
+    </div>"""
+
+
+def generate_summary_email_html(company_name: str, form_type: str, summary_doc_url: str, cik_number: str, proxy_sec_url: str, qa_items: list = None, chronological_summary: list = None) -> tuple:
     """
     Generate HTML email for proxy summary document notification.
 
@@ -58,6 +101,8 @@ def generate_summary_email_html(company_name: str, form_type: str, summary_doc_u
         tuple: (subject, html_email)
     """
     subject = f"New Proxy Summary Document – {form_type} – {company_name}"
+
+    inline_qa_html = _render_proxy_qa_html(qa_items, chronological_summary)
 
     html_email = f"""
 <!DOCTYPE html>
@@ -76,7 +121,7 @@ def generate_summary_email_html(company_name: str, form_type: str, summary_doc_u
       <p style="color:#333; font-size:16px; line-height:1.6;">
         The proxy summary document has been successfully generated for:
       </p>
-      
+
       <div style="background-color:#f9f9f9; padding:15px; border-radius:5px; margin:20px 0;">
         <p style="margin:8px 0; color:#555;">
           <strong style="color:#333;">Company:</strong> {escape_html(company_name)}
@@ -93,18 +138,17 @@ def generate_summary_email_html(company_name: str, form_type: str, summary_doc_u
       </div>
     </div>
 
+    {inline_qa_html}
+
     <div style="text-align:center; margin:30px 0;">
-      <a href="{escape_html(summary_doc_url)}" 
-         style="display:inline-block; background-color:#4a90e2; color:#ffffff; padding:15px 30px; text-decoration:none; border-radius:5px; font-size:16px; font-weight:bold; box-shadow:0 2px 4px rgba(0,0,0,0.2);">
-        Download Summary Document
+      <a href="{escape_html(summary_doc_url)}"
+         style="display:inline-block; background-color:#4a90e2; color:#ffffff; padding:15px 30px; text-decoration:none; border-radius:5px; font-size:16px; font-weight:bold; box-shadow:0 2px 4px rgba(0,0,0,0.2);"
+         target="_blank">
+        &#11015; Download Full Summary Document
       </a>
     </div>
 
-    <div style="margin-top:30px; padding:15px; background-color:#e8f4f8; border-radius:5px; border-left:4px solid #4a90e2;">
-      <p style="margin:0; color:#555; font-size:14px;">
-        <strong>Note:</strong> This document contains the merger background analysis and Q&A summary generated from the proxy statement.
-      </p>
-    </div>
+   
 
     <div style="margin-top:30px; padding-top:20px; border-top:1px solid #e0e0e0; text-align:center; color:#999; font-size:12px;">
       <p>This is an automated email notification for proxy summary document generation.</p>
@@ -138,13 +182,26 @@ def send_summary_email_notification(proxy_doc):
         logger.info(
             f"Preparing to send summary email for: {proxy_doc.company_name}")
 
+        # Parse the DOCX to extract Q&A and Chronological Summary for inline display
+        qa_items = None
+        chronological_summary = None
+        try:
+            parsed = parse_proxy_summary_docx(proxy_doc.summary_docx_url)
+            qa_items = parsed.get("qa_items")
+            chronological_summary = parsed.get("chronological_summary")
+        except Exception as parse_err:
+            logger.warning(
+                f"Could not parse proxy DOCX for inline content: {parse_err}")
+
         # Generate email HTML
         subject, html_email = generate_summary_email_html(
             company_name=proxy_doc.company_name,
             form_type=proxy_doc.form_type,
             summary_doc_url=proxy_doc.summary_docx_url,
             cik_number=proxy_doc.cik_number,
-            proxy_sec_url=proxy_doc.proxy_sec_url
+            proxy_sec_url=proxy_doc.proxy_sec_url,
+            qa_items=qa_items,
+            chronological_summary=chronological_summary,
         )
         logger.info(f"Generated email subject: {subject}")
 
@@ -262,7 +319,8 @@ def process_sec_document_helper(cik_number, company_name, sec_filling_id, filing
                 sec_filing.following_status = "In Progress"
                 sec_filing.save()
                 sec_filing_updated = True
-                accession_number = getattr(sec_filing, "accession_number", None)
+                accession_number = getattr(
+                    sec_filing, "accession_number", None)
                 logger.info(
                     f"Updated SEC filing {sec_filling_id} with following=True and following_status='In Progress'")
             else:
@@ -284,9 +342,11 @@ def process_sec_document_helper(cik_number, company_name, sec_filling_id, filing
                 accession_number=accession_number,
                 sec_filling_id=sec_filling_id,
             )
-            logger.info("Created/updated sec_filing_summary (proxy node) for proxy start")
+            logger.info(
+                "Created/updated sec_filing_summary (proxy node) for proxy start")
         except Exception as sync_err:
-            logger.error(f"Error creating sec_filing_summary for proxy start: {str(sync_err)}")
+            logger.error(
+                f"Error creating sec_filing_summary for proxy start: {str(sync_err)}")
 
         # Start processing in a separate thread
         processing_thread = threading.Thread(

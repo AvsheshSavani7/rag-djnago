@@ -21,6 +21,7 @@ from django.conf import settings
 from bson import ObjectId
 from mongoengine.errors import NotUniqueError
 from .s3_upload_utils import build_parsed_jsons_s3_key, upload_json_file_to_s3
+from .docx_parser import parse_dma_summary_docx
 from .models import (
     SECFiling,
     SECFeedStatus,
@@ -318,6 +319,14 @@ def send_8k_summary_email(deal_id, company_name, form_type, cik_number, sec_url,
         log_and_print(
             f"Preparing to send 8-K summary email for: {company_name}")
 
+        # Parse the DOCX to extract concise sections for inline display
+        concise_sections = None
+        try:
+            parsed = parse_dma_summary_docx(dma_summary.summary_docx_url)
+            concise_sections = parsed.get("concise_sections")
+        except Exception as parse_err:
+            log_and_print(f"Warning: could not parse DOCX for inline summary: {parse_err}", 'warning')
+
         # Generate email HTML
         subject, html_email = generate_8k_summary_email_html(
             company_name=company_name,
@@ -326,7 +335,8 @@ def send_8k_summary_email(deal_id, company_name, form_type, cik_number, sec_url,
             cik_number=cik_number,
             sec_url=sec_url,
             accession_number=accession_number,
-            summary_kind=summary_kind
+            summary_kind=summary_kind,
+            concise_sections=concise_sections,
         )
         log_and_print(f"Generated email subject: {subject}")
 

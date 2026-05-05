@@ -32,6 +32,64 @@ from typing import List, Optional
 logger = logging.getLogger(__name__)
 
 
+def _build_redline_summary_items(merged_results: list, current_label: str = "", prior_label: str = "") -> list:
+    """Extract structured redline summary items from merged comparison results.
+    Returns a list of dicts consumed by _render_redline_summary_html in email_templates."""
+    items = []
+    for result in (merged_results or []):
+        active_passes = [
+            pk for pk in ["timing", "regulatory", "legal_language"]
+            if (result.get(pk) or {}).get("changed") or
+               (result.get(pk) or {}).get("match_type") == "new"
+        ]
+        if not active_passes:
+            continue
+
+        is_new = any(
+            (result.get(pk) or {}).get("match_type") == "new"
+            for pk in ["timing", "regulatory", "legal_language"]
+        )
+
+        prior_text = None
+        resolved_prior_label = prior_label
+        for pk in active_passes:
+            finding = result.get(pk) or {}
+            excerpts = finding.get("_prior_excerpts")
+            matched = finding.get("matched_prior", [])
+            if excerpts and matched:
+                lookup = {f"PRIOR-{i+1}": p for i, p in enumerate(excerpts)}
+                prior_data = lookup.get(matched[0])
+                if prior_data:
+                    prior_text = prior_data.get("text", "").replace("\n", " ").strip()
+                    resolved_prior_label = finding.get("_prior_label", prior_label)
+                    break
+
+        # Collect per-pass analysis text and notable phrase changes
+        analysis = {}
+        notable_changes = []
+        for pk in active_passes:
+            finding = result.get(pk) or {}
+            analysis_text = (finding.get("analysis") or "").strip()
+            if analysis_text:
+                analysis[pk] = analysis_text
+            if pk == "legal_language" and not notable_changes:
+                notable_changes = finding.get("notable_changes") or []
+
+        items.append({
+            "section":          (result.get("section") or "")[:80],
+            "overall_severity": result.get("overall_severity", "none"),
+            "is_new":           is_new,
+            "active_passes":    active_passes,
+            "current_text":     result.get("text", "").replace("\n", " ").strip(),
+            "prior_text":       prior_text or "",
+            "current_label":    current_label,
+            "prior_label":      resolved_prior_label,
+            "notable_changes":  notable_changes,
+            "analysis":         analysis,
+        })
+    return items
+
+
 # Email for final comparison summary (JSON + DOCX URLs)
 
 
@@ -346,6 +404,13 @@ def run_pipeline(
         sig = sum(1 for r in merged if r["overall_severity"] == "significant")
         print(f"\n  Comparison: {len(merged)} changes ({sig} significant)")
 
+        step0 = all_comparison_steps[0]
+        redline_summary_items = _build_redline_summary_items(
+            step0["merged_results"],
+            current_label=step0.get("current_label", ""),
+            prior_label=", ".join(step0.get("prior_labels", [])),
+        )
+
         # Send email for final summary with JSON and DOCX URLs (same pattern as utils_10k_10q)
         try:
             subject, html = generate_10k_10q_comparison_summary_email_html(
@@ -357,6 +422,7 @@ def run_pipeline(
                 s3_redline_docx_url=s3_redline,
                 s3_client_report_docx_url=s3_client,
                 exec_summary_bullets=exec_bullets,
+                redline_summary_items=redline_summary_items,
             )
             payload = {
                 "subject": subject,
