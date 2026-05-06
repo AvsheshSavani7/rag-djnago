@@ -1433,12 +1433,18 @@ def generate_10k_10q_comparison_summary_email_html(
     s3_client_report_docx_url: str = None,
     exec_summary_bullets: list = None,
     redline_summary_items: list = None,
+    filings: list = None,
+    filer_ticker: str = None,
 ):
     """Generate email HTML for 10-K/10-Q comparison final summary with JSON and DOCX links.
+    Includes SEC filings URL table (from filings list) above the executive summary.
     Returns (subject, html). Used after orchestrator comparison run."""
     company_esc = escape_html(target_company or ticker or "Unknown Company")
-    ticker_esc = escape_html(ticker or "")
-    subject = f"{company_esc} : 10-K/10-Q Comparison Summary – {ticker_esc}" if ticker_esc else f"{company_esc} : 10-K/10-Q Comparison Summary"
+    filer_ticker_esc = escape_html(filer_ticker or "")
+    if filer_ticker_esc:
+        subject = f"{company_esc} : 10-K/10-Q By {filer_ticker_esc} - Comparison Summary"
+    else:
+        subject = f"{company_esc} : 10-K/10-Q Comparison Summary"
 
     labels_line = ", ".join(escape_html(l or "")
                             for l in (filing_labels or [])[:10])
@@ -1470,6 +1476,8 @@ def generate_10k_10q_comparison_summary_email_html(
     </table>
 """ if rows_html else "<p><em>No links available.</em></p>"
 
+    filings_table_html = build_sec_filings_table(filings) if filings else ""
+
     html_email = f"""
 <!DOCTYPE html>
 <html>
@@ -1480,14 +1488,14 @@ def generate_10k_10q_comparison_summary_email_html(
     <p style="color:#555;">Company: <strong>{company_esc}</strong></p>
     <p style="color:#555;">Filings compared: <strong>{labels_line}</strong></p>
 
-   
+    {filings_table_html}
 
     <div style="background-color:#f9f9f9; border-left:4px solid #4a90e2; padding:14px 18px; margin:16px 0;">
       <h3 style="color:#333; margin:0 0 10px 0; font-size:15px;">Executive Summary</h3>
       {exec_summary_html}
     </div>
 
-    <p style="color:#555;">Links to full reports and comparison data:</p>
+    <p style="color:#555;">Link to Redline report:</p>
     {links_table}
   </div>
 </body>

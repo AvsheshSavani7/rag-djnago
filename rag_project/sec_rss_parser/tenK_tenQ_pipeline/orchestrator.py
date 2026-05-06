@@ -109,6 +109,35 @@ def _get_ticker_for_deal(deal_id: str) -> str:
     return str(ticker).strip().upper() if len(str(ticker)) <= 10 else str(ticker).strip()
 
 
+def _resolve_filer_ticker(urls: List[str], deal_id: str) -> Optional[str]:
+    """Extract CIK from a filing URL and return the filer's ticker from the deal."""
+    import re
+    from document_processor.models import ProcessingJob
+
+    cik_from_url = None
+    for url in urls:
+        match = re.search(r"/edgar/data/(\d+)/", url or "")
+        if match:
+            cik_from_url = match.group(1)
+            break
+    if not cik_from_url:
+        return None
+
+    job = ProcessingJob.objects(id=deal_id).first()
+    if not job:
+        return None
+
+    cik_norm = cik_from_url.zfill(10)
+    target_cik = (getattr(job, "cik", None) or "").zfill(10)
+    acquirer_cik = (getattr(job, "acquirer_cik", None) or "").zfill(10)
+
+    if cik_norm == target_cik:
+        return getattr(job, "target_ticker", None)
+    if cik_norm == acquirer_cik:
+        return getattr(job, "acquirer_ticker", None)
+    return None
+
+
 def run_pipeline(
     urls: List[str],
     deal_id: str,
@@ -117,6 +146,7 @@ def run_pipeline(
     threshold: int = 6,
     batch_size: int = BATCH_SIZE,
     skip_assessment: bool = False,
+    filings: list = None,
 ) -> dict:
     """
     MongoDB + S3 pipeline. Only urls and deal_id are required.
@@ -413,6 +443,8 @@ def run_pipeline(
             prior_label=", ".join(step0.get("prior_labels", [])),
         )
 
+        filer_ticker = _resolve_filer_ticker(urls, deal_id)
+
         # Send email for final summary with JSON and DOCX URLs (same pattern as utils_10k_10q)
         try:
             subject, html = generate_10k_10q_comparison_summary_email_html(
@@ -425,6 +457,8 @@ def run_pipeline(
                 s3_client_report_docx_url=s3_client,
                 exec_summary_bullets=exec_bullets,
                 redline_summary_items=redline_summary_items,
+                filings=filings,
+                filer_ticker=filer_ticker,
             )
             payload = {
                 "subject": subject,

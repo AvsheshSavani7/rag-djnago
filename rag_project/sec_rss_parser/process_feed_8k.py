@@ -739,7 +739,11 @@ class EightKFeedProcessor:
                     elif doc_type == 'EX-99.1':
                         logger.info(
                             f"{LOG_PREFIX} :_process_single_item: accession=%s step=process_doc doc_type=EX-99.1", accession_number)
-                        self._process_ex99_filing(item_data, filing)
+                        if not item_data.get('cik_matches_deal'):
+                            self._process_ex99_filing(item_data, filing)
+                        else:
+                            log_and_print(
+                                f"{LOG_PREFIX} :_process_single_item: ⏭️ Skipping EX-99.1 processing (cik_matches_deal=True, summary handled elsewhere)")
             logger.info(
                 f"{LOG_PREFIX} :_process_single_item: accession=%s step=done", accession_number)
             # Only add to lookup after successful processing so read timeouts/failures can retry next run

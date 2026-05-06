@@ -24,7 +24,6 @@ from .utils_8k import (
     send_webhook_notification,
     log_and_print,
 )
-from .email_templates import generate_sec_filings_email_html
 from document_processor.models import ProcessingJob
 
 logger = logging.getLogger(__name__)
@@ -304,13 +303,14 @@ def fetch_and_save_additional_10k_10q_filings(
                     f"❌ Error saving filing {acc}: {save_e}", "error")
 
         # Run 10-K/10-Q summary pipeline (orchestrator) with fetched URLs and deal_id
+        # Filings URL table is included in the comparison summary email sent by the pipeline
         urls_from_filings = [f.get("url") for f in filings if f.get("url")]
         if urls_from_filings and deal_id:
             try:
                 from sec_rss_parser.tenK_tenQ_pipeline.orchestrator import run_pipeline
                 log_and_print(
                     f"🔄 Running 10-K/10-Q summary pipeline for {len(urls_from_filings)} filing(s), deal_id={deal_id}...")
-                run_pipeline(urls=urls_from_filings, deal_id=deal_id)
+                run_pipeline(urls=urls_from_filings, deal_id=deal_id, filings=filings)
                 log_and_print("✅ 10-K/10-Q summary pipeline completed.")
             except Exception as pipeline_e:
                 logger.exception(
@@ -337,31 +337,6 @@ def fetch_and_save_additional_10k_10q_filings(
         elif not deal_id:
             log_and_print(
                 "⏭️ Skipping summary pipeline: no deal_id.", "warning")
-
-        # Send email with all filings
-        try:
-            sec_subject, sec_html = generate_sec_filings_email_html(
-                company_name, filings, form_type=form_type
-            )
-
-            sec_payload = {
-                'subject': sec_subject,
-                'html': sec_html,
-                'company_name': company_name,
-                'email_type': 'sec_filings_last_year',
-            }
-
-            send_webhook_notification(
-                N8N_WEBHOOK_URL_10K_10Q, sec_payload, "email"
-            )
-
-            log_and_print(
-                f"📤 Sent SEC form filings email: {len(filings)} {form_type} filings for {company_name}"
-                + (f" (from announce date: {start_date})" if announce_date else " (from 1 year before today)")
-            )
-        except Exception as email_e:
-            log_and_print(
-                f"❌ Error sending 10-K/10-Q email: {email_e}", "error")
 
         return {
             'success': True,
