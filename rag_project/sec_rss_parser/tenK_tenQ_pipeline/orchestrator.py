@@ -60,8 +60,10 @@ def _build_redline_summary_items(merged_results: list, current_label: str = "", 
                 lookup = {f"PRIOR-{i+1}": p for i, p in enumerate(excerpts)}
                 prior_data = lookup.get(matched[0])
                 if prior_data:
-                    prior_text = prior_data.get("text", "").replace("\n", " ").strip()
-                    resolved_prior_label = finding.get("_prior_label", prior_label)
+                    prior_text = prior_data.get(
+                        "text", "").replace("\n", " ").strip()
+                    resolved_prior_label = finding.get(
+                        "_prior_label", prior_label)
                     break
 
         # Collect per-pass analysis text and notable phrase changes
@@ -76,7 +78,7 @@ def _build_redline_summary_items(merged_results: list, current_label: str = "", 
                 notable_changes = finding.get("notable_changes") or []
 
         items.append({
-            "section":          (result.get("section") or "")[:80],
+            "section":          result.get("section") or "",
             "overall_severity": result.get("overall_severity", "none"),
             "is_new":           is_new,
             "active_passes":    active_passes,
