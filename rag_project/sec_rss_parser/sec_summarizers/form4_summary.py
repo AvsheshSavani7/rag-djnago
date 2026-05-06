@@ -104,7 +104,7 @@ def fetch_filing_text(source: str) -> str:
     return fetch_text(source)
 
 
-def summarize(text: str, model: str = "claude-opus-4-6") -> dict:
+def summarize(text: str, model: str = "claude-sonnet-4-6") -> dict:
     """Call Claude API to produce multi-level summary."""
     if not ANTHROPIC_API_KEY:
         raise ValueError(
