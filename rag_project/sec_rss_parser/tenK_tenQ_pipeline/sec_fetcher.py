@@ -1,12 +1,14 @@
 """SEC filing fetcher: resolve URLs, fetch HTML, detect metadata, make labels."""
 
 import re
+import time
 from datetime import datetime
 from typing import Tuple
 
 import requests
 
 from .config import SEC_HEADERS
+from sec_rss_parser.sec_rate_limit import rate_limited_get
 
 
 def parse_sec_document_url(url: str) -> Tuple[str, str]:
@@ -45,14 +47,28 @@ def resolve_sec_url(url: str) -> str:
     return url
 
 
-def fetch_sec_filing(url: str) -> str:
-    """Fetch the HTML content of a SEC filing. Returns raw HTML string."""
+def fetch_sec_filing(url: str, max_retries: int = 3) -> str:
+    """Fetch the HTML content of a SEC filing with rate limiting and 429 retry."""
     resolved_url = resolve_sec_url(url)
     print(f"  Fetching: {resolved_url}")
-    response = requests.get(resolved_url, headers=SEC_HEADERS, timeout=60)
-    response.raise_for_status()
-    print(f"  Response: {response.status_code} ({len(response.text):,} chars)")
-    return response.text
+    for attempt in range(max_retries):
+        response = rate_limited_get(
+            requests, resolved_url, headers=SEC_HEADERS, timeout=60
+        )
+        if response.status_code == 429:
+            wait = int(response.headers.get("Retry-After", 10 * (attempt + 1)))
+            print(
+                f"  Rate limited (429). Waiting {wait}s before retry "
+                f"{attempt + 1}/{max_retries}..."
+            )
+            time.sleep(wait)
+            continue
+        response.raise_for_status()
+        print(f"  Response: {response.status_code} ({len(response.text):,} chars)")
+        return response.text
+    raise requests.exceptions.HTTPError(
+        f"Still getting 429 after {max_retries} retries for {resolved_url}"
+    )
 
 
 def detect_filing_metadata(url: str, html: str = "") -> Tuple[str, str]:
