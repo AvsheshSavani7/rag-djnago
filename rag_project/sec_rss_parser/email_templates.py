@@ -1450,14 +1450,14 @@ def generate_10k_10q_comparison_summary_email_html(
         exec_summary_bullets or [])
 
     links = []
-    if s3_exec_summary_docx_url:
-        links.append(("Executive Summary (DOCX)", s3_exec_summary_docx_url))
-    if s3_comparison_json_url:
-        links.append(("Comparison data (JSON)", s3_comparison_json_url))
+    # if s3_exec_summary_docx_url:
+    #     links.append(("Executive Summary (DOCX)", s3_exec_summary_docx_url))
+    # if s3_comparison_json_url:
+    #     links.append(("Comparison data (JSON)", s3_comparison_json_url))
     if s3_redline_docx_url:
         links.append(("Redline report (DOCX)", s3_redline_docx_url))
-    if s3_client_report_docx_url:
-        links.append(("Client report (DOCX)", s3_client_report_docx_url))
+    # if s3_client_report_docx_url:
+    #     links.append(("Client report (DOCX)", s3_client_report_docx_url))
 
     rows_html = "".join(
         f'<tr><td style="padding:8px; border:1px solid #ddd;"><a href="{escape_html(url)}" style="color:#4a90e2;" target="_blank">{escape_html(label)}</a></td></tr>'
@@ -1480,10 +1480,7 @@ def generate_10k_10q_comparison_summary_email_html(
     <p style="color:#555;">Company: <strong>{company_esc}</strong></p>
     <p style="color:#555;">Filings compared: <strong>{labels_line}</strong></p>
 
-    <div style="background-color:#f9f9f9; border-left:4px solid #c62828; padding:14px 18px; margin:16px 0;">
-      <h3 style="color:#333; margin:0 0 10px 0; font-size:15px;">Redline Summary</h3>
-      {redline_html}
-    </div>
+   
 
     <div style="background-color:#f9f9f9; border-left:4px solid #4a90e2; padding:14px 18px; margin:16px 0;">
       <h3 style="color:#333; margin:0 0 10px 0; font-size:15px;">Executive Summary</h3>

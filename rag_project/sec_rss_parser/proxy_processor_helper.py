@@ -527,7 +527,49 @@ def escape_html(text):
     return text
 
 
-def generate_summary_email_html(company_name: str, form_type: str, summary_doc_url: str, cik_number: str, proxy_sec_url: str, ticker: str = None, filing_date=None) -> tuple:
+def _render_proxy_qa_html(qa_items: list, chronological_summary: list = None) -> str:
+    """Build inline HTML for the 5 proxy Q&A items and optional Chronological Summary."""
+    if not qa_items and not chronological_summary:
+        return ""
+
+    rows = ""
+    for item in (qa_items or []):
+        question = escape_html(item.get("question", ""))
+        answer = escape_html(item.get("answer", ""))
+        rows += f"""
+      <div style="margin-bottom:20px;">
+        <p style="margin:0 0 6px 0; font-size:14px; font-weight:bold; color:#4a90e2;">{question}</p>
+        <p style="margin:0 0 0 14px; font-size:13px; line-height:1.6; color:#333;">
+          <span style="font-weight:bold; margin-right:6px; color:#333;">+</span>{answer}
+        </p>
+      </div>"""
+
+    chrono_html = ""
+    if chronological_summary:
+        chrono_rows = "".join(
+            f'<p style="margin:0 0 0 14px; font-size:13px; line-height:1.6; color:#333;">'
+            f'<span style="font-weight:bold; margin-right:6px; color:#333;">+</span>{escape_html(line)}</p>'
+            for line in chronological_summary
+        )
+        chrono_html = f"""
+      <div style="margin-top:24px; padding-top:18px; border-top:1px solid #e8e8e8;">
+        <p style="margin:0 0 12px 0; font-size:14px; font-weight:bold; color:#4a90e2;">
+          Chronological Summary
+        </p>
+        {chrono_rows}
+      </div>"""
+
+    return f"""
+    <div style="margin:30px 0; border-top:2px solid #e0e0e0; padding-top:20px;">
+      <p style="margin:0 0 16px 0; font-size:15px; font-weight:bold; color:#333; text-decoration:underline;">
+        Proxy Summary
+      </p>
+      {rows}
+      {chrono_html}
+    </div>"""
+
+
+def generate_summary_email_html(company_name: str, form_type: str, summary_doc_url: str, cik_number: str, proxy_sec_url: str, ticker: str = None, filing_date=None, qa_items: list = None, chronological_summary: list = None) -> tuple:
     """
     Generate HTML email for proxy summary document notification.
 
@@ -539,6 +581,8 @@ def generate_summary_email_html(company_name: str, form_type: str, summary_doc_u
         proxy_sec_url: URL of the SEC proxy document
         ticker: Optional ticker (from deal); if present, used in subject instead of company_name
         filing_date: Optional filing date for subject (datetime or str)
+        qa_items: Optional list of Q&A dicts with "question" and "answer" keys
+        chronological_summary: Optional list of chronological summary lines
     Returns:
         tuple: (subject, html_email)
     """
@@ -552,6 +596,8 @@ def generate_summary_email_html(company_name: str, form_type: str, summary_doc_u
             filing_date_str = str(filing_date)[:10] if str(
                 filing_date) else ""
     subject = f"{label} :Form {form_type} Summary By {company_name} on [ {filing_date_str} ]"
+
+    inline_qa_html = _render_proxy_qa_html(qa_items, chronological_summary)
 
     html_email = f"""
 <!DOCTYPE html>
@@ -582,25 +628,27 @@ def generate_summary_email_html(company_name: str, form_type: str, summary_doc_u
           <strong style="color:#333;">CIK:</strong> {escape_html(cik_number)}
         </p>
       </div>
+    </div>
 
-      <div style="text-align:center; margin:30px 0;">
-        <a href="{escape_html(summary_doc_url)}" 
-           style="display:inline-block; background-color:#4a90e2; color:#ffffff; padding:15px 30px; text-decoration:none; border-radius:5px; font-size:16px; font-weight:bold;">
-          📄 View Summary Document
+    {inline_qa_html}
+
+    <div style="text-align:center; margin:30px 0;">
+      <a href="{escape_html(summary_doc_url)}" 
+         style="display:inline-block; background-color:#4a90e2; color:#ffffff; padding:15px 30px; text-decoration:none; border-radius:5px; font-size:16px; font-weight:bold;">
+        📄 View Summary Document
+      </a>
+    </div>
+
+    <div style="margin-top:20px; padding-top:20px; border-top:1px solid #e0e0e0;">
+      <p style="color:#666; font-size:14px; margin:5px 0;">
+        <strong>Original SEC Document:</strong>
+      </p>
+      <p style="margin:5px 0;">
+        <a href="{escape_html(proxy_sec_url)}" 
+           style="color:#4a90e2; text-decoration:none; word-break:break-all;">
+          {escape_html(proxy_sec_url)}
         </a>
-      </div>
-
-      <div style="margin-top:20px; padding-top:20px; border-top:1px solid #e0e0e0;">
-        <p style="color:#666; font-size:14px; margin:5px 0;">
-          <strong>Original SEC Document:</strong>
-        </p>
-        <p style="margin:5px 0;">
-          <a href="{escape_html(proxy_sec_url)}" 
-             style="color:#4a90e2; text-decoration:none; word-break:break-all;">
-            {escape_html(proxy_sec_url)}
-          </a>
-        </p>
-      </div>
+      </p>
     </div>
 
     <div style="margin-top:30px; padding-top:20px; border-top:2px solid #e0e0e0; text-align:center;">
@@ -645,6 +693,18 @@ def send_summary_email_notification_v2(filing_summary):
         )
         filing_date = getattr(filing_summary, "filing_date", None)
 
+        # Parse the DOCX to extract Q&A and Chronological Summary for inline display
+        qa_items = None
+        chronological_summary = None
+        try:
+            from proxy_processor.proxy_docx_parser import parse_proxy_summary_docx
+            parsed = parse_proxy_summary_docx(summary_url)
+            qa_items = parsed.get("qa_items")
+            chronological_summary = parsed.get("chronological_summary")
+        except Exception as parse_err:
+            logger.warning(
+                f"Could not parse proxy DOCX for inline content: {parse_err}")
+
         # Generate email HTML (same as old flow)
         subject, html_email = generate_summary_email_html(
             company_name=company_name,
@@ -654,6 +714,8 @@ def send_summary_email_notification_v2(filing_summary):
             proxy_sec_url=filing_summary.sec_document_url,
             ticker=ticker,
             filing_date=filing_date,
+            qa_items=qa_items,
+            chronological_summary=chronological_summary,
         )
         logger.info(f"Generated email subject: {subject}")
 
