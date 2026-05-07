@@ -650,7 +650,8 @@ class EightKFeedProcessor:
 
             # Merge HTML data into item_data; always use filer CIK from URL.
             item_data.update(html_data)
-            item_data['cik_number'] = _extract_cik_from_url(html_url) or item_data.get('cik_number')
+            item_data['cik_number'] = _extract_cik_from_url(
+                html_url) or item_data.get('cik_number')
             filing_array = item_data.get('filing_array', [])
             logger.info(f"{LOG_PREFIX} :_process_single_item: accession=%s step=html_merged cik=%s filing_array_len=%s doc_types=%s",
                         accession_number, item_data.get('cik_number'), len(filing_array or []), [f.get('document_type') for f in (filing_array or [])])
@@ -676,10 +677,12 @@ class EightKFeedProcessor:
                     if deal and cik_n:
                         if normalize_cik(deal.acquirer_cik) == cik_n:
                             item_data['matched_cik_label'] = "(acquirer)"
-                            item_data['email_company_name'] = deal.acquire_name or item_data.get('company_name')
+                            item_data['email_company_name'] = deal.acquire_name or item_data.get(
+                                'company_name')
                         elif normalize_cik(deal.cik) == cik_n:
                             item_data['matched_cik_label'] = "(target)"
-                            item_data['email_company_name'] = deal.target_name or item_data.get('company_name')
+                            item_data['email_company_name'] = deal.target_name or item_data.get(
+                                'company_name')
                 except Exception as deal_e:
                     logger.warning(
                         f"{LOG_PREFIX} :_process_single_item: Deal name lookup failed: {deal_e}")
@@ -1537,9 +1540,11 @@ class EightKFeedProcessor:
             ticker = get_ticker_for_deal_and_cik(
                 item_data.get('deal_id'), item_data.get('cik_number'))
             filing_date = item_data.get('filing_date')
-            email_company_name = item_data.get('email_company_name') or item_data.get('company_name') or ''
+            email_company_name = item_data.get(
+                'email_company_name') or item_data.get('company_name') or ''
             matched_cik_label = item_data.get('matched_cik_label')
 
+            summary_kind = '8-K + EX-99.1' if summary_result.get('summary_type') == 'combined' else '8-K'
             subject, html_email = generate_8k_99_1_summary_email_html(
                 company_name=email_company_name,
                 form_type='8-K',
@@ -1547,12 +1552,13 @@ class EightKFeedProcessor:
                 cik_number=item_data.get('cik_number') or '',
                 sec_url=item_data.get('link') or doc_url,
                 accession_number=item_data.get('accession_number') or '',
-                summary_kind='8-K',
+                summary_kind=summary_kind,
                 l1_headline=summary_result.get('L1_headline'),
                 l2_brief=summary_result.get('L2_brief'),
                 ticker=ticker,
                 filing_date=filing_date,
                 matched_cik_label=matched_cik_label,
+                
             )
 
             payload = {
@@ -1595,7 +1601,8 @@ class EightKFeedProcessor:
             ticker = get_ticker_for_deal_and_cik(
                 item_data.get('deal_id'), item_data.get('cik_number'))
             filing_date = item_data.get('filing_date')
-            email_company_name = item_data.get('email_company_name') or item_data.get('company_name') or ''
+            email_company_name = item_data.get(
+                'email_company_name') or item_data.get('company_name') or ''
             matched_cik_label = item_data.get('matched_cik_label')
 
             subject, html_email = generate_8k_99_1_summary_email_html(
@@ -1695,12 +1702,14 @@ L3 DETAILED:
             if isinstance(filing_date, datetime):
                 filing_date = filing_date.strftime('%Y-%m-%d')
 
-            s3_docx_url = summary_result.get('s3_docx_url') or summary_result.get('s3_url')
+            s3_docx_url = summary_result.get(
+                's3_docx_url') or summary_result.get('s3_url')
 
             existing_summary = SECFilingSummary.objects(
                 accession_number=accession_number, form_type='8-K'
             ).first()
-            press_release_id = str(existing_summary._id) if existing_summary else None
+            press_release_id = str(
+                existing_summary._id) if existing_summary else None
 
             result = extract_from_press_release(
                 summary_text=summary_text,
@@ -1717,7 +1726,8 @@ L3 DETAILED:
             if result:
                 logger.info(
                     f"{LOG_PREFIX} :_extract_press_release_data: accession=%s step=extracted target=%s",
-                    accession_number, result.get('extracted', {}).get('target', 'N/A')
+                    accession_number, result.get(
+                        'extracted', {}).get('target', 'N/A')
                 )
                 log_and_print(
                     f"{LOG_PREFIX} :_extract_press_release_data: ✅ Press Release extraction completed and saved"

@@ -10,6 +10,8 @@ import os
 from typing import Optional, Dict, Any
 import json
 
+from .polygon_adv import get_adv
+
 logger = logging.getLogger(__name__)
 
 
@@ -430,6 +432,16 @@ Respond only with valid JSON.
                     document_text,
                     filing_data.get('company_name', 'Unknown Company')
                 )
+
+                target_ticker = company_details.get('target_ticker', '')
+                if target_ticker:
+                    try:
+                        adv_result = get_adv(target_ticker)
+                        company_details['adv_dollars_fmt'] = adv_result['adv_dollars_fmt']
+                        logger.info(f"ADV for {target_ticker}: {adv_result['adv_dollars_fmt']}")
+                    except Exception as adv_err:
+                        logger.warning(f"ADV lookup failed for ticker '{target_ticker}': {adv_err}")
+
                 filing_data['company_details'] = company_details
 
             # Update filing data based on analysis

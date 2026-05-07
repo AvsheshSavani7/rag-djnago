@@ -367,10 +367,12 @@ def main():
         )
         print("Generating combined 8-K + 99.1 summary via Claude...")
         result = summarize(combined_text, prompt=COMBINED_PROMPT)
+        result["summary_type"] = "combined"
         filename_prefix = "8K_99.1_Combined_Summary"
     else:
         print("No Exhibit 99.1 found — generating standard 8-K summary...")
         result = summarize(text_8k)
+        result["summary_type"] = "single"
         filename_prefix = "8K_Summary"
 
     print_summary(result)

@@ -157,6 +157,14 @@ def _build_company_details_rows(company_details):
         <td style="padding:8px; color:{cap_color}; font-weight:bold;">{escape_html(cap_text)}</td>
       </tr>
 """
+    adv_fmt = company_details.get('adv_dollars_fmt', '')
+    if adv_fmt:
+        html += f"""
+      <tr style="background-color:#f9f9f9;">
+        <td style="padding:8px; font-weight:bold; color:#555;">ADV ($):</td>
+        <td style="padding:8px; color:#333;">{escape_html(adv_fmt)}</td>
+      </tr>
+"""
     return html
 
 
