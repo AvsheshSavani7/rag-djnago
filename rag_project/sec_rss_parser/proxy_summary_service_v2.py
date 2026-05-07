@@ -377,6 +377,22 @@ class ProxySummaryServiceV2:
                     "QueryProcessor could not be initialized, skipping Q&A processing")
                 return ""
 
+            # Fetch base context chunks filtered by title before processing questions
+            title_filters = [
+                "QUESTIONS AND ANSWERS",
+                "QUESTIONS & ANSWERS",
+                "QUESTIONS AND ANSWERS ABOUT THE SPECIAL MEETING AND THE MERGER",
+                "QUESTIONS AND ANSWERS ABOUT THE SPECIAL MEETING",
+                "QUESTIONS AND ANSWERS ABOUT THE PROPOSALS AND THE SPECIAL MEETING",
+                "QUESTIONS AND ANSWERS ABOUT THE MERGER",
+                "QUESTIONS AND ANSWERS ABOUT THE MEETINGS",
+            ]
+            base_context_chunks = self._fetch_chunks_by_title_filter(
+                processor, sec_filing_summary_id, title_filters
+            )
+            logger.info(
+                f"Fetched {len(base_context_chunks)} base context chunks by title filter")
+
             all_summaries = []
 
             for question_key, question in questions_data.items():
@@ -385,14 +401,19 @@ class ProxySummaryServiceV2:
                     results = self._search_chunks_by_filing_id(
                         processor, question, sec_filing_summary_id)
 
-                    if not results:
+                    # Combine base context chunks with per-question results (deduplicated)
+                    combined_results = self._deduplicate_chunks(
+                        base_context_chunks + results
+                    )
+
+                    if not combined_results:
                         logger.warning(
                             f"No results found for question {question_key}")
                         continue
 
                     # Get Claude response
                     claude_answer = processor.get_claude_response(
-                        question, results)
+                        question, combined_results)
 
                     # Generate arbitrage summary
                     arb_summary = processor.generate_arb_summary(
@@ -525,6 +546,57 @@ class ProxySummaryServiceV2:
         except Exception as e:
             logger.error(f"Error searching general chunks: {str(e)}")
             return []
+
+    def _fetch_chunks_by_title_filter(self, processor, sec_filing_summary_id: str, title_filters: List[str], top_k: int = 1000) -> List[Dict]:
+        """Fetch all chunks for a sec_filing_summary_id, then manually filter by title"""
+        try:
+            if not hasattr(processor, 'index'):
+                logger.error("Processor does not have index attribute")
+                return []
+
+            dummy_vector = [0.0] * 3072
+            search_response = processor.index.query(
+                vector=dummy_vector,
+                top_k=top_k,
+                include_metadata=True,
+                filter={
+                    "sec_filing_summary_id": sec_filing_summary_id
+                }
+            )
+
+            logger.info(
+                f"Fetched {len(search_response.matches)} total chunks for sec_filing_summary_id={sec_filing_summary_id}")
+
+            # Manually filter: check if any title filter string is contained in the chunk's title
+            results = []
+            for match in search_response.matches:
+                chunk_title = match.metadata.get('title', '')
+                if any(tf.lower() in chunk_title.lower() for tf in title_filters):
+                    result = {
+                        'score': match.score,
+                        'text': match.metadata.get('original_text', ''),
+                        'title': chunk_title,
+                        'id': match.id
+                    }
+                    results.append(result)
+
+            logger.info(
+                f"After title filtering: {len(results)} chunks matched title filters")
+            return results
+        except Exception as e:
+            logger.error(
+                f"Error fetching chunks by title filter: {str(e)}", exc_info=True)
+            return []
+
+    def _deduplicate_chunks(self, chunks: List[Dict]) -> List[Dict]:
+        """Remove duplicate chunks by id"""
+        seen_ids = set()
+        deduplicated = []
+        for chunk in chunks:
+            if chunk['id'] not in seen_ids:
+                seen_ids.add(chunk['id'])
+                deduplicated.append(chunk)
+        return deduplicated
 
     def _create_docx_document(self, sec_filing_summary_id: str, qa_content: str, merger_background_results: Dict[str, Any]) -> str:
         """Create DOCX document combining Q&A and merger background"""

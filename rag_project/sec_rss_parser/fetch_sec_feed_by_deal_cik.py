@@ -87,6 +87,7 @@ logger = logging.getLogger(__name__)
 PROXY_FORM_TYPES = ["DEFM14A", "DEFM14C", "PREM14A",
                     "PREM14C", "S-4", "F-4", "S-4/A", "F-4/A"]
 TEN_K_TEN_Q_FORM_TYPES = ["10-K", "10-Q", "10-K/A"]
+EXCLUDED_FORM_TYPES = ["8-K", "4", "144", "S-8", "S-8 POS"]
 
 LOG_PREFIX = "form by cik: "
 
@@ -1280,9 +1281,9 @@ def process_items(items):
         # Skip 8-K form type entirely — handled by process_feed_8k.py which has
         # the full EX-2.1 qualification flow (document_kind, us_listed, market_cap).
         feed_form_type = (item_data.get("form_type") or "").strip().upper()
-        if feed_form_type == "8-K":
+        if feed_form_type in EXCLUDED_FORM_TYPES:
             log_and_print(
-                f"{LOG_PREFIX} :process_items: ⏭️ Skipping 8-K (handled by process_feed_8k.py): {item_data.get('title', 'N/A')[:80]}")
+                f"{LOG_PREFIX} :process_items: ⏭️ Skipping excluded form type {feed_form_type}: {item_data.get('title', 'N/A')[:80]}")
             continue
         acc = item_data.get("accession_number") or extract_accession_from_guid(
             item_data.get("guid"))

@@ -417,7 +417,7 @@ class RSSFeedService:
                         )
                         webhook_url = (
                             N8N_WEBHOOK_SEND_TO_ALL
-                            if subject.startswith("[NWB]")
+                            if subject.startswith("[NWB]") or subject.startswith("[NWT]")
                             else N8N_WEKHOOK_INTERNAL_WITH_JOSH
                         )
                         _send_rss_feed_email_via_webhook(
