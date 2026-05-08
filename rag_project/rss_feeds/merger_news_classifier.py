@@ -198,6 +198,7 @@ Return true ONLY if the primary purpose of the article is to announce:
 
 Return false if the article is only about:
 • Real estate purchases unrelated to acquiring a business,
+• Asset purchase agreements or asset-only transactions,
 • Partnerships or collaborations,
 • Financing or debt transactions,
 • Executive hires,
@@ -863,15 +864,18 @@ def resolve_rss_item_flow(
             )
             result["email_note"] = "new_deal_not_in_db"
 
-        target_ticker = (result.get("deal_info") or {}).get("target_ticker", "")
+        target_ticker = (result.get("deal_info") or {}
+                         ).get("target_ticker", "")
         if target_ticker:
             try:
                 from sec_rss_parser.polygon_adv import get_adv
                 adv_result = get_adv(target_ticker)
                 result["deal_info"]["adv_dollars_fmt"] = adv_result["adv_dollars_fmt"]
-                logger.info(f"ADV for {target_ticker}: {adv_result['adv_dollars_fmt']}")
+                logger.info(
+                    f"ADV for {target_ticker}: {adv_result['adv_dollars_fmt']}")
             except Exception as adv_err:
-                logger.warning(f"ADV lookup failed for ticker '{target_ticker}': {adv_err}")
+                logger.warning(
+                    f"ADV lookup failed for ticker '{target_ticker}': {adv_err}")
     else:
         result["deal_info"] = deal_info_from_extracted(
             p2, in_db=False, is_target_us_listed=is_us_listed, is_target_market_cap_gt_100m=is_market_cap_gt_100m

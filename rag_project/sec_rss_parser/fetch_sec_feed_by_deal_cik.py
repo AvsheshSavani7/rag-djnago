@@ -87,7 +87,8 @@ logger = logging.getLogger(__name__)
 PROXY_FORM_TYPES = ["DEFM14A", "DEFM14C", "PREM14A",
                     "PREM14C", "S-4", "F-4", "S-4/A", "F-4/A"]
 TEN_K_TEN_Q_FORM_TYPES = ["10-K", "10-Q", "10-K/A"]
-EXCLUDED_FORM_TYPES = ["8-K", "4", "144", "S-8", "S-8 POS"]
+EXCLUDED_FORM_TYPES = ["8-K", "4", "4/A", "144",
+                       "S-8", "S-8 POS", "SCHEDULE 13D/A", "SCHEDULE 13D"]
 
 LOG_PREFIX = "form by cik: "
 
