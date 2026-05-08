@@ -61,6 +61,8 @@ logger = logging.getLogger(__name__)
 
 # Constants
 N8N_WEBHOOK_URL_8K_SUMMARY = "https://n8n-xwx1.onrender.com/webhook/b3007d21-6845-47b5-aece-7b26583758bc"  # to avs/kd/josh
+N8N_WEBHOOK_URL_8K_SUMMARY_L123 = os.environ.get(
+    "N8N_WEBHOOK_SEND_TO_ALL", "https://n8n-xwx1.onrender.com/webhook/3ff1b0ea-7114-4dda-940e-95ce81e08017")  # to all
 N8N_WEBHOOK_URL_FILING = "https://n8n-xwx1.onrender.com/webhook/3ff1b0ea-7114-4dda-940e-95ce81e08017"  # to all
 N8N_WEBHOOK_URL_FOR_TESTING = "https://n8n-xwx1.onrender.com/webhook/80830c6d-ff5b-45e3-9ef3-a061db1fbf0c"  # only avshesh
 N8N_WEBHOOK_URL_PARSING_ERROR = "https://n8n-xwx1.onrender.com/webhook/80830c6d-ff5b-45e3-9ef3-a061db1fbf0c"
@@ -75,6 +77,9 @@ FORM_TYPES = ["8-k", "DEFM14A", "DEFM14C", "PREM14A", "PREM14C", "S-4",
               "S-4/A", "F-4", "F-4/A", "SC 14D9", "SC 14D9/A", "10-Q", "10-K"]
 PROXY_FORM_TYPES = ["DEFM14A", "DEFM14C", "PREM14A", "PREM14C", "S-4", "F-4"]
 PERIODIC_FORM_TYPES = ["8-K", "8-K/A", "10-Q", "10-K"]
+
+ALLOW_EMAIL_TO_CLIENT_FORM = ["DEFM14A", "DEFM14C", "PREM14A",
+                              "PREM14C", "S-4", "F-4", "S-4/A", "F-4/A", "10-K", "10-Q", "10-K/A", "425"]
 
 # Only consider deals with status Open or Unknown (or null/not set) when matching by CIK
 DEAL_STATUS_OPEN_OR_UNKNOWN = ["Open", "Unknown"]
@@ -256,6 +261,8 @@ def send_webhook_notification(webhook_url, payload, notification_type="notificat
                 f"❌ Response status: {e.response.status_code}, Response body: {e.response.text[:200]}", 'error')
         raise
 
+# Below fucntion is still use in new fetch form by cik flow
+
 
 def send_summary_email_via_webhook(summary_doc_url, company_name, form_type, cik_number, sec_url, accession_number, summary_kind: str, l1_headline: str = None, l2_brief: str = None, l3_detailed: str = None, ticker: str = None, filing_date=None, matched_cik_label: str = None, form_affects_deal: bool = None):
     """Generate 8-K/EX-99.1 summary email HTML and send via N8N testing webhook (includes .docx URL and L1 headline so user can see content without opening doc). Subject uses ticker if provided, else company_name. matched_cik_label is '(target)' or '(acquirer)' to show beside company name; form_affects_deal is set only for acquirer filings (LLM)."""
@@ -290,8 +297,14 @@ def send_summary_email_via_webhook(summary_doc_url, company_name, form_type, cik
             payload["matched_cik_label"] = matched_cik_label
         if form_affects_deal is not None:
             payload["form_affects_deal"] = form_affects_deal
+
+        webhook_url = (
+            N8N_WEBHOOK_URL_8K_SUMMARY_L123
+            if summary_kind in ALLOW_EMAIL_TO_CLIENT_FORM
+            else N8N_WEBHOOK_URL_8K_SUMMARY
+        )
         send_webhook_notification(
-            N8N_WEBHOOK_URL_8K_SUMMARY, payload, f"{summary_kind} summary email"
+            webhook_url, payload, f"{summary_kind} summary email"
         )
     except Exception as e:
         log_and_print(
@@ -308,7 +321,8 @@ def send_8k_summary_email(deal_id, company_name, form_type, cik_number, sec_url,
             object_id = ObjectId(deal_id)
             dma_summary = DealDmaSummary.objects(deal_id=object_id).first()
         except Exception as e:
-            log_and_print(f"Error retrieving deal_dma_summary for {deal_id}: {e}", 'error')
+            log_and_print(
+                f"Error retrieving deal_dma_summary for {deal_id}: {e}", 'error')
             return
 
         if not dma_summary or not dma_summary.summary_docx_url:
@@ -325,7 +339,8 @@ def send_8k_summary_email(deal_id, company_name, form_type, cik_number, sec_url,
             parsed = parse_dma_summary_docx(dma_summary.summary_docx_url)
             concise_sections = parsed.get("concise_sections")
         except Exception as parse_err:
-            log_and_print(f"Warning: could not parse DOCX for inline summary: {parse_err}", 'warning')
+            log_and_print(
+                f"Warning: could not parse DOCX for inline summary: {parse_err}", 'warning')
 
         # Generate email HTML
         subject, html_email = generate_8k_summary_email_html(
@@ -386,7 +401,8 @@ def generate_8k_summary_async(deal_id, company_name, form_type, cik_number, sec_
                 # Check if schema_results are available (from dedicated collection)
                 schema_record = None
                 try:
-                    schema_record = DealSchemaResults.objects(deal_id=object_id).first()
+                    schema_record = DealSchemaResults.objects(
+                        deal_id=object_id).first()
                 except Exception:
                     schema_record = None
 
@@ -568,7 +584,8 @@ def _extract_dma_data(deal_id, company_name, cik_number, accession_number, dma_s
             deal_id=ObjectId(deal_id)
         ).first()
 
-        dma_summary_id = str(dma_summary_record.id) if dma_summary_record else None
+        dma_summary_id = str(
+            dma_summary_record.id) if dma_summary_record else None
 
         summary_text = None
 
@@ -582,7 +599,8 @@ def _extract_dma_data(deal_id, company_name, cik_number, accession_number, dma_s
                         tmp_path = tmp.name
 
                     doc = docx.Document(tmp_path)
-                    paragraphs = [p.text for p in doc.paragraphs if p.text.strip()]
+                    paragraphs = [
+                        p.text for p in doc.paragraphs if p.text.strip()]
                     summary_text = "\n\n".join(paragraphs)
 
                     os.unlink(tmp_path)

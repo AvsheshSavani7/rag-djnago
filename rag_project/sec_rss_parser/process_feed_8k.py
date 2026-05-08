@@ -50,7 +50,7 @@ from .accession_lock import (
     mark_accession_processed,
     release_accession_lock,
 )
-
+import os
 logger = logging.getLogger(__name__)
 
 # Deal status constants
@@ -64,6 +64,8 @@ DEAL_STATUS_OPEN_OR_UNKNOWN = ["Open", "Unknown"]
 # N8N_WEBHOOK_URL_8K_SUMMARY = "https://n8n-xwx1.onrender.com/webhook/b3007d21-6845-47b5-aece-7b26583758bc" #me ,josh,kaushal
 # N8N_WEBHOOK_URL_FILING = "https://n8n-xwx1.onrender.com/webhook/3ff1b0ea-7114-4dda-940e-95ce81e08017" #all
 N8N_WEBHOOK_URL_8K_SUMMARY = "https://n8n-xwx1.onrender.com/webhook/b3007d21-6845-47b5-aece-7b26583758bc"
+N8N_WEBHOOK_URL_8K_SUMMARY_L123 = os.environ.get(
+    "N8N_WEBHOOK_SEND_TO_ALL", "https://n8n-xwx1.onrender.com/webhook/3ff1b0ea-7114-4dda-940e-95ce81e08017")
 N8N_WEBHOOK_URL_FILING = "https://n8n-xwx1.onrender.com/webhook/3ff1b0ea-7114-4dda-940e-95ce81e08017"
 MAX_DESCRIPTION_LENGTH = 50
 
@@ -1544,7 +1546,8 @@ class EightKFeedProcessor:
                 'email_company_name') or item_data.get('company_name') or ''
             matched_cik_label = item_data.get('matched_cik_label')
 
-            summary_kind = '8-K + EX-99.1' if summary_result.get('summary_type') == 'combined' else '8-K'
+            summary_kind = '8-K + EX-99.1' if summary_result.get(
+                'summary_type') == 'combined' else '8-K'
             subject, html_email = generate_8k_99_1_summary_email_html(
                 company_name=email_company_name,
                 form_type='8-K',
@@ -1555,10 +1558,11 @@ class EightKFeedProcessor:
                 summary_kind=summary_kind,
                 l1_headline=summary_result.get('L1_headline'),
                 l2_brief=summary_result.get('L2_brief'),
+                l3_detailed=summary_result.get('L3_detailed'),
                 ticker=ticker,
                 filing_date=filing_date,
                 matched_cik_label=matched_cik_label,
-                
+
             )
 
             payload = {
@@ -1573,7 +1577,7 @@ class EightKFeedProcessor:
             }
 
             send_webhook_notification(
-                N8N_WEBHOOK_URL_8K_SUMMARY, payload, "8-K summary email")
+                N8N_WEBHOOK_URL_8K_SUMMARY_L123, payload, "8-K summary email")
             logger.info(
                 f"{LOG_PREFIX} :_send_8k_summary_email: accession=%s step=sent", accession_number)
             log_and_print(
