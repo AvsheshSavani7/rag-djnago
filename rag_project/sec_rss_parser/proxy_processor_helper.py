@@ -8,7 +8,7 @@ Flow:
 3. process_sections_with_pinecone_v2() - uploads to Pinecone, updates SECFilingSummary.proxy
 4. generate_proxy_summary_v2() - generates summary doc, updates SECFilingSummary.proxy
 """
-from rag_project.rss_feeds.services import N8N_WEBHOOK_SEND_TO_ALL
+
 from sec_rss_parser.proxy_summary_service_v2 import ProxySummaryServiceV2
 from sec_rss_parser.sec_processor_and_pinecone_v2 import SectionProcessorV2
 from sec_rss_parser.agentic_sec_processor_v2 import AgenticSECProcessor
