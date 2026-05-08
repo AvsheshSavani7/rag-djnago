@@ -261,7 +261,7 @@ Generate a **bullet-point Q&A format** that is DOC-ready and suitable for an exe
             logger.info(f"Sending arbitrage summary request to Claude")
             response = self.claude_client.messages.create(
                 model=self.claude_model,
-                max_tokens=200,
+                max_tokens=512,
                 messages=[{"role": "user", "content": prompt}],
                 temperature=0,
                 timeout=120

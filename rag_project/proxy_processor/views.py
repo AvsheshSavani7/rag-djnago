@@ -19,8 +19,12 @@ from sec_rss_parser.websocket_service import SECWebSocketService
 from sec_rss_parser.models import SECFiling
 from proxy_processor.proxy_summary_service import ProxySummaryService
 from proxy_processor.proxy_docx_parser import parse_proxy_summary_docx
-
+import os
 logger = logging.getLogger(__name__)
+
+
+N8N_WEBHOOK_SEND_TO_ALL = os.environ.get(
+    "N8N_WEBHOOK_SEND_TO_ALL", "https://n8n-xwx1.onrender.com/webhook/3ff1b0ea-7114-4dda-940e-95ce81e08017")
 
 
 def _sync_proxy_to_sec_filing_summary(proxy_doc):
@@ -206,7 +210,7 @@ def send_summary_email_notification(proxy_doc):
         logger.info(f"Generated email subject: {subject}")
 
         # Send email via n8n webhook
-        webhook_url = "https://n8n-xwx1.onrender.com/webhook/3ff1b0ea-7114-4dda-940e-95ce81e08017"
+        webhook_url = N8N_WEBHOOK_SEND_TO_ALL
         logger.info(f"📤 Sending summary email via n8n webhook: {webhook_url}")
 
         # Prepare payload for n8n webhook

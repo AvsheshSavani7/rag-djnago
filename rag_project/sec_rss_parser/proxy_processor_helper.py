@@ -8,6 +8,7 @@ Flow:
 3. process_sections_with_pinecone_v2() - uploads to Pinecone, updates SECFilingSummary.proxy
 4. generate_proxy_summary_v2() - generates summary doc, updates SECFilingSummary.proxy
 """
+from rag_project.rss_feeds.services import N8N_WEBHOOK_SEND_TO_ALL
 from sec_rss_parser.proxy_summary_service_v2 import ProxySummaryServiceV2
 from sec_rss_parser.sec_processor_and_pinecone_v2 import SectionProcessorV2
 from sec_rss_parser.agentic_sec_processor_v2 import AgenticSECProcessor
@@ -30,6 +31,9 @@ django.setup()
 
 
 logger = logging.getLogger(__name__)
+
+N8N_WEBHOOK_SEND_TO_ALL = os.environ.get(
+    "N8N_WEBHOOK_SEND_TO_ALL", "https://n8n-xwx1.onrender.com/webhook/3ff1b0ea-7114-4dda-940e-95ce81e08017")
 
 
 def _parse_filing_date(value):
@@ -548,7 +552,7 @@ def _render_proxy_qa_html(qa_items: list, chronological_summary: list = None) ->
     if chronological_summary:
         chrono_rows = "".join(
             f'<p style="margin:0 0 0 14px; font-size:13px; line-height:1.6; color:#333;">'
-            f'<span style="font-weight:bold; margin-right:6px; color:#333;">+</span>{escape_html(line)}</p>'
+            f'{escape_html(line)}</p>'
             for line in chronological_summary
         )
         chrono_html = f"""
@@ -720,7 +724,7 @@ def send_summary_email_notification_v2(filing_summary):
         logger.info(f"Generated email subject: {subject}")
 
         # Send email via n8n webhook (same URL as old flow)
-        webhook_url = "https://n8n-xwx1.onrender.com/webhook/b3007d21-6845-47b5-aece-7b26583758bc"
+        webhook_url = N8N_WEBHOOK_SEND_TO_ALL
         logger.info(f"📤 Sending summary email via n8n webhook: {webhook_url}")
 
         # Prepare payload for n8n webhook
