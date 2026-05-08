@@ -84,6 +84,10 @@ def _deal_info_block(
         color = "#28a745" if val else "#dc3545"
         market_cap_line = f'<p style="margin:4px 0 0 0; font-size:12px; color:#555;">Target market cap &gt; $100M: <span style="color:{color}; font-weight:bold;">{escape_html(text)}</span></p>'
 
+    adv_line = ""
+    if deal_info.get("adv_dollars_fmt"):
+        adv_line = f'<p style="margin:4px 0 0 0; font-size:12px; color:#555;">ADV ($): <strong>{escape_html(deal_info["adv_dollars_fmt"])}</strong></p>'
+
     # Match details block (matched side + keywords)
     match_details_block = ""
     if match_details:
@@ -120,6 +124,7 @@ def _deal_info_block(
       {sec_line}
       {us_listed_line}
       {market_cap_line}
+      {adv_line}
       {f'<p style="margin:4px 0 0 0; font-size:11px; color:#888;">Deal ID: {deal_id}</p>' if deal_id else ''}
       {match_details_block}
     </div>"""

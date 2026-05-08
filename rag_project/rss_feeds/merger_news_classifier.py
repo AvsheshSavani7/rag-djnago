@@ -214,6 +214,8 @@ Return ONLY a JSON object with these exact keys (use null for unknown):
 - "is_it_self_announce_merger": true or false
 - "target_name": Legal name of the company being acquired
 - "acquire_name": Legal name of the acquiring company / parent / buyer
+- "target_ticker": Stock ticker symbol of the target company (e.g. "AAPL"). null if private or unknown.
+- "acquirer_ticker": Stock ticker symbol of the acquiring company (e.g. "MSFT"). null if private or unknown.
 - "cik": Target company CIK (10 digits, leading zeros) if public; otherwise null
 - "acquirer_cik": Acquirer company CIK (10 digits, leading zeros) if public; otherwise null
 - "announce_date": Official transaction announcement or signing date in YYYY-MM-DD format
@@ -438,6 +440,8 @@ def _normalize_p2_parsed(parsed: Dict[str, Any]) -> Dict[str, Any]:
         "is_it_self_announce_merger": False,
         "target_name": None,
         "acquire_name": None,
+        "target_ticker": None,
+        "acquirer_ticker": None,
         "cik": None,
         "acquirer_cik": None,
         "announce_date": None,
@@ -447,7 +451,7 @@ def _normalize_p2_parsed(parsed: Dict[str, Any]) -> Dict[str, Any]:
         return out
     out["is_it_self_announce_merger"] = bool(
         parsed.get("is_it_self_announce_merger"))
-    for key in ("target_name", "acquire_name", "cik", "acquirer_cik", "announce_date", "sec_ex_2_1_url"):
+    for key in ("target_name", "acquire_name", "target_ticker", "acquirer_ticker", "cik", "acquirer_cik", "announce_date", "sec_ex_2_1_url"):
         if key in parsed and parsed[key] is not None:
             out[key] = str(parsed[key]).strip() or None
     if out["cik"]:
@@ -506,6 +510,8 @@ Extract the following information. Return ONLY a JSON object with these exact ke
 
 - "target_name": Legal name of the company being acquired.
 - "acquire_name": Legal name of the acquiring company / parent / buyer.
+- "target_ticker": Stock ticker symbol of the target company (e.g. "AAPL"). null if private or unknown.
+- "acquirer_ticker": Stock ticker symbol of the acquiring company (e.g. "MSFT"). null if private or unknown.
 - "cik": Target company CIK (10 digits, leading zeros).
 - "acquirer_cik": Acquirer company CIK (10 digits, leading zeros).
 
@@ -542,6 +548,8 @@ def _parse_extract_response(text: str) -> Dict[str, Any]:
     out = {
         "target_name": None,
         "acquire_name": None,
+        "target_ticker": None,
+        "acquirer_ticker": None,
         "cik": None,
         "acquirer_cik": None,
         "sec_url": None,
@@ -584,6 +592,8 @@ def extract_new_deal_with_web_search(
         return {
             "target_name": None,
             "acquire_name": None,
+            "target_ticker": None,
+            "acquirer_ticker": None,
             "cik": None,
             "acquirer_cik": None,
             "sec_url": None,
@@ -598,7 +608,7 @@ def extract_new_deal_with_web_search(
             model="gpt-5.2",
             tools=[{"type": "web_search"}],
             input=prompt,
-            reasoning={"effort": "low"},
+            reasoning={"effort": "medium"},
         )
         result_text = None
         for item in response.output:
@@ -615,6 +625,8 @@ def extract_new_deal_with_web_search(
         return {
             "target_name": None,
             "acquire_name": None,
+            "target_ticker": None,
+            "acquirer_ticker": None,
             "cik": None,
             "acquirer_cik": None,
             "sec_url": None,
@@ -658,6 +670,8 @@ def create_deal_from_extracted(extracted: Dict[str, Any]) -> Optional[Any]:
     job = ProcessingJob(
         target_name=target_name,
         acquire_name=acquire_name,
+        target_ticker=extracted.get("target_ticker") or None,
+        acquirer_ticker=extracted.get("acquirer_ticker") or None,
         cik=extracted.get("cik") or None,
         acquirer_cik=extracted.get("acquirer_cik") or None,
         sec_url=extracted.get("sec_url") or None,
@@ -699,6 +713,8 @@ def get_deal_info_for_email(deal_id: str) -> Optional[Dict[str, Any]]:
         "id": str(job.id),
         "target_name": job.target_name or "",
         "acquire_name": job.acquire_name or "",
+        "target_ticker": job.target_ticker or "",
+        "acquirer_ticker": job.acquirer_ticker or "",
         "cik": job.cik or "",
         "acquirer_cik": job.acquirer_cik or "",
         "sec_url": job.sec_url or "",
@@ -719,6 +735,8 @@ def deal_info_from_extracted(
         "id": deal_id or "",
         "target_name": (extracted.get("target_name") or "").strip() or "—",
         "acquire_name": (extracted.get("acquire_name") or "").strip() or "—",
+        "target_ticker": extracted.get("target_ticker") or "",
+        "acquirer_ticker": extracted.get("acquirer_ticker") or "",
         "cik": extracted.get("cik") or "",
         "acquirer_cik": extracted.get("acquirer_cik") or "",
         "sec_url": sec_url,
@@ -737,6 +755,8 @@ def _extracted_to_create_payload(p2: Dict[str, Any]) -> Dict[str, Any]:
     return {
         "target_name": p2.get("target_name"),
         "acquire_name": p2.get("acquire_name"),
+        "target_ticker": p2.get("target_ticker"),
+        "acquirer_ticker": p2.get("acquirer_ticker"),
         "cik": p2.get("cik"),
         "acquirer_cik": p2.get("acquirer_cik"),
         "announce_date": p2.get("announce_date"),
@@ -842,6 +862,16 @@ def resolve_rss_item_flow(
                 p2, in_db=False, is_target_us_listed=is_us_listed, is_target_market_cap_gt_100m=is_market_cap_gt_100m
             )
             result["email_note"] = "new_deal_not_in_db"
+
+        target_ticker = (result.get("deal_info") or {}).get("target_ticker", "")
+        if target_ticker:
+            try:
+                from sec_rss_parser.polygon_adv import get_adv
+                adv_result = get_adv(target_ticker)
+                result["deal_info"]["adv_dollars_fmt"] = adv_result["adv_dollars_fmt"]
+                logger.info(f"ADV for {target_ticker}: {adv_result['adv_dollars_fmt']}")
+            except Exception as adv_err:
+                logger.warning(f"ADV lookup failed for ticker '{target_ticker}': {adv_err}")
     else:
         result["deal_info"] = deal_info_from_extracted(
             p2, in_db=False, is_target_us_listed=is_us_listed, is_target_market_cap_gt_100m=is_market_cap_gt_100m

@@ -779,6 +779,8 @@ def _render_concise_sections_html(concise_sections: list) -> str:
       {section_rows}
     </div>"""
 
+# From here we send ex-2.1 summary email
+
 
 def generate_8k_summary_email_html(company_name: str, form_type: str, summary_doc_url: str, cik_number: str, sec_url: str, accession_number: str, summary_kind: str = "8-K", concise_sections: list = None) -> tuple:
     """
@@ -837,12 +839,6 @@ def generate_8k_summary_email_html(company_name: str, form_type: str, summary_do
 
     {inline_summary_html}
 
-    <div style="text-align:center; margin:30px 0;">
-      <a href="{escape_html(summary_doc_url)}"
-         style="display:inline-block; background-color:#4a90e2; color:#ffffff; padding:15px 30px; text-decoration:none; border-radius:5px; font-size:16px; font-weight:bold; box-shadow:0 2px 4px rgba(0,0,0,0.2);">
-        Download Full Summary Document
-      </a>
-    </div>
 
    
     
@@ -851,6 +847,12 @@ def generate_8k_summary_email_html(company_name: str, form_type: str, summary_do
 </html>
 """
     return subject, html_email
+    # <div style="text-align:center; margin:30px 0;">
+    #   <a href="{escape_html(summary_doc_url)}"
+    #      style="display:inline-block; background-color:#4a90e2; color:#ffffff; padding:15px 30px; text-decoration:none; border-radius:5px; font-size:16px; font-weight:bold; box-shadow:0 2px 4px rgba(0,0,0,0.2);">
+    #     Download Full Summary Document
+    #   </a>
+    # </div>
 
 
 def _render_l3_value(key: str, value, level: int) -> str:
