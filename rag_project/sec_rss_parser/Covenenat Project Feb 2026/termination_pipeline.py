@@ -24,7 +24,8 @@ _PROJECT_ENV_PATH = _RAG_PROJECT_DIR / ".env"
 # =========================================================================
 
 def run_termination_pipeline_s3(url: str, accession_number: str, doc_type: str,
-                                deal_id: str = "", deal_name: str = ""):
+                                deal_id: str = "", deal_name: str = "",
+                                send_email: bool = True):
     """
     Run the full termination pipeline: scraping -> classify -> assess ->
     provision checks -> dashboard. All outputs go to S3; progress tracked
@@ -170,14 +171,15 @@ def run_termination_pipeline_s3(url: str, accession_number: str, doc_type: str,
 
         print(f"\n[Pipeline] Complete! Dashboard: {stage10_result['dashboard_html']}")
 
-        _send_dashboard_email(
-            dashboard_url=stage10_result["dashboard_html"],
-            deal_id=deal_id,
-            deal_name=deal_name,
-            accession_number=accession_number,
-            doc_type=doc_type,
-            sec_url=url,
-        )
+        if send_email:
+            _send_dashboard_email(
+                dashboard_url=stage10_result["dashboard_html"],
+                deal_id=deal_id,
+                deal_name=deal_name,
+                accession_number=accession_number,
+                doc_type=doc_type,
+                sec_url=url,
+            )
 
     except Exception as e:
         print(f"[Pipeline] ERROR: {e}")

@@ -15,7 +15,9 @@ from .views import (
     HighValueFollowersView,
     TweetsView,
     RedditPostsView,
-    RedditScraperTaskView
+    RedditScraperTaskView,
+    RegeneratePipelineView,
+    RegeneratePipelineStatusView,
 )
 
 urlpatterns = [
@@ -23,7 +25,8 @@ urlpatterns = [
     path('embed/', ProcessEmbeddingsView.as_view(), name='process_embeddings'),
     path('deals/', ListAllDealsView.as_view(), name='list_deals'),
     path('deals/all/', ListAllDealsNoPaginationView.as_view(), name='list_all_deals'),
-    path('deals/export/', ExportDealsExcelView.as_view(), name='export_deals_excel'),
+    path('deals/export/', ExportDealsExcelView.as_view(),
+         name='export_deals_excel'),
     path('deals/<str:id>/',
          ProcessingJobDetailView.as_view(), name='job_detail'),
     path('jobs/<str:job_id>/',
@@ -43,18 +46,28 @@ urlpatterns = [
     path('redditposts/<str:deal_id>/',
          RedditPostsView.as_view(), name='reddit_posts'),
     path('reddit-scraper/tasks/',
-         RedditScraperTaskView.as_view(), name='reddit_scraper_tasks')
+         RedditScraperTaskView.as_view(), name='reddit_scraper_tasks'),
+    path('regenerate/',
+         RegeneratePipelineView.as_view(), name='regenerate_pipeline'),
+    path('regenerate/<str:run_id>/',
+         RegeneratePipelineStatusView.as_view(), name='regenerate_status'),
+    path('regenerate/deal/<str:deal_id>/',
+         RegeneratePipelineStatusView.as_view(), name='regenerate_status_by_deal'),
 ]
 
 
-# /api/v1/process/  direct file upload
-# /api/v1/embed/  direct flattern file processing
-# /api/v1/deals/  list all deals
-# /api/v1/deals/<str:id>/  get deal by id
-# /api/v1/vectors/<str:deal_id>/  get vectors by deal id
-# /api/v1/vectors/update/<str:vector_id>/  update vector by id
-# /api/v1/chat/  chat with ai by deal id
-# /api/v1/summary/  generate summary by deal id
-# /api/v1/highvaluefollowers/<str:deal_id>/  get high value followers for a deal
-# /api/v1/tweets/<str:deal_id>/  get tweets for a deal
-# /api/v1/redditposts/<str:deal_id>/  get reddit posts for a deal
+# /api/files/process/                      direct file upload
+# /api/files/embed/                        direct flatten file processing
+# /api/files/deals/                        list all deals
+# /api/files/deals/<str:id>/               get deal by id
+# /api/files/vectors/<str:deal_id>/        get vectors by deal id
+# /api/files/vectors/update/<str:vector_id>/  update vector by id
+# /api/files/chat/                         chat with ai by deal id
+# /api/files/summary/                      generate summary by deal id
+# /api/files/summary/engine/               generate summary via engine
+# /api/files/regenerate/                   POST — start pipeline regeneration
+# /api/files/regenerate/<run_id>/          GET  — poll run progress by run_id
+# /api/files/regenerate/deal/<deal_id>/    GET  — poll latest run for a deal
+# /api/files/highvaluefollowers/<deal_id>/ get high value followers
+# /api/files/tweets/<deal_id>/             get tweets for a deal
+# /api/files/redditposts/<deal_id>/        get reddit posts for a deal

@@ -20,7 +20,8 @@ _PROJECT_ENV_PATH = _RAG_PROJECT_DIR / ".env"
 
 
 def run_covenant_pipeline_s3(url: str, accession_number: str,
-                             deal_id: str = "", deal_name: str = ""):
+                             deal_id: str = "", deal_name: str = "",
+                             send_email: bool = True):
     """
     Run the full covenant pipeline: scraping -> classify -> assess ->
     benchmark comparison -> provision checks -> dashboard.
@@ -171,13 +172,14 @@ def run_covenant_pipeline_s3(url: str, accession_number: str,
         print(
             f"\n[Covenant Pipeline] Complete! Dashboard: {stage10_result['dashboard_html']}")
 
-        _send_dashboard_email(
-            dashboard_url=stage10_result["dashboard_html"],
-            deal_id=deal_id,
-            deal_name=deal_name,
-            accession_number=accession_number,
-            sec_url=url,
-        )
+        if send_email:
+            _send_dashboard_email(
+                dashboard_url=stage10_result["dashboard_html"],
+                deal_id=deal_id,
+                deal_name=deal_name,
+                accession_number=accession_number,
+                sec_url=url,
+            )
 
     except Exception as e:
         print(f"[Covenant Pipeline] ERROR: {e}")

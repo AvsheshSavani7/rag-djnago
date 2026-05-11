@@ -1512,3 +1512,137 @@ class ExportDealsExcelView(APIView):
                 {'error': str(e)},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+
+
+class RegeneratePipelineView(APIView):
+    """
+    Admin endpoint to re-run any combination of deal pipelines.
+
+    POST /api/files/regenerate/
+    {
+        "deal_id": "69cbae4f640784d45bf14678",
+        "steps": ["embedding", "termination", "covenant"]
+    }
+    → Returns 202 with { run_id, plan, ... }
+
+    GET  /api/files/regenerate/<run_id>/
+    → Returns current progress of that run
+
+    GET  /api/files/regenerate/deal/<deal_id>/
+    → Returns the latest run for a deal (convenience)
+
+    Valid steps:
+        DMA cascade (selecting an earlier step implies all later ones):
+            parsing → embedding → schema → summary
+        Independent (run as selected):
+            termination, covenant, mae, entity_resolution
+    """
+
+    executor = concurrent.futures.ThreadPoolExecutor(max_workers=3)
+
+    def post(self, request, format=None):
+        from .regeneration_pipeline import (
+            ALL_VALID_STEPS,
+            resolve_execution_plan,
+            validate_steps,
+            run_regeneration_pipeline,
+            generate_run_id,
+            _create_run,
+        )
+
+        deal_id = request.data.get("deal_id")
+        steps = request.data.get("steps", [])
+
+        if not deal_id:
+            return Response(
+                {"error": "deal_id is required"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if not steps or not isinstance(steps, list):
+            return Response(
+                {"error": "steps is required and must be a non-empty array",
+                 "valid_steps": ALL_VALID_STEPS},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        invalid = validate_steps(steps)
+        if invalid:
+            return Response(
+                {"error": f"Invalid steps: {invalid}",
+                 "valid_steps": ALL_VALID_STEPS},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            object_id = ObjectId(deal_id)
+            ProcessingJob.objects.get(id=object_id)
+        except DoesNotExist:
+            return Response(
+                {"error": f"No deal found for deal_id {deal_id}"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        except Exception as e:
+            return Response(
+                {"error": f"Invalid deal_id: {str(e)}"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        plan = resolve_execution_plan(steps)
+        run_id = generate_run_id()
+        _create_run(run_id, deal_id, plan, steps)
+
+        self.executor.submit(run_regeneration_pipeline, deal_id, steps, run_id)
+
+        return Response(
+            {
+                "deal_id": deal_id,
+                "run_id": run_id,
+                "status": "processing",
+                "plan": plan,
+                "message": "Regeneration pipeline started in background.",
+            },
+            status=status.HTTP_202_ACCEPTED,
+        )
+
+
+class RegeneratePipelineStatusView(APIView):
+    """
+    Polling endpoints for regeneration pipeline progress.
+
+    GET /api/files/regenerate/<run_id>/       — status by run_id
+    GET /api/files/regenerate/deal/<deal_id>/ — latest run for a deal
+
+    Response includes `retry_after` (seconds) so the frontend knows
+    how long to wait before the next poll.
+    """
+
+    POLL_INTERVAL_PROCESSING = 10  # seconds between polls while running
+    POLL_INTERVAL_DONE = 0         # no more polling needed
+
+    def get(self, request, run_id=None, deal_id=None, format=None):
+        from .regeneration_pipeline import get_run_status, get_latest_run_for_deal
+
+        if run_id:
+            run = get_run_status(run_id)
+        elif deal_id:
+            run = get_latest_run_for_deal(deal_id)
+        else:
+            return Response(
+                {"error": "run_id or deal_id is required"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if not run:
+            return Response(
+                {"error": "No regeneration run found"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        is_running = run.get("status") == "processing"
+        data = {
+            **run,
+            "retry_after": self.POLL_INTERVAL_PROCESSING if is_running else self.POLL_INTERVAL_DONE,
+        }
+
+        return Response(data, status=status.HTTP_200_OK)
