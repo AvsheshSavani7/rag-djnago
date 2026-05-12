@@ -21,6 +21,7 @@ def _default_ten_k_ten_q() -> dict:
         "s3_comparison_json_url": None,
         "s3_redline_docx_url": None,
         "s3_client_report_docx_url": None,
+        "s3_change_report_docx_url": None,
         "s3_exec_summary_docx_url": None,
         "label": None,
         "period_date": None,
@@ -51,6 +52,7 @@ def _doc_to_record(doc: SECFilingSummary) -> dict:
         "local_comparison_json_path": tq.get("s3_comparison_json_url"),
         "local_redline_docx_path": tq.get("s3_redline_docx_url"),
         "local_client_report_docx_path": tq.get("s3_client_report_docx_url"),
+        "local_change_report_docx_path": tq.get("s3_change_report_docx_url"),
         "local_exec_summary_docx_path": tq.get("s3_exec_summary_docx_url"),
         "label": tq.get("label"),
         "period_date": tq.get("period_date"),
@@ -117,7 +119,8 @@ class SummaryDB:
                     "processed", "processed_at",
                     "s3_json_url", "s3_docx_url",
                     "s3_comparison_json_url", "s3_redline_docx_url",
-                    "s3_client_report_docx_url", "s3_exec_summary_docx_url",
+                    "s3_client_report_docx_url", "s3_change_report_docx_url",
+                    "s3_exec_summary_docx_url",
                 ):
                     tq[k] = v
                 elif k == "deal_id":
@@ -176,7 +179,8 @@ class SummaryDB:
                 "processed", "processed_at",
                 "s3_json_url", "s3_docx_url",
                 "s3_comparison_json_url", "s3_redline_docx_url",
-                "s3_client_report_docx_url", "s3_exec_summary_docx_url",
+                "s3_client_report_docx_url", "s3_change_report_docx_url",
+                "s3_exec_summary_docx_url",
             ):
                 tq[k] = v
             elif k == "deal_id":

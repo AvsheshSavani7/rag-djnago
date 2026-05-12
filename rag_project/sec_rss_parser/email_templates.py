@@ -989,6 +989,7 @@ def generate_8k_99_1_summary_email_html(company_name: str, form_type: str, summa
       <p style="margin:0; font-size:15px; font-weight:bold; color:#003366; line-height:1.5;">{escape_html(l2_brief.strip())}</p>
     </div>
 """
+
     # L3: dict → recursive by type (string / list of strings / list of objects); str → legacy single block
     l3_block = ""
     if l3_detailed is not None:
@@ -1439,14 +1440,12 @@ def generate_10k_10q_comparison_summary_email_html(
     filing_labels: list,
     s3_comparison_json_url: str,
     s3_exec_summary_docx_url: str,
-    s3_redline_docx_url: str = None,
-    s3_client_report_docx_url: str = None,
+    s3_change_report_docx_url: str = None,
     exec_summary_bullets: list = None,
-    redline_summary_items: list = None,
     filings: list = None,
     filer_ticker: str = None,
 ):
-    """Generate email HTML for 10-K/10-Q comparison final summary with JSON and DOCX links.
+    """Generate email HTML for 10-K/10-Q comparison final summary with DOCX link and executive summary.
     Includes SEC filings URL table (from filings list) above the executive summary.
     Returns (subject, html). Used after orchestrator comparison run."""
     company_esc = escape_html(target_company or ticker or "Unknown Company")
@@ -1461,7 +1460,6 @@ def generate_10k_10q_comparison_summary_email_html(
     if filing_labels and len(filing_labels) > 10:
         labels_line += " …"
 
-    redline_html = _render_redline_summary_html(redline_summary_items or [])
     exec_summary_html = _render_exec_summary_bullets_html(
         exec_summary_bullets or [])
 
@@ -1470,10 +1468,8 @@ def generate_10k_10q_comparison_summary_email_html(
     #     links.append(("Executive Summary (DOCX)", s3_exec_summary_docx_url))
     # if s3_comparison_json_url:
     #     links.append(("Comparison data (JSON)", s3_comparison_json_url))
-    if s3_redline_docx_url:
-        links.append(("Redline report (DOCX)", s3_redline_docx_url))
-    # if s3_client_report_docx_url:
-    #     links.append(("Client report (DOCX)", s3_client_report_docx_url))
+    if s3_change_report_docx_url:
+        links.append(("Change report (DOCX)", s3_change_report_docx_url))
 
     rows_html = "".join(
         f'<tr><td style="padding:8px; border:1px solid #ddd;"><a href="{escape_html(url)}" style="color:#4a90e2;" target="_blank">{escape_html(label)}</a></td></tr>'
@@ -1505,7 +1501,7 @@ def generate_10k_10q_comparison_summary_email_html(
       {exec_summary_html}
     </div>
 
-    <p style="color:#555;">Link to Redline report:</p>
+    <p style="color:#555;">Change report (download):</p>
     {links_table}
   </div>
 </body>

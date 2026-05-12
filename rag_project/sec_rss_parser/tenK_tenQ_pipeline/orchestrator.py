@@ -1,5 +1,13 @@
 """Main pipeline orchestrator: run_pipeline() — MongoDB + S3, importable entry point."""
 
+import json
+import logging
+import os
+import tempfile
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import List, Optional
+
 from sec_rss_parser.utils_10k_10q import N8N_WEBHOOK_URL_10K_10Q
 from sec_rss_parser.utils_8k import send_webhook_notification
 from sec_rss_parser.email_templates import generate_10k_10q_comparison_summary_email_html
@@ -11,88 +19,22 @@ from .models import DealContext
 from .html_parser import parse_html_to_paragraphs
 from .excerpts import generate_excerpts_json, load_excerpts, load_excerpts_from_url
 from .docx_builder import (
-    generate_client_report,
+    generate_change_report,
     generate_exec_summary_report,
     generate_full_comparison_json,
-    generate_redline_report,
     generate_single_filing_report_fulsome,
 )
 from .deal_context import fetch_deal_context
 from .config import BATCH_SIZE
-from .comparator import merge_results, run_recency_prioritized_comparison
+from .comparator import (
+    merge_results,
+    run_recency_prioritized_comparison,
+    run_single_pass_comparison,
+)
 from .assessor import assess_with_claude
-import json
-import logging
-import os
-import tempfile
-from datetime import datetime, timezone
-from pathlib import Path
-from typing import List, Optional
+from .prefilter import prefilter_with_haiku
 
 logger = logging.getLogger(__name__)
-
-
-def _build_redline_summary_items(merged_results: list, current_label: str = "", prior_label: str = "") -> list:
-    """Extract structured redline summary items from merged comparison results.
-    Returns a list of dicts consumed by _render_redline_summary_html in email_templates."""
-    items = []
-    for result in (merged_results or []):
-        active_passes = [
-            pk for pk in ["timing", "regulatory", "legal_language"]
-            if (result.get(pk) or {}).get("changed") or
-               (result.get(pk) or {}).get("match_type") == "new"
-        ]
-        if not active_passes:
-            continue
-
-        is_new = any(
-            (result.get(pk) or {}).get("match_type") == "new"
-            for pk in ["timing", "regulatory", "legal_language"]
-        )
-
-        prior_text = None
-        resolved_prior_label = prior_label
-        for pk in active_passes:
-            finding = result.get(pk) or {}
-            excerpts = finding.get("_prior_excerpts")
-            matched = finding.get("matched_prior", [])
-            if excerpts and matched:
-                lookup = {f"PRIOR-{i+1}": p for i, p in enumerate(excerpts)}
-                prior_data = lookup.get(matched[0])
-                if prior_data:
-                    prior_text = prior_data.get(
-                        "text", "").replace("\n", " ").strip()
-                    resolved_prior_label = finding.get(
-                        "_prior_label", prior_label)
-                    break
-
-        # Collect per-pass analysis text and notable phrase changes
-        analysis = {}
-        notable_changes = []
-        for pk in active_passes:
-            finding = result.get(pk) or {}
-            analysis_text = (finding.get("analysis") or "").strip()
-            if analysis_text:
-                analysis[pk] = analysis_text
-            if pk == "legal_language" and not notable_changes:
-                notable_changes = finding.get("notable_changes") or []
-
-        items.append({
-            "section":          result.get("section") or "",
-            "overall_severity": result.get("overall_severity", "none"),
-            "is_new":           is_new,
-            "active_passes":    active_passes,
-            "current_text":     result.get("text", "").replace("\n", " ").strip(),
-            "prior_text":       prior_text or "",
-            "current_label":    current_label,
-            "prior_label":      resolved_prior_label,
-            "notable_changes":  notable_changes,
-            "analysis":         analysis,
-        })
-    return items
-
-
-# Email for final comparison summary (JSON + DOCX URLs)
 
 
 def _get_ticker_for_deal(deal_id: str) -> str:
@@ -147,6 +89,8 @@ def run_pipeline(
     batch_size: int = BATCH_SIZE,
     skip_assessment: bool = False,
     filings: list = None,
+    single_pass: bool = True,
+    company_name: str = "",
 ) -> dict:
     """
     MongoDB + S3 pipeline. Only urls and deal_id are required.
@@ -155,20 +99,27 @@ def run_pipeline(
     2. Upsert all input URLs into SECFilingSummary (SummaryDB).
     3. Detect metadata for records missing it.
     4. Fetch deal context (cached by deal_id or Perplexity).
-    5. Process unprocessed filings: fetch → parse → score → assess → save excerpts + DOCX to temp → upload to S3 (10K_10Q/) → update ten_k_ten_q.
-    6. Run comparison: load excerpts from S3 URLs → generate reports to temp → upload to S3 → update newest record's ten_k_ten_q.
+    5. Process unprocessed filings: fetch → parse → haiku filter → score → assess →
+       save excerpts + DOCX to temp → upload to S3 (10K_10Q/) → update ten_k_ten_q.
+    6. Run comparison: load excerpts from S3 URLs → generate reports to temp →
+       upload to S3 → update newest record's ten_k_ten_q.
 
     Returns:
         {
             "processed": [urls newly processed],
             "skipped": [urls already processed],
-            "comparison_outputs": { "redline": s3_url|None, "client_report": ..., "comparison_json": ..., "exec_summary": ... }
+            "comparison_outputs": {
+                "change_report": s3_url|None,
+                "comparison_json": s3_url|None,
+                "exec_summary": s3_url|None,
+            }
         }
     """
     if env_path and env_path.exists():
         try:
             from dotenv import load_dotenv
-            load_dotenv(env_path)
+            # Make the given file authoritative (shell exports often block dotenv otherwise).
+            load_dotenv(env_path, override=True)
         except ImportError:
             pass
 
@@ -221,7 +172,8 @@ def run_pipeline(
                 "PERPLEXITY_API_KEY is required to fetch deal context")
         logger.info("10-K/10-Q pipeline: fetching deal context from Perplexity")
         print("\n[DEAL CONTEXT] Fetching from Perplexity...")
-        deal = fetch_deal_context(ticker, perplexity_key)
+        deal = fetch_deal_context(
+            ticker, perplexity_key, company_name=company_name)
         deal.save(deal_context_path)
         print(f"  {deal.target_company} / {deal.acquirer_company}")
     logger.info(
@@ -252,6 +204,10 @@ def run_pipeline(
         paragraphs = parse_html_to_paragraphs(html)
         print(f"  Parsed: {len(paragraphs)} paragraphs")
 
+        # Stage 1: Haiku pre-filter + keyword overrides
+        paragraphs = prefilter_with_haiku(paragraphs, deal, anthropic_key)
+
+        # Stage 2: Sonnet precise scoring on filtered subset
         logger.info(
             "10-K/10-Q pipeline: scoring %s paragraphs (Anthropic)", len(paragraphs))
         paragraphs = score_all_paragraphs(
@@ -316,13 +272,11 @@ def run_pipeline(
         "processed") and r.get("s3_json_url")]
 
     comparison_outputs: dict = {
-        "redline": None,
-        "client_report": None,
+        "change_report": None,
         "comparison_json": None,
         "exec_summary": None,
     }
 
-    # Only run comparison and send email when we have at least 2 processed filings.
     if len(processed_records) < 2:
         print(
             f"  Only {len(processed_records)} processed filing(s) — skipping comparison (no comparison summary, no email)")
@@ -331,8 +285,6 @@ def run_pipeline(
             pd = r.get("period_date") or ""
             if not pd or pd == "unknown":
                 pd = "0000-00-00"
-            # Amendments (e.g. 10-K/A) are filed after their base (10-K)
-            # and must sort later when period_date ties.
             is_amendment = 1 if "/A" in (r.get("filing_type") or "") else 0
             return (pd, is_amendment)
 
@@ -366,38 +318,54 @@ def run_pipeline(
             "acquirer": deal.acquirer_company,
         }
 
-        pass_results = run_recency_prioritized_comparison(
-            newest_excerpts, prior_filing_groups, deal_meta, anthropic_key
-        )
-        merged = merge_results(pass_results, newest_excerpts)
+        # Run comparison — auto-select single-pass vs three-pass
+        if single_pass:
+            all_prior_excerpts = [
+                e for _, excerpts in prior_filing_groups for e in excerpts]
+            est_tokens = sum(min(len(e.get("text", "")), 2500)
+                             for e in newest_excerpts) // 4
+            est_tokens += sum(min(len(e.get("text", "")), 2500)
+                              for e in all_prior_excerpts) // 4
+            est_tokens += 800
+
+            _MAX_SINGLE_PASS_TOKENS = 80_000
+            if est_tokens > _MAX_SINGLE_PASS_TOKENS:
+                print(
+                    f"  [Auto] Input too large (~{est_tokens:,} tokens) — falling back to three-pass")
+                pass_results, matched_pairs, new_disclosures = run_recency_prioritized_comparison(
+                    newest_excerpts, prior_filing_groups, deal_meta, anthropic_key
+                )
+            else:
+                pass_results, matched_pairs, new_disclosures = run_single_pass_comparison(
+                    newest_excerpts, prior_filing_groups, deal_meta, anthropic_key
+                )
+        else:
+            pass_results, matched_pairs, new_disclosures = run_recency_prioritized_comparison(
+                newest_excerpts, prior_filing_groups, deal_meta, anthropic_key
+            )
+
+        merged = merge_results(pass_results, matched_pairs, new_disclosures)
 
         all_comparison_steps = [{
             "current_label": newest_record.get("label", "current"),
             "prior_labels": [r.get("label", "") for r in prior_records],
             "merged_results": merged,
             "pass_results": pass_results,
-            "prior_filing_groups": prior_filing_groups,
+            "matched_pairs": matched_pairs,
+            "new_disclosures": new_disclosures,
         }]
 
         filing_labels = [r.get("label", "") for r in sorted_records]
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         base = f"{deal_id}_{timestamp}"
 
-        client_path = output_dir / f"{base}_client_report.docx"
-        generate_client_report(all_comparison_steps, deal,
-                               filing_labels, client_path)
-        s3_client = upload_file(
-            client_path,
-            f"comparison/{base}_client_report.docx",
-            content_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-        )
-
-        redline_path = output_dir / f"{base}_redline.docx"
-        generate_redline_report(all_comparison_steps,
-                                deal, filing_labels, redline_path)
-        s3_redline = upload_file(
-            redline_path,
-            f"comparison/{base}_redline.docx",
+        # Generate change report (new v2 report)
+        change_report_path = output_dir / f"{base}_change_report.docx"
+        generate_change_report(all_comparison_steps, deal,
+                               filing_labels, change_report_path)
+        s3_change = upload_file(
+            change_report_path,
+            f"comparison/{base}_change_report.docx",
             content_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
         )
 
@@ -420,32 +388,24 @@ def run_pipeline(
         )
 
         comparison_outputs = {
-            "redline": s3_redline,
-            "client_report": s3_client,
+            "change_report": s3_change,
             "comparison_json": s3_comparison,
             "exec_summary": s3_exec,
         }
 
         db.update(newest_record["_id"], {
             "s3_comparison_json_url": s3_comparison,
-            "s3_redline_docx_url": s3_redline,
-            "s3_client_report_docx_url": s3_client,
+            "s3_redline_docx_url": None,
+            "s3_client_report_docx_url": None,
+            "s3_change_report_docx_url": s3_change,
             "s3_exec_summary_docx_url": s3_exec,
         })
 
         sig = sum(1 for r in merged if r["overall_severity"] == "significant")
         print(f"\n  Comparison: {len(merged)} changes ({sig} significant)")
 
-        step0 = all_comparison_steps[0]
-        redline_summary_items = _build_redline_summary_items(
-            step0["merged_results"],
-            current_label=step0.get("current_label", ""),
-            prior_label=", ".join(step0.get("prior_labels", [])),
-        )
-
         filer_ticker = _resolve_filer_ticker(urls, deal_id)
 
-        # Send email for final summary with JSON and DOCX URLs (same pattern as utils_10k_10q)
         try:
             subject, html = generate_10k_10q_comparison_summary_email_html(
                 ticker=deal.ticker,
@@ -453,10 +413,8 @@ def run_pipeline(
                 filing_labels=filing_labels,
                 s3_comparison_json_url=s3_comparison,
                 s3_exec_summary_docx_url=s3_exec,
-                s3_redline_docx_url=s3_redline,
-                s3_client_report_docx_url=s3_client,
+                s3_change_report_docx_url=s3_change,
                 exec_summary_bullets=exec_bullets,
-                redline_summary_items=redline_summary_items,
                 filings=filings,
                 filer_ticker=filer_ticker,
             )
@@ -467,8 +425,7 @@ def run_pipeline(
                 "email_type": "10k_10q_comparison_summary",
                 "s3_comparison_json_url": s3_comparison,
                 "s3_exec_summary_docx_url": s3_exec,
-                "s3_redline_docx_url": s3_redline,
-                "s3_client_report_docx_url": s3_client,
+                "s3_change_report_docx_url": s3_change,
             }
             send_webhook_notification(
                 N8N_WEBHOOK_URL_10K_10Q, payload, "10-K/10-Q comparison summary email")

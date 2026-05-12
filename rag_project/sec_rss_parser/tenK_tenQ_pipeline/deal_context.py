@@ -9,7 +9,7 @@ from .config import DEAL_SETUP_PROMPT
 from .models import DealContext
 
 
-def fetch_deal_context(ticker: str, api_key: str) -> DealContext:
+def fetch_deal_context(ticker: str, api_key: str, company_name: str = "") -> DealContext:
     print(f"  Querying Perplexity for {ticker}...")
     response = requests.post(
         "https://api.perplexity.ai/chat/completions",
@@ -18,14 +18,15 @@ def fetch_deal_context(ticker: str, api_key: str) -> DealContext:
             "model": "sonar",
             "messages": [
                 {"role": "system", "content": DEAL_SETUP_PROMPT},
-                {"role": "user", "content": f"""{ticker} merger acquisition announcement 2024 2025 2026
+                {"role": "user", "content": f"""{ticker} {f'({company_name}) ' if company_name else ''}merger acquisition announcement 2024 2025 2026
 
-Search for recent merger or acquisition news involving {ticker}. Find:
-1. Who is acquiring {ticker}? What company or consortium?
+Search for recent merger, acquisition, or takeover news involving the US-listed company {f'{company_name} ' if company_name else ''}with ticker {ticker} (SEC filer). Include unsolicited bids or hostile proposals if any. Find:
+1. Who is acquiring {ticker}, or who has proposed to acquire them? What company or consortium?
 2. What is the merger subsidiary name?
 3. What is the deal value and per-share price?
 4. When was it announced and when is it expected to close?
-5. What regulatory approvals are required (HSR, CFIUS, etc.)?"""},
+5. What regulatory approvals are required (HSR, CFIUS, etc.)?
+6. Has the target adopted any defense measures (poison pill, rights plan)?"""},
             ],
             "temperature": 0.1,
         },

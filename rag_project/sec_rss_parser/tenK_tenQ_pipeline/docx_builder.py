@@ -1,7 +1,7 @@
 """DOCX generation: single-filing reports and multi-filing comparison reports."""
 
-import difflib
 import json
+import re
 from datetime import datetime
 from pathlib import Path
 from typing import List
@@ -43,55 +43,6 @@ def _shade_cell(cell, hex_color: str) -> None:
     tcPr.append(shd)
 
 
-def _set_cell_width(cell, width_inches: float) -> None:
-    """Set fixed column width on a table cell."""
-    tcPr = cell._tc.get_or_add_tcPr()
-    tcW = OxmlElement('w:tcW')
-    tcW.set(qn('w:w'), str(int(width_inches * 1440)))
-    tcW.set(qn('w:type'), 'dxa')
-    tcPr.append(tcW)
-
-
-def _add_diff_text(para, old_text: str, new_text: str, pt_size: int = 8) -> None:
-    """
-    Add word-level redline diff inline to a paragraph.
-    Deletions: red strikethrough. Insertions/replacements: green bold + highlight.
-    """
-    old_words = (old_text or "").split()
-    new_words = (new_text or "").split()
-    matcher = difflib.SequenceMatcher(None, old_words, new_words, autojunk=False)
-
-    for tag, i1, i2, j1, j2 in matcher.get_opcodes():
-        if tag == 'equal':
-            chunk = ' '.join(old_words[i1:i2])
-            if chunk:
-                r = para.add_run(chunk + ' ')
-                r.font.size = Pt(pt_size)
-        elif tag in ('replace', 'delete'):
-            old_chunk = ' '.join(old_words[i1:i2])
-            if old_chunk:
-                r = para.add_run(old_chunk + ' ')
-                r.font.size = Pt(pt_size)
-                r.font.strike = True
-                r.font.color.rgb = RGBColor(183, 28, 28)
-            if tag == 'replace':
-                new_chunk = ' '.join(new_words[j1:j2])
-                if new_chunk:
-                    r = para.add_run(new_chunk + ' ')
-                    r.font.size = Pt(pt_size)
-                    r.font.bold = True
-                    r.font.color.rgb = RGBColor(27, 94, 32)
-                    _apply_shading(r, 'C8E6C9')
-        elif tag == 'insert':
-            new_chunk = ' '.join(new_words[j1:j2])
-            if new_chunk:
-                r = para.add_run(new_chunk + ' ')
-                r.font.size = Pt(pt_size)
-                r.font.bold = True
-                r.font.color.rgb = RGBColor(27, 94, 32)
-                _apply_shading(r, 'C8E6C9')
-
-
 def _make_doc_base(deal: DealContext, filing_labels_str: str) -> Document:
     """Create a Document with standard header."""
     doc = Document()
@@ -111,6 +62,110 @@ def _make_doc_base(deal: DealContext, filing_labels_str: str) -> Document:
 
     doc.add_paragraph()
     return doc
+
+
+# =============================================================================
+# CHANGE REPORT CONSTANTS AND HELPERS
+# =============================================================================
+
+_SEVERITY_GROUPS = {
+    "significant": ("SIGNIFICANT CHANGES", COLOR_SIGNIFICANT, RGBColor(183, 28, 28)),
+    "moderate":    ("MODERATE CHANGES",    COLOR_MODERATE,    RGBColor(230, 81, 0)),
+    "minor":       ("MINOR CHANGES",       COLOR_MINOR,       RGBColor(156, 110, 0)),
+    "new":         ("NEW DISCLOSURES",     COLOR_NEW,         RGBColor(27, 94, 32)),
+}
+
+_PASS_COLORS = {
+    "timing":         (RGBColor(21, 101, 192), "TIMING"),
+    "regulatory":     (RGBColor(173, 20, 87),  "REGULATORY"),
+    "legal_language": (RGBColor(156, 110, 0),  "LEGAL LANGUAGE"),
+}
+
+_TIER1_SECTION_PATTERNS = [
+    re.compile(r'\bnote\s+\d', re.IGNORECASE),
+    re.compile(r'financial statements', re.IGNORECASE),
+    re.compile(r'risk\s+factors?', re.IGNORECASE),
+    re.compile(r'\bitem\s+1a\b', re.IGNORECASE),
+]
+_TIER2_SECTION_PATTERNS = [
+    re.compile(r"management.s discussion", re.IGNORECASE),
+    re.compile(r'\bmd&?a\b', re.IGNORECASE),
+    re.compile(r'\bitem\s+2\b', re.IGNORECASE),
+]
+_RISK_FACTOR_PAT = re.compile(r'risk\s+factors?|item\s+1a', re.IGNORECASE)
+
+
+def _classify_section_tier(section: str, text: str = "") -> int:
+    """1 = merger note / risk factors, 2 = MD&A, 3 = other."""
+    for pat in _TIER1_SECTION_PATTERNS:
+        if pat.search(section):
+            return 1
+    for pat in _TIER2_SECTION_PATTERNS:
+        if pat.search(section):
+            return 2
+    return 3
+
+
+def _section_tier_label(section: str) -> str:
+    if _RISK_FACTOR_PAT.search(section):
+        return "RISK FACTORS"
+    for pat in _TIER1_SECTION_PATTERNS:
+        if pat.search(section):
+            return "MERGER NOTE"
+    for pat in _TIER2_SECTION_PATTERNS:
+        if pat.search(section):
+            return "MD&A"
+    return "OTHER"
+
+
+def _pass_priority(result: dict) -> int:
+    """0 = timing/regulatory fired (highest), 1 = legal_language only."""
+    for pk in ["timing", "regulatory"]:
+        if (result.get(pk) or {}).get("changed"):
+            return 0
+    return 1
+
+
+def _render_group_header(doc, label: str, bg_hex: str, fg_color) -> None:
+    p = doc.add_paragraph()
+    p.paragraph_format.space_before = Pt(12)
+    p.paragraph_format.space_after = Pt(6)
+    run = p.add_run(f"  {label}  ")
+    _apply_shading(run, bg_hex)
+    run.bold = True
+    run.font.size = Pt(11)
+    run.font.color.rgb = fg_color
+
+
+def _render_item_header(doc, num: int, result: dict, sev_key: str) -> None:
+    sev_label = "NEW" if sev_key == "new" else result.get("overall_severity", "none").upper()
+    bg_hex = {
+        "significant": COLOR_SIGNIFICANT, "moderate": COLOR_MODERATE,
+        "minor": COLOR_MINOR, "new": COLOR_NEW,
+    }.get(sev_key, COLOR_UNCHANGED)
+    txt_color = _SEVERITY_GROUPS.get(sev_key, ("", "", RGBColor(80, 80, 80)))[2]
+
+    p = doc.add_paragraph()
+    p.paragraph_format.space_before = Pt(8)
+    tag = p.add_run(f" {num}. [{sev_label}] ")
+    _apply_shading(tag, bg_hex)
+    tag.bold = True
+    tag.font.size = Pt(9)
+    tag.font.color.rgb = txt_color
+
+    section = result.get("section", "")[:60]
+    if section:
+        sec_run = p.add_run(f"  {section}")
+        sec_run.font.size = Pt(8)
+        sec_run.font.color.rgb = RGBColor(120, 120, 120)
+
+
+def _resolve_prior_label(result: dict, prior_labels: list) -> str:
+    for pk in ["timing", "regulatory", "legal_language"]:
+        finding = result.get(pk) or {}
+        if "_prior_label" in finding:
+            return finding["_prior_label"]
+    return ", ".join(prior_labels)
 
 
 # =============================================================================
@@ -284,141 +339,436 @@ def generate_single_filing_report_concise(
 # MULTI-FILING COMPARISON REPORTS
 # =============================================================================
 
-def generate_client_report(
+def generate_change_report(
     all_comparison_steps: list,
     deal: DealContext,
     filing_labels: List[str],
     output_path: Path,
 ) -> None:
-    """Generate a clean client-ready DOCX showing only new/changed findings."""
-    doc = _make_doc_base(deal, ' → '.join(filing_labels))
+    """
+    Generate a change report DOCX — what changed between filings.
+    Findings grouped by severity, each with current/prior text quotes and factual analysis.
+    """
+    doc = Document()
+    style = doc.styles['Normal']
+    style.font.name = 'Arial'
+    style.font.size = Pt(10)
+    style.paragraph_format.space_after = Pt(6)
+    style.paragraph_format.line_spacing = 1.15
 
-    PASS_COLORS = {
-        "timing":         (RGBColor(21, 101, 192), "TIMING"),
-        "regulatory":     (RGBColor(173, 20, 87), "REGULATORY"),
-        "legal_language": (RGBColor(156, 110, 0), "LEGAL LANGUAGE"),
-    }
+    hdr = doc.add_paragraph()
+    r = hdr.add_run(f"{deal.acquirer_company} / {deal.target_company} ({deal.ticker})")
+    r.font.size = Pt(13)
+    r.bold = True
+
+    fl = doc.add_paragraph()
+    r = fl.add_run(' → '.join(filing_labels))
+    r.font.size = Pt(9)
+    r.font.color.rgb = RGBColor(80, 80, 80)
+
+    doc.add_paragraph()
 
     for step_idx, step in enumerate(all_comparison_steps):
         current_label = step["current_label"]
         prior_labels = step["prior_labels"]
         merged = step["merged_results"]
 
-        doc.add_heading(f"{current_label}  vs  {', '.join(prior_labels)}", 1)
+        if len(prior_labels) == 1:
+            heading_text = f"{current_label}  vs  {prior_labels[0]}"
+        else:
+            primary = prior_labels[-1]
+            context = ", ".join(prior_labels[:-1])
+            heading_text = f"{current_label}  vs  {primary}  (with {context})"
+        doc.add_heading(heading_text, 1)
 
         if not merged:
-            np = doc.add_paragraph()
-            np.add_run("No material changes detected.").font.size = Pt(10)
-            np.runs[0].font.color.rgb = RGBColor(100, 100, 100)
+            p = doc.add_paragraph()
+            r = p.add_run("No material changes detected.")
+            r.font.size = Pt(10)
+            r.font.color.rgb = RGBColor(100, 100, 100)
             doc.add_paragraph()
             continue
 
         sig = sum(1 for r in merged if r["overall_severity"] == "significant")
         mod = sum(1 for r in merged if r["overall_severity"] == "moderate")
         minor_ct = sum(1 for r in merged if r["overall_severity"] == "minor")
-        new_ct = sum(1 for r in merged
-                     if any((r.get(k) or {}).get("match_type") == "new"
-                            for k in ["timing", "regulatory", "legal_language"]))
+        new_ct = sum(1 for r in merged if r.get("is_new", False))
 
         stat = doc.add_paragraph()
-        stat.add_run(
-            f"{len(merged)} item(s): {sig} significant, {mod} moderate, "
-            f"{minor_ct} minor, {new_ct} new disclosure(s)"
-        ).font.size = Pt(9)
-        doc.add_paragraph()
+        stat.paragraph_format.space_after = Pt(8)
+        parts = []
+        if sig: parts.append(f"{sig} significant")
+        if mod: parts.append(f"{mod} moderate")
+        if minor_ct: parts.append(f"{minor_ct} minor")
+        if new_ct: parts.append(f"{new_ct} new disclosure(s)")
+        sr = stat.add_run(f"{len(merged)} change(s) found: {', '.join(parts)}")
+        sr.font.size = Pt(9)
+        sr.bold = True
 
-        for idx, result in enumerate(merged, 1):
-            severity = result["overall_severity"]
-            is_new = any(
-                (result.get(k) or {}).get("match_type") == "new"
-                for k in ["timing", "regulatory", "legal_language"]
+        # Boilerplate detection for "mostly new" comparisons
+        total_ct = len(merged)
+        new_disc_ct = sum(1 for r in merged if r.get("is_new", False))
+        mostly_new = total_ct > 0 and new_disc_ct > total_ct * 0.7
+
+        if mostly_new:
+            _substance_patterns = [
+                re.compile(r'\$[\d,.]+\s*(million|billion|per share|in cash)', re.IGNORECASE),
+                re.compile(r'\$\s*\d+\s', re.IGNORECASE),
+                re.compile(r'(january|february|march|april|may|june|july|august|september|october|november|december)\s+\d{1,2},?\s+\d{4}', re.IGNORECASE),
+                re.compile(r'\b(HSR|antitrust|money transmitter|CFIUS|FTC|DOJ)\b', re.IGNORECASE),
+                re.compile(r'\b(termination fee|break.?up fee|reverse termination)\b', re.IGNORECASE),
+                re.compile(r'\b(per share|consideration of|exchange ratio)\b', re.IGNORECASE),
+                re.compile(r'\b(waiver|consent solicitation|supplemental indenture)\b', re.IGNORECASE),
+                re.compile(r'\b(downgrad|rating|Fitch|Moody|S&P|AM Best)\b', re.IGNORECASE),
+                re.compile(r'\b(complaint|lawsuit|injunction|demand letter)\b', re.IGNORECASE),
+                re.compile(r'\b(transaction costs?|acquisition.related costs?|deal (costs?|expenses?))\b', re.IGNORECASE),
+                re.compile(r'\b(EBITDA|adjusted ebitda|non.?GAAP)\b', re.IGNORECASE),
+                re.compile(r'\b(indebtedness|debt incurrence|debt covenant)\b', re.IGNORECASE),
+            ]
+            _boilerplate_markers = [
+                re.compile(r'forward.looking\s+statement', re.IGNORECASE),
+                re.compile(r'safe\s+harbor', re.IGNORECASE),
+                re.compile(r'^exhibit\s+(index|listing)', re.IGNORECASE),
+            ]
+
+            def _has_substance(result_item):
+                text = (result_item.get("text") or "")
+                analysis_text = ""
+                for pk in ["timing", "regulatory", "legal_language"]:
+                    a = ((result_item.get(pk) or {}).get("analysis") or "")
+                    analysis_text += " " + a
+                combined = text + " " + analysis_text
+                if any(bp.search(combined) for bp in _boilerplate_markers):
+                    if not any(sp.search(combined) for sp in _substance_patterns):
+                        return False
+                substance_hits = sum(1 for sp in _substance_patterns if sp.search(combined))
+                return substance_hits >= 1
+
+            for result in merged:
+                if result.get("is_new", False) and result["overall_severity"] in ("significant", "moderate"):
+                    if not _has_substance(result):
+                        result["_original_severity"] = result["overall_severity"]
+                        result["overall_severity"] = "minor"
+
+        severity_groups = {
+            "significant": [], "moderate": [], "minor": [], "new": [],
+        }
+        for result in merged:
+            if result.get("is_new") and result["overall_severity"] == "none":
+                severity_groups["new"].append(result)
+            elif result["overall_severity"] in severity_groups:
+                severity_groups[result["overall_severity"]].append(result)
+            else:
+                if any((result.get(pk) or {}).get("changed") for pk in ["timing", "regulatory", "legal_language"]):
+                    severity_groups["minor"].append(result)
+
+        for sev_key in severity_groups:
+            severity_groups[sev_key].sort(
+                key=lambda r: (
+                    _classify_section_tier(r.get("section", ""), r.get("text", "")),
+                    _pass_priority(r),
+                )
             )
 
-            header_p = doc.add_paragraph()
-            sev_label = "NEW" if is_new and severity == "none" else severity.upper()
-            bg_color = COLOR_NEW if (is_new and severity == "none") else {
-                "significant": COLOR_SIGNIFICANT, "moderate": COLOR_MODERATE,
-                "minor": COLOR_MINOR,
-            }.get(severity, COLOR_UNCHANGED)
-            txt_color = (
-                RGBColor(27, 94, 32) if (is_new and severity == "none")
-                else {
-                    "significant": RGBColor(183, 28, 28),
-                    "moderate": RGBColor(230, 81, 0),
-                    "minor": RGBColor(156, 110, 0),
-                }.get(severity, RGBColor(120, 120, 120))
-            )
+        item_num = 0
+        for sev_key in ["significant", "moderate", "minor", "new"]:
+            items = severity_groups[sev_key]
+            if not items:
+                continue
 
-            tag = header_p.add_run(f" {idx}. [{sev_label}] ")
-            _apply_shading(tag, bg_color)
-            tag.bold = True; tag.font.size = Pt(9); tag.font.color.rgb = txt_color
+            group_label, group_bg, group_fg = _SEVERITY_GROUPS[sev_key]
+            _render_group_header(doc, group_label, group_bg, group_fg)
 
-            sec = header_p.add_run(f"  {result.get('section', '')[:60]}")
-            sec.font.size = Pt(8); sec.font.color.rgb = RGBColor(120, 120, 120)
+            for result in items:
+                item_num += 1
+                is_new = result.get("is_new", False)
 
-            clause_text = result.get("text", "").replace('\n', ' ').replace('  ', ' ').strip()
-            if clause_text:
-                clause_p = doc.add_paragraph()
-                clause_p.paragraph_format.left_indent = Inches(0.25)
-                clause_p.paragraph_format.space_before = Pt(4)
-                clause_label = clause_p.add_run("Filing text: ")
-                clause_label.bold = True
-                clause_label.font.size = Pt(8)
-                clause_label.font.color.rgb = RGBColor(80, 80, 80)
-                clause_r = clause_p.add_run(clause_text)
-                clause_r.font.size = Pt(8)
-                clause_r.font.color.rgb = RGBColor(50, 50, 50)
+                active_passes = [
+                    pk for pk in ["timing", "regulatory", "legal_language"]
+                    if (result.get(pk) or {}).get("changed")
+                ]
 
-            for pass_key, (color, label) in PASS_COLORS.items():
-                finding = result.get(pass_key)
-                if not finding:
-                    continue
-                if not finding.get("changed") and finding.get("match_type") != "new":
-                    continue
+                _render_item_header(doc, item_num, result, sev_key)
 
-                fp = doc.add_paragraph()
-                fp.paragraph_format.left_indent = Inches(0.15)
-                lr = fp.add_run(f"{label}: ")
-                lr.bold = True; lr.font.size = Pt(9); lr.font.color.rgb = color
-                ar = fp.add_run(finding.get("analysis", ""))
-                ar.font.size = Pt(9)
+                _skip_starts = {"this is", "this represents", "this reflects",
+                                "significantly", "importantly", "notably",
+                                "critically", "most notably", "it reveals",
+                                "this was not"}
+                _skip_contains = {"is notable", "is a deliberate", "is significant",
+                                  "is a material", "a lawyer may", "a lawyer would",
+                                  "may have done", "may have made",
+                                  "minor punctuation", "represents a significant",
+                                  "significantly expanded"}
+                _novelty_prefixes = [
+                    "new disclosure ", "new disclosure of ", "new disclosure establishes ",
+                    "new disclosure reaffirms ", "new disclosure confirming ",
+                    "new risk factor ", "new risk factor disclosure ",
+                    "new risk factor header ", "new risk factor paragraph ",
+                    "new paragraph ", "new exhibit ",
+                    "new md&a ", "new md&a paragraph ",
+                    "new note ", "new forward-looking statement ",
+                    "entirely new ", "entirely new paragraph ",
+                    "entirely new note ", "entirely new section ",
+                    "new non-gaap ",
+                    "first-time disclosure of ",
+                    "continuation of ",
+                    "standalone exhibit reference to ",
+                ]
 
-                if pass_key == "legal_language":
-                    for change in (finding.get("notable_changes") or [])[:5]:
+                def _is_factual(sent_text):
+                    low = sent_text.lower()
+                    if any(low.startswith(s) for s in _skip_starts):
+                        return False
+                    if any(phrase in low for phrase in _skip_contains):
+                        return False
+                    return True
+
+                def _strip_novelty(sent_text):
+                    result_text = sent_text
+                    low = result_text.lower()
+                    for prefix in _novelty_prefixes:
+                        if low.startswith(prefix):
+                            result_text = result_text[len(prefix):]
+                            low = result_text.lower()
+                            break
+                    _leftover = ["of ", "that ", "the ", "header ", "listing ",
+                                 "reference ", "paragraph ", "section ",
+                                 "confirming ", "disclosing ", "establishing "]
+                    for lo in _leftover:
+                        if low.startswith(lo):
+                            result_text = result_text[len(lo):]
+                            break
+                    if len(result_text) > 20 and result_text != sent_text:
+                        return result_text[0].upper() + result_text[1:]
+                    return sent_text
+
+                def _clean_sentence(sent_text):
+                    cleaned = _strip_novelty(sent_text)
+                    if _is_factual(cleaned):
+                        return cleaned
+                    return ""
+
+                def _first_factual(text):
+                    for sent in text.split(". "):
+                        sent = sent.strip().rstrip(".")
+                        if not sent or len(sent) < 15:
+                            continue
+                        result_sent = _clean_sentence(sent)
+                        if result_sent:
+                            return result_sent.rstrip(".") + "."
+                    return ""
+
+                summary_sentence = ""
+                for pk in ["timing", "regulatory"]:
+                    if pk not in active_passes:
+                        continue
+                    a = ((result.get(pk) or {}).get("analysis") or "").strip()
+                    if a:
+                        summary_sentence = _first_factual(a)
+                    if summary_sentence:
+                        break
+
+                if not summary_sentence:
+                    ll_f = result.get("legal_language") or {}
+                    nc_list = ll_f.get("notable_changes") or []
+
+                    def _headline_score(nc):
+                        old_p = nc.get("old_phrase", "") or ""
+                        new_p = nc.get("new_phrase", "") or ""
+                        interp_l = (nc.get("interpretation", "") or "").lower()
+                        s = len(old_p) + len(new_p)
+                        if any(t in interp_l for t in ["note number", "numbering", "formatting",
+                                "defined term", "stylistic", "reorder", "renumber"]):
+                            s *= 0.1
+                        if any(k in interp_l for k in ["filing", "approval", "settlement", "closing",
+                                "timeline", "regulatory", "hearing", "clearance", "expired",
+                                "antitrust", "ferc", "mpsc", "hsr", "sec ", "s-4", "proxy"]):
+                            s *= 3.0
+                        if old_p and new_p:
+                            _strip_h = lambda t: set(re.sub(r'[^\w\s]', '', t.lower()).split())
+                            ow = _strip_h(old_p)
+                            nw = _strip_h(new_p)
+                            if ow and nw and len(ow & nw) / max(len(ow), len(nw)) > 0.85:
+                                s *= 0.05
+                        if old_p and not new_p:
+                            s *= 0.2
+                        return s
+
+                    nc_sorted = sorted(nc_list, key=_headline_score, reverse=True)
+                    for nc in nc_sorted[:3]:
+                        interp = (nc.get("interpretation") or "").strip()
+                        if interp and len(interp) > 15:
+                            candidate = _first_factual(interp)
+                            if candidate:
+                                summary_sentence = candidate
+                                break
+
+                if not summary_sentence and "legal_language" in active_passes:
+                    a = ((result.get("legal_language") or {}).get("analysis") or "").strip()
+                    if a:
+                        summary_sentence = _first_factual(a)
+
+                _MAX_HEADLINE = 350
+                if summary_sentence and len(summary_sentence) > _MAX_HEADLINE:
+                    truncated = summary_sentence[:_MAX_HEADLINE].rsplit(" ", 1)[0]
+                    summary_sentence = truncated.rstrip(".,;:—") + "..."
+
+                if summary_sentence:
+                    sp = doc.add_paragraph()
+                    sp.paragraph_format.left_indent = Inches(0.15)
+                    sp.paragraph_format.space_before = Pt(2)
+                    sp.paragraph_format.space_after = Pt(4)
+                    sr = sp.add_run(summary_sentence)
+                    sr.font.size = Pt(10)
+                    sr.bold = True
+
+                prior_lbl = _resolve_prior_label(result, prior_labels)
+                ll = result.get("legal_language") or {}
+                notable = ll.get("notable_changes") or []
+                has_phrase_quotes = any(
+                    (c.get("old_phrase") or "").strip() or (c.get("new_phrase") or "").strip()
+                    for c in notable
+                )
+
+                def _score_notable_change(nc: dict) -> float:
+                    old_p = nc.get("old_phrase", "") or ""
+                    new_p = nc.get("new_phrase", "") or ""
+                    interp = (nc.get("interpretation", "") or "").lower()
+                    score = len(old_p) + len(new_p)
+                    for t in ["note number", "numbering", "formatting", "defined term",
+                              "stylistic", "reorder", "renumber"]:
+                        if t in interp:
+                            score *= 0.1
+                            break
+                    for s in ["filing", "approval", "settlement", "closing", "timeline",
+                              "regulatory", "hearing", "clearance", "expired", "antitrust",
+                              "ferc", "mpsc", "hsr", "sec ", "s-4", "proxy"]:
+                        if s in interp:
+                            score *= 3.0
+                            break
+                    if old_p and new_p:
+                        _strip_fn = lambda s: set(re.sub(r'[^\w\s]', '', s.lower()).split())
+                        old_words = _strip_fn(old_p)
+                        new_words = _strip_fn(new_p)
+                        if old_words and new_words:
+                            overlap = len(old_words & new_words) / max(len(old_words), len(new_words))
+                            if overlap > 0.85:
+                                score *= 0.05
+                    if old_p and not new_p:
+                        score *= 0.2
+                    return score
+
+                if has_phrase_quotes:
+                    ranked = sorted(notable, key=_score_notable_change, reverse=True)
+                    for change in ranked[:2]:
+                        old_p = (change.get("old_phrase") or "").strip()
+                        new_p = (change.get("new_phrase") or "").strip()
+                        if not old_p and not new_p:
+                            continue
+                        if new_p:
+                            cp = doc.add_paragraph()
+                            cp.paragraph_format.left_indent = Inches(0.25)
+                            cp.paragraph_format.space_before = Pt(2)
+                            cp.paragraph_format.space_after = Pt(1)
+                            cl = cp.add_run(f"{current_label}: ")
+                            cl.bold = True; cl.font.size = Pt(8)
+                            cl.font.color.rgb = RGBColor(140, 140, 140)
+                            ct = cp.add_run(f'"{new_p}"')
+                            ct.font.size = Pt(8)
+                            ct.font.color.rgb = RGBColor(80, 80, 80)
+                        if old_p:
+                            pp = doc.add_paragraph()
+                            pp.paragraph_format.left_indent = Inches(0.25)
+                            pp.paragraph_format.space_before = Pt(0)
+                            pp.paragraph_format.space_after = Pt(3)
+                            pl = pp.add_run(f"{prior_lbl}: ")
+                            pl.bold = True; pl.font.size = Pt(8)
+                            pl.font.color.rgb = RGBColor(140, 140, 140)
+                            pt = pp.add_run(f'"{old_p}"')
+                            pt.font.size = Pt(8)
+                            pt.font.color.rgb = RGBColor(80, 80, 80)
+                        else:
+                            pp = doc.add_paragraph()
+                            pp.paragraph_format.left_indent = Inches(0.25)
+                            pp.paragraph_format.space_before = Pt(0)
+                            pp.paragraph_format.space_after = Pt(3)
+                            pl = pp.add_run(f"{prior_lbl}: ")
+                            pl.bold = True; pl.font.size = Pt(8)
+                            pl.font.color.rgb = RGBColor(140, 140, 140)
+                            pt = pp.add_run("Not present")
+                            pt.font.size = Pt(8)
+                            pt.font.italic = True
+                            pt.font.color.rgb = RGBColor(160, 160, 160)
+                else:
+                    current_text = (result.get("text") or "").replace('\n', ' ').replace('  ', ' ').strip()
+                    prior_text = (result.get("prior_text") or "").replace('\n', ' ').replace('  ', ' ').strip()
+                    _QUOTE_MAX = 300
+                    if current_text:
+                        ct_trunc = current_text[:_QUOTE_MAX] + ("..." if len(current_text) > _QUOTE_MAX else "")
                         cp = doc.add_paragraph()
-                        cp.paragraph_format.left_indent = Inches(0.35)
+                        cp.paragraph_format.left_indent = Inches(0.25)
+                        cp.paragraph_format.space_before = Pt(2)
+                        cp.paragraph_format.space_after = Pt(1)
+                        cl = cp.add_run(f"{current_label}: ")
+                        cl.bold = True; cl.font.size = Pt(8)
+                        cl.font.color.rgb = RGBColor(140, 140, 140)
+                        ct = cp.add_run(f'"{ct_trunc}"')
+                        ct.font.size = Pt(8)
+                        ct.font.color.rgb = RGBColor(80, 80, 80)
+                    if prior_text:
+                        pt_trunc = prior_text[:_QUOTE_MAX] + ("..." if len(prior_text) > _QUOTE_MAX else "")
+                        pp = doc.add_paragraph()
+                        pp.paragraph_format.left_indent = Inches(0.25)
+                        pp.paragraph_format.space_before = Pt(0)
+                        pp.paragraph_format.space_after = Pt(3)
+                        pl = pp.add_run(f"{prior_lbl}: ")
+                        pl.bold = True; pl.font.size = Pt(8)
+                        pl.font.color.rgb = RGBColor(140, 140, 140)
+                        pt = pp.add_run(f'"{pt_trunc}"')
+                        pt.font.size = Pt(8)
+                        pt.font.color.rgb = RGBColor(80, 80, 80)
+                    elif current_text and not prior_text:
+                        pp = doc.add_paragraph()
+                        pp.paragraph_format.left_indent = Inches(0.25)
+                        pp.paragraph_format.space_before = Pt(0)
+                        pp.paragraph_format.space_after = Pt(3)
+                        pl = pp.add_run(f"{prior_lbl}: ")
+                        pl.bold = True; pl.font.size = Pt(8)
+                        pl.font.color.rgb = RGBColor(140, 140, 140)
+                        pt = pp.add_run("Not present")
+                        pt.font.size = Pt(8)
+                        pt.font.italic = True
+                        pt.font.color.rgb = RGBColor(160, 160, 160)
 
-                        if change.get("old_phrase"):
-                            old_r = cp.add_run(f'"{change["old_phrase"]}"')
-                            old_r.font.size = Pt(8)
-                            old_r.font.color.rgb = RGBColor(183, 28, 28)
-                            old_r.font.strike = True
+                meta_parts = []
+                section = result.get("section", "")
+                tier_label = _section_tier_label(section)
+                if tier_label != "OTHER":
+                    meta_parts.append(f"[{tier_label}]")
+                if active_passes:
+                    tag_labels = [_PASS_COLORS[pk][1].title() for pk in active_passes]
+                    meta_parts.append(", ".join(tag_labels))
+                if section:
+                    meta_parts.append(section)
+                if meta_parts:
+                    mp = doc.add_paragraph()
+                    mp.paragraph_format.left_indent = Inches(0.15)
+                    mp.paragraph_format.space_before = Pt(2)
+                    mp.paragraph_format.space_after = Pt(0)
+                    mr = mp.add_run(" | ".join(meta_parts))
+                    mr.font.size = Pt(7)
+                    mr.font.italic = True
+                    mr.font.color.rgb = RGBColor(170, 170, 170)
 
-                        if change.get("old_phrase") and change.get("new_phrase"):
-                            cp.add_run("  →  ").font.size = Pt(8)
-
-                        if change.get("new_phrase"):
-                            new_r = cp.add_run(f'"{change["new_phrase"]}"')
-                            new_r.font.size = Pt(8)
-                            new_r.font.color.rgb = RGBColor(27, 94, 32)
-                            new_r.bold = True
-
-                        if change.get("interpretation"):
-                            ip2 = doc.add_paragraph()
-                            ip2.paragraph_format.left_indent = Inches(0.35)
-                            ir = ip2.add_run(change["interpretation"])
-                            ir.font.size = Pt(8); ir.font.italic = True
-                            ir.font.color.rgb = RGBColor(100, 100, 100)
-
-            sep = doc.add_paragraph()
-            sep.paragraph_format.space_before = Pt(2)
-            sep.paragraph_format.space_after = Pt(2)
+                sep = doc.add_paragraph()
+                sep.paragraph_format.space_before = Pt(2)
+                sep.paragraph_format.space_after = Pt(2)
 
         if step_idx < len(all_comparison_steps) - 1:
             doc.add_page_break()
 
     doc.save(output_path)
-    print(f"  Client report saved: {output_path}")
+    print(f"  Change report saved: {output_path}")
 
 
 def generate_raw_text_report(
@@ -472,223 +822,6 @@ def generate_raw_text_report(
     print(f"  Raw text report saved: {output_path}")
 
 
-def generate_redline_report(
-    all_comparison_steps: list,
-    deal: DealContext,
-    filing_labels: List[str],
-    output_path: Path,
-) -> None:
-    """Generate a redline-style DOCX with side-by-side word-level diffs."""
-    doc = _make_doc_base(deal, ' → '.join(filing_labels))
-
-    PASS_LABEL = {
-        "timing":         ("TIMING",         RGBColor(21, 101, 192)),
-        "regulatory":     ("REGULATORY",     RGBColor(173, 20, 87)),
-        "legal_language": ("LEGAL LANGUAGE", RGBColor(156, 110, 0)),
-    }
-
-    COL_W = 3.2  # inches per column
-
-    for step_idx, step in enumerate(all_comparison_steps):
-        current_label = step["current_label"]
-        prior_labels  = step["prior_labels"]
-        merged        = step["merged_results"]
-
-        doc.add_heading(
-            f"Current Filing: {current_label}  |  Compared to: {', '.join(prior_labels)}", 1
-        )
-
-        if not merged:
-            np_p = doc.add_paragraph()
-            np_p.add_run("No material changes detected.").font.size = Pt(10)
-            np_p.runs[0].font.color.rgb = RGBColor(100, 100, 100)
-            doc.add_paragraph()
-            continue
-
-        for idx, result in enumerate(merged, 1):
-            section      = result.get("section", "")[:80]
-            severity     = result.get("overall_severity", "none")
-            current_text = result.get("text", "").replace('\n', ' ').replace('  ', ' ').strip()
-
-            active_passes = [
-                pk for pk in ["timing", "regulatory", "legal_language"]
-                if (result.get(pk) or {}).get("changed") or
-                   (result.get(pk) or {}).get("match_type") == "new"
-            ]
-            if not active_passes:
-                continue
-
-            is_new = any(
-                (result.get(pk) or {}).get("match_type") == "new"
-                for pk in ["timing", "regulatory", "legal_language"]
-            )
-
-            sev_bg, sev_fg = {
-                "significant": (COLOR_SIGNIFICANT, RGBColor(183, 28, 28)),
-                "moderate":    (COLOR_MODERATE,    RGBColor(230, 81, 0)),
-                "minor":       (COLOR_MINOR,        RGBColor(156, 110, 0)),
-            }.get(severity, (
-                COLOR_NEW            if is_new else COLOR_UNCHANGED,
-                RGBColor(27, 94, 32) if is_new else RGBColor(80, 80, 80),
-            ))
-            sev_label = "NEW" if (is_new and severity == "none") else severity.upper()
-
-            hdr_p = doc.add_paragraph()
-            tag_run = hdr_p.add_run(f" {idx}. [{sev_label}] ")
-            _apply_shading(tag_run, sev_bg)
-            tag_run.bold = True; tag_run.font.size = Pt(9)
-            tag_run.font.color.rgb = sev_fg
-            types_str = "  |  ".join(PASS_LABEL[pk][0] for pk in active_passes)
-            meta_run = hdr_p.add_run(f"  {types_str}  —  {section}")
-            meta_run.font.size = Pt(8)
-            meta_run.font.color.rgb = RGBColor(80, 80, 80)
-
-            prior_excerpts_for_para = None
-            prior_label_for_para    = ", ".join(prior_labels)
-            prior_ref               = None
-
-            for pk in active_passes:
-                finding = result.get(pk) or {}
-                if prior_excerpts_for_para is None and "_prior_excerpts" in finding:
-                    prior_excerpts_for_para = finding["_prior_excerpts"]
-                    prior_label_for_para    = finding.get("_prior_label", prior_label_for_para)
-                if prior_ref is None:
-                    matched = finding.get("matched_prior", [])
-                    if matched:
-                        prior_ref = matched[0]
-
-            prior_data = None
-            if prior_excerpts_for_para and prior_ref:
-                lookup = {f"PRIOR-{i+1}": p for i, p in enumerate(prior_excerpts_for_para)}
-                prior_data = lookup.get(prior_ref)
-
-            prior_text = (
-                prior_data.get("text", "").replace('\n', ' ').replace('  ', ' ').strip()
-                if prior_data else None
-            )
-
-            left_hdr_str  = f"Current: {current_label}"
-            right_hdr_str = f"Prior: {prior_label_for_para}"
-
-            if prior_text and current_text:
-                tbl = doc.add_table(rows=2, cols=2)
-                tbl.style = 'Table Grid'
-                for row in tbl.rows:
-                    for c in row.cells:
-                        _set_cell_width(c, COL_W)
-
-                h_current = tbl.cell(0, 0)
-                h_prior   = tbl.cell(0, 1)
-                _shade_cell(h_current, 'CCFFCC')
-                _shade_cell(h_prior,   'FFCCCC')
-                cr_h = h_current.paragraphs[0].add_run(left_hdr_str)
-                cr_h.bold = True; cr_h.font.size = Pt(8)
-                cr_h.font.color.rgb = RGBColor(0, 100, 0)
-                pr_h = h_prior.paragraphs[0].add_run(right_hdr_str)
-                pr_h.bold = True; pr_h.font.size = Pt(8)
-                pr_h.font.color.rgb = RGBColor(120, 0, 0)
-
-                c_current = tbl.cell(1, 0)
-                c_prior   = tbl.cell(1, 1)
-                _shade_cell(c_current, 'F8FFF8')
-                _shade_cell(c_prior,   'FFF8F8')
-
-                _add_diff_text(c_current.paragraphs[0], prior_text, current_text, pt_size=8)
-
-                old_r = c_prior.paragraphs[0].add_run(prior_text)
-                old_r.font.size = Pt(8)
-                old_r.font.color.rgb = RGBColor(100, 20, 20)
-
-            elif current_text:
-                tbl = doc.add_table(rows=2, cols=1)
-                tbl.style = 'Table Grid'
-                _set_cell_width(tbl.cell(0, 0), COL_W * 2)
-                _set_cell_width(tbl.cell(1, 0), COL_W * 2)
-
-                h_new = tbl.cell(0, 0)
-                _shade_cell(h_new, 'CCFFCC')
-                hr2 = h_new.paragraphs[0].add_run(f"{left_hdr_str} — New Disclosure")
-                hr2.bold = True; hr2.font.size = Pt(8)
-                hr2.font.color.rgb = RGBColor(0, 100, 0)
-
-                c_new = tbl.cell(1, 0)
-                _shade_cell(c_new, 'F8FFF8')
-                cr3 = c_new.paragraphs[0].add_run(current_text)
-                cr3.font.size = Pt(8); cr3.font.bold = True
-                cr3.font.color.rgb = RGBColor(0, 100, 0)
-
-            ll = result.get("legal_language") or {}
-            notable = ll.get("notable_changes") or []
-            if notable and "legal_language" in active_passes:
-                ph_hdr = doc.add_paragraph()
-                ph_hdr.paragraph_format.left_indent = Inches(0.15)
-                ph_hdr.paragraph_format.space_before = Pt(6)
-                phr = ph_hdr.add_run("Specific Phrase Changes:")
-                phr.bold = True; phr.font.size = Pt(8)
-                phr.font.color.rgb = RGBColor(156, 110, 0)
-
-                for change in notable[:6]:
-                    old_phrase = (change.get("old_phrase") or "").strip()
-                    new_phrase = (change.get("new_phrase") or "").strip()
-                    interp     = (change.get("interpretation") or "").strip()
-                    if not old_phrase and not new_phrase:
-                        continue
-
-                    ptbl = doc.add_table(rows=2, cols=2)
-                    ptbl.style = 'Table Grid'
-                    for row in ptbl.rows:
-                        for c in row.cells:
-                            _set_cell_width(c, COL_W)
-
-                    _shade_cell(ptbl.cell(0, 0), 'E5FFE5')
-                    _shade_cell(ptbl.cell(0, 1), 'FFE5E5')
-                    rh0 = ptbl.cell(0, 0).paragraphs[0].add_run("Current Phrase")
-                    rh0.bold = True; rh0.font.size = Pt(7)
-                    rh1 = ptbl.cell(0, 1).paragraphs[0].add_run("Prior Phrase")
-                    rh1.bold = True; rh1.font.size = Pt(7)
-
-                    if new_phrase:
-                        nr_ = ptbl.cell(1, 0).paragraphs[0].add_run(f'"{new_phrase}"')
-                        nr_.font.size = Pt(8); nr_.font.bold = True
-                        nr_.font.color.rgb = RGBColor(27, 94, 32)
-                        _apply_shading(nr_, 'C8E6C9')
-
-                    if old_phrase:
-                        or_ = ptbl.cell(1, 1).paragraphs[0].add_run(f'"{old_phrase}"')
-                        or_.font.size = Pt(8); or_.font.strike = True
-                        or_.font.color.rgb = RGBColor(183, 28, 28)
-
-                    if interp:
-                        ip3 = doc.add_paragraph()
-                        ip3.paragraph_format.left_indent = Inches(0.35)
-                        ir_ = ip3.add_run(interp)
-                        ir_.font.size = Pt(8); ir_.font.italic = True
-                        ir_.font.color.rgb = RGBColor(100, 100, 100)
-
-            for pk in active_passes:
-                finding  = result.get(pk) or {}
-                analysis = finding.get("analysis", "").strip()
-                if not analysis:
-                    continue
-                ap = doc.add_paragraph()
-                ap.paragraph_format.left_indent = Inches(0.15)
-                ap.paragraph_format.space_before = Pt(3)
-                lbl, col = PASS_LABEL[pk]
-                bullet_lbl = ap.add_run(f"• {lbl}: ")
-                bullet_lbl.bold = True; bullet_lbl.font.size = Pt(8)
-                bullet_lbl.font.color.rgb = col
-                ar = ap.add_run(analysis)
-                ar.font.size = Pt(8)
-
-            doc.add_paragraph()
-
-        if step_idx < len(all_comparison_steps) - 1:
-            doc.add_page_break()
-
-    doc.save(output_path)
-    print(f"  Redline report saved: {output_path}")
-
-
 def generate_full_comparison_json(
     all_comparison_steps: list,
     deal: DealContext,
@@ -703,7 +836,7 @@ def generate_full_comparison_json(
             "deal_value": deal.deal_value,
             "filings_analyzed": filing_labels,
             "generated": datetime.now().isoformat(),
-            "model": "claude-opus-4-6",
+            "model": "claude-sonnet-4-6",
         },
         "comparison_steps": [],
     }

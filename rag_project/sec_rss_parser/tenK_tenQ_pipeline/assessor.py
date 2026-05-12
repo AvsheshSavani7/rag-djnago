@@ -1,8 +1,9 @@
 """Claude second-pass assessment: timing + regulatory flags."""
 
+import random
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import List
+from typing import List, Optional
 
 import requests
 
@@ -10,10 +11,25 @@ from .config import OPUS_ASSESSMENT_PROMPT
 from .json_utils import parse_json_response
 from .models import DealContext, ParsedParagraph
 
+_ASSESS_MAX_ATTEMPTS = 8
+
+
+def _sleep_after_429(response: Optional[requests.Response], attempt: int) -> float:
+    """Seconds to wait after a 429 (Retry-After header or exponential backoff + jitter)."""
+    if response is not None:
+        raw = response.headers.get("Retry-After")
+        if raw:
+            try:
+                return max(1.0, float(raw))
+            except ValueError:
+                pass
+    base = min(120.0, 8.0 * (2 ** min(attempt, 4)))
+    return base + random.uniform(0, base * 0.15)
+
 
 def assess_with_claude(paragraphs: List[ParsedParagraph], deal: DealContext,
                        anthropic_api_key: str, threshold: int = 6,
-                       max_workers: int = 10) -> List[ParsedParagraph]:
+                       max_workers: int = 4) -> List[ParsedParagraph]:
     relevant = [p for p in paragraphs if p.relevance_score >= threshold and not p.is_header]
     if not relevant:
         print("  No relevant paragraphs for Claude assessment.")
@@ -36,7 +52,7 @@ def assess_with_claude(paragraphs: List[ParsedParagraph], deal: DealContext,
             f"EXCERPT:\n{para.text[:3000]}"
         )
 
-        for attempt in range(3):
+        for attempt in range(_ASSESS_MAX_ATTEMPTS):
             try:
                 response = requests.post(
                     "https://api.anthropic.com/v1/messages",
@@ -70,16 +86,36 @@ def assess_with_claude(paragraphs: List[ParsedParagraph], deal: DealContext,
                 suffix = f" -> {', '.join(flags)}" if flags else " -> done"
                 print(f"{prefix}{suffix}")
                 break
-            except (requests.exceptions.Timeout, requests.exceptions.HTTPError) as e:
-                if attempt < 2:
+            except requests.exceptions.HTTPError as e:
+                resp = e.response
+                code = resp.status_code if resp is not None else None
+                if code == 429 and attempt < _ASSESS_MAX_ATTEMPTS - 1:
+                    wait = _sleep_after_429(resp, attempt)
+                    print(
+                        f"{prefix} -> 429 rate limit, waiting {wait:.1f}s "
+                        f"(attempt {attempt + 1}/{_ASSESS_MAX_ATTEMPTS})..."
+                    )
+                    time.sleep(wait)
+                    continue
+                if code is not None and code != 429 and attempt < 3:
                     time.sleep(2 ** attempt)
                     continue
                 print(f"{prefix} -> FAILED: {e}")
+                break
+            except requests.exceptions.Timeout:
+                if attempt < _ASSESS_MAX_ATTEMPTS - 1:
+                    w = min(45.0, 3.0 * (2 ** attempt))
+                    print(f"{prefix} -> timeout, retry in {w:.0f}s...")
+                    time.sleep(w)
+                    continue
+                print(f"{prefix} -> FAILED: timeout")
+                break
             except Exception as e:
-                if attempt < 2:
+                if attempt < 3:
                     time.sleep(1)
                     continue
                 print(f"{prefix} -> ERROR: {e}")
+                break
 
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         futures = {executor.submit(_assess_one, (i, para)): para

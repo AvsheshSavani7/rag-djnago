@@ -8,6 +8,7 @@ from typing import List
 
 import requests
 
+from .anthropic_debug_log import handle_anthropic_http_error, raise_if_anthropic_billing_blocked
 from .config import BATCH_SIZE, BATCH_SCORING_PROMPT
 from .models import DealContext, ParsedParagraph
 
@@ -30,6 +31,7 @@ PARAGRAPHS TO SCORE:
 Score each paragraph (P1 through P{len(batch)}) for merger relevance. Return JSON array."""
 
     for attempt in range(retries + 1):
+        raise_if_anthropic_billing_blocked()
         try:
             response = requests.post(
                 "https://api.anthropic.com/v1/messages",
@@ -62,6 +64,9 @@ Score each paragraph (P1 through P{len(batch)}) for merger relevance. Return JSO
                     results.append({"score": 3, "rationale": "Not scored", "category": "general", "key_info": []})
                 return results
         except requests.exceptions.HTTPError as e:
+            if e.response is not None:
+                handle_anthropic_http_error(
+                    e.response, "10-K/10-Q batch scoring (Sonnet)")
             status = e.response.status_code if e.response is not None else None
             if status == 401:
                 raise RuntimeError("FATAL: Anthropic API key is invalid or expired.") from e

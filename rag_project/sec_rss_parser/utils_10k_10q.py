@@ -15,6 +15,7 @@ import traceback
 from datetime import datetime, timedelta
 from mongoengine.errors import NotUniqueError
 from mongoengine.queryset.visitor import Q
+import os
 
 from .sec_Last_Year import print_filings as fetch_sec_filings
 from .models import SECFilingSummary
@@ -32,9 +33,11 @@ logger = logging.getLogger(__name__)
 DEAL_STATUS_OPEN_OR_UNKNOWN = ["Open", "Unknown"]
 
 # N8N webhook URL for 10-K/10-Q emails
-N8N_WEBHOOK_URL_10K_10Q = "https://n8n-xwx1.onrender.com/webhook/b3007d21-6845-47b5-aece-7b26583758bc"
+N8N_WEBHOOK_URL_10K_10Q = os.environ.get(
+    "N8N_WEKHOOK_INTERNAL_WITH_JOSH", "https://n8n-xwx1.onrender.com/webhook/b3007d21-6845-47b5-aece-7b26583758bc")
 
-N8N_WEBHOOK_URL_10K_10Q_ERROR = "https://n8n-xwx1.onrender.com/webhook/80830c6d-ff5b-45e3-9ef3-a061db1fbf0c"
+N8N_WEBHOOK_URL_10K_10Q_ERROR = os.environ.get(
+    "N8N_WEBHOOK_INTERNAL", "https://n8n-xwx1.onrender.com/webhook/80830c6d-ff5b-45e3-9ef3-a061db1fbf0c")
 
 
 def send_10k_10q_pipeline_failure_email(
@@ -310,7 +313,8 @@ def fetch_and_save_additional_10k_10q_filings(
                 from sec_rss_parser.tenK_tenQ_pipeline.orchestrator import run_pipeline
                 log_and_print(
                     f"🔄 Running 10-K/10-Q summary pipeline for {len(urls_from_filings)} filing(s), deal_id={deal_id}...")
-                run_pipeline(urls=urls_from_filings, deal_id=deal_id, filings=filings)
+                run_pipeline(urls=urls_from_filings,
+                             deal_id=deal_id, filings=filings)
                 log_and_print("✅ 10-K/10-Q summary pipeline completed.")
             except Exception as pipeline_e:
                 logger.exception(
