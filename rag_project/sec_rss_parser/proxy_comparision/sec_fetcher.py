@@ -13,10 +13,11 @@ def fetch_html(url: str) -> str:
     return r.text
 
 
-def guess_form_type(url: str) -> str:
-    """Detect filing type from SEC URL filename."""
+def guess_form_type(url: str, html: str = "") -> str:
+    """Detect filing type from SEC URL filename, with HTML content fallback."""
     fname = url.split("/")[-1].lower()
-    # Order matters: specific 14C variants before broad 14-catch-all
+    # Order matters: more specific patterns first
+
     if "defm14c" in fname:
         return "DEFM14C"
     if "defm14a" in fname or "defm14" in fname:
@@ -25,6 +26,8 @@ def guess_form_type(url: str) -> str:
         return "DEFA14C"
     if "defa14a" in fname or "defa14" in fname:
         return "DEFA14A"
+    if "prer14a" in fname or "prer14" in fname:
+        return "PREM14A/A"
     if "prem14c" in fname:
         return "PREM14C"
     if "prem14a" in fname or "prem14" in fname:
@@ -43,4 +46,32 @@ def guess_form_type(url: str) -> str:
         return "S-4/A"
     if "s4" in fname:
         return "S-4"
+
+     # Fallback: check HTML content for form type (handles generic filenames like ea0283916-02.htm)
+    if html:
+        header = html[:3000].upper()
+        if "DEFM14A" in header or "DEFM 14A" in header:
+            return "DEFM14A"
+        if "DEFM14C" in header or "DEFM 14C" in header:
+            return "DEFM14C"
+        if "DEFA14A" in header or "DEFA 14A" in header:
+            return "DEFA14A"
+        if "DEFA14C" in header or "DEFA 14C" in header:
+            return "DEFA14C"
+        if "PRER14A" in header or "PRER 14A" in header:
+            return "PREM14A/A"
+        if "PREM14A" in header or "PREM 14A" in header:
+            return "PREM14A"
+        if "PREM14C" in header or "PREM 14C" in header:
+            return "PREM14C"
+        if "SC 14D-9" in header or "SC14D9" in header:
+            return "SC 14D-9"
+        if "S-4/A" in header or "S4/A" in header:
+            return "S-4/A"
+        if "S-4" in header:
+            return "S-4"
+        if "F-4/A" in header or "F4/A" in header:
+            return "F-4/A"
+        if "F-4" in header:
+            return "F-4"
     return "PROXY"

@@ -114,13 +114,15 @@ def map_sections_with_llm(client: Anthropic, headings: List[str]) -> Dict[str, s
         kw_match = _keyword_section_match(heading)
         # Positive override: keyword match is definitive, override LLM
         if not kw_match.startswith("other") and sid != kw_match:
-            print(f"    Section override: '{heading[:60]}' LLM='{sid}' -> keyword='{kw_match}'")
+            print(
+                f"    Section override: '{heading[:60]}' LLM='{sid}' -> keyword='{kw_match}'")
             all_mappings[heading] = kw_match
         # Negative override for "background" only: LLM sometimes maps unrelated
         # headings (e.g., "Representations and Warranties") to background
         elif sid == "background" and "background" not in heading.lower():
             fallback = f"other:{re.sub(r'[^a-z0-9]+', '_', heading.lower())[:40]}"
-            print(f"    Section reject: '{heading[:60]}' LLM='background' rejected -> '{fallback}'")
+            print(
+                f"    Section reject: '{heading[:60]}' LLM='background' rejected -> '{fallback}'")
             all_mappings[heading] = fallback
 
     return all_mappings
@@ -133,13 +135,15 @@ def _keyword_section_match(title: str) -> str:
         return "background"
     if "consideration" in t or "merger consideration" in t or "exchange ratio" in t:
         return "consideration_summary"
-    if "vote" in t or "record date" in t or "special meeting" in t or "stockholder" in t:
+    if ("special meeting" in t or "record date" in t or "quorum" in t
+            or ("vote" in t and ("required" in t or "approval" in t or "proposal" in t))):
         return "vote_info"
-    if "regulat" in t or "antitrust" in t or "hsr" in t or "cfius" in t:
+    if (("regulatory" in t or "antitrust" in t or "hsr" in t or "cfius" in t)
+            and "defining, limiting" not in t and "powers of the" not in t):
         return "regulatory"
     if "financ" in t or "source of funds" in t or "commitment" in t:
         return "financing"
-    if "condition" in t and ("closing" in t or "merger" in t or "offer" in t):
+    if "condition" in t and ("closing" in t or "merger" in t or "offer" in t or "precedent" in t):
         return "closing_conditions"
     if "terminat" in t or "break" in t or "go-shop" in t or "no-shop" in t:
         return "termination"
@@ -189,7 +193,8 @@ def build_sections(doc: CanonicalDocument, client: Anthropic) -> None:
         else:
             end_idx = len(doc.blocks)
 
-        section_id = mapping.get(title, f"other:{re.sub(r'[^a-z0-9]+', '_', title.lower())[:40]}")
+        section_id = mapping.get(
+            title, f"other:{re.sub(r'[^a-z0-9]+', '_', title.lower())[:40]}")
         section_blocks = doc.blocks[block_idx:end_idx]
 
         sections.append(CanonicalSection(

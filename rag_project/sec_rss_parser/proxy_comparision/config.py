@@ -70,7 +70,7 @@ TIER1_SECTION_IDS = {
 # =============================================================================
 
 FORM_TYPE_FAMILIES = {
-    # proxy_like (14A)
+    # proxy_like
     "PREM14A": "proxy_like",
     "PREM14A/A": "proxy_like",
     "DEFM14A": "proxy_like",
@@ -308,7 +308,8 @@ CRITICAL RULES:
 3. BE CONCISE: Values should be the key fact only (e.g., "September 25, 2025"), NOT the full surrounding paragraph or sentence.
 4. SKIP UNCHANGED items: If something is the same in both filings, do NOT report it. Do NOT report "no change confirmed" or "language unchanged."
 5. SKIP formatting/boilerplate: Ignore page numbers, TOC changes, paragraph reordering, cross-reference updates, or disclosure restructuring that doesn't change the substance.
-6. Return a JSON array. If no real differences, return: []"""
+6. NO EDITORIAL: Use near-verbatim filing language in values. Do NOT interpret, explain significance, or add phrases like "suggesting", "indicating", "which aligns with", "notably".
+7. Return a JSON array. If no real differences, return: []"""
 
 _COMPARISON_PROMPTS = {
     "dates": """\
@@ -320,7 +321,7 @@ EARLIER FILING ({old_label}):
 LATER FILING ({new_label}):
 {new_text}
 
-SCOPE: meeting date, meeting time, record date, mailing date, shares outstanding as of record date, outside date (termination deadline), outside date extensions. Consolidate: "proxy statement date," "letter date," and "mailing date" are the SAME date — report ONCE as "Mailing Date." Do NOT report shareholder vote thresholds (belongs in SH Approval), termination fees (belongs in Termination), or closing conditions.
+SCOPE: meeting date, meeting time, record date, mailing date, outside date (termination deadline), outside date extensions. Consolidate: "proxy statement date," "letter date," and "mailing date" are the SAME date — report ONCE as "Mailing Date." Do NOT report stock prices or latest practicable trading prices, shares outstanding or holder counts (belongs in SH Approval), shareholder vote thresholds (belongs in SH Approval), termination fees (belongs in Termination), registration deadlines, proxy revocation deadlines, or closing conditions.
 """ + _COMPARISON_RULES + """
 Format:
 - New: {{"field": "short name", "type": "new", "value": "concise value"}}
@@ -365,7 +366,7 @@ EARLIER FILING ({old_label}):
 LATER FILING ({new_label}):
 {new_text}
 
-SCOPE: vote threshold percentages (e.g., "majority of outstanding shares"), class-specific voting requirements, tender conditions, shares outstanding count (report the NUMBER, e.g., "250,106,129 shares"). Do NOT report: dates (belong in Dates), abstention or broker non-vote effects, proxy revocation methods, quorum procedures, virtual meeting URLs, proxy mailing logistics, or how to submit a proxy — those are procedural voting logistics, not deal terms.
+SCOPE: vote threshold percentages (e.g., "majority of outstanding shares"), class-specific voting requirements, tender conditions, shares outstanding count (report the NUMBER, e.g., "250,106,129 shares"). Do NOT report: meeting dates, record dates, meeting times, or any dates (those belong EXCLUSIVELY in the Dates section), abstention or broker non-vote effects, proxy revocation methods, quorum procedures, virtual meeting URLs, proxy mailing logistics, or how to submit a proxy — those are procedural voting logistics, not deal terms.
 """ + _COMPARISON_RULES + """
 Format:
 - New: {{"field": "short name", "type": "new", "value": "concise value"}}
@@ -401,8 +402,8 @@ Format:
 - New: {{"field": "Agency Name", "type": "new", "value": "Status: status | concise detail"}}
 - Status change: {{"field": "Agency Name", "type": "changed", "was": "status: old", "now": "status: new + concise detail"}}""",
 
-    "closing": """\
-Compare these two SEC merger filing sections for CLOSING CONDITIONS only.
+    "conditions": """\
+Compare these two SEC merger filing sections for CONDITIONS TO CLOSING only.
 
 EARLIER FILING ({old_label}):
 {old_text}
@@ -410,12 +411,26 @@ EARLIER FILING ({old_label}):
 LATER FILING ({new_label}):
 {new_text}
 
-SCOPE: conditions that must be satisfied for closing (regulatory approvals, shareholder vote, no MAE, accuracy of reps, etc.), and whether any conditions were added, removed, or modified. Do NOT report the outside date (belongs in Dates), termination fees (belongs in Termination), or regulatory filing status (belongs in Regulatory).
+SCOPE: conditions that must be satisfied for closing (regulatory approvals, shareholder vote, no MAE, accuracy of reps, etc.), and whether any conditions were added, removed, or modified. Do NOT report the outside date (belongs in Closing), termination fees (belongs in Termination), or regulatory filing status (belongs in Regulatory).
 """ + _COMPARISON_RULES + """
 Format:
 - New: {{"field": "short name", "type": "new", "value": "concise description"}}
 - Changed: {{"field": "short name", "type": "changed", "was": "old condition", "now": "new condition"}}
 - Removed: {{"field": "short name", "type": "removed", "value": "what was removed"}}""",
+    "closing": """\
+Compare these two SEC merger filing sections for CLOSING TIMING AND GUIDANCE only.
+
+EARLIER FILING ({old_label}):
+{old_text}
+
+LATER FILING ({new_label}):
+{new_text}
+
+SCOPE: expected closing timeline (e.g., "second half of 2026"), outside date (initial and any extensions), and any changes to the expected timing or gating items. Do NOT report: record dates or meeting dates (belongs in Dates section), HSR/antitrust waiting period status, expiration, or early termination (belongs in HSR section), specific closing conditions being satisfied or outstanding (belongs in Conditions section), termination fees (belongs in Termination), or regulatory approval status (belongs in OTHER REGULATORY).
+""" + _COMPARISON_RULES + """
+Format:
+- New: {{"field": "short name", "type": "new", "value": "concise description"}}
+- Changed: {{"field": "short name", "type": "changed", "was": "old timing", "now": "new timing"}}""",
 
     "termination": """\
 Compare these two SEC merger filing sections for TERMINATION PROVISIONS only.
@@ -465,9 +480,15 @@ If nothing material, write "No material changes."
 
 CHANGE_OPENING_PROMPT = """\
 Given these changes between {old_label} and {new_label} for {ticker},
-write 2-4 sentences summarizing the key updates. Be direct and factual.
-Mention: any new dates set, HSR/regulatory status updates, and whether
-the Background section changed. Do not use bullet points.
+write 2-4 sentences summarizing the key updates. Do not use bullet points.
+
+RULES:
+- State ONLY what the filing discloses. Do not interpret, infer, or editorialize.
+- Do NOT explain WHY something was done or what it "suggests" or "indicates."
+- Do NOT use phrases like "expanded to reveal", "aligning with", "indicating that",
+  "which would", "suggesting", "appears to", "notably", or "significantly."
+- Simply state: what changed, what new dates/values were set, and regulatory status.
+- Use near-verbatim filing language where possible.
 
 CHANGES:
 {changes_summary}
@@ -487,7 +508,7 @@ SECTION_CONFIGS = [
     {"key": "sh_approval",     "topics": [
         "sh_approval", "dates"],      "model": "standard", "max_chars": 15000, "thinking": False},
     {"key": "hsr",             "topics": ["hsr", "regulatory"],
-        "model": "opus",     "max_chars": 15000, "thinking": True},
+        "model": "standard",     "max_chars": 15000, "thinking": False},
     {"key": "other_regulatory", "topics": [
         "regulatory", "hsr", "closing"], "model": "standard", "max_chars": 30000, "thinking": False},
     {"key": "closing",         "topics": [
@@ -495,7 +516,7 @@ SECTION_CONFIGS = [
     {"key": "conditions",      "topics": [
         "closing", "regulatory"],     "model": "standard", "max_chars": 20000, "thinking": False},
     {"key": "termination",     "topics": [
-        "termination"],               "model": "opus",     "max_chars": 25000, "thinking": True},
+        "termination"],               "model": "standard",     "max_chars": 25000, "thinking": False},
 ]
 
 _TOPIC_TO_SECTION_IDS = {
@@ -635,7 +656,7 @@ SECTION_ORDER = ["dates", "consideration", "financing", "sh_approval",
 SECTION_HEADERS = {
     "dates": "DATES", "consideration": "CONSIDERATION", "financing": "FINANCING",
     "sh_approval": "SH APPROVAL", "hsr": "HSR", "other_regulatory": "OTHER REGULATORY",
-    "closing": "CLOSING", "conditions": "CONDITIONS TO CLOSING",
+    "closing": "CLOSING", "conditions": "CONDITIONS",
     "termination": "TERMINATION & FEES",
 }
 
@@ -713,11 +734,29 @@ _TOPIC_KEYWORD_PATTERNS = {
         re.compile(r"(?:public (?:utility|service) commission)", re.IGNORECASE),
         re.compile(
             r"(?:state|foreign|international).{0,20}(?:regulatory|antitrust|competition).{0,20}(?:approv|clear|review)", re.IGNORECASE),
+        # Status-update language (catches past-tense completion/filing reports)
+        re.compile(
+            r"(?:waiver|clearance|approval).{0,30}(?:granted|obtained|received|issued)", re.IGNORECASE),
+        re.compile(
+            r"(?:filed|submitted|notified).{0,30}(?:with|to).{0,30}(?:commission|authority|board|agency)", re.IGNORECASE),
+        re.compile(
+            r"(?:application|notification|filing).{0,20}(?:was|were|has been)\s+(?:made|submitted|filed)", re.IGNORECASE),
+        re.compile(
+            r"(?:foreign direct investment|FDI).{0,30}(?:approv|clear|review|fil|notif)", re.IGNORECASE),
     ],
-    "closing": [
+    "conditions": [
         re.compile(
             r"condition.{0,10}(?:to|of|for).{0,10}(?:closing|completion|consummation)", re.IGNORECASE),
         re.compile(r"conditions precedent", re.IGNORECASE),
+    ],
+    "closing": [
+        re.compile(
+            r"(?:expected|anticipated).{0,30}(?:clos|complet|consummat)", re.IGNORECASE),
+        re.compile(r"outside\s+date", re.IGNORECASE),
+        re.compile(
+            r"(?:second|first)\s+(?:half|quarter)\s+of\s+\d{4}", re.IGNORECASE),
+        re.compile(
+            r"(?:target|expect).{0,30}(?:clos|complet).{0,30}\d{4}", re.IGNORECASE),
     ],
     "dates": [
         re.compile(r"(?:record|outside|drop.dead)\s+date", re.IGNORECASE),
@@ -754,14 +793,15 @@ _SECTION_ID_TO_TOPICS = {
 
 # Map change categories to the section IDs that contain their source text
 _CATEGORY_TO_SECTIONS = {
-    "dates": ["vote_info", "merger_agreement_summary"],
-    "consideration": ["consideration_summary", "merger_agreement_summary"],
-    "financing": ["financing", "merger_agreement_summary"],
-    "sh_votes": ["vote_info", "merger_agreement_summary"],
-    "hsr": ["regulatory", "merger_agreement_summary"],
-    "regulatory": ["regulatory", "merger_agreement_summary"],
-    "closing": ["closing_conditions", "merger_agreement_summary"],
-    "termination": ["termination", "merger_agreement_summary"],
+    "dates": ["vote_info", "summary", "merger_agreement_summary"],
+    "consideration": ["consideration_summary", "summary", "merger_agreement_summary"],
+    "financing": ["financing", "summary", "merger_agreement_summary"],
+    "sh_votes": ["vote_info", "summary", "merger_agreement_summary"],
+    "hsr": ["regulatory", "summary", "merger_agreement_summary"],
+    "regulatory": ["regulatory", "closing_conditions", "summary", "merger_agreement_summary"],
+    "conditions": ["closing_conditions", "merger_agreement_summary"],
+    "closing": ["closing_conditions", "summary", "merger_agreement_summary"],
+    "termination": ["termination", "summary", "merger_agreement_summary"],
 }
 
 # Direct topic mapping for comparison
@@ -772,6 +812,7 @@ _CATEGORY_TO_TOPICS = {
     "sh_votes": ["sh_approval", "dates"],
     "hsr": ["hsr"],
     "regulatory": ["regulatory"],
+    "conditions": ["closing"],
     "closing": ["closing"],
     "termination": ["termination"],
 }
@@ -786,6 +827,7 @@ _CATEGORY_KEYWORD_PATTERNS = {
     "consideration": _TOPIC_KEYWORD_PATTERNS["consideration"],
     "financing": _TOPIC_KEYWORD_PATTERNS["financing"],
     "sh_votes": _TOPIC_KEYWORD_PATTERNS["sh_approval"],
+    "conditions": _TOPIC_KEYWORD_PATTERNS["conditions"],
     "closing": _TOPIC_KEYWORD_PATTERNS["closing"],
     "dates": _TOPIC_KEYWORD_PATTERNS["dates"],
 }

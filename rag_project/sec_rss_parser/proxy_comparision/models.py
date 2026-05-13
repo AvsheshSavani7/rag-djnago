@@ -12,7 +12,8 @@ class Block:
     """A single semantic element from the filing HTML."""
     type: str           # "heading" | "paragraph" | "list_item" | "table"
     text: str           # cleaned text content
-    meta: Dict[str, Any] = field(default_factory=dict)  # level, row_count, etc.
+    # level, row_count, etc.
+    meta: Dict[str, Any] = field(default_factory=dict)
     index: int = 0      # position in document
     topic: str = ""     # content-based topic tag from classify_blocks()
 
@@ -29,6 +30,29 @@ class CanonicalSection:
     @property
     def text(self) -> str:
         return "\n\n".join(b.text for b in self.blocks if b.text.strip())
+
+    @property
+    def clean_text(self) -> str:
+        """Section text with junk blocks removed (page numbers, TOC dupes)."""
+        seen_fps = set()
+        parts = []
+        for b in self.blocks:
+            t = b.text.strip()
+            if not t:
+                continue
+            # Skip page number blocks (e.g., "A-57", "F-12", "iii", "42")
+            if len(t) < 15 and re.match(r'^[A-Za-z]?-?\d+$', t):
+                continue
+            # Skip TABLE OF CONTENTS echo blocks
+            if t.startswith("TABLE OF CONTENTS"):
+                continue
+            # Skip near-duplicate blocks (same first 100 chars)
+            fp = t[:100]
+            if fp in seen_fps:
+                continue
+            seen_fps.add(fp)
+            parts.append(t)
+        return "\n\n".join(parts)
 
     @property
     def word_count(self) -> int:
@@ -62,8 +86,10 @@ class CanonicalDocument:
 class ChangeEvent:
     """A detected change between two filings."""
     tier: int                       # 1 or 2
-    category: str                   # "background" | "dates" | "consideration" | etc.
-    change_type: str                # "newly_disclosed" | "updated" | "removed" | "insert" | "other"
+    # "background" | "dates" | "consideration" | etc.
+    category: str
+    # "newly_disclosed" | "updated" | "removed" | "insert" | "other"
+    change_type: str
     field: Optional[str] = None     # specific field name
     old_value: Optional[str] = None
     new_value: Optional[str] = None

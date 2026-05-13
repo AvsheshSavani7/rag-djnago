@@ -17,6 +17,7 @@ from .s3_utils import (
     upload_docx_bytes,
     upload_text,
     download_json_from_url,
+    download_text_from_url,
     proxy_comp_key_suffix,
 )
 from .models import CanonicalDocument, PriorityFacts, Block
@@ -25,7 +26,7 @@ from .classifier import classify_blocks
 from .section_mapper import build_sections
 from .extractor import extract_priority_facts
 from .differ import compute_pairwise_diff
-from .report_writer import generate_change_report, format_txt_header
+from .report_writer import generate_change_report, generate_full_summary, format_txt_header
 from .docx_builder import create_changes_docx
 from .config import get_form_label, get_form_family
 
@@ -124,6 +125,20 @@ def _build_cache(record: dict, client, db: ProxyDB, deal_id: str) -> dict | None
         _, sections_url = upload_json(sections_data, sec_key_suffix)
         print(f"  [Cache] Uploaded sections: {sections_url}")
 
+        # Phase 4: Generate and cache summary text (used as base for chain comparison)
+        summary_url = None
+        try:
+            ticker = record.get("ticker", record.get("deal_id", "UNKNOWN"))
+            target_name = record.get("target", "Unknown")
+            acquirer_name = record.get("acquirer", "TBD")
+            print(f"  [Cache] Generating summary for {get_form_label(doc.form_type)}...")
+            summary_text = generate_full_summary(client, doc, ticker, target_name, acquirer_name)
+            summary_key = proxy_comp_key_suffix(deal_id, record_id, "summary.txt")
+            _, summary_url = upload_text(summary_key, summary_text)
+            print(f"  [Cache] Uploaded summary: {summary_url}")
+        except Exception as e:
+            print(f"  [Cache] Warning: summary generation failed: {e} — will generate on demand")
+
         filing_date_str = doc.filing_date if isinstance(doc.filing_date, str) else str(doc.filing_date) if doc.filing_date else "unknown"
         cache = {
             "status": "ready",
@@ -133,6 +148,7 @@ def _build_cache(record: dict, client, db: ProxyDB, deal_id: str) -> dict | None
             "priority_facts_url": priority_facts_url,
             "topic_blocks_url": topic_blocks_url,
             "sections_url": sections_url,
+            "summary_url": summary_url,
         }
         db.set_cache_status(record_id, **cache)
         print(f"  [Cache] Record {record_id} cache status: ready")
@@ -339,10 +355,31 @@ def run_comparison(
         or "TBD"
     )
 
-    # 10. Temp dir for diagnostic files only (not persisted)
+    # 10. Load or generate base summary for the past filing (reduces false positives)
+    base_summary_text = ""
+    past_summary_url = past_cache.get("summary_url", "")
+    if past_summary_url:
+        try:
+            base_summary_text = download_text_from_url(past_summary_url)
+            print(f"\n[Pipeline] Loaded base summary from cache ({len(base_summary_text):,} chars)")
+        except Exception as e:
+            print(f"\n[Pipeline] Warning: could not load base summary from S3: {e}")
+
+    if not base_summary_text:
+        print(f"\n[Pipeline] Generating base summary for {old_label}...")
+        try:
+            base_summary_text = generate_full_summary(client, past_can_doc, ticker, target, acquirer)
+            summary_key = proxy_comp_key_suffix(deal_id, past_id, "summary.txt")
+            _, summary_url = upload_text(summary_key, base_summary_text)
+            db.set_cache_status(past_id, summary_url=summary_url)
+            print(f"  Base summary ready ({len(base_summary_text):,} chars)")
+        except Exception as e:
+            print(f"  Warning: base summary generation failed: {e} — continuing without it")
+
+    # 11. Temp dir for diagnostic files only (not persisted)
     temp_dir = tempfile.mkdtemp(prefix="proxy_comp_")
 
-    # 11. Compute pairwise diff (diagnostics go to temp_dir)
+    # 12. Compute pairwise diff (diagnostics go to temp_dir)
     print(f"\n[Pipeline] Computing diff: {old_label} -> {new_label}")
     events = compute_pairwise_diff(
         client,
@@ -350,14 +387,18 @@ def run_comparison(
         latest_can_doc,
         deal_output_dir=temp_dir,
         filing_id=latest_id,
+        base_summary_text=base_summary_text,
     )
 
-    # 12. Generate change report
+    # 13. Generate change report
     print(f"\n[Pipeline] Generating change report...")
-    change_text = generate_change_report(client, events, ticker, old_label, new_label)
+    change_text = generate_change_report(
+        client, events, ticker, old_label, new_label,
+        base_summary_text=base_summary_text,
+    )
     file_timestamp = datetime.now().strftime("%B %d, %Y - %I:%M %p")
 
-    # 13. Build outputs and upload to S3
+    # 14. Build outputs and upload to S3
     changes_data = [
         {
             "tier": e.tier,
@@ -401,7 +442,7 @@ def run_comparison(
     docx_key_suffix = proxy_comp_key_suffix(deal_id, latest_id, "change_report.docx")
     _, change_docx_url = upload_docx_bytes(docx_bytes, docx_key_suffix)
 
-    # 14. Update MongoDB result status (S3 URLs)
+    # 15. Update MongoDB result status (S3 URLs)
     tier1_count = sum(1 for e in events if e.tier == 1)
     tier2_count = sum(1 for e in events if e.tier == 2)
     db.set_result_status(

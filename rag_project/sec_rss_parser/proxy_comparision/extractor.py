@@ -21,23 +21,17 @@ from .section_mapper import get_section_by_id, get_sections_by_ids
 
 
 def _call_llm_json(client: Anthropic, prompt: str, use_thinking: bool = False) -> Any:
-    """Call LLM and parse JSON response. Uses thinking when requested and SDK supports it."""
+    """Call LLM and parse JSON response."""
     kwargs = {
         "model": MODEL_THINKING if use_thinking else MODEL_STANDARD,
         "max_tokens": 16000 if use_thinking else 4000,
         "messages": [{"role": "user", "content": prompt}],
     }
     if use_thinking:
-        kwargs["thinking"] = {"type": "enabled", "budget_tokens": THINKING_BUDGET}
+        kwargs["thinking"] = {"type": "enabled",
+                              "budget_tokens": THINKING_BUDGET}
 
-    try:
-        response = client.messages.create(**kwargs)
-    except TypeError as e:
-        if "thinking" in str(e):
-            kwargs.pop("thinking", None)
-            response = client.messages.create(**kwargs)
-        else:
-            raise
+    response = client.messages.create(**kwargs)
 
     # Extract text (skip thinking blocks)
     text_parts = [b.text for b in response.content if b.type == "text"]
@@ -63,8 +57,8 @@ def _call_llm_json(client: Anthropic, prompt: str, use_thinking: bool = False) -
 
 
 def _get_section_text_for_extraction(doc: CanonicalDocument,
-                                      section_ids: List[str],
-                                      max_chars: int = 60000) -> str:
+                                     section_ids: List[str],
+                                     max_chars: int = 60000) -> str:
     """Get combined text from relevant sections for extraction.
 
     Uses a two-layer approach:
@@ -79,9 +73,11 @@ def _get_section_text_for_extraction(doc: CanonicalDocument,
         topics_needed.update(_SECTION_ID_TO_TOPICS.get(sid, []))
 
     if topics_needed:
-        topic_text = _get_blocks_by_topic(doc, list(topics_needed), max_chars=max_chars)
+        topic_text = _get_blocks_by_topic(
+            doc, list(topics_needed), max_chars=max_chars)
         if topic_text.strip():
-            parts.append(f"[Topic-tagged content: {', '.join(sorted(topics_needed))}]\n{topic_text}")
+            parts.append(
+                f"[Topic-tagged content: {', '.join(sorted(topics_needed))}]\n{topic_text}")
 
     # Layer 2: Section-based fallback (still useful when sections are well-mapped)
     sections = get_sections_by_ids(doc, section_ids)
@@ -137,8 +133,7 @@ def extract_priority_facts(doc: CanonicalDocument, client: Anthropic) -> None:
     consideration_text = _get_section_text_for_extraction(
         doc, ["consideration_summary", "summary", "merger_agreement_summary"])
     doc.priority_facts.consideration = _call_llm_json(
-        client, CONSIDERATION_EXTRACTION_PROMPT.format(section_text=consideration_text),
-        use_thinking=True)
+        client, CONSIDERATION_EXTRACTION_PROMPT.format(section_text=consideration_text))
 
     # Financing -- look in financing, summary
     print(f"      Financing...")
@@ -159,9 +154,9 @@ def extract_priority_facts(doc: CanonicalDocument, client: Anthropic) -> None:
     reg_text = _get_section_text_for_extraction(
         doc, ["regulatory", "summary", "closing_conditions"])
     reg_result = _call_llm_json(
-        client, REGULATORY_EXTRACTION_PROMPT.format(section_text=reg_text),
-        use_thinking=True)
-    doc.priority_facts.regulatory = reg_result if isinstance(reg_result, list) else []
+        client, REGULATORY_EXTRACTION_PROMPT.format(section_text=reg_text))
+    doc.priority_facts.regulatory = reg_result if isinstance(
+        reg_result, list) else []
 
     # Closing Guidance -- look in summary, closing_conditions, questions_and_answers
     print(f"      Closing guidance...")

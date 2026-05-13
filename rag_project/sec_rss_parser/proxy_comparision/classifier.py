@@ -159,6 +159,12 @@ def _get_blocks_by_topic(doc: CanonicalDocument, topics: List[str],
         if exclude_indices and b.index in exclude_indices:
             continue
 
+        t = b.text.strip()
+        # Skip junk blocks (TOC echoes and page number blocks)
+        if t.startswith("TABLE OF CONTENTS"):
+            continue
+        if len(t) < 15 and re.match(r'^[A-Za-z]?-?\d+$', t):
+            continue
         if b.topic in topics and b.text.strip():
             by_topic.setdefault(b.topic, []).append(b.text)
 

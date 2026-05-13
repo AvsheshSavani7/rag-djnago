@@ -83,6 +83,14 @@ def download_json_from_url(url: str) -> dict:
         return json.loads(resp.read().decode("utf-8"))
 
 
+def download_text_from_url(url: str) -> str:
+    """Fetch URL and return as plain text. Works with S3 HTTPS URLs."""
+    import urllib.request
+    req = urllib.request.Request(url, headers={"User-Agent": "ProxyComp/1.0"})
+    with urllib.request.urlopen(req, timeout=60) as resp:
+        return resp.read().decode("utf-8")
+
+
 def proxy_comp_key_suffix(deal_id: str, record_id: str, suffix: str) -> str:
     """Build S3 key suffix for proxy comparison: proxy_comp_{deal_id}_{record_id}_{suffix}."""
     return f"proxy_comp_{deal_id}_{record_id}_{suffix}"
