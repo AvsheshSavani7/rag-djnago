@@ -20,7 +20,10 @@ sio = socketio.AsyncServer(
         'http://localhost:8000',
         'http://localhost:8080',
         'http://127.0.0.1:8000',
-        'https://rag-summary-fe.onrender.com'
+        'http://localhost:5173/'
+        'https://rag-summary-fe.onrender.com',
+        'https://react-dashboard-fe.onrender.com'
+
     ],
     logger=True,
     engineio_logger=True
