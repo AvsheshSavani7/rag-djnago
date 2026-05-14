@@ -5,7 +5,7 @@ Called from RegeneratePipelineView. Each step reuses existing service functions 
 no business logic is duplicated.
 
 DMA hierarchy (top-down cascade):
-    parsing → embedding → schema
+    parsing → embedding → schema → summary
 
 Independent pipelines (run as selected):
     termination, covenant, mae
@@ -32,7 +32,7 @@ from document_processor.transform_json import simplify_json
 
 logger = logging.getLogger(__name__)
 
-DMA_STEPS = ["parsing", "embedding", "schema"]
+DMA_STEPS = ["parsing", "embedding", "schema", "summary"]
 INDEPENDENT_STEPS = ["termination", "covenant", "mae"]
 ALL_VALID_STEPS = DMA_STEPS + INDEPENDENT_STEPS
 
@@ -244,6 +244,84 @@ def _step_schema(deal_id: str, job: ProcessingJob):
     logger.info("[regenerate] schema complete")
 
 
+def _step_summary(deal_id: str, job: ProcessingJob, send_email: bool = False):
+    """
+    Generate DMA summary DOCX from schema results.
+    Optionally sends email notification when send_email is True.
+    """
+    from document_processor.services import SummaryGenerationService
+    from sec_rss_parser.models import DealDmaSummary
+
+    logger.info("[regenerate] summary: deal_id=%s send_email=%s", deal_id, send_email)
+
+    object_id = ObjectId(deal_id)
+
+    DealDmaSummary.save_or_update(
+        deal_id=object_id,
+        summary_status='PROCESSING',
+        summary_docx_url=None,
+        summary_using="gpt-5.2-2025-12-11",
+    )
+
+    summary_service = SummaryGenerationService()
+    result = summary_service.generate_summary_engine(
+        deal_id=deal_id,
+        temperature=0,
+        provider='openai',
+        model='gpt-5.2-2025-12-11',
+    )
+
+    if not result:
+        job.summary_status = 'FAILED'
+        job.error_message = 'Summary generation returned None'
+        job.save()
+        DealDmaSummary.save_or_update(
+            deal_id=object_id,
+            summary_status='FAILED',
+            summary_docx_url=None,
+            summary_using="gpt-5.2-2025-12-11",
+        )
+        raise RuntimeError("Summary generation returned None")
+
+    job.summary_docx_url = result
+    job.summary_using = "gpt-5.2-2025-12-11"
+    job.summary_status = 'COMPLETED'
+    job.save()
+
+    DealDmaSummary.save_or_update(
+        deal_id=object_id,
+        summary_status='COMPLETED',
+        summary_docx_url=result,
+        summary_using="gpt-5.2-2025-12-11",
+    )
+    logger.info("[regenerate] summary DOCX generated: %s", result)
+
+    if send_email:
+        from sec_rss_parser.services import send_8k_summary_email
+
+        sec_url = job.sec_url or ""
+        accession = _extract_accession_from_url(sec_url)
+        company_name = _build_deal_name(job) or getattr(job, "target_name", "") or ""
+
+        try:
+            send_8k_summary_email(
+                deal_id=deal_id,
+                company_name=company_name,
+                form_type='8-K',
+                cik_number=getattr(job, 'cik', '') or '',
+                sec_url=sec_url,
+                accession_number=accession,
+                summary_kind="EX-2.1",
+            )
+            logger.info("[regenerate] summary email sent for deal %s", deal_id)
+        except Exception as e:
+            logger.error("[regenerate] summary email failed (non-fatal): %s", e)
+    else:
+        logger.info("[regenerate] summary email skipped (not requested)")
+
+    logger.info("[regenerate] summary complete")
+
+
 # ---------------------------------------------------------------------------
 #  Independent pipeline runners
 # ---------------------------------------------------------------------------
@@ -264,7 +342,7 @@ def _build_deal_name(job: ProcessingJob) -> str:
     return getattr(job, "target_name", None) or ""
 
 
-def _run_termination(deal_id: str, job: ProcessingJob):
+def _run_termination(deal_id: str, job: ProcessingJob, send_email: bool = False):
     sec_url = job.sec_url
     if not sec_url:
         logger.warning(
@@ -285,19 +363,20 @@ def _run_termination(deal_id: str, job: ProcessingJob):
     from termination_pipeline import run_termination_pipeline_s3
 
     logger.info(
-        "[regenerate] termination: deal_id=%s accession=%s", deal_id, accession)
+        "[regenerate] termination: deal_id=%s accession=%s send_email=%s",
+        deal_id, accession, send_email)
     run_termination_pipeline_s3(
         url=sec_url,
         accession_number=accession,
         doc_type="2.1",
         deal_id=str(deal_id),
         deal_name=_build_deal_name(job),
-        send_email=False,
+        send_email=send_email,
     )
     logger.info("[regenerate] termination complete")
 
 
-def _run_covenant(deal_id: str, job: ProcessingJob):
+def _run_covenant(deal_id: str, job: ProcessingJob, send_email: bool = False):
     sec_url = job.sec_url
     if not sec_url:
         logger.warning(
@@ -317,14 +396,14 @@ def _run_covenant(deal_id: str, job: ProcessingJob):
 
     from covenant_pipeline import run_covenant_pipeline_s3
 
-    logger.info("[regenerate] covenant: deal_id=%s accession=%s",
-                deal_id, accession)
+    logger.info("[regenerate] covenant: deal_id=%s accession=%s send_email=%s",
+                deal_id, accession, send_email)
     run_covenant_pipeline_s3(
         url=sec_url,
         accession_number=accession,
         deal_id=str(deal_id),
         deal_name=_build_deal_name(job),
-        send_email=False,
+        send_email=send_email,
     )
     logger.info("[regenerate] covenant complete")
 
@@ -356,13 +435,15 @@ STEP_DESCRIPTIONS = {
     "parsing": "Parsing SEC document into chunks",
     "embedding": "Generating embeddings and upserting to Pinecone",
     "schema": "Extracting schema fields from vector store",
+    "summary": "Generating DMA summary DOCX and sending email",
     "termination": "Running termination analysis (5 sub-steps, may take several minutes)",
     "covenant": "Running covenant analysis (5 sub-steps, may take several minutes)",
     "mae": "Running MAE extraction pipeline",
 }
 
 
-def run_regeneration_pipeline(deal_id: str, requested_steps: list, run_id: str = None) -> dict:
+def run_regeneration_pipeline(deal_id: str, requested_steps: list,
+                              run_id: str = None, email_flags: dict = None) -> dict:
     """
     Main entry point — called from the view's background thread.
 
@@ -370,10 +451,14 @@ def run_regeneration_pipeline(deal_id: str, requested_steps: list, run_id: str =
         deal_id: ProcessingJob / deal _id
         requested_steps: list of step names selected by the admin
         run_id: tracker ID (created by the view before dispatching)
+        email_flags: optional dict with boolean flags:
+            summary_email, termination_email, covenant_email
 
     Returns:
         dict with per-step status and any error messages
     """
+    if email_flags is None:
+        email_flags = {}
     results = {}
     plan = resolve_execution_plan(requested_steps)
 
@@ -404,6 +489,9 @@ def run_regeneration_pipeline(deal_id: str, requested_steps: list, run_id: str =
                     _step_embedding(deal_id, job)
                 elif step == "schema":
                     _step_schema(deal_id, job)
+                elif step == "summary":
+                    _step_summary(deal_id, job,
+                                  send_email=email_flags.get("summary_email", False))
 
                 duration = int((time.time() - started) * 1000)
                 results[step] = {"status": "completed",
@@ -435,6 +523,12 @@ def run_regeneration_pipeline(deal_id: str, requested_steps: list, run_id: str =
             runner = INDEPENDENT_RUNNERS[step]
             if step == "mae":
                 runner(deal_id)
+            elif step == "termination":
+                runner(deal_id, job,
+                       send_email=email_flags.get("termination_email", False))
+            elif step == "covenant":
+                runner(deal_id, job,
+                       send_email=email_flags.get("covenant_email", False))
             else:
                 runner(deal_id, job)
 

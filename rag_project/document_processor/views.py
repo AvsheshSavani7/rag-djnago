@@ -1588,11 +1588,19 @@ class RegeneratePipelineView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        email_flags = {
+            "summary_email": bool(request.data.get("summary_email", False)),
+            "termination_email": bool(request.data.get("termination_email", False)),
+            "covenant_email": bool(request.data.get("covenant_email", False)),
+        }
+
         plan = resolve_execution_plan(steps)
         run_id = generate_run_id()
         _create_run(run_id, deal_id, plan, steps)
 
-        self.executor.submit(run_regeneration_pipeline, deal_id, steps, run_id)
+        self.executor.submit(
+            run_regeneration_pipeline, deal_id, steps, run_id, email_flags
+        )
 
         return Response(
             {
