@@ -109,6 +109,16 @@ def _build_cache(record: dict, client, db: ProxyDB, deal_id: str) -> dict | None
         _, topic_blocks_url = upload_json(topic_blocks, tb_key_suffix)
         print(f"  [Cache] Uploaded topic blocks: {topic_blocks_url}")
 
+        # Full block list preserves type + topic + index (topic_blocks alone loses order and headings)
+        all_blocks_data = [
+            {"text": b.text, "type": b.type, "topic": b.topic, "index": b.index}
+            for b in doc.blocks
+            if b.text.strip()
+        ]
+        ab_key_suffix = proxy_comp_key_suffix(deal_id, record_id, "all_blocks.json")
+        _, all_blocks_url = upload_json(all_blocks_data, ab_key_suffix)
+        print(f"  [Cache] Uploaded all blocks: {all_blocks_url} ({len(all_blocks_data)} blocks)")
+
         # Sections JSON
         sections_data = []
         for s in doc.sections:
@@ -147,6 +157,7 @@ def _build_cache(record: dict, client, db: ProxyDB, deal_id: str) -> dict | None
             "filing_date": filing_date_str,
             "priority_facts_url": priority_facts_url,
             "topic_blocks_url": topic_blocks_url,
+            "all_blocks_url": all_blocks_url,
             "sections_url": sections_url,
             "summary_url": summary_url,
         }
@@ -184,24 +195,39 @@ def _load_can_doc_from_cache(cache_node: dict) -> CanonicalDocument:
         except Exception as e:
             print(f"  [Cache] Warning: could not load priority_facts from URL: {e}")
 
-    # Load topic_blocks from S3 URL
+    # Load blocks — prefer all_blocks (full types + document order); fall back to topic_blocks for legacy caches
     blocks = []
-    topic_blocks_url = cache_node.get("topic_blocks_url", "")
-    if topic_blocks_url:
+    all_blocks_url = cache_node.get("all_blocks_url", "")
+    if all_blocks_url:
         try:
-            topic_blocks_data = download_json_from_url(topic_blocks_url)
-            idx = 0
-            for topic, texts in topic_blocks_data.items():
-                for text in texts:
-                    blocks.append(Block(
-                        type="paragraph",
-                        text=text,
-                        index=idx,
-                        topic=topic,
-                    ))
-                    idx += 1
+            all_blocks_data = download_json_from_url(all_blocks_url)
+            for b in all_blocks_data:
+                blocks.append(Block(
+                    type=b.get("type", "paragraph"),
+                    text=b["text"],
+                    index=b.get("index", 0),
+                    topic=b.get("topic", ""),
+                ))
         except Exception as e:
-            print(f"  [Cache] Warning: could not load topic_blocks from URL: {e}")
+            print(f"  [Cache] Warning: could not load all_blocks from URL: {e}")
+
+    if not blocks:
+        topic_blocks_url = cache_node.get("topic_blocks_url", "")
+        if topic_blocks_url:
+            try:
+                topic_blocks_data = download_json_from_url(topic_blocks_url)
+                idx = 0
+                for topic, texts in topic_blocks_data.items():
+                    for text in texts:
+                        blocks.append(Block(
+                            type="paragraph",
+                            text=text,
+                            index=idx,
+                            topic=topic,
+                        ))
+                        idx += 1
+            except Exception as e:
+                print(f"  [Cache] Warning: could not load topic_blocks from URL: {e}")
 
     # Load sections from S3 URL
     sections = []
