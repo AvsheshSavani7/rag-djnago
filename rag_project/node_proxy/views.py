@@ -703,7 +703,11 @@ class AnnouncementWithUrlView(APIView):
             extraction_warnings = []
             error_message = None
 
-            def _send_parsing_error_email(error_msg: str, log_records: list):
+            def _send_parsing_error_email(
+                error_msg: str,
+                log_records: list,
+                api_response=None,
+            ):
                 try:
                     subject, html_email = generate_parsing_error_email_html(
                         company_name=company_name,
@@ -713,6 +717,7 @@ class AnnouncementWithUrlView(APIView):
                         accession_number=sec_filing_accession_number,
                         error_message=error_msg,
                         log_records=log_records,
+                        api_response=api_response,
                     )
                     payload = {
                         "subject": subject,
@@ -803,7 +808,11 @@ class AnnouncementWithUrlView(APIView):
                             )
                             logger.error(f"❌ {error_message}")
                             _send_parsing_error_email(
-                                error_message, extraction_warnings
+                                error_message,
+                                extraction_warnings,
+                                extraction_result.get("api_response")
+                                if extraction_result
+                                else None,
                             )
                     else:
                         error_message = (
@@ -812,7 +821,11 @@ class AnnouncementWithUrlView(APIView):
                         )
                         logger.error(f"❌ {error_message}")
                         _send_parsing_error_email(
-                            error_message, extraction_warnings
+                            error_message,
+                            extraction_warnings,
+                            extraction_result.get("api_response")
+                            if extraction_result
+                            else None,
                         )
                 else:
                     extraction_warnings = (
@@ -831,7 +844,12 @@ class AnnouncementWithUrlView(APIView):
                     )
                     logger.error(f"❌ {error_message}")
                     _send_parsing_error_email(
-                        error_message, extraction_warnings)
+                        error_message,
+                        extraction_warnings,
+                        extraction_result.get("api_response")
+                        if extraction_result
+                        else None,
+                    )
             except Exception as e:
                 extraction_warnings = []
                 error_message = f"Extraction worker threw an error: {e}"

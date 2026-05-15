@@ -1008,7 +1008,11 @@ def process_8k_document_async(ex21_url, cik_number, company_name, sec_filing_id,
         parsing_error_sent = False
         parsing_success_sent = False
 
-        def _send_parsing_error_email(error_message: str, log_records: list):
+        def _send_parsing_error_email(
+            error_message: str,
+            log_records: list,
+            api_response=None,
+        ):
             nonlocal parsing_error_sent
             if parsing_error_sent:
                 return
@@ -1023,6 +1027,7 @@ def process_8k_document_async(ex21_url, cik_number, company_name, sec_filing_id,
                     accession_number=sec_filing_accession_number,
                     error_message=error_message,
                     log_records=log_records,
+                    api_response=api_response,
                 )
 
                 payload = {
@@ -1129,6 +1134,11 @@ def process_8k_document_async(ex21_url, cik_number, company_name, sec_filing_id,
                     _send_parsing_error_email(
                         error_message=error_message,
                         log_records=extraction_warnings,
+                        api_response=(
+                            extraction_result.get("api_response")
+                            if extraction_result
+                            else None
+                        ),
                     )
             else:
                 extraction_warnings = extraction_result.get(
@@ -1147,12 +1157,23 @@ def process_8k_document_async(ex21_url, cik_number, company_name, sec_filing_id,
                 _send_parsing_error_email(
                     error_message=error_message,
                     log_records=extraction_warnings,
+                    api_response=(
+                        extraction_result.get("api_response")
+                        if extraction_result
+                        else None
+                    ),
                 )
         except Exception as e:
             extraction_warnings = []
+            err = f"Extraction worker threw an error: {e}"
             log_and_print(
-                f"❌ Extraction worker threw an error: {e}",
+                f"❌ {err}",
                 "error",
+            )
+            _send_parsing_error_email(
+                error_message=err,
+                log_records=extraction_warnings,
+                api_response=None,
             )
 
         # 2) If extraction/upload succeeded, create/reset deal + process_document

@@ -5,6 +5,7 @@ Centralized module for all email template generation.
 Easier to maintain, debug, and update without touching services logic.
 """
 from datetime import datetime
+import json
 import urllib.parse
 
 
@@ -1593,11 +1594,13 @@ def generate_parsing_error_email_html(
     accession_number: str,
     error_message: str,
     log_records: list,
+    api_response=None,
 ):
     """
     Generate an email HTML payload for parsing/extraction failures.
 
     The main goal is to include the captured `log_records` (WARNING+ from the extraction worker)
+    and optional `api_response` (parsed OpenAI / worker payload when present)
     so you can debug without needing to access logs/files.
     """
     company_esc = escape_html(company_name or "Unknown Company")
@@ -1628,6 +1631,21 @@ def generate_parsing_error_email_html(
 
     logs_count = len(logs)
     logs_esc = escape_html(logs_str)
+
+    try:
+        if api_response is None:
+            api_str = ""
+        elif isinstance(api_response, (dict, list)):
+            api_str = json.dumps(api_response, indent=2, default=str)
+        else:
+            api_str = str(api_response)
+    except Exception as ser_exc:
+        # Circular refs, depth limits, bytes keys, etc. must not break email delivery.
+        api_str = (
+            "[could not serialize api_response for email: "
+            f"{ser_exc!s}]"
+        )
+    api_esc = escape_html(api_str)
 
     subject = f"❌ Parsing Error - {company_esc} ({form_esc})"
 
@@ -1677,6 +1695,12 @@ def generate_parsing_error_email_html(
       <span style="color:#888; font-weight:normal;">({logs_count} entries{', truncated' if truncated else ''})</span>
     </h3>
     <pre style="white-space:pre-wrap; word-break:break-word; background:#f7f7f7; border:1px solid #e6e6e6; padding:12px; border-radius:6px; font-size:12px;">{logs_esc if logs_esc else "No log_records available."}</pre>
+
+    <h3 style="color:#333; margin-top:20px; margin-bottom:10px;">
+      api_response
+      <span style="color:#888; font-weight:normal;">{'' if api_esc else '(none)'}</span>
+    </h3>
+    <pre style="white-space:pre-wrap; word-break:break-word; background:#f7f7f7; border:1px solid #e6e6e6; padding:12px; border-radius:6px; font-size:12px;">{api_esc if api_esc else "No api_response available."}</pre>
 
     <div style="margin-top:22px; padding-top:18px; border-top:1px solid #e0e0e0; text-align:center; color:#999; font-size:12px;">
       Sent via N8N webhook for debugging parsing failures.
