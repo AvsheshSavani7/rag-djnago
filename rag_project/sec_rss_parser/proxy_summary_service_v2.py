@@ -4,7 +4,7 @@ Uses proxy_id to filter Pinecone chunks.
 """
 
 from datetime import datetime
-from typing import Dict, Any, List, Tuple
+from typing import Dict, Any, List, Tuple, Optional
 import tempfile
 import logging
 import json
@@ -18,6 +18,7 @@ from docx import Document
 from proxy_processor.merger_background_8_cleaned_format import ProxyBackgroundAnalyzer, DOCXFormatter
 from sec_rss_parser.agentic_sec_processor_v2 import S3Service
 from proxy_processor.arb_summary_doc_new_02_Dec_25 import QueryProcessor
+from sec_rss_parser.models import SECFilingSummary
 import re
 # Helper functions (copied from arb_summary_doc_new_02_Dec_25.py to avoid circular imports)
 
@@ -93,6 +94,13 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 load_dotenv()
 
 logger = logging.getLogger(__name__)
+
+
+def is_sc14d_chronological_summary_only_form(form_type: Optional[str]) -> bool:
+    """True for SC 14D family filings (tender offer / related schedules)."""
+    if not form_type:
+        return False
+    return form_type.strip().upper().startswith("SC 14D")
 
 
 class ProxySummaryServiceV2:
@@ -272,19 +280,45 @@ class ProxySummaryServiceV2:
             merger_background_results = self._generate_merger_background_analysis(
                 document_text)
 
-            # Step 3: Process questions if provided
+            chronological_summary_only = False
+            try:
+                filing_rec = SECFilingSummary.objects(
+                    _id=sec_filing_summary_id).first()
+                if filing_rec and is_sc14d_chronological_summary_only_form(
+                        filing_rec.form_type):
+                    chronological_summary_only = True
+                    logger.info(
+                        "SC 14D form type: chronological summary only "
+                        "(skipping proxy Q&A processing)"
+                    )
+            except Exception as lookup_err:
+                logger.warning(
+                    "Could not load SECFilingSummary for form_type check: %s",
+                    lookup_err,
+                )
+
+            # Step 3: Process questions if provided (skipped for SC 14D family)
             qa_content = ""
-            if questions_file and os.path.exists(questions_file):
+            if (
+                not chronological_summary_only
+                and questions_file
+                and os.path.exists(questions_file)
+            ):
                 logger.info(f"Processing questions from {questions_file}")
                 qa_content = self._process_questions(
                     sec_filing_summary_id, questions_file)
+            elif chronological_summary_only and questions_file:
+                logger.info(
+                    "Skipping questions file for SC 14D chronological-only summary"
+                )
 
             # Step 4: Create DOCX document
             logger.info("Creating DOCX document")
             docx_path = self._create_docx_document(
                 sec_filing_summary_id=sec_filing_summary_id,
                 qa_content=qa_content,
-                merger_background_results=merger_background_results
+                merger_background_results=merger_background_results,
+                chronological_summary_only=chronological_summary_only,
             )
 
             if not docx_path:
@@ -314,7 +348,8 @@ class ProxySummaryServiceV2:
             return {
                 "success": True,
                 "docx_url": docx_url,
-                "s3_key": s3_key
+                "s3_key": s3_key,
+                "chronological_summary_only": chronological_summary_only,
             }
 
         except Exception as e:
@@ -598,32 +633,50 @@ class ProxySummaryServiceV2:
                 deduplicated.append(chunk)
         return deduplicated
 
-    def _create_docx_document(self, sec_filing_summary_id: str, qa_content: str, merger_background_results: Dict[str, Any]) -> str:
-        """Create DOCX document combining Q&A and merger background"""
+    def _create_docx_document(
+        self,
+        sec_filing_summary_id: str,
+        qa_content: str,
+        merger_background_results: Dict[str, Any],
+        chronological_summary_only: bool = False,
+    ) -> str:
+        """Create DOCX document combining Q&A and merger background."""
         try:
+            from docx.shared import Pt, RGBColor
+
             doc = Document()
             formatter = DOCXFormatter(doc)
 
-            # Add title
-            formatter.add_title('Proxy Summary')
-            doc.add_paragraph()
+            if chronological_summary_only:
+                formatter.add_title(
+                    'Proxy Summary — Chronological summary only')
+                doc.add_paragraph()
+                note_para = doc.add_paragraph(
+                    'This filing uses a chronological summary of the merger '
+                    'background only. Proxy-style Q&A sections are not included.'
+                )
+                note_para.paragraph_format.space_after = Pt(12)
+            else:
+                formatter.add_title('Proxy Summary')
+                doc.add_paragraph()
 
-            # Process Q&A content if available
-            if qa_content:
+            # Process Q&A content if available (not used for SC 14D chronological-only)
+            if qa_content and not chronological_summary_only:
                 self._process_content_section(doc, qa_content)
 
             # Add merger background analysis if available
             if merger_background_results and merger_background_results.get('success'):
-                doc.add_page_break()
-                doc.add_heading(
-                    'Merger Background Analysis - Client Deliverables', 1)
+                if not chronological_summary_only:
+                    doc.add_page_break()
+                    doc.add_heading(
+                        'Merger Background Analysis - Client Deliverables', 1)
 
                 extraction_result = merger_background_results.get(
                     'extraction_result', {})
                 strict_summary_result = merger_background_results.get(
                     'strict_summary_result', {})
 
-                # Section 1: Chronological Summary
+                # Chronological Summary (SC 14D path skips prior client-deliverables banner)
                 doc.add_heading('Chronological Summary', 1)
 
                 if strict_summary_result.get('success'):
@@ -633,7 +686,6 @@ class ProxySummaryServiceV2:
                     # Validation info
                     if 'validation' in strict_summary_result:
                         formatter.add_horizontal_line()
-                        from docx.shared import Pt, RGBColor
                         val_para = doc.add_paragraph()
                         val_para.paragraph_format.space_before = Pt(6)
 
@@ -654,8 +706,11 @@ class ProxySummaryServiceV2:
                     doc.add_paragraph(
                         f"❌ Error: {strict_summary_result.get('error', 'Unknown error')}")
 
-                # Extract and add other client deliverable sections
-                if extraction_result.get('success'):
+                # Extract and add other client deliverable sections (full proxy only)
+                if (
+                    not chronological_summary_only
+                    and extraction_result.get('success')
+                ):
                     doc.add_page_break()
                     doc.add_heading(
                         'Extraction of other client deliverable sections', 1)
@@ -678,6 +733,14 @@ class ProxySummaryServiceV2:
                                     clean_para = formatter._clean_markdown(
                                         para.strip())
                                     doc.add_paragraph(clean_para)
+
+            elif chronological_summary_only:
+                doc.add_heading('Chronological Summary', 1)
+                err_msg = 'Merger background analysis could not be generated.'
+                if merger_background_results and merger_background_results.get(
+                        'error'):
+                    err_msg = str(merger_background_results['error'])
+                doc.add_paragraph(err_msg)
 
             # Save to temp file
             temp_file = tempfile.NamedTemporaryFile(

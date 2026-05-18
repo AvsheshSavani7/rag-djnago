@@ -9,7 +9,10 @@ Flow:
 4. generate_proxy_summary_v2() - generates summary doc, updates SECFilingSummary.proxy
 """
 
-from sec_rss_parser.proxy_summary_service_v2 import ProxySummaryServiceV2
+from sec_rss_parser.proxy_summary_service_v2 import (
+    ProxySummaryServiceV2,
+    is_sc14d_chronological_summary_only_form,
+)
 from sec_rss_parser.sec_processor_and_pinecone_v2 import SectionProcessorV2
 from sec_rss_parser.agentic_sec_processor_v2 import AgenticSECProcessor
 from sec_rss_parser.models import SECFilingSummary, SECFiling
@@ -573,7 +576,18 @@ def _render_proxy_qa_html(qa_items: list, chronological_summary: list = None) ->
     </div>"""
 
 
-def generate_summary_email_html(company_name: str, form_type: str, summary_doc_url: str, cik_number: str, proxy_sec_url: str, ticker: str = None, filing_date=None, qa_items: list = None, chronological_summary: list = None) -> tuple:
+def generate_summary_email_html(
+    company_name: str,
+    form_type: str,
+    summary_doc_url: str,
+    cik_number: str,
+    proxy_sec_url: str,
+    ticker: str = None,
+    filing_date=None,
+    qa_items: list = None,
+    chronological_summary: list = None,
+    chronological_summary_only: bool = False,
+) -> tuple:
     """
     Generate HTML email for proxy summary document notification.
 
@@ -587,6 +601,7 @@ def generate_summary_email_html(company_name: str, form_type: str, summary_doc_u
         filing_date: Optional filing date for subject (datetime or str)
         qa_items: Optional list of Q&A dicts with "question" and "answer" keys
         chronological_summary: Optional list of chronological summary lines
+        chronological_summary_only: True for SC 14D family — Q&A omitted; label email accordingly
     Returns:
         tuple: (subject, html_email)
     """
@@ -600,8 +615,18 @@ def generate_summary_email_html(company_name: str, form_type: str, summary_doc_u
             filing_date_str = str(filing_date)[:10] if str(
                 filing_date) else ""
     subject = f"{label} :Form {form_type} Summary By {company_name} on [ {filing_date_str} ]"
+    if chronological_summary_only:
+        subject = f"{subject} — Background summary"
+
+    notice_html = ""
 
     inline_qa_html = _render_proxy_qa_html(qa_items, chronological_summary)
+
+    banner_title = (
+        "New Proxy Summary Document (Background summary)"
+        if chronological_summary_only
+        else "New Proxy Summary Document"
+    )
 
     html_email = f"""
 <!DOCTYPE html>
@@ -613,7 +638,7 @@ def generate_summary_email_html(company_name: str, form_type: str, summary_doc_u
 <body style="margin:0; padding:0; font-family:Arial,sans-serif; background-color:#f4f4f4;">
   <div style="max-width:700px; margin:20px auto; background-color:#ffffff; padding:30px; border-radius:8px; box-shadow:0 2px 4px rgba(0,0,0,0.1);">
     <h2 style="color:#333; text-align:center; margin-top:0; padding-bottom:20px; border-bottom:3px solid #4a90e2;">
-      New Proxy Summary Document
+      {escape_html(banner_title)}
     </h2>
 
     <div style="margin-bottom:30px;">
@@ -633,6 +658,8 @@ def generate_summary_email_html(company_name: str, form_type: str, summary_doc_u
         </p>
       </div>
     </div>
+
+    {notice_html}
 
     {inline_qa_html}
 
@@ -697,6 +724,10 @@ def send_summary_email_notification_v2(filing_summary):
         )
         filing_date = getattr(filing_summary, "filing_date", None)
 
+        chronological_summary_only = is_sc14d_chronological_summary_only_form(
+            getattr(filing_summary, "form_type", None)
+        )
+
         # Parse the DOCX to extract Q&A and Chronological Summary for inline display
         qa_items = None
         chronological_summary = None
@@ -709,6 +740,9 @@ def send_summary_email_notification_v2(filing_summary):
             logger.warning(
                 f"Could not parse proxy DOCX for inline content: {parse_err}")
 
+        if chronological_summary_only:
+            qa_items = None
+
         # Generate email HTML (same as old flow)
         subject, html_email = generate_summary_email_html(
             company_name=company_name,
@@ -720,6 +754,7 @@ def send_summary_email_notification_v2(filing_summary):
             filing_date=filing_date,
             qa_items=qa_items,
             chronological_summary=chronological_summary,
+            chronological_summary_only=chronological_summary_only,
         )
         logger.info(f"Generated email subject: {subject}")
 
