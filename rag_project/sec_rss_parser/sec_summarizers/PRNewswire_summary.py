@@ -80,7 +80,7 @@ Given the press release text below, produce summaries at 3 levels. Respond ONLY 
 
   "L1_headline": "+ <TARGET TICKER or NAME> – <key event in ≤8 words>. | <date>",
 
-  "L2_brief": "<2-3 sentence summary covering: who is acquiring whom, deal value and structure, and what it means for shareholders>",
+  "L2_brief": "<2-3 sentence summary covering: who is acquiring whom, deal value and structure, and key terms>",
 
   "L3_detailed": {
     "deal_value": "<total deal value, e.g. '$2.1B'>",
@@ -95,7 +95,12 @@ Given the press release text below, produce summaries at 3 levels. Respond ONLY 
 }
 
 Rules:
-- TONE: State only facts from the filing. Do NOT speculate on motives, interpret what actions "signal" or "suggest", assess confidence levels, or draw conclusions beyond what is explicitly stated. GOOD: "Company suspended earnings calls due to pending transaction." BAD: "Company suspended earnings calls, signaling high confidence in deal completion."
+- CRITICAL — FACTS ONLY: Every statement in your summary must be directly traceable to the filing text. Report ONLY what the document says. Do NOT add analysis, assess significance, interpret motives, predict outcomes, evaluate probability, or editorialize. Do NOT state what is "not disclosed" or "not mentioned" — simply omit fields where the filing is silent. If the filing does not say it, do not write it.
+  GOOD: "CADE requested revenue data for 2021-2025 across four markets."
+  BAD: "The broad scope of information requested indicates potentially detailed competitive analysis ahead."
+  GOOD: "The offer expires June 10, 2026."
+  BAD: "This tight timeline may create pressure on shareholders to tender quickly."
+- PRECISION: Use the filing's exact terminology for legal, regulatory, and financial terms. Do NOT paraphrase in ways that broaden or narrow the stated meaning. GOOD: "All 14 Pennsylvania PUC hearings have concluded." BAD: "Regulatory proceedings concluded in Pennsylvania."
 - L1 format MUST be: + <TICKER or NAME> – <event>. | <date>
 - Use the TARGET's ticker for L1 if available, otherwise use target company name
 - Extract exact dollar amounts, per-share prices, premiums, and exchange ratios
@@ -310,7 +315,7 @@ def summarize(text: str, model: str = "claude-opus-4-6") -> dict:
 
     msg = client.messages.create(
         model=model,
-        max_tokens=2500,
+        max_tokens=1500,
         messages=[{
             "role": "user",
             "content": SUMMARY_PROMPT + "\n\n" + text

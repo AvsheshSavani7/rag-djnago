@@ -64,13 +64,13 @@ Given the 6-K text below, produce summaries at 3 levels. Respond ONLY in valid J
 
   "L1_headline": "+ <TICKER> – <key event in ≤8 words>. | <date>",
 
-  "L2_brief": "<2-3 sentence summary covering: what happened, key numbers, and what it means for investors>",
+ "L2_brief": "<2-3 sentence summary covering: what happened, key numbers, and stated impact if any>",
 
   "L3_detailed": {
     "event": "<what happened>",
     "key_figures": ["<financial figures, vote percentages, deal values, share prices>"],
-    "market_impact": "<significance for US-listed shares / ADRs>",
-    "deal_relevance": "<if M&A related: impact on deal timeline/probability/terms. If not M&A: 'N/A'>",
+    "market_impact": "<stated effects on US-listed shares or ADRs, if any>",
+    "deal_relevance": "<if M&A related: deal-related facts stated in the filing. If not M&A: 'N/A'>",
     "regulatory_notes": "<any regulatory body mentions — local regulators, EU Commission, competition authorities>",
     "cross_border_considerations": "<currency, jurisdiction, or structural notes relevant to US investors>",
     "risks_flagged": ["<any risks, litigation, regulatory issues, FX exposure>"]
@@ -78,25 +78,40 @@ Given the 6-K text below, produce summaries at 3 levels. Respond ONLY in valid J
 }
 
 Rules:
-- TONE: State only facts from the filing. Do NOT speculate on motives, interpret what actions "signal" or "suggest", assess confidence levels, or draw conclusions beyond what is explicitly stated. GOOD: "Company suspended earnings calls due to pending transaction." BAD: "Company suspended earnings calls, signaling high confidence in deal completion."
+- CRITICAL — FACTS ONLY: Every statement in your summary must be directly traceable to the filing text. Report ONLY what the document says. Do NOT add analysis, assess significance, interpret motives, predict outcomes, evaluate probability, or editorialize. Do NOT state what is "not disclosed" or "not mentioned" — simply omit fields where the filing is silent. If the filing does not say it, do not write it.
+  GOOD: "CADE requested revenue data for 2021-2025 across four markets."
+  BAD: "The broad scope of information requested indicates potentially detailed competitive analysis ahead."
+  GOOD: "The offer expires June 10, 2026."
+  BAD: "This tight timeline may create pressure on shareholders to tender quickly."
+- PRECISION: Use the filing's exact terminology for legal, regulatory, and financial terms. Do NOT paraphrase in ways that broaden or narrow the stated meaning. GOOD: "All 14 Pennsylvania PUC hearings have concluded." BAD: "Regulatory proceedings concluded in Pennsylvania."
 - L1 format MUST be: + <TICKER> – <event>. | <date>
 - Use the US-listed ticker or ADR symbol
-- Note the home country and any cross-border regulatory considerations
+- Note the home country and any cross-border regulatory considerations stated in the filing
 - Extract exact figures, dates, and percentages
 - Flag any currency-related details (reporting currency vs USD)
-- For merger-related 6-Ks, focus on deal probability impact and cross-border regulatory hurdles
+- For merger-related 6-Ks, extract stated deal terms, regulatory filings, and timeline updates
 
 6-K TEXT:
+"""
+EXTRACTION_GUIDANCE = """This is a 6-K report by a foreign private issuer.
+Extract:
+- Type of event being reported (earnings, deal update, regulatory filing, shareholder meeting, etc.)
+- Key financial figures (revenue, earnings, deal values) with currencies
+- Cross-border regulatory mentions and jurisdiction details
+- Deal-related information if M&A (terms, conditions, timeline)
+- Shareholder meeting results if applicable (votes, resolutions)
+- Material agreements or contracts
+- Currency and exchange rate details
 """
 
 
 def fetch_filing_text(source: str) -> str:
     """Fetch and extract text from a 6-K filing (URL, local file, or PDF)."""
-    from .fetch_utils import fetch_text
-    return fetch_text(source)
+    from .fetch_utils import fetch_text_with_extraction
+    return fetch_text_with_extraction(source, EXTRACTION_GUIDANCE)
 
 
-def summarize(text: str, model: str = "claude-sonnet-4-6") -> dict:
+def summarize(text: str, model: str = "claude-opus-4-6") -> dict:
     """Call Claude API to produce multi-level summary."""
     if not ANTHROPIC_API_KEY:
         raise ValueError(
@@ -105,7 +120,7 @@ def summarize(text: str, model: str = "claude-sonnet-4-6") -> dict:
 
     msg = client.messages.create(
         model=model,
-        max_tokens=2500,
+        max_tokens=1500,
         messages=[{
             "role": "user",
             "content": SUMMARY_PROMPT + "\n\n" + text

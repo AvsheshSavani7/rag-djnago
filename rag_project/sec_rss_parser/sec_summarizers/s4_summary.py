@@ -7,6 +7,12 @@ exchange offers). They contain the merger agreement, pro forma financials, risk 
 and often serve as the combined proxy/prospectus for the deal.
 """
 
+import anthropic
+import re
+import json
+import sys
+import os
+import io
 from pathlib import Path
 from ._naming import filing_uid
 
@@ -16,12 +22,6 @@ FILING_URL = ""
 OUTPUT_DIR = Path(__file__).resolve().parents[1] / "Output Summaries"
 # ─────────────────────────────────
 
-import io
-import os
-import sys
-import json
-import re
-import anthropic
 
 try:
     import requests
@@ -104,35 +104,56 @@ Given the S-4 text below, produce summaries at 3 levels. Respond ONLY in valid J
 }
 
 Rules:
-- TONE: State only facts from the filing. Do NOT speculate on motives, interpret what actions "signal" or "suggest", assess confidence levels, or draw conclusions beyond what is explicitly stated. GOOD: "Company suspended earnings calls due to pending transaction." BAD: "Company suspended earnings calls, signaling high confidence in deal completion."
+- CRITICAL — FACTS ONLY: Every statement in your summary must be directly traceable to the filing text. Report ONLY what the document says. Do NOT add analysis, assess significance, interpret motives, predict outcomes, evaluate probability, or editorialize. Do NOT state what is "not disclosed" or "not mentioned" — simply omit fields where the filing is silent. If the filing does not say it, do not write it.
+  GOOD: "CADE requested revenue data for 2021-2025 across four markets."
+  BAD: "The broad scope of information requested indicates potentially detailed competitive analysis ahead."
+  GOOD: "The offer expires June 10, 2026."
+  BAD: "This tight timeline may create pressure on shareholders to tender quickly."
+- PRECISION: Use the filing's exact terminology for legal, regulatory, and financial terms. Do NOT paraphrase in ways that broaden or narrow the stated meaning. GOOD: "All 14 Pennsylvania PUC hearings have concluded." BAD: "Regulatory proceedings concluded in Pennsylvania."
 - L1 format MUST be: + <TARGET TICKER> – <event>. | <date>
 - Extract EXACT per-share consideration, exchange ratio, total deal value, and premium
 - List ALL closing conditions individually — these determine arb risk
 - Capture deal protection terms precisely (termination fees as dollar amounts AND percentages)
 - Note whether this is an initial S-4 or an amendment — if amendment, highlight what changed
 - Extract pro forma financial highlights and synergy estimates
-- Summarize the top risk factors most relevant to deal completion
+- risk factors stated in the filing related to the transaction
 - If the filing includes the merger agreement, extract key terms from it
 
 S-4 TEXT:
 """
 
+EXTRACTION_GUIDANCE = """This is an S-4 registration statement (merger proxy/prospectus).
+Extract the following sections in full:
+- Deal terms: per-share consideration, exchange ratio, cash component, total deal value, premium calculation
+- Deal structure description (merger, stock-for-stock, reverse merger, etc.)
+- ALL conditions precedent / closing conditions listed individually
+- Regulatory approvals required and their current status — every jurisdiction (HSR, EU, CFIUS, sector-specific)
+- Deal protections: termination fees (target AND acquirer amounts and triggers), go-shop period, matching rights, no-shop/no-solicitation
+- Expected timeline and key milestones (closing date, shareholder meeting, record date)
+- Shareholder vote details: which shareholders, threshold, record date, meeting date
+- Fairness opinion: advisor name and conclusion
+- Background of the Transaction (negotiation history)
+- Pro forma financial highlights and synergy estimates
+- Top deal-specific risk factors
+- If amendment (S-4/A): what specifically changed from prior filing"""
+
 
 def fetch_filing_text(source: str) -> str:
     """Fetch and extract text from an S-4 filing (URL, local file, or PDF)."""
-    from .fetch_utils import fetch_text
-    return fetch_text(source, word_limit=20000)
+    from .fetch_utils import fetch_text_with_extraction
+    return fetch_text_with_extraction(source, extraction_guidance=EXTRACTION_GUIDANCE)
 
 
 def summarize(text: str, model: str = "claude-opus-4-6") -> dict:
     """Call Claude API to produce multi-level summary."""
     if not ANTHROPIC_API_KEY:
-        raise ValueError("ANTHROPIC_API_KEY not set. Set it in .env or Django settings (ANTHROPIC_API_KEY).")
+        raise ValueError(
+            "ANTHROPIC_API_KEY not set. Set it in .env or Django settings (ANTHROPIC_API_KEY).")
     client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
 
     msg = client.messages.create(
         model=model,
-        max_tokens=2500,
+        max_tokens=8000,
         messages=[{
             "role": "user",
             "content": SUMMARY_PROMPT + "\n\n" + text
@@ -152,8 +173,10 @@ def print_summary(s: dict):
     print(f"  S-4 SUMMARY (M&A Registration Statement)")
     print("=" * 70)
 
-    print(f"\n   Acquirer: {s.get('acquirer', 'N/A')} ({s.get('acquirer_ticker') or '—'})")
-    print(f"   Target:   {s.get('target', 'N/A')} ({s.get('target_ticker') or '—'})")
+    print(
+        f"\n   Acquirer: {s.get('acquirer', 'N/A')} ({s.get('acquirer_ticker') or '—'})")
+    print(
+        f"   Target:   {s.get('target', 'N/A')} ({s.get('target_ticker') or '—'})")
     print(f"   Type:     {s.get('filing_type', 'N/A')}")
     print(f"   Date:     {s.get('filing_date', 'N/A')}")
 
@@ -233,7 +256,8 @@ def export_docx(s: dict, s3_key_suffix: str):
 
     meta = doc.add_paragraph()
     meta.add_run("Acquirer: ").bold = True
-    meta.add_run(f"{s.get('acquirer', 'N/A')} ({s.get('acquirer_ticker') or '—'})")
+    meta.add_run(
+        f"{s.get('acquirer', 'N/A')} ({s.get('acquirer_ticker') or '—'})")
     meta.add_run("    Target: ").bold = True
     meta.add_run(f"{s.get('target', 'N/A')} ({s.get('target_ticker') or '—'})")
 

@@ -124,26 +124,47 @@ Given the tender offer filing text below, produce summaries at 3 levels. Respond
 }
 
 Rules:
-- TONE: State only facts from the filing. Do NOT speculate on motives, interpret what actions "signal" or "suggest", assess confidence levels, or draw conclusions beyond what is explicitly stated. GOOD: "Company suspended earnings calls due to pending transaction." BAD: "Company suspended earnings calls, signaling high confidence in deal completion."
+- CRITICAL — FACTS ONLY: Every statement in your summary must be directly traceable to the filing text. Report ONLY what the document says. Do NOT add analysis, assess significance, interpret motives, predict outcomes, evaluate probability, or editorialize. Do NOT state what is "not disclosed" or "not mentioned" — simply omit fields where the filing is silent. If the filing does not say it, do not write it.
+  GOOD: "CADE requested revenue data for 2021-2025 across four markets."
+  BAD: "The broad scope of information requested indicates potentially detailed competitive analysis ahead."
+  GOOD: "The offer expires June 10, 2026."
+  BAD: "This tight timeline may create pressure on shareholders to tender quickly."
+- PRECISION: Use the filing's exact terminology for legal, regulatory, and financial terms. Do NOT paraphrase in ways that broaden or narrow the stated meaning. GOOD: "All 14 Pennsylvania PUC hearings have concluded." BAD: "Regulatory proceedings concluded in Pennsylvania."
 - L1 format MUST be: + <TARGET TICKER> – <event>. | <date>
-- This filing type is THE most important for arb — be extremely thorough
+- Be extremely thorough — extract all stated facts
 - Extract EXACT offer price, premium calculation (with reference date/price), minimum condition, and expiration date
 - The board recommendation and fairness opinion are critical — quote key language
 - List EVERY material condition to the offer individually
-- Distinguish between financing condition (rare, bad for arb) and committed financing (good for arb)
-- For SC 14D-9: the "Background of the Transaction" section is gold — summarize the negotiation history
+- Distinguish between financing condition and committed financing as stated
+- For SC 14D-9: extract the full "Background of the Transaction" negotiation history
 - For amendments: clearly state what changed from the prior filing
-- Flag any conditions that seem difficult to satisfy or any unusual deal protections
+- List all conditions to the offer as stated
 - Note the top-up option and short-form merger mechanics if present
 
 TENDER OFFER FILING TEXT:
 """
 
+EXTRACTION_GUIDANCE = """This is a TENDER OFFER filing (SC TO-T, SC TO-T/A, SC 14D-9, or SC 14D-9/A).
+Extract the following sections in full:
+- Offer terms: offer price, exchange ratio, premium calculation (with reference date/price), shares sought, minimum condition, top-up option
+- Expiration date and time, withdrawal deadline, any extensions or extension rights
+- Board recommendation and reasoning (for SC 14D-9)
+- Fairness opinion: advisor name, conclusion, and key language
+- Background of the Transaction (full negotiation history timeline)
+- ALL conditions to the offer (listed individually)
+- Financing: source of funds, commitment letters, lenders, amounts, financing condition (YES/NO)
+- Regulatory approvals: EVERY jurisdiction mentioned (HSR, EU, CFIUS, country-specific antitrust, FDI reviews) with filing dates and current status
+- Deal protections: breakup fee amounts and triggers, reverse breakup fee, go-shop period, matching rights, force-the-vote provisions
+- Competing offers or superior proposals
+- Litigation related to the offer
+- Top-up option and short-form merger mechanics (DGCL Section 251(h))
+- If amendment (/A): what specifically changed from prior filing"""
+
 
 def fetch_filing_text(source: str) -> str:
     """Fetch and extract text from a tender offer filing (URL, local file, or PDF)."""
-    from .fetch_utils import fetch_text
-    return fetch_text(source, word_limit=20000)
+    from .fetch_utils import fetch_text_with_extraction
+    return fetch_text_with_extraction(source, EXTRACTION_GUIDANCE)
 
 
 def summarize(text: str, model: str = "claude-sonnet-4-6") -> dict:
@@ -155,7 +176,7 @@ def summarize(text: str, model: str = "claude-sonnet-4-6") -> dict:
 
     msg = client.messages.create(
         model=model,
-        max_tokens=3000,
+        max_tokens=8000,
         messages=[{
             "role": "user",
             "content": SUMMARY_PROMPT + "\n\n" + text

@@ -33,6 +33,8 @@ FILING_MAP = {
     "S-8":       "s8_summary",
     "SC TO-T":   "sc_to_summary",
     "SC TO-T/A": "sc_to_summary",
+    "SC TO-C":   "sc_to_summary",
+    "SC TO-C/A": "sc_to_summary",
     "SC 14D-9":  "sc_to_summary",
     "SC 14D-9/A": "sc_to_summary",
     "S-4":       "s4_summary",
@@ -86,6 +88,7 @@ URL_PATTERNS = [
     (r'_425\.',          "425"),
     (r'/s-?8[^0-9]',     "S-8"),
     (r'_s8\.',           "S-8"),
+    (r'sc-?toc',         "SC TO-C"),
     (r'sc-?to',          "SC TO-T"),
     (r'sc14d',           "SC 14D-9"),
     (r'sc-?14d',         "SC 14D-9"),
@@ -132,6 +135,7 @@ SC 13G
 425
 S-8
 SC TO-T
+SC TO-C
 SC 14D-9
 S-4
 F-4
@@ -146,7 +150,8 @@ OTHER
 
 If the filing is an amendment (e.g., SC 13D/A, 8-K/A), use the base type (e.g., SC 13D, 8-K).
 If you see "Exhibit 99" or "EX-99" in the header, classify as 99.1.
-If none of the above match, respond with OTHER.
+If the document is NOT an SEC filing (e.g., a foreign government document, court filing, regulatory dispatch, news article, or any non-SEC source), respond with OTHER.
+If you are not confident the document matches a specific SEC filing type, respond with OTHER rather than guessing.
 
 FILING TEXT (first ~1000 words):
 """
@@ -203,17 +208,24 @@ def classify_with_claude(text: str) -> str:
     return label
 
 
-def route_and_summarize(url: str):
-    """Detect filing type, import the right summarizer, and run it."""
+def route_and_summarize(url: str | list[str]):
+    """Detect filing type, import the right summarizer, and run it.
+
+    Args:
+        url: Single URL string or list of URLs. For a list, the first URL is
+             used for classification and the full list is passed to the
+             summarizer module as FILING_URL.
+    """
+    classify_url = url[0] if isinstance(url, list) else url
 
     # ── Step 1: Try URL-based detection (free, instant) ──
-    filing_type = detect_from_url(url)
+    filing_type = detect_from_url(classify_url)
     if filing_type:
         print(f"📎 Detected filing type from URL: {filing_type}")
     else:
         # ── Step 2: Fetch preview and classify with Claude ──
         print("🔍 Could not detect type from URL — fetching preview for classification...")
-        preview = fetch_preview(url)
+        preview = fetch_preview(classify_url)
         print(f"   Extracted {len(preview.split())} words for classification")
 
         print("   Classifying via Claude Opus 4.5...")
@@ -232,13 +244,15 @@ def route_and_summarize(url: str):
             module_name = "sec_filing_summary"
 
     print(f"📂 Routing to: {module_name}.py")
+    if isinstance(url, list):
+        print(f"   ({len(url)} documents to combine)")
     print("=" * 70)
 
     # ── Step 4: Import and run the summarizer ──
     module = importlib.import_module(
         f"sec_rss_parser.sec_summarizers.{module_name}")
 
-    # Set the URL in the target module
+    # Set the URL(s) in the target module
     module.FILING_URL = url
 
     # Run it

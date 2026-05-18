@@ -65,13 +65,14 @@ Given the SEC filing text below, produce summaries at 3 levels. Respond ONLY in 
 
   "L1_headline": "+ <TICKER> – <key takeaway in ≤8 words>. | <date>",
 
-  "L2_brief": "<2-3 sentence summary covering: what this filing is, the most important information it contains, and any M&A relevance>",
+"L2_brief": "<2-3 sentence summary covering: what this filing is, the most important information it contains, and stated purpose>",
+
 
   "L3_detailed": {
     "filing_purpose": "<why this filing was made — what event or requirement triggered it>",
     "key_information": ["<the 3-5 most important facts, figures, or disclosures from the filing>"],
     "financial_highlights": ["<any key financial figures — revenue, earnings, deal values, share prices>"],
-    "deal_relevance": "<if M&A related: specific impact on deal timeline, probability, terms, or structure. If not directly M&A: any indirect relevance to pending deals or corporate strategy>",
+   "deal_relevance": "<if M&A related: deal-related facts stated in the filing, if any>",
     "regulatory_mentions": "<any regulatory bodies, approvals, investigations, or compliance matters mentioned>",
     "timeline_or_dates": ["<important dates mentioned — close dates, meeting dates, deadlines, effective dates>"],
     "conditions_or_requirements": ["<any conditions precedent, requirements, or contingencies>"],
@@ -80,7 +81,12 @@ Given the SEC filing text below, produce summaries at 3 levels. Respond ONLY in 
 }
 
 Rules:
-- TONE: State only facts from the filing. Do NOT speculate on motives, interpret what actions "signal" or "suggest", assess confidence levels, or draw conclusions beyond what is explicitly stated. GOOD: "Company suspended earnings calls due to pending transaction." BAD: "Company suspended earnings calls, signaling high confidence in deal completion."
+- CRITICAL — FACTS ONLY: Every statement in your summary must be directly traceable to the filing text. Report ONLY what the document says. Do NOT add analysis, assess significance, interpret motives, predict outcomes, evaluate probability, or editorialize. Do NOT state what is "not disclosed" or "not mentioned" — simply omit fields where the filing is silent. If the filing does not say it, do not write it.
+  GOOD: "CADE requested revenue data for 2021-2025 across four markets."
+  BAD: "The broad scope of information requested indicates potentially detailed competitive analysis ahead."
+  GOOD: "The offer expires June 10, 2026."
+  BAD: "This tight timeline may create pressure on shareholders to tender quickly."
+- PRECISION: Use the filing's exact terminology for legal, regulatory, and financial terms. Do NOT paraphrase in ways that broaden or narrow the stated meaning. GOOD: "All 14 Pennsylvania PUC hearings have concluded." BAD: "Regulatory proceedings concluded in Pennsylvania."
 - L1 format MUST be: + <TICKER> – <takeaway>. | <date>
 - FIRST identify the filing type from the document content — this determines how to read it
 - Adapt your focus based on filing type:
@@ -90,17 +96,30 @@ Rules:
   * Periodic reports (10-K, 10-Q): focus on financial performance, risk factors, M&A disclosures
   * Other: extract the most material information and frame through M&A/arb lens
 - Extract exact dollar amounts, percentages, share counts, and dates
-- Always assess: "Does this filing affect any pending or potential M&A transaction?"
+- Extract any stated references to pending or completed M&A transactions
 - Flag any material risks, litigation, or regulatory developments
 
 SEC FILING TEXT:
 """
 
+EXTRACTION_GUIDANCE = """This is a generic SEC filing (catch-all for types without a dedicated summarizer).
+Extract:
+- Filing type identification and purpose
+- All deal terms (prices, exchange ratios, premiums, conditions)
+- Regulatory approvals mentioned (required, obtained, pending) — every jurisdiction
+- Timeline information (closing dates, deadlines, meeting dates)
+- Risk factors and litigation mentions
+- Board recommendations and fairness opinions
+- Key financial figures (revenue, earnings, deal value)
+- Any material conditions precedent
+- Vote results if present
+- Background of any transaction"""
+
 
 def fetch_filing_text(source: str) -> str:
     """Fetch and extract text from any SEC filing (URL, local file, or PDF)."""
-    from .fetch_utils import fetch_text
-    return fetch_text(source)
+    from .fetch_utils import fetch_text_with_extraction
+    return fetch_text_with_extraction(source, EXTRACTION_GUIDANCE)
 
 
 def summarize(text: str, model: str = "claude-opus-4-6") -> dict:

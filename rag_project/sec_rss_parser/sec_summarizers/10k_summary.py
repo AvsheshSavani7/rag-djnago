@@ -10,6 +10,13 @@ This approach processes the FULL filing (~60-120 pages) rather than just the fir
 10,000 words, ensuring complete coverage of financial statements, risk factors, and MD&A.
 """
 
+import anthropic
+import time
+import re
+import json
+import sys
+import os
+import io
 from pathlib import Path
 
 try:
@@ -23,13 +30,6 @@ FILING_URL = ""
 OUTPUT_DIR = Path(__file__).resolve().parents[1] / "Output Summaries"
 # ─────────────────────────────────
 
-import io
-import os
-import sys
-import json
-import re
-import time
-import anthropic
 
 try:
     import requests
@@ -91,7 +91,8 @@ ITEMS_10K = {
 
 # Priority items to extract (skip boilerplate like Properties, Mine Safety)
 PRIORITY_ITEMS_10K = ["1", "1A", "3", "7", "7A", "8"]
-PRIORITY_ITEMS_10Q = ["1", "1A", "2", "3", "4", "5"]  # 10-Q: Financial Stmts, Risk, MD&A, Market Risk, Controls, Other Info
+# 10-Q: Financial Stmts, Risk, MD&A, Market Risk, Controls, Other Info
+PRIORITY_ITEMS_10Q = ["1", "1A", "2", "3", "4", "5"]
 
 # Section parsing config
 FALLBACK_CHUNK_SIZE = 15000   # words per chunk if section parsing fails
@@ -138,7 +139,12 @@ Respond ONLY in valid JSON (no markdown fences):
 }}
 
 Rules:
-- TONE: State only facts from the filing. Do NOT speculate on motives, interpret what actions "signal" or "suggest", assess confidence levels, or draw conclusions beyond what is explicitly stated.
+- CRITICAL — FACTS ONLY: Every statement in your summary must be directly traceable to the filing text. Report ONLY what the document says. Do NOT add analysis, assess significance, interpret motives, predict outcomes, evaluate probability, or editorialize. Do NOT state what is "not disclosed" or "not mentioned" — simply omit fields where the filing is silent. If the filing does not say it, do not write it.
+  GOOD: "CADE requested revenue data for 2021-2025 across four markets."
+  BAD: "The broad scope of information requested indicates potentially detailed competitive analysis ahead."
+  GOOD: "The offer expires June 10, 2026."
+  BAD: "This tight timeline may create pressure on shareholders to tender quickly."
+- PRECISION: Use the filing's exact terminology for legal, regulatory, and financial terms. Do NOT paraphrase in ways that broaden or narrow the stated meaning. GOOD: "All 14 Pennsylvania PUC hearings have concluded." BAD: "Regulatory proceedings concluded in Pennsylvania."
 - Extract EXACT numbers — do not round or approximate
 - If a data point is not present in this section, use null
 - Include both absolute figures and YoY/QoQ changes where stated
@@ -208,7 +214,12 @@ Respond ONLY in valid JSON (no markdown fences):
 }}
 
 Rules:
-- TONE: State only facts from the filing. Do NOT speculate on motives, interpret what actions "signal" or "suggest", assess confidence levels, or draw conclusions beyond what is explicitly stated. GOOD: "Company suspended earnings calls due to pending transaction." BAD: "Company suspended earnings calls, signaling high confidence in deal completion."
+- CRITICAL — FACTS ONLY: Every statement in your summary must be directly traceable to the filing text. Report ONLY what the document says. Do NOT add analysis, assess significance, interpret motives, predict outcomes, evaluate probability, or editorialize. Do NOT state what is "not disclosed" or "not mentioned" — simply omit fields where the filing is silent. If the filing does not say it, do not write it.
+  GOOD: "CADE requested revenue data for 2021-2025 across four markets."
+  BAD: "The broad scope of information requested indicates potentially detailed competitive analysis ahead."
+  GOOD: "The offer expires June 10, 2026."
+  BAD: "This tight timeline may create pressure on shareholders to tender quickly."
+- PRECISION: Use the filing's exact terminology for legal, regulatory, and financial terms. Do NOT paraphrase in ways that broaden or narrow the stated meaning. GOOD: "All 14 Pennsylvania PUC hearings have concluded." BAD: "Regulatory proceedings concluded in Pennsylvania."
 - L1 format MUST be: + <TICKER> – <takeaway>. | <date>
 - Synthesize across sections — do not just concatenate
 - Prioritize the MOST material information
@@ -224,9 +235,19 @@ SECTION EXTRACTS:
 
 # ──── SECTION PARSING ────
 
-def fetch_filing_full(source: str) -> str:
-    """Fetch the FULL text of a 10-K/10-Q filing (no word limit truncation)."""
+def fetch_filing_full(source: str | list[str]) -> str:
+    """Fetch the FULL text of a 10-K/10-Q filing (no word limit truncation).
+
+    Accepts a single URL/path or a list (documents concatenated with separators).
+    """
     from .fetch_utils import fetch_text
+    if isinstance(source, list):
+        parts = []
+        for i, s in enumerate(source, 1):
+            label = s.split("/")[-1] if "/" in s else s
+            print(f"   Fetching document {i}/{len(source)}: {label}")
+            parts.append(fetch_text(s, word_limit=0))
+        return ("\n\n" + "=" * 60 + "\n\n").join(parts)
     return fetch_text(source, word_limit=0)
 
 
@@ -297,7 +318,8 @@ def _extract_filing_dates(full_text: str, url: str = "") -> dict:
         try:
             # .htm URL: .../data/1866368/000186636826000011/cwan-20251231.htm
             # .txt URL: .../data/1866368/000186636826000011/0001866368-26-000011.txt
-            m_url = re.search(r'(/Archives/edgar/data/\d+/(\d{18})/).*\.htm', url)
+            m_url = re.search(
+                r'(/Archives/edgar/data/\d+/(\d{18})/).*\.htm', url)
             if m_url:
                 base_path = m_url.group(1)
                 acc_raw = m_url.group(2)  # 000186636826000011
@@ -308,13 +330,16 @@ def _extract_filing_dates(full_text: str, url: str = "") -> dict:
                     'Range': 'bytes=0-2000'
                 }, timeout=10)
                 if resp.status_code in (200, 206):
-                    m_filed = re.search(r'FILED\s+AS\s+OF\s+DATE[:\s]+(\d{8})', resp.text)
+                    m_filed = re.search(
+                        r'FILED\s+AS\s+OF\s+DATE[:\s]+(\d{8})', resp.text)
                     if m_filed:
                         d = m_filed.group(1)
                         dates["filing_date"] = f"{d[4:6]}/{d[6:8]}/{d[2:4]}"
-                        print(f"   Filing date from SGML wrapper: {dates['filing_date']}")
+                        print(
+                            f"   Filing date from SGML wrapper: {dates['filing_date']}")
                     if "period_end_date" not in dates:
-                        m_period = re.search(r'CONFORMED\s+PERIOD\s+OF\s+REPORT[:\s]+(\d{8})', resp.text)
+                        m_period = re.search(
+                            r'CONFORMED\s+PERIOD\s+OF\s+REPORT[:\s]+(\d{8})', resp.text)
                         if m_period:
                             d = m_period.group(1)
                             dates["period_end_date"] = f"{d[4:6]}/{d[6:8]}/{d[2:4]}"
@@ -346,7 +371,8 @@ def _strip_preamble(full_text: str) -> str:
         # Body PART I has thousands of words after it; ToC entries and
         # inline references ("Part I of this Annual Report") are tiny.
         best = max(range(len(part1_matches)), key=lambda i: (
-            (part1_matches[i + 1].start() if i + 1 < len(part1_matches) else len(full_text))
+            (part1_matches[i + 1].start() if i + 1 <
+             len(part1_matches) else len(full_text))
             - part1_matches[i].start()
         ))
         return full_text[part1_matches[best].start():]
@@ -490,7 +516,8 @@ def detect_ticker(url: str, text: str) -> str:
     company_name = ""
     body = _strip_preamble(text)
     # Common patterns: "HOLOGIC, INC." or "APPLE INC" on its own line near top
-    m = re.search(r'(?:^|\n)\s*([A-Z][A-Z\s&,\.]{2,50}(?:INC|CORP|LLC|LP|LTD|CO|GROUP|HOLDINGS)\.?)\s*(?:\n|$)', body[:3000])
+    m = re.search(
+        r'(?:^|\n)\s*([A-Z][A-Z\s&,\.]{2,50}(?:INC|CORP|LLC|LP|LTD|CO|GROUP|HOLDINGS)\.?)\s*(?:\n|$)', body[:3000])
     if m:
         company_name = m.group(1).strip().rstrip('.')
 
@@ -522,7 +549,8 @@ def detect_ticker(url: str, text: str) -> str:
                     ticker_match = re.search(r'[A-Z]{1,6}', raw)
                     if ticker_match:
                         ticker = ticker_match.group(0)
-                        print(f"   Ticker via Perplexity: {ticker} (company: {company_name})")
+                        print(
+                            f"   Ticker via Perplexity: {ticker} (company: {company_name})")
                         return ticker
         except Exception as e:
             print(f"   Perplexity lookup failed: {e}")
@@ -569,7 +597,8 @@ def extract_section(client, section: dict, retries: int = 2) -> dict:
             return json.loads(raw)
         except json.JSONDecodeError:
             if attempt < retries:
-                print(f"     Retry {attempt + 1}: JSON parse failed, retrying...")
+                print(
+                    f"     Retry {attempt + 1}: JSON parse failed, retrying...")
                 time.sleep(1)
             else:
                 return {"item": section["item"], "raw_extract": raw, "parse_error": True}
@@ -587,9 +616,11 @@ def synthesize_extracts(client, extracts: list, filing_type: str, ticker_hint: s
         metadata_lines.append(f"KNOWN TICKER: {ticker_hint}")
     if filing_dates:
         if "filing_date" in filing_dates:
-            metadata_lines.append(f"KNOWN FILING DATE: {filing_dates['filing_date']}")
+            metadata_lines.append(
+                f"KNOWN FILING DATE: {filing_dates['filing_date']}")
         if "period_end_date" in filing_dates:
-            metadata_lines.append(f"KNOWN PERIOD END DATE: {filing_dates['period_end_date']}")
+            metadata_lines.append(
+                f"KNOWN PERIOD END DATE: {filing_dates['period_end_date']}")
     if metadata_lines:
         extracts_text = "\n".join(metadata_lines) + "\n\n" + extracts_text
 
@@ -624,12 +655,16 @@ def summarize(text: str, model: str = None) -> dict:
     SYNTHESIS_MODEL constants.
     """
     if not ANTHROPIC_API_KEY:
-        raise ValueError("ANTHROPIC_API_KEY not set. Set it in .env or Django settings (ANTHROPIC_API_KEY).")
+        raise ValueError(
+            "ANTHROPIC_API_KEY not set. Set it in .env or Django settings (ANTHROPIC_API_KEY).")
     client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
 
     # Step 0: Detect ticker and filing dates from header/URL
-    ticker_hint = detect_ticker(FILING_URL, text)
-    filing_dates = _extract_filing_dates(text, FILING_URL)
+    filing_url_ref = (
+        FILING_URL[0] if isinstance(FILING_URL, list) else FILING_URL
+    )
+    ticker_hint = detect_ticker(filing_url_ref, text)
+    filing_dates = _extract_filing_dates(text, filing_url_ref)
     if filing_dates:
         print(f"   Dates from header: {filing_dates}")
 
@@ -642,12 +677,14 @@ def summarize(text: str, model: str = None) -> dict:
     all_sections = parse_sections(text)
     print(f"   Parsed {len(all_sections)} sections from filing")
     for s in all_sections:
-        print(f"     Item {s['item']}: {s['title']} ({s['word_count']:,} words)")
+        print(
+            f"     Item {s['item']}: {s['title']} ({s['word_count']:,} words)")
 
     # Step 3: Select priority sections
     sections = select_priority_sections(all_sections, is_10q=is_10q)
     total_words = sum(s["word_count"] for s in sections)
-    print(f"   Selected {len(sections)} priority sections ({total_words:,} words total)")
+    print(
+        f"   Selected {len(sections)} priority sections ({total_words:,} words total)")
 
     # Step 4: Extract from each section (Pass 1)
     extracts = []
@@ -663,7 +700,8 @@ def summarize(text: str, model: str = None) -> dict:
 
     # Step 5: Synthesize (Pass 2)
     print(f"   Synthesizing final summary via {SYNTHESIS_MODEL}...")
-    result = synthesize_extracts(client, extracts, filing_type, ticker_hint=ticker_hint, filing_dates=filing_dates)
+    result = synthesize_extracts(
+        client, extracts, filing_type, ticker_hint=ticker_hint, filing_dates=filing_dates)
 
     return result
 
@@ -677,7 +715,8 @@ def print_summary(s: dict):
     print(f"  {filing_type} SUMMARY")
     print("=" * 70)
 
-    print(f"\n   Company:    {s.get('company', 'N/A')} ({s.get('ticker', 'N/A')})")
+    print(
+        f"\n   Company:    {s.get('company', 'N/A')} ({s.get('ticker', 'N/A')})")
     print(f"   Type:       {filing_type}")
     print(f"   Period:     {s.get('fiscal_period', 'N/A')}")
     print(f"   Period End: {s.get('period_end_date', 'N/A')}")
@@ -763,7 +802,8 @@ def export_docx(s: dict, s3_key_suffix: str):
     style.font.name = "Arial"
     style.font.size = Pt(11)
 
-    title = doc.add_heading(f"{filing_type} Summary: {s.get('company', ticker)}", level=0)
+    title = doc.add_heading(
+        f"{filing_type} Summary: {s.get('company', ticker)}", level=0)
     title.runs[0].font.size = Pt(20)
 
     # Metadata
@@ -879,8 +919,12 @@ def export_docx(s: dict, s3_key_suffix: str):
 
 def main():
     source = FILING_URL
-
-    print(f"Fetching 10-K/10-Q from: {source}")
+    if isinstance(source, list):
+        print(f"Fetching 10-K/10-Q from {len(source)} document(s)")
+        for u in source:
+            print(f"   • {u.split('/')[-1]}")
+    else:
+        print(f"Fetching 10-K/10-Q from: {source}")
 
     text = fetch_filing_full(source)
     total_words = len(text.split())

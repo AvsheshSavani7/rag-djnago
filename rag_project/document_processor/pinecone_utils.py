@@ -55,6 +55,8 @@ def _expand_section_variants(core_ids: List[str]) -> List[str]:
         # Only add "Section " prefix if this looks like a section number (contains digits)
         if re.search(r'\d', s):
             out.append(f"Section {s}")
+            out.append(f"SECTION {s}")
+
     # de-dupe preserving order
     seen = OrderedDict()
     for v in out:

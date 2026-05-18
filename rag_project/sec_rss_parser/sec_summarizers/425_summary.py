@@ -63,14 +63,14 @@ Given the Rule 425 text below, produce summaries at 3 levels. Respond ONLY in va
 
   "L1_headline": "+ <TICKER> – <key deal update in ≤8 words>. | <date>",
 
-  "L2_brief": "<2-3 sentence summary covering: what this communication says about the deal, any timeline/terms updates, and management sentiment>",
+   "L2_brief": "<2-3 sentence summary covering: what this communication says about the deal, any timeline/terms updates, and stated deal status>",
 
   "L3_detailed": {
     "deal_parties": "<acquirer and target, with tickers>",
     "deal_status_update": "<current status of the deal as described in this filing>",
     "timeline_update": "<any new information about expected close date, regulatory timeline, or milestones>",
     "terms_update": "<any changes or reaffirmation of deal terms — price, exchange ratio, conditions>",
-    "management_tone": "<how management characterizes deal progress — confident, cautious, addressing concerns, etc.>",
+        "management_tone": "<direct quotes or stated characterizations from management about deal progress>",
     "key_messages": ["<main talking points from the communication>"],
     "regulatory_update": "<any updates on regulatory approvals — antitrust, CFIUS, sector-specific regulators>",
     "shareholder_vote_info": "<any info about proxy, record date, vote date, recommendation>",
@@ -80,12 +80,17 @@ Given the Rule 425 text below, produce summaries at 3 levels. Respond ONLY in va
 }
 
 Rules:
-- TONE: State only facts from the filing. Do NOT speculate on motives, interpret what actions "signal" or "suggest", assess confidence levels, or draw conclusions beyond what is explicitly stated. GOOD: "Company suspended earnings calls due to pending transaction." BAD: "Company suspended earnings calls, signaling high confidence in deal completion."
+- CRITICAL — FACTS ONLY: Every statement in your summary must be directly traceable to the filing text. Report ONLY what the document says. Do NOT add analysis, assess significance, interpret motives, predict outcomes, evaluate probability, or editorialize. Do NOT state what is "not disclosed" or "not mentioned" — simply omit fields where the filing is silent. If the filing does not say it, do not write it.
+  GOOD: "CADE requested revenue data for 2021-2025 across four markets."
+  BAD: "The broad scope of information requested indicates potentially detailed competitive analysis ahead."
+  GOOD: "The offer expires June 10, 2026."
+  BAD: "This tight timeline may create pressure on shareholders to tender quickly."
+- PRECISION: Use the filing's exact terminology for legal, regulatory, and financial terms. Do NOT paraphrase in ways that broaden or narrow the stated meaning. GOOD: "All 14 Pennsylvania PUC hearings have concluded." BAD: "Regulatory proceedings concluded in Pennsylvania."
 - L1 format MUST be: + <TICKER> – <deal update>. | <date>
 - Identify the type of communication (presentation, letter, transcript, etc.)
 - Focus on what's NEW in this communication vs. what was already known
 - Extract any updated timeline, regulatory status, or deal term changes
-- Assess management's tone and confidence level about deal completion
+- Extract direct quotes from management about deal status and progress
 - Flag any language suggesting deal complications, opposition, or changed circumstances
 - Note any shareholder vote details (record date, meeting date, board recommendation)
 - Capture synergy estimates or integration timeline if mentioned
@@ -93,14 +98,27 @@ Rules:
 RULE 425 TEXT:
 """
 
+EXTRACTION_GUIDANCE = """This is a Rule 425 business combination communication.
+Extract the following:
+- Type of communication (investor presentation, shareholder letter, transcript, FAQ, etc.)
+- Deal parties and tickers
+- Any timeline updates (expected close date, regulatory milestones)
+- Any terms updates or reaffirmation of deal terms
+- Management statements about deal progress and rationale
+- Regulatory approval updates and status
+- Shareholder vote information (date, threshold, recommendation)
+- Integration planning details and synergy estimates
+- Any deal risks, opposition, or litigation mentioned
+- Key messages to shareholders"""
+
 
 def fetch_filing_text(source: str) -> str:
     """Fetch and extract text from a Rule 425 filing (URL, local file, or PDF)."""
-    from .fetch_utils import fetch_text
-    return fetch_text(source)
+    from .fetch_utils import fetch_text_with_extraction
+    return fetch_text_with_extraction(source, EXTRACTION_GUIDANCE)
 
 
-def summarize(text: str, model: str = "claude-sonnet-4-6") -> dict:
+def summarize(text: str, model: str = "claude-opus-4-6") -> dict:
     """Call Claude API to produce multi-level summary."""
     if not ANTHROPIC_API_KEY:
         raise ValueError(
@@ -109,7 +127,7 @@ def summarize(text: str, model: str = "claude-sonnet-4-6") -> dict:
 
     msg = client.messages.create(
         model=model,
-        max_tokens=2500,
+        max_tokens=1500,
         messages=[{
             "role": "user",
             "content": SUMMARY_PROMPT + "\n\n" + text

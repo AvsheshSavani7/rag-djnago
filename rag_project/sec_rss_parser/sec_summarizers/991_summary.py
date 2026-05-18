@@ -62,20 +62,25 @@ Given the Exhibit 99.1 text below, produce summaries at 3 levels. Respond ONLY i
 
   "L1_headline": "+ <TICKER> – <key event in ≤8 words>. | <date>",
 
-  "L2_brief": "<2-3 sentence summary covering: what the press release announces, key numbers, and market significance>",
+   "L2_brief": "<2-3 sentence summary covering: what the press release announces, key numbers, and key figures>",
 
   "L3_detailed": {
     "event": "<what was announced>",
     "key_figures": ["<revenue, EPS, deal value, per-share price, guidance numbers>"],
-    "market_impact": "<why this matters to investors — deal probability, valuation, earnings trajectory>",
+    "market_impact": "<market-related facts stated in the filing>",
     "forward_guidance": "<any forward-looking statements, updated guidance, or timeline changes>",
-    "deal_relevance": "<if M&A related: impact on deal timeline/probability/terms. If not M&A: 'N/A'>",
+   "deal_relevance": "<if M&A related: deal-related facts stated in the filing. If not M&A: 'N/A'>",
     "risks_flagged": ["<any risks, litigation, regulatory issues, or cautionary statements>"]
   }
 }
 
 Rules:
-- TONE: State only facts from the filing. Do NOT speculate on motives, interpret what actions "signal" or "suggest", assess confidence levels, or draw conclusions beyond what is explicitly stated. GOOD: "Company suspended earnings calls due to pending transaction." BAD: "Company suspended earnings calls, signaling high confidence in deal completion."
+- CRITICAL — FACTS ONLY: Every statement in your summary must be directly traceable to the filing text. Report ONLY what the document says. Do NOT add analysis, assess significance, interpret motives, predict outcomes, evaluate probability, or editorialize. Do NOT state what is "not disclosed" or "not mentioned" — simply omit fields where the filing is silent. If the filing does not say it, do not write it.
+  GOOD: "CADE requested revenue data for 2021-2025 across four markets."
+  BAD: "The broad scope of information requested indicates potentially detailed competitive analysis ahead."
+  GOOD: "The offer expires June 10, 2026."
+  BAD: "This tight timeline may create pressure on shareholders to tender quickly."
+- PRECISION: Use the filing's exact terminology for legal, regulatory, and financial terms. Do NOT paraphrase in ways that broaden or narrow the stated meaning. GOOD: "All 14 Pennsylvania PUC hearings have concluded." BAD: "Regulatory proceedings concluded in Pennsylvania."
 - L1 format MUST be: + <TICKER> – <event>. | <date>
 - Distinguish between earnings releases, deal announcements, and other press release types
 - Extract exact dollar amounts, percentages, per-share figures, and dates
@@ -86,11 +91,20 @@ Rules:
 EXHIBIT 99.1 TEXT:
 """
 
+EXTRACTION_GUIDANCE = """This is an Exhibit 99.1 filing (press release or document filed as exhibit).
+Extract the following:
+- Type of announcement (earnings, deal announcement, deal update, leadership change, guidance, etc.)
+- Key financial figures: revenue, EPS, net income, guidance numbers
+- Deal terms if M&A-related (price, premium, conditions, timeline)
+- Forward guidance or outlook statements
+- Any risk factors or cautionary language
+- Quotes from executives about strategy or deal rationale"""
+
 
 def fetch_filing_text(source: str) -> str:
     """Fetch and extract text from an Exhibit 99.1 filing (URL, local file, or PDF)."""
-    from .fetch_utils import fetch_text
-    return fetch_text(source)
+    from .fetch_utils import fetch_text_with_extraction
+    return fetch_text_with_extraction(source, EXTRACTION_GUIDANCE)
 
 
 def summarize(text: str, model: str = "claude-opus-4-6") -> dict:
@@ -102,7 +116,7 @@ def summarize(text: str, model: str = "claude-opus-4-6") -> dict:
 
     msg = client.messages.create(
         model=model,
-        max_tokens=2500,
+        max_tokens=1500,
         messages=[{
             "role": "user",
             "content": SUMMARY_PROMPT + "\n\n" + text

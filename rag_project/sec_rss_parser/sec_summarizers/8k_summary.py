@@ -60,29 +60,43 @@ Given the 8-K text below, produce summaries at 3 levels. Respond ONLY in valid J
 
   "L1_headline": "<ticker> – <key event in ≤8 words>. | <date>",
 
-  "L2_brief": "<2-3 sentence summary covering: what happened, key numbers, what it means for the deal>",
+   "L2_brief": "<2-3 sentence summary covering: what happened, key numbers, and current deal status if applicable>",
 
   "L3_detailed": {
     "event": "<what happened>",
     "key_figures": ["<vote %, dollar amounts, dates, conditions>"],
-    "deal_implications": "<impact on deal timeline/probability>",
-    "market_impact": "<why this matters to investors>",
-    "forward_guidance": "<any forward-looking statements or guidance changes, or N/A>",
-    "remaining_conditions": ["<what still needs to happen>"],
+       "deal_implications": "<deal-related facts stated in the filing (timeline updates, condition status, regulatory filings)>",
+    "remaining_conditions": ["<conditions to closing listed in the filing that remain outstanding>"],
     "risks_flagged": ["<any risks, litigation, regulatory issues>"]
   }
 }
 
 Rules:
-- TONE: State only facts from the filing. Do NOT speculate on motives, interpret what actions "signal" or "suggest", assess confidence levels, or draw conclusions beyond what is explicitly stated. GOOD: "Company suspended earnings calls due to pending transaction." BAD: "Company suspended earnings calls, signaling high confidence in deal completion."
+- CRITICAL — FACTS ONLY: Every statement in your summary must be directly traceable to the filing text. Report ONLY what the document says. Do NOT add analysis, assess significance, interpret motives, predict outcomes, evaluate probability, or editorialize. Do NOT state what is "not disclosed" or "not mentioned" — simply omit fields where the filing is silent. If the filing does not say it, do not write it.
+  GOOD: "CADE requested revenue data for 2021-2025 across four markets."
+  BAD: "The broad scope of information requested indicates potentially detailed competitive analysis ahead."
+  GOOD: "The offer expires June 10, 2026."
+  BAD: "This tight timeline may create pressure on shareholders to tender quickly."
+- PRECISION: Use the filing's exact terminology for legal, regulatory, and financial terms. Do NOT paraphrase in ways that broaden or narrow the stated meaning. GOOD: "All 14 Pennsylvania PUC hearings have concluded." BAD: "Regulatory proceedings concluded in Pennsylvania."
 - L1 format MUST be: + <TICKER> – <event>. | <date>
-- For merger-related 8-Ks, focus on deal probability impact
+- For merger-related 8-Ks, extract stated deal terms, conditions, and timeline updates
 - Extract exact vote percentages, dollar figures, dates
 - Flag any conditions precedent still outstanding
 - Note any litigation or regulatory mentions
 
 8-K TEXT:
 """
+
+EXTRACTION_GUIDANCE = """This is an 8-K current report filing.
+Extract the following:
+- Item numbers reported (e.g., Item 1.01, Item 5.07, Item 8.01)
+- The full text of each reported Item
+- Vote results with exact percentages if present
+- Deal-related disclosures: merger agreement terms, closing conditions, regulatory updates, timeline changes
+- Any dollar amounts, share counts, or financial figures
+- Litigation or regulatory mentions
+- Forward-looking statements about pending transactions
+- Any exhibits referenced and their descriptions"""
 
 
 COMBINED_PROMPT = """You are an expert analyst summarizing SEC filings for a merger arbitrage desk.
@@ -114,7 +128,12 @@ Given the combined filing text below, produce summaries at 3 levels. Respond ONL
 }
 
 Rules:
-- TONE: State only facts from the filing. Do NOT speculate on motives, interpret what actions "signal" or "suggest", assess confidence levels, or draw conclusions beyond what is explicitly stated.
+- CRITICAL — FACTS ONLY: Every statement in your summary must be directly traceable to the filing text. Report ONLY what the document says. Do NOT add analysis, assess significance, interpret motives, predict outcomes, evaluate probability, or editorialize. Do NOT state what is "not disclosed" or "not mentioned" — simply omit fields where the filing is silent. If the filing does not say it, do not write it.
+  GOOD: "CADE requested revenue data for 2021-2025 across four markets."
+  BAD: "The broad scope of information requested indicates potentially detailed competitive analysis ahead."
+  GOOD: "The offer expires June 10, 2026."
+  BAD: "This tight timeline may create pressure on shareholders to tender quickly."
+- PRECISION: Use the filing's exact terminology for legal, regulatory, and financial terms. Do NOT paraphrase in ways that broaden or narrow the stated meaning. GOOD: "All 14 Pennsylvania PUC hearings have concluded." BAD: "Regulatory proceedings concluded in Pennsylvania."
 - L1 format MUST be: + <TICKER> – <event>. | <date>
 - Produce ONE unified summary — synthesize both documents, do not repeat the same facts twice
 - Extract exact vote percentages, dollar figures, per-share amounts, and dates
@@ -128,8 +147,8 @@ Rules:
 
 def fetch_8k_text(source: str) -> str:
     """Fetch and extract text from an 8-K filing (URL, local file, or PDF)."""
-    from .fetch_utils import fetch_text
-    return fetch_text(source)
+    from .fetch_utils import fetch_text_with_extraction
+    return fetch_text_with_extraction(source, extraction_guidance=EXTRACTION_GUIDANCE)
 
 
 def find_exhibit_991_url(source_url: str):
@@ -209,7 +228,7 @@ def summarize(text: str, model: str = "claude-opus-4-6", prompt: str = None) -> 
 
     msg = client.messages.create(
         model=model,
-        max_tokens=2500,
+        max_tokens=1500,
         messages=[{
             "role": "user",
             "content": prompt + "\n\n" + text
@@ -351,12 +370,15 @@ def export_docx(s: dict, s3_key_suffix: str):
 
 def main():
     source = FILING_URL
+    primary_url = source[0] if isinstance(source, list) else source
 
-    print(f"Fetching 8-K from: {source}")
+    print(f"Fetching 8-K from: {primary_url}")
+    if isinstance(source, list) and len(source) > 1:
+        print(f"   ({len(source)} URLs will be combined for extraction)")
     text_8k = fetch_8k_text(source)
     print(f"Extracted {len(text_8k.split())} words from 8-K")
 
-    exhibit_url = find_exhibit_991_url(source)
+    exhibit_url = find_exhibit_991_url(primary_url)
     if exhibit_url:
         print(f"Found Exhibit 99.1: {exhibit_url}")
         text_991 = fetch_8k_text(exhibit_url)

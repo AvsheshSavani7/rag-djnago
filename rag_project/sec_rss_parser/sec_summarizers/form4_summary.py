@@ -113,7 +113,7 @@ def summarize(text: str, model: str = "claude-sonnet-4-6") -> dict:
 
     msg = client.messages.create(
         model=model,
-        max_tokens=2500,
+        max_tokens=1500,
         messages=[{
             "role": "user",
             "content": SUMMARY_PROMPT + "\n\n" + text
