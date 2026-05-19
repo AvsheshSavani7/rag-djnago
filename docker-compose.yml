@@ -1,0 +1,11 @@
+services:
+  django-app:
+    build: .
+    container_name: django_app
+    restart: unless-stopped
+    env_file:
+      - .env
+    ports:
+      - "8000:8000"
+    environment:
+      - PORT=8000
