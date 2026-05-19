@@ -28,10 +28,6 @@ WORKDIR /app/rag_project
 
 RUN ls -al .
 
-<<<<<<< Updated upstream
-
-=======
->>>>>>> Stashed changes
 EXPOSE 8000
 
 CMD ["sh", "-c", "uvicorn rag_project.asgi:application --host 0.0.0.0 --port ${PORT:-8000} --timeout-keep-alive 120"]
