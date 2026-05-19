@@ -15,6 +15,7 @@ thread_local = threading.local()
 logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
+MAX_RETRY = 1
 
 # ---------------------------
 # GLOBAL REGEX PATTERNS
@@ -200,7 +201,11 @@ CHARTER_STOP_PATTERN = re.compile(
 # ---------------------------
 urls = [
     # "https://www.sec.gov/Archives/edgar/data/835324/000143774926002223/ex_912528.htm",
-    "https://www.sec.gov/Archives/edgar/data/1823406/000119312526134773/d138375dex21.htm",
+    # "https://www.sec.gov/Archives/edgar/data/1823406/000119312526134773/d138375dex21.htm",
+    # "https://www.sec.gov/Archives/edgar/data/1604643/000119312523012554/d436060dex21.htm",
+    # "https://www.sec.gov/Archives/edgar/data/91388/000119312513239663/d545921dex21.htm",
+    "https://www.sec.gov/Archives/edgar/data/1799208/000110465925027293/tm2510133d1_ex2-1.htm",
+    # "https://www.sec.gov/Archives/edgar/data/1645873/000114036126018656/ef20072329_ex2-1.htm",
     # "https://www.sec.gov/Archives/edgar/data/1661460/000119312524265591/d881793dex21.htm",
 ]
 
@@ -827,7 +832,6 @@ def process_definitions_section(text_part: str):
             continue
 
         if ((TERM_INDEX_INTRO_PATTERN.search(line) or re.search(r'\bTerm\b\s+\bSection\b', line, re.I)) and idx > 5 and (current_terms or definitions)):
-
             flush(is_last=True)
             break
 
@@ -1077,12 +1081,13 @@ def raw_toc_text_file():
 # ---------------------------
 # WORKER FUNCTION
 # ---------------------------
-def worker(url):
+def worker(url, retry_count=0):
     accession = url.split('/')[-1].split('.')[0]
     print(f"[worker] Starting for URL: {url}")
     print(f"[worker] Accession: {accession}")
 
     filename = os.path.join(output_dir, f"openai_response_{accession}.json")
+
     log_txt_path = os.path.join(
         output_logdir, f"openai_response_{accession}.txt")
     thread_id = threading.get_ident()
@@ -1128,7 +1133,7 @@ def worker(url):
     # Store thread-local variables
     thread_local.doc_text = None
     thread_local.preamble_end_pos = None
-
+    api_response = None
     try:
         # =========================
         # FETCH FULL DOCUMENT TEXT
@@ -1237,9 +1242,6 @@ def worker(url):
         with open(rawToc_path, "w", encoding="utf-8") as f:
             f.write(toc_raw)
         formatted_toc = format_toc_text(toc_raw) if toc_raw else None
-        rawToc_path = os.path.join(output_dir, "raw_toc.txt")
-        with open(rawToc_path, "w", encoding="utf-8") as f:
-            f.write(formatted_toc)
         if not formatted_toc:
             print("[worker] ERROR: TOC formatting failed")
             return {
@@ -1267,6 +1269,8 @@ def worker(url):
         print("[OpenAI] TOC JSON received successfully")
 
         with open(filename, "w", encoding="utf-8") as f:
+            f.write(api_response)
+        with open("raw_TOC.json", "w", encoding="utf-8") as f:
             f.write(api_response)
 
         toc_json = json.loads(api_response)
@@ -1375,6 +1379,18 @@ def worker(url):
         print(f"[level2] Extracting section text from position {start_pos}...")
 
         enriched = extract_level2_text(full_text, start_pos, toc_json)
+
+        pattern_not_found_count = sum(
+            1 for msg in log_records if "Pattern not found for" in msg
+        )
+        print("Pattern failure count:", pattern_not_found_count)
+
+        if pattern_not_found_count > 3 and retry_count < 1:
+            logger.warning(
+                f"Pattern failure count is {pattern_not_found_count}. Retrying full process once..."
+            )
+            return worker(url, retry_count=retry_count + 1)
+
         if preamble:
             print(f"[preamble] Added to output, length={len(preamble)}")
             toc_json.append({"article": "Preamble", "text": preamble})
@@ -1419,6 +1435,7 @@ def worker(url):
                 "output_file": filename,
                 "reason": reason,
                 "warnings": log_records,
+                "api_response": json.loads(api_response) if api_response else None,
                 "output": enriched
             }
 
@@ -1428,6 +1445,7 @@ def worker(url):
             "accession": accession,
             "output_file": filename,
             "warnings": log_records,
+            "api_response": json.loads(api_response) if api_response else None,
             "output": enriched
         }
 
@@ -1546,6 +1564,9 @@ if __name__ == "__main__":
     print(f"[main] Processing {len(urls)} URL(s)...")
     for idx, url in enumerate(urls, start=1):
         print(f"\n[main] --- Document {idx}/{len(urls)} ---")
-        worker(url)
+        result = worker(url)
+        result_path = os.path.join(output_dir, "result.json")
+        with open(result_path, "w", encoding="utf-8") as f:
+            json.dump(result, f, indent=2, ensure_ascii=False)
     print("\n[main] All documents processed. Check output directory.")
     logger.info("All documents processed. Check output directory.")
