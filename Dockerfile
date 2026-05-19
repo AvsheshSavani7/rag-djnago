@@ -28,8 +28,7 @@ WORKDIR /app/rag_project
 
 RUN ls -al .
 
-RUN python manage.py collectstatic --noinput
 
 EXPOSE 8000
 
-CMD ["sh", "-c", "uvicorn rag_project.asgi:application --host 0.0.0.0 --port ${PORT:-8000} --timeout-keep-alive 120 --reload"]
+CMD ["sh", "-c", "uvicorn rag_project.asgi:application --host 0.0.0.0 --port ${PORT:-8000} --timeout-keep-alive 120"]
