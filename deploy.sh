@@ -9,4 +9,6 @@ git pull origin vps/main
 
 docker compose up -d --build
 
+docker builder prune -af
+
 echo "Deployment completed."
