@@ -213,11 +213,14 @@ class SECDocumentProcessor:
             if not line_matched:
                 combined = line_text
 
-                for j in range(1, 14):  # combine up to 5 more lines (total 6)
+                for j in range(1, 14):  # combine up to 14 more lines
                     if i + j >= len(lines):
                         break
                     next_line = lines[i + j].strip()
-                    combined += f" {next_line}" if len(next_line) > 0 else ""
+                    # Skip pipe/table lines inside combine (outer loop already skips them as starters)
+                    if not next_line or self.is_pipe_separated(next_line):
+                        continue
+                    combined += f" {next_line}"
                     combined_clean = combined.strip().lower()
                     logger.info(f"combined_clean: {combined_clean}")
 
@@ -266,8 +269,8 @@ class SECDocumentProcessor:
                         if i + j >= len(lines):
                             break
                         next_line = lines[i + j].strip()
-                        test_combined += f" {next_line}" if len(
-                            next_line) > 0 else ""
+                        if not next_line or self.is_pipe_separated(next_line):
+                            continue
                         test_combined_clean = test_combined.strip().lower()
 
                         # Calculate similarity ratio
@@ -385,6 +388,17 @@ class SECDocumentProcessor:
         skip_first = 1 if currentEntry == 0 else 0
         start_line = self.find_title_in_text(
             lines, current_title, currentEntry, skip_first_n=skip_first)
+
+        # Fallback for entry 0: if the TOC line was pipe-separated, find_title_in_text
+        # never counted it as an occurrence, so skip_first=1 consumed the body heading.
+        # Retry with skip_first=0 to recover the body heading without changing the
+        # normal flow for documents where skip_first=1 works correctly.
+        if start_line is None and skip_first == 1:
+            logger.info(
+                f"Entry 0 not found with skip_first=1, retrying with skip_first=0 "
+                f"(TOC line for '{current_title}' is likely pipe-separated)")
+            start_line = self.find_title_in_text(
+                lines, current_title, currentEntry, skip_first_n=0)
 
         logger.info(
             f"start_line: {start_line}, current_title: {current_title}, skip_first: {skip_first}")

@@ -952,6 +952,8 @@ Chunk text to process:
             def count_sections(items):
                 nonlocal total_count, empty_count
                 for item in items:
+                    if self._is_annex_section(item.get('title', '')):
+                        continue
                     total_count += 1
                     if not item.get('content', '').strip():
                         empty_count += 1
@@ -1433,6 +1435,15 @@ Respond with only the final title string."""
         except Exception as e:
             logger.error(f"Error extracting notice content: {str(e)}")
             return f"Error: {str(e)}"
+
+    def _is_annex_section(self, title: str) -> bool:
+        """Return True if the section title is an Annex (e.g. 'ANNEX A — ...').
+
+        Annex sections intentionally have no extractable body content because
+        their full text lives in separate exhibit documents, so they should
+        never be counted as empty-content failures.
+        """
+        return bool(re.match(r'annex\s+[A-Z0-9]', title.strip(), re.IGNORECASE))
 
     def get_processing_state(self) -> str:
         """Get current processing state and statistics."""
