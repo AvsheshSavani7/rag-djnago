@@ -6,11 +6,13 @@ services:
     env_file:
       - .env
     ports:
-      - "8000:8000"
+      - "8000"
     environment:
       - PORT=8000
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.django-app.rule=Host(`django.arbintel.cloud`)"
-      - "traefik.http.routers.django-app.entrypoints=web"
+      - "traefik.http.routers.django-app.entrypoints=websecure"
+      - "traefik.http.routers.django-app.tls=true"
+      - "traefik.http.routers.django-app.tls.certresolver=letsencrypt"
       - "traefik.http.services.django-app.loadbalancer.server.port=8000"
