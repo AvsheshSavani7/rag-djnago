@@ -28,7 +28,8 @@ load_dotenv()
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # Anthropic API key for sec_summarizers (8-K, 6-K, Form 4, etc.). Also read from env when not in Django.
-ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("ANTHROPIC_API_KEY_TEST")
+ANTHROPIC_API_KEY = os.environ.get(
+    "ANTHROPIC_API_KEY") or os.environ.get("ANTHROPIC_API_KEY_TEST")
 
 
 # Quick-start development settings - unsuitable for production
@@ -38,7 +39,7 @@ ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("ANTHR
 SECRET_KEY = "django-insecure-zt655$^9aj0f5fvkazj)wsik-0e0!(z$e*x93s!3e@3vi=_7f)"
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.environ.get("DEBUG", True)
 
 ALLOWED_HOSTS = ['*']
 
