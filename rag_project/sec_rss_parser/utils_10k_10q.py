@@ -34,10 +34,10 @@ DEAL_STATUS_OPEN_OR_UNKNOWN = ["Open", "Unknown"]
 
 # N8N webhook URL for 10-K/10-Q emails
 N8N_WEBHOOK_URL_10K_10Q = os.environ.get(
-    "N8N_WEKHOOK_INTERNAL_WITH_JOSH", "https://n8n-xwx1.onrender.com/webhook/b3007d21-6845-47b5-aece-7b26583758bc")
+    "N8N_WEKHOOK_INTERNAL_WITH_JOSH", "https://n8n.arbintel.cloud/webhook/b3007d21-6845-47b5-aece-7b26583758bc")
 
 N8N_WEBHOOK_URL_10K_10Q_ERROR = os.environ.get(
-    "N8N_WEBHOOK_INTERNAL", "https://n8n-xwx1.onrender.com/webhook/80830c6d-ff5b-45e3-9ef3-a061db1fbf0c")
+    "N8N_WEBHOOK_INTERNAL", "https://n8n.arbintel.cloud/webhook/80830c6d-ff5b-45e3-9ef3-a061db1fbf0c")
 
 
 def send_10k_10q_pipeline_failure_email(

@@ -36,7 +36,7 @@ django.setup()
 logger = logging.getLogger(__name__)
 
 N8N_WEBHOOK_SEND_TO_ALL = os.environ.get(
-    "N8N_WEBHOOK_SEND_TO_ALL", "https://n8n-xwx1.onrender.com/webhook/3ff1b0ea-7114-4dda-940e-95ce81e08017")
+    "N8N_WEBHOOK_SEND_TO_ALL", "https://n8n.arbintel.cloud/webhook/3ff1b0ea-7114-4dda-940e-95ce81e08017")
 
 
 def _parse_filing_date(value):

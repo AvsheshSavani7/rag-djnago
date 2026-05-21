@@ -56,17 +56,17 @@ logger = logging.getLogger(__name__)
 # Deal status constants
 DEAL_STATUS_OPEN_OR_UNKNOWN = ["Open", "Unknown"]
 
-# https://n8n-xwx1.onrender.com/webhook/b3007d21-6845-47b5-aece-7b26583758bc #me ,josh,kaushal
-# https://n8n-xwx1.onrender.com/webhook/3ff1b0ea-7114-4dda-940e-95ce81e08017 #all
-# https://n8n-xwx1.onrender.com/webhook/80830c6d-ff5b-45e3-9ef3-a061db1fbf0c #me only
+# https://n8n.arbintel.cloud/webhook/b3007d21-6845-47b5-aece-7b26583758bc #me ,josh,kaushal
+# https://n8n.arbintel.cloud/webhook/3ff1b0ea-7114-4dda-940e-95ce81e08017 #all
+# https://n8n.arbintel.cloud/webhook/80830c6d-ff5b-45e3-9ef3-a061db1fbf0c #me only
 
 # Constants (from services.py)
-# N8N_WEBHOOK_URL_8K_SUMMARY = "https://n8n-xwx1.onrender.com/webhook/b3007d21-6845-47b5-aece-7b26583758bc" #me ,josh,kaushal
-# N8N_WEBHOOK_URL_FILING = "https://n8n-xwx1.onrender.com/webhook/3ff1b0ea-7114-4dda-940e-95ce81e08017" #all
-N8N_WEBHOOK_URL_8K_SUMMARY = "https://n8n-xwx1.onrender.com/webhook/b3007d21-6845-47b5-aece-7b26583758bc"
+# N8N_WEBHOOK_URL_8K_SUMMARY = "https://n8n.arbintel.cloud/webhook/b3007d21-6845-47b5-aece-7b26583758bc" #me ,josh,kaushal
+# N8N_WEBHOOK_URL_FILING = "https://n8n.arbintel.cloud/webhook/3ff1b0ea-7114-4dda-940e-95ce81e08017" #all
+N8N_WEBHOOK_URL_8K_SUMMARY = "https://n8n.arbintel.cloud/webhook/b3007d21-6845-47b5-aece-7b26583758bc"
 N8N_WEBHOOK_URL_8K_SUMMARY_L123 = os.environ.get(
-    "N8N_WEBHOOK_SEND_TO_ALL", "https://n8n-xwx1.onrender.com/webhook/3ff1b0ea-7114-4dda-940e-95ce81e08017")
-N8N_WEBHOOK_URL_FILING = "https://n8n-xwx1.onrender.com/webhook/3ff1b0ea-7114-4dda-940e-95ce81e08017"
+    "N8N_WEBHOOK_SEND_TO_ALL", "https://n8n.arbintel.cloud/webhook/3ff1b0ea-7114-4dda-940e-95ce81e08017")
+N8N_WEBHOOK_URL_FILING = "https://n8n.arbintel.cloud/webhook/3ff1b0ea-7114-4dda-940e-95ce81e08017"
 MAX_DESCRIPTION_LENGTH = 50
 
 LOG_PREFIX = "form by form_type: 8-K"

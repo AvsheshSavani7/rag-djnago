@@ -89,7 +89,8 @@ def run_termination_pipeline_s3(url: str, accession_number: str, doc_type: str,
             **s3_urls,
         )
 
-        triggers_url = s3_urls.get("triggers_json") or s3_urls.get("triggers_8k_json")
+        triggers_url = s3_urls.get(
+            "triggers_json") or s3_urls.get("triggers_8k_json")
         fees_url = s3_urls.get("fees_json") or s3_urls.get("fees_8k_json")
 
         if not triggers_url:
@@ -169,7 +170,8 @@ def run_termination_pipeline_s3(url: str, accession_number: str, doc_type: str,
             dashboard_html=stage10_result["dashboard_html"],
         )
 
-        print(f"\n[Pipeline] Complete! Dashboard: {stage10_result['dashboard_html']}")
+        print(
+            f"\n[Pipeline] Complete! Dashboard: {stage10_result['dashboard_html']}")
 
         if send_email:
             _send_dashboard_email(
@@ -219,7 +221,7 @@ def _send_dashboard_email(dashboard_url: str, deal_id: str, deal_name: str,
     try:
         import requests
 
-        N8N_WEBHOOK_URL = "https://n8n-xwx1.onrender.com/webhook/80830c6d-ff5b-45e3-9ef3-a061db1fbf0c"
+        N8N_WEBHOOK_URL = "https://n8n.arbintel.cloud/webhook/80830c6d-ff5b-45e3-9ef3-a061db1fbf0c"
 
         title = deal_name or deal_id or accession_number
         subject = f"Termination Analysis — {title}"
@@ -265,7 +267,8 @@ def _send_dashboard_email(dashboard_url: str, deal_id: str, deal_name: str,
             timeout=30,
         )
         response.raise_for_status()
-        print(f"[Pipeline] Email sent successfully (status {response.status_code})")
+        print(
+            f"[Pipeline] Email sent successfully (status {response.status_code})")
 
     except Exception as e:
         print(f"[Pipeline] Warning: failed to send dashboard email: {e}")

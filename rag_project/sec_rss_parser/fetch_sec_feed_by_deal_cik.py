@@ -103,7 +103,7 @@ DEFAULT_HEADERS = {
 }
 N8N_WEBHOOK_URL_8K_SUMMARY = os.environ.get(
     "N8N_WEBHOOK_URL_8K_SUMMARY",
-    "https://n8n-xwx1.onrender.com/webhook/b3007d21-6845-47b5-aece-7b26583758bc",
+    "https://n8n.arbintel.cloud/webhook/b3007d21-6845-47b5-aece-7b26583758bc",
 )
 SEC_BASE_URL = "https://www.sec.gov"
 CIK_LENGTH = 10

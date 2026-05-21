@@ -26,16 +26,16 @@ logger = logging.getLogger(__name__)
 # N8N webhook for RSS feed update emails (testing – same as sec_rss_parser)
 N8N_WEBHOOK_ONLY_ME = os.environ.get(
     "N8N_WEBHOOK_ONLY_ME",
-    "https://n8n-xwx1.onrender.com/webhook/80830c6d-ff5b-45e3-9ef3-a061db1fbf0c"
+    "https://n8n.arbintel.cloud/webhook/80830c6d-ff5b-45e3-9ef3-a061db1fbf0c"
 )
 N8N_WEKHOOK_INTERNAL_WITH_JOSH = os.environ.get(
     "N8N_WEKHOOK_INTERNAL_WITH_JOSH",
-    "https://n8n-xwx1.onrender.com/webhook/b3007d21-6845-47b5-aece-7b26583758bc"
+    "https://n8n.arbintel.cloud/webhook/b3007d21-6845-47b5-aece-7b26583758bc"
 )
 
 N8N_WEBHOOK_SEND_TO_ALL = os.environ.get(
     "N8N_WEBHOOK_SEND_TO_ALL",
-    "https://n8n-xwx1.onrender.com/webhook/3ff1b0ea-7114-4dda-940e-95ce81e08017",
+    "https://n8n.arbintel.cloud/webhook/3ff1b0ea-7114-4dda-940e-95ce81e08017",
 )
 
 

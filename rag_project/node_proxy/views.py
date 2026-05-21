@@ -36,8 +36,8 @@ openai_client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
 MODEL = "gpt-5-nano-2025-08-07"
 
 # Keep these in sync with `sec_rss_parser/services.py`.
-N8N_WEBHOOK_URL_PARSING_ERROR = "https://n8n-xwx1.onrender.com/webhook/80830c6d-ff5b-45e3-9ef3-a061db1fbf0c"
-N8N_WEBHOOK_URL_PARSING_SUCCESS = "https://n8n-xwx1.onrender.com/webhook/80830c6d-ff5b-45e3-9ef3-a061db1fbf0c"
+N8N_WEBHOOK_URL_PARSING_ERROR = "https://n8n.arbintel.cloud/webhook/80830c6d-ff5b-45e3-9ef3-a061db1fbf0c"
+N8N_WEBHOOK_URL_PARSING_SUCCESS = "https://n8n.arbintel.cloud/webhook/80830c6d-ff5b-45e3-9ef3-a061db1fbf0c"
 
 _EXTRACTION_2_1_MODULE = None
 
