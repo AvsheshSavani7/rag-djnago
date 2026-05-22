@@ -46,6 +46,7 @@ from document_processor.models import ProcessingJob
 from mongoengine.queryset.visitor import Q
 from sec_rss_parser.utils_8k import (
     SECRSSParser,
+    get_deal_tickers,
     get_ticker_for_deal_and_cik,
     normalize_cik,
     extract_accession_from_guid,
@@ -1061,11 +1062,20 @@ def _route_summarize_and_save(item_data, html_data):
             f"{LOG_PREFIX} :_route_summarize_and_save: ⚠️ No document URL found for {form_type}", "warning")
         return
 
+    deal_tickers = get_deal_tickers(deal_id, cik_number)
+    deal_context = {
+        "primary_ticker":  deal_tickers.get("ticker"),
+        "target_ticker":   deal_tickers.get("target_ticker"),
+        "target_name":     deal_tickers.get("target_name"),
+        "acquirer_ticker": deal_tickers.get("acquirer_ticker"),
+        "acquirer_name":   deal_tickers.get("acquirer_name"),
+    } if any(deal_tickers.values()) else None
+
     for url, is_ex99 in urls_to_summarize:
         try:
             log_and_print(
                 f"{LOG_PREFIX} :_route_summarize_and_save: 📝 Generating summary for {form_type}: {url[:80]}...")
-            result = route_and_summarize(url)
+            result = route_and_summarize(url, deal_context=deal_context)
             logger.info(
                 f"{LOG_PREFIX} :_route_summarize_and_save: result={result}")
             s3_docx_url = result.get("s3_docx_url") or result.get("s3_url")

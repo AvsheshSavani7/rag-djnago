@@ -20,6 +20,7 @@ from .merger_news_classifier import (
     get_deal_info_for_email,
 )
 from sec_rss_parser.sec_summarizers.filing_router import route_and_summarize
+from sec_rss_parser.utils_8k import get_deal_tickers
 
 logger = logging.getLogger(__name__)
 
@@ -346,7 +347,16 @@ class RSSFeedService:
                             logger.info(
                                 "Calling route_and_summarize for merger-related item: %s", url
                             )
-                            summary = route_and_summarize(url)
+                            _deal_id = item_with_deal.get("deal_id")
+                            _deal_tickers = get_deal_tickers(_deal_id)
+                            _deal_context = {
+                                "primary_ticker":  _deal_tickers.get("ticker"),
+                                "target_ticker":   _deal_tickers.get("target_ticker"),
+                                "target_name":     _deal_tickers.get("target_name"),
+                                "acquirer_ticker": _deal_tickers.get("acquirer_ticker"),
+                                "acquirer_name":   _deal_tickers.get("acquirer_name"),
+                            } if any(_deal_tickers.values()) else None
+                            summary = route_and_summarize(url, deal_context=_deal_context)
                             s3_docx_url = summary.get(
                                 "s3_docx_url") or summary.get("s3_url")
                             if s3_docx_url:
@@ -415,6 +425,11 @@ class RSSFeedService:
                             email_note=result.get("email_note"),
                             match_details=result.get("match_details"),
                         )
+                        if "Net Asset Value(s)" in subject:
+                            logger.info(
+                                "Skipping email — subject contains 'Net Asset Value(s)': %s", subject
+                            )
+                            continue
                         webhook_url = (
                             N8N_WEBHOOK_SEND_TO_ALL
                             if subject.startswith("[NWB]") or subject.startswith("[NWT]")

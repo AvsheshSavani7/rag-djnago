@@ -23,6 +23,7 @@ from .utils_8k import (
     extract_accession_from_guid,
     build_full_sec_url,
     find_file_by_type,
+    get_deal_tickers,
     get_ticker_for_deal_and_cik,
     normalize_cik,
     parse_filing_date,
@@ -486,11 +487,20 @@ class EightKFeedProcessor:
         accession_number = item_data.get('accession_number', 'N/A')
         try:
             deal_id = item_data.get('deal_id')
+            cik_number = item_data.get('cik_number')
             logger.info(f"{LOG_PREFIX} :_generate_8k_summary_and_send: accession=%s step=start url=%s deal_id=%s",
                         accession_number, url_8k, deal_id)
             log_and_print(
                 f"{LOG_PREFIX} :_generate_8k_summary_and_send: 📝 Generating 8-K summary: {url_8k}")
-            result_8k = route_and_summarize(url_8k)
+            deal_tickers = get_deal_tickers(deal_id, cik_number)
+            deal_context = {
+                "primary_ticker":  deal_tickers.get("ticker"),
+                "target_ticker":   deal_tickers.get("target_ticker"),
+                "target_name":     deal_tickers.get("target_name"),
+                "acquirer_ticker": deal_tickers.get("acquirer_ticker"),
+                "acquirer_name":   deal_tickers.get("acquirer_name"),
+            } if any(deal_tickers.values()) else None
+            result_8k = route_and_summarize(url_8k, deal_context=deal_context)
             s3_url = result_8k.get('s3_docx_url') or result_8k.get('s3_url')
             if not s3_url:
                 logger.warning(
@@ -1444,12 +1454,21 @@ class EightKFeedProcessor:
                 f"{LOG_PREFIX} :_generate_ex99_summary: 📝 Generating summary for EX-99.1 document")
 
             deal_id = item_data.get('deal_id')
+            cik_number = item_data.get('cik_number')
+            deal_tickers = get_deal_tickers(deal_id, cik_number)
+            deal_context = {
+                "primary_ticker":  deal_tickers.get("ticker"),
+                "target_ticker":   deal_tickers.get("target_ticker"),
+                "target_name":     deal_tickers.get("target_name"),
+                "acquirer_ticker": deal_tickers.get("acquirer_ticker"),
+                "acquirer_name":   deal_tickers.get("acquirer_name"),
+            } if any(deal_tickers.values()) else None
 
             if url_ex99:
                 try:
                     log_and_print(
                         f"{LOG_PREFIX} :_generate_ex99_summary:    Summarizing EX-99.1 document: {url_ex99}")
-                    result_99 = route_and_summarize(url_ex99)
+                    result_99 = route_and_summarize(url_ex99, deal_context=deal_context)
                     s3_url = result_99.get(
                         's3_docx_url') or result_99.get('s3_url')
 

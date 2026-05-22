@@ -15,9 +15,11 @@ import os
 import io
 from pathlib import Path
 from ._naming import filing_uid
+from ._deal_context import inject_deal_context
 
 # ──── PASTE YOUR S-4 URL HERE ────
 FILING_URL = ""
+DEAL_CONTEXT = None
 # ──── OUTPUT FOLDER ────
 OUTPUT_DIR = Path(__file__).resolve().parents[1] / "Output Summaries"
 # ─────────────────────────────────
@@ -156,7 +158,7 @@ def summarize(text: str, model: str = "claude-opus-4-6") -> dict:
         max_tokens=8000,
         messages=[{
             "role": "user",
-            "content": SUMMARY_PROMPT + "\n\n" + text
+            "content": inject_deal_context(SUMMARY_PROMPT, DEAL_CONTEXT) + "\n\n" + text
         }]
     )
 

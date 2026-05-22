@@ -50,7 +50,7 @@ class DocumentProcessingService:
 
     def __init__(self):
         # Set up executor for background tasks
-        self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=5)
+        self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=3)
         # Maximum tokens per chunk (leaving some buffer)
         self.MAX_TOKENS = 7000
         self.EMBEDDING_MAX_TOKENS = 8191
@@ -1059,7 +1059,7 @@ class EmbeddingService:
                 processed_chunks += 1
 
                 # Add a small delay to avoid rate limits
-                time.sleep(0.2)
+                # time.sleep(0.2)
 
             print(
                 f"Successfully processed {processed_chunks} out of {total_chunks} chunks"
@@ -5195,7 +5195,7 @@ class SchemaCategorySearch:
         try:
             results = {}
             # Set up a ThreadPoolExecutor with a reasonable number of workers
-            with concurrent.futures.ThreadPoolExecutor(max_workers=60) as executor:
+            with concurrent.futures.ThreadPoolExecutor(max_workers=50) as executor:
                 # Dictionary to track all future objects by section and field
                 futures = {}
 

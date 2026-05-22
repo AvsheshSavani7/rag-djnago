@@ -374,7 +374,7 @@ def send_8k_summary_email(deal_id, company_name, form_type, cik_number, sec_url,
             f"❌ Error sending 8-K summary email notification: {e}", 'error')
 
 
-def generate_8k_summary_async(deal_id, company_name, form_type, cik_number, sec_url, accession_number, max_attempts=60, delay_seconds=30):
+def generate_8k_summary_async(deal_id, company_name, form_type, cik_number, sec_url, accession_number, max_attempts=60, delay_seconds=10):
     """Async function to generate summary for 8-K after processing completes."""
     object_id = None
     try:

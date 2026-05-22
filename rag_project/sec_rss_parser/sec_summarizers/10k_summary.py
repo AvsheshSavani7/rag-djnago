@@ -23,9 +23,11 @@ try:
     from ._naming import filing_uid
 except ImportError:
     from _naming import filing_uid
+from ._deal_context import inject_deal_context
 
 # ──── PASTE YOUR 10-K/10-Q URL HERE ────
 FILING_URL = ""
+DEAL_CONTEXT = None
 # ──── OUTPUT FOLDER (local fallback when not using S3) ────
 OUTPUT_DIR = Path(__file__).resolve().parents[1] / "Output Summaries"
 # ─────────────────────────────────
@@ -608,7 +610,7 @@ def synthesize_extracts(client, extracts: list, filing_type: str, ticker_hint: s
     """Pass 2: Combine section extracts into final L1/L2/L3 summary."""
     extracts_text = json.dumps(extracts, indent=2)
 
-    prompt = SYNTHESIS_PROMPT.format(filing_type=filing_type)
+    prompt = inject_deal_context(SYNTHESIS_PROMPT.format(filing_type=filing_type), DEAL_CONTEXT)
 
     # Inject known metadata so the model doesn't have to guess
     metadata_lines = []

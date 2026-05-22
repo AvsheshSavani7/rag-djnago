@@ -11,9 +11,11 @@ import os
 import io
 from pathlib import Path
 from ._naming import filing_uid
+from ._deal_context import inject_deal_context
 
 # ──── PASTE YOUR 8-K URL HERE ────
 FILING_URL = "https://www.sec.gov/Archives/edgar/data/1434868/000110465925097988/tm2527818-3_424b5.htm"
+DEAL_CONTEXT = None
 # ──── OUTPUT FOLDER ────
 OUTPUT_DIR = Path(__file__).resolve().parents[1] / "Output Summaries"
 # ─────────────────────────────────
@@ -231,7 +233,7 @@ def summarize(text: str, model: str = "claude-opus-4-6", prompt: str = None) -> 
         max_tokens=1500,
         messages=[{
             "role": "user",
-            "content": prompt + "\n\n" + text
+            "content": inject_deal_context(prompt, DEAL_CONTEXT) + "\n\n" + text
         }]
     )
 

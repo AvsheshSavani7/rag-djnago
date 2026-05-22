@@ -36,26 +36,61 @@ def normalize_cik(cik_number):
     return str(cik_number).zfill(CIK_LENGTH) if cik_number else ''
 
 
-def get_ticker_for_deal_and_cik(deal_id, cik_number):
+def get_deal_tickers(deal_id, cik_number=None):
     """
-    Return target_ticker from ProcessingJob if cik_number matches the deal's cik (target)
-    or the deal's acquirer_cik. Otherwise return None.
+    Return tickers and company names from ProcessingJob for summary/email injection.
+    Returns dict with keys: ticker, target_ticker, acquirer_ticker, target_name,
+    acquirer_name (values may be None).
+    When cik_number matches target CIK, ticker = target_ticker.
+    When cik_number matches acquirer CIK, ticker = acquirer_ticker.
+    When cik_number is omitted or unmatched, ticker defaults to target_ticker.
     """
-    if not deal_id or cik_number is None:
-        return None
+    empty = {
+        "ticker": None,
+        "target_ticker": None,
+        "acquirer_ticker": None,
+        "target_name": None,
+        "acquirer_name": None,
+    }
+    if not deal_id:
+        return empty
     try:
         from bson import ObjectId
         from document_processor.models import ProcessingJob
         job = ProcessingJob.objects.get(id=ObjectId(deal_id))
-        cik_norm = normalize_cik(cik_number)
-        job_cik = normalize_cik(getattr(job, 'cik', None) or '')
-        job_acquirer_cik = normalize_cik(
-            getattr(job, 'acquirer_cik', None) or '')
-        if cik_norm and (cik_norm == job_acquirer_cik or cik_norm == job_cik):
-            return getattr(job, 'target_ticker', None) or None
-        return None
     except Exception:
+        return empty
+    target = (getattr(job, "target_ticker", None) or "").strip() or None
+    acquirer = (getattr(job, "acquirer_ticker", None) or "").strip() or None
+    target_name = (getattr(job, "target_name", None) or "").strip() or None
+    # DB field is acquire_name (no trailing 'r')
+    acquirer_name = (getattr(job, "acquire_name", None) or "").strip() or None
+    primary = target
+    if cik_number is not None:
+        cik_norm = normalize_cik(cik_number)
+        job_cik = normalize_cik(getattr(job, "cik", None) or "")
+        job_acquirer_cik = normalize_cik(
+            getattr(job, "acquirer_cik", None) or "")
+        if cik_norm == job_acquirer_cik and acquirer:
+            primary = acquirer
+        elif cik_norm == job_cik and target:
+            primary = target
+        elif cik_norm in (job_cik, job_acquirer_cik):
+            primary = target or acquirer
+    return {
+        "ticker": primary,
+        "target_ticker": target,
+        "acquirer_ticker": acquirer,
+        "target_name": target_name,
+        "acquirer_name": acquirer_name,
+    }
+
+
+def get_ticker_for_deal_and_cik(deal_id, cik_number):
+    """Return the filing-company ticker for deal_id + cik_number."""
+    if not deal_id or cik_number is None:
         return None
+    return get_deal_tickers(deal_id, cik_number).get("ticker")
 
 
 def log_and_print(message, level='info'):

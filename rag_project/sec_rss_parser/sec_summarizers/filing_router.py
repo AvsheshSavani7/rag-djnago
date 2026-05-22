@@ -208,13 +208,18 @@ def classify_with_claude(text: str) -> str:
     return label
 
 
-def route_and_summarize(url: str | list[str]):
+def route_and_summarize(url: str | list[str], deal_context: dict | None = None):
     """Detect filing type, import the right summarizer, and run it.
 
     Args:
         url: Single URL string or list of URLs. For a list, the first URL is
              used for classification and the full list is passed to the
              summarizer module as FILING_URL.
+        deal_context: Optional pre-confirmed deal metadata dict with keys:
+            primary_ticker, target_ticker, target_name, acquirer_ticker,
+            acquirer_name. When provided, these values are injected into the
+            summarizer prompt so the LLM uses them directly rather than
+            inferring them from the filing text.
     """
     classify_url = url[0] if isinstance(url, list) else url
 
@@ -252,8 +257,10 @@ def route_and_summarize(url: str | list[str]):
     module = importlib.import_module(
         f"sec_rss_parser.sec_summarizers.{module_name}")
 
-    # Set the URL(s) in the target module
+    # Set the URL(s) and deal context in the target module
     module.FILING_URL = url
+    if hasattr(module, "DEAL_CONTEXT"):
+        module.DEAL_CONTEXT = deal_context or None
 
     # Run it
     result = module.main()
