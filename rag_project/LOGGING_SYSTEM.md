@@ -619,3 +619,313 @@ tail -f /var/log/rag/ten_k_ten_q/ten_k_ten_q.log
 - **`Eight_k_summary.py`** vs **`sec_summarizers/8k_summary.py`** are two separate files with similar names. The former is used by `process_feed_8k.py`; the latter is used by `filing_router`. Both will write to `sec_8k` and `sec_summary` respectively based on which pipeline calls them.
 - **Local development**: `LOG_ROOT` defaults to `BASE_DIR/logs` (inside the repo). Add `logs/` to `.gitignore`.
 - **Thread safety**: The `_lock` in `DynamicPipelineHandler` protects handler creation. Individual `RotatingFileHandler` and `FileHandler` instances are thread-safe by default in Python's `logging` module.
+
+---
+
+---
+
+# Logs API
+
+HTTP API that exposes the pipeline log files so the admin frontend can browse,
+filter, and read logs without SSH access.
+
+## Files Created
+
+| File | Purpose |
+|------|---------|
+| `rag_project/core/log_reader.py` | Pure-Python file-reading logic — no Django imports |
+| `rag_project/logs_api/__init__.py` | Package marker |
+| `rag_project/logs_api/apps.py` | Django app config |
+| `rag_project/logs_api/views.py` | 6 API view classes |
+| `rag_project/logs_api/urls.py` | URL routing |
+
+## Files Modified
+
+| File | Change |
+|------|--------|
+| `rag_project/rag_project/settings.py` | Added `"logs_api"` to `INSTALLED_APPS` |
+| `rag_project/rag_project/urls.py` | Added `path('api/logs/', include('logs_api.urls'))` |
+
+---
+
+## Architecture
+
+```
+Frontend (React admin)
+    │
+    │  HTTP GET
+    ▼
+logs_api/views.py           ← Django REST views (6 endpoints)
+    │
+    ▼
+core/log_reader.py          ← Pure Python: read/parse/filter log files
+    │
+    ▼
+/var/log/rag/               ← Docker volume (host: /opt/apps/django-app/logs)
+    ├── sec_8k/sec_8k.log
+    ├── sec_8k/traces/2026-05-25/0001193125-26-126362_EX21_a8f91c.log
+    └── ...
+```
+
+`log_reader.py` uses a regex to parse every line produced by `PIPELINE_FORMATTER`:
+
+```
+2026-05-25 17:10:42 | INFO  | pipeline=sec_8k | run_id=a8f91c | accession=0001193125-26-126362 | doc_type=EX21 | sec_rss_parser.process_feed_8k:625 | Processing started
+```
+
+---
+
+## API Endpoints
+
+### 1. List all pipelines
+```
+GET /api/logs/pipelines/
+```
+
+Returns every pipeline folder that has a rolling log file, with file sizes.
+
+**Response:**
+```json
+{
+  "log_root": "/var/log/rag",
+  "pipelines": [
+    {"pipeline": "app",    "size_bytes": 172032, "last_modified": "2026-05-25T06:07:17Z"},
+    {"pipeline": "sec_8k", "size_bytes": 48210,  "last_modified": "2026-05-25T11:30:00Z"},
+    {"pipeline": "ex21",   "size_bytes": 12500,  "last_modified": "2026-05-25T11:31:00Z"}
+  ]
+}
+```
+
+---
+
+### 2. Search across ALL pipelines
+```
+GET /api/logs/search/?accession=XXX&level=ERROR&run_id=a8f91c&search=text&tail=500
+```
+
+Searches every pipeline rolling log simultaneously. Best for tracking one accession
+end-to-end across `sec_8k → ex21 → dma → dma_summary`.
+
+**Query params (all optional):**
+
+| Param | Example | Description |
+|-------|---------|-------------|
+| `accession` | `0001193125-26-126362` | Substring match on accession field |
+| `run_id` | `a8f91c` | Exact run_id match |
+| `level` | `ERROR` | INFO / WARNING / ERROR / DEBUG |
+| `search` | `S3+upload` | Case-insensitive substring in full line |
+| `tail` | `500` | Max lines per pipeline to scan (default 500, max 5000) |
+
+**Response:**
+```json
+{
+  "total_matched": 14,
+  "results": {
+    "sec_8k": {
+      "total_matched": 3,
+      "lines": [{"ts": "...", "level": "INFO", "accession": "0001193125-26-126362", ...}]
+    },
+    "ex21": {
+      "total_matched": 8,
+      "lines": [...]
+    },
+    "dma_summary": {
+      "total_matched": 3,
+      "lines": [...]
+    }
+  }
+}
+```
+
+---
+
+### 3. Read rolling pipeline log (with filters)
+```
+GET /api/logs/<pipeline>/stream/?tail=200&level=ERROR&accession=XXX&run_id=a8f91c&search=text
+```
+
+Read the rolling log for a single pipeline. All query params are optional and ANDed.
+
+**Query params:**
+
+| Param | Default | Max | Description |
+|-------|---------|-----|-------------|
+| `tail` | `200` | `2000` | Last N matched lines to return |
+| `level` | — | — | INFO / WARNING / ERROR / DEBUG |
+| `accession` | — | — | Substring match on accession field |
+| `run_id` | — | — | Exact match |
+| `search` | — | — | Case-insensitive substring in full line |
+
+**Response:**
+```json
+{
+  "pipeline": "sec_8k",
+  "tail": 200,
+  "total_matched": 47,
+  "file_size_bytes": 48210,
+  "last_modified": "2026-05-25T11:30:00Z",
+  "lines": [
+    {
+      "ts":        "2026-05-25 11:30:42",
+      "level":     "INFO",
+      "pipeline":  "sec_8k",
+      "run_id":    "a8f91c",
+      "accession": "0001193125-26-126362",
+      "doc_type":  "8K",
+      "module":    "sec_rss_parser.process_feed_8k:625",
+      "message":   "Processing started"
+    }
+  ]
+}
+```
+
+---
+
+### 4. List trace dates for a pipeline
+```
+GET /api/logs/<pipeline>/traces/
+```
+
+Returns the list of dates that have per-accession trace files, most recent first.
+
+**Response:**
+```json
+{
+  "pipeline": "sec_8k",
+  "dates": ["2026-05-25", "2026-05-24", "2026-05-23"]
+}
+```
+
+---
+
+### 5. List trace files for a pipeline+date
+```
+GET /api/logs/<pipeline>/traces/<date>/
+```
+
+Returns one entry per trace file under `logs/{pipeline}/traces/{date}/`.
+
+**Response:**
+```json
+{
+  "pipeline": "sec_8k",
+  "date": "2026-05-25",
+  "count": 3,
+  "files": [
+    {
+      "filename":      "0001193125-26-126362_EX21_a8f91c.log",
+      "accession":     "0001193125-26-126362",
+      "doc_type":      "EX21",
+      "run_id":        "a8f91c",
+      "size_bytes":    4210,
+      "last_modified": "2026-05-25T11:31:00Z"
+    },
+    {
+      "filename":      "0001104659-26-055221_8K_b3c82e.log",
+      "accession":     "0001104659-26-055221",
+      "doc_type":      "8K",
+      "run_id":        "b3c82e",
+      "size_bytes":    1850,
+      "last_modified": "2026-05-25T11:28:00Z"
+    }
+  ]
+}
+```
+
+---
+
+### 6. Read one trace file (full accession story)
+```
+GET /api/logs/<pipeline>/traces/<date>/<filename>/
+```
+
+Returns every log line for that single accession, in order. This is the
+complete timeline: `sec_8k → ex21 → dma → dma_summary` in one view.
+
+**Response:**
+```json
+{
+  "pipeline":    "sec_8k",
+  "date":        "2026-05-25",
+  "filename":    "0001193125-26-126362_EX21_a8f91c.log",
+  "total_lines": 47,
+  "lines": [
+    {"ts": "2026-05-25 11:30:42", "level": "INFO",  "pipeline": "sec_8k",    "run_id": "a8f91c", "accession": "0001193125-26-126362", "doc_type": "8K",   "module": "process_feed_8k:625",   "message": "Processing started"},
+    {"ts": "2026-05-25 11:30:44", "level": "INFO",  "pipeline": "sec_8k",    "run_id": "a8f91c", "accession": "0001193125-26-126362", "doc_type": "8K",   "module": "process_feed_8k:668",   "message": "Fetching HTML"},
+    {"ts": "2026-05-25 11:30:47", "level": "INFO",  "pipeline": "ex21",      "run_id": "a8f91c", "accession": "0001193125-26-126362", "doc_type": "EX21", "module": "process_feed_8k:792",   "message": "EX-2.1 found"},
+    {"ts": "2026-05-25 11:30:49", "level": "INFO",  "pipeline": "ex21",      "run_id": "a8f91c", "accession": "0001193125-26-126362", "doc_type": "EX21", "module": "services:910",           "message": "8-K document processing started"},
+    {"ts": "2026-05-25 11:31:05", "level": "INFO",  "pipeline": "dma",       "run_id": "a8f91c", "accession": "0001193125-26-126362", "doc_type": "EX21", "module": "document_processor:279", "message": "Processing document"},
+    {"ts": "2026-05-25 11:31:22", "level": "INFO",  "pipeline": "dma",       "run_id": "a8f91c", "accession": "0001193125-26-126362", "doc_type": "EX21", "module": "document_processor:567", "message": "Embedding completed"},
+    {"ts": "2026-05-25 11:31:25", "level": "INFO",  "pipeline": "dma_summary","run_id": "a8f91c", "accession": "0001193125-26-126362", "doc_type": "EX21", "module": "services:427",           "message": "Summary generated"},
+    {"ts": "2026-05-25 11:31:26", "level": "INFO",  "pipeline": "dma_summary","run_id": "a8f91c", "accession": "0001193125-26-126362", "doc_type": "EX21", "module": "services:452",           "message": "Email sent"}
+  ]
+}
+```
+
+---
+
+## Security Notes
+
+- All URL segments (`pipeline`, `date`, `filename`) are validated against
+  `^[\w\-\.]+$` to prevent path traversal attacks.
+- `AllowAny` permission is used — add JWT auth if the admin frontend requires it
+  (wrap views with `IsAuthenticated` from `rest_framework.permissions`).
+- Log files may contain company names, accession numbers, and error messages.
+  Do not expose this API publicly without authentication.
+
+---
+
+## Suggested Frontend Usage (React admin)
+
+```
+Sidebar
+└── Logs
+    ├── [Pipelines list]  ← GET /api/logs/pipelines/
+    │     sec_8k  172 KB  last: 11:30
+    │     ex21     12 KB  last: 11:31
+    │     proxy     8 KB  last: 10:45
+    │     ...
+    │
+    ├── 🔍 Search box     ← GET /api/logs/search/?accession=XXX
+    │     accession / run_id / keyword
+    │
+    └── [Pipeline detail]  (click a pipeline)
+          ├── Rolling log viewer  ← GET /api/logs/sec_8k/stream/?tail=200&level=ERROR
+          │     Filters: Level ▼  Accession [____]  Search [____]
+          │     Auto-refresh every 10s
+          │
+          └── Trace browser
+                [Date picker]    ← GET /api/logs/sec_8k/traces/
+                [File list]      ← GET /api/logs/sec_8k/traces/2026-05-25/
+                [Trace viewer]   ← GET /api/logs/sec_8k/traces/2026-05-25/filename.log/
+                  Shows full timeline of one accession in a table
+```
+
+---
+
+## Quick Test (from VPS or local)
+
+```bash
+# After deploy: docker compose down && docker compose up -d
+
+# List all pipeline folders
+curl https://django.arbintel.cloud/api/logs/pipelines/
+
+# Search everywhere for one accession (tracks it across all pipelines)
+curl "https://django.arbintel.cloud/api/logs/search/?accession=0001193125-26-126362"
+
+# Get last 50 errors in sec_8k
+curl "https://django.arbintel.cloud/api/logs/sec_8k/stream/?level=ERROR&tail=50"
+
+# Get all app-level logs (filtering/skipping activity)
+curl "https://django.arbintel.cloud/api/logs/app/stream/?tail=100"
+
+# List dates with traces in sec_8k
+curl "https://django.arbintel.cloud/api/logs/sec_8k/traces/"
+
+# List trace files for today
+curl "https://django.arbintel.cloud/api/logs/sec_8k/traces/2026-05-25/"
+
+# Read full story of one accession
+curl "https://django.arbintel.cloud/api/logs/sec_8k/traces/2026-05-25/0001193125-26-126362_EX21_a8f91c.log/"
+```

@@ -69,6 +69,7 @@ INSTALLED_APPS = [
     "rss_feeds",
     "sec_rss_parser",
     "proxy_processor",
+    "logs_api",
 ]
 
 MIDDLEWARE = [
