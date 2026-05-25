@@ -248,44 +248,71 @@ JWT_SECRET_KEY = os.environ.get("JWT_SECRET_KEY", 'KEEP_THIS_SECRET')
 # Custom authentication settings
 # AUTH_USER_MODEL = 'user_auth.User'
 
-# Add logging configuration
+# ---------------------------------------------------------------------------
+# Pipeline-aware logging
+# Log root: /var/log/rag inside Docker (mounted from /opt/apps/django-app/logs
+# on the Hostinger VPS host). Falls back to BASE_DIR/logs for local dev.
+# See rag_project/LOGGING_SYSTEM.md for full details.
+# ---------------------------------------------------------------------------
+LOG_ROOT = os.environ.get("LOG_ROOT", str(BASE_DIR / "logs"))
+
 LOGGING = {
-    'version': 1,
-    'disable_existing_loggers': False,
-    'formatters': {
-        'verbose': {
-            'format': '{levelname} {asctime} {module} {message}',
-            'style': '{',
+    "version": 1,
+    "disable_existing_loggers": False,
+
+    "filters": {
+        "pipeline_context": {
+            "()": "core.logging_filters.PipelineContextFilter",
+        }
+    },
+
+    "formatters": {
+        "pipeline": {
+            "()": "logging.Formatter",
+            "format": (
+                "{asctime} | {levelname:<5} | pipeline={pipeline} | run_id={run_id} | "
+                "accession={accession} | doc_type={doc_type} | {name}:{lineno} | {message}"
+            ),
+            "datefmt": "%Y-%m-%d %H:%M:%S",
+            "style": "{",
         },
-        'simple': {
-            'format': '{levelname} {message}',
-            'style': '{',
+        "console": {
+            "format": "{levelname:<5} | {name}:{lineno} | {message}",
+            "style": "{",
         },
     },
-    'handlers': {
-        'console': {
-            'level': 'DEBUG',
-            'class': 'logging.StreamHandler',
-            'formatter': 'verbose',
+
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "formatter": "console",
+            "filters": ["pipeline_context"],
         },
-        'file': {
-            'level': 'DEBUG',
-            'class': 'logging.FileHandler',
-            'filename': 'debug.log',
-            'formatter': 'verbose',
+        "pipeline_file": {
+            "()": "core.dynamic_pipeline_handler.DynamicPipelineHandler",
+            "log_root": LOG_ROOT,
+            "filters": ["pipeline_context"],
         },
     },
-    'loggers': {
-        'django': {
-            'handlers': ['console'],
-            'level': 'INFO',
-            'propagate': True,
-        },
-        'document_processor': {
-            'handlers': ['console', 'file'],
-            'level': 'DEBUG',
-            'propagate': True,
-        },
+
+    # Root logger: everything from all apps goes to console + pipeline files
+    "root": {
+        "handlers": ["console", "pipeline_file"],
+        "level": "INFO",
+    },
+
+    # Silence noisy third-party / Django internals
+    "loggers": {
+        "django":           {"handlers": ["console"], "level": "WARNING", "propagate": False},
+        "django.request":   {"handlers": ["console"], "level": "ERROR",   "propagate": False},
+        "django.db":        {"handlers": [],          "level": "WARNING", "propagate": False},
+        "mongoengine":      {"handlers": [],          "level": "WARNING", "propagate": False},
+        "botocore":         {"handlers": [],          "level": "WARNING", "propagate": False},
+        "s3transfer":       {"handlers": [],          "level": "WARNING", "propagate": False},
+        "urllib3":          {"handlers": [],          "level": "WARNING", "propagate": False},
+        "anthropic":        {"handlers": [],          "level": "WARNING", "propagate": False},
+        "openai":           {"handlers": [],          "level": "WARNING", "propagate": False},
+        "httpx":            {"handlers": [],          "level": "WARNING", "propagate": False},
     },
 }
 

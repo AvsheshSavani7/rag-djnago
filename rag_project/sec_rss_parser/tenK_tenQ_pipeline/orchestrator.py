@@ -115,6 +115,18 @@ def run_pipeline(
             }
         }
     """
+    # Set pipeline context — inherits run_id + accession from caller (utils_10k_10q)
+    try:
+        from core.logging_context import set_pipeline_context, get_run_id, get_accession
+        set_pipeline_context(
+            pipeline="ten_k_ten_q",
+            run_id=get_run_id(),
+            accession=get_accession(),
+            doc_type="10K_10Q",
+        )
+    except Exception:
+        pass
+
     if env_path and env_path.exists():
         try:
             from dotenv import load_dotenv

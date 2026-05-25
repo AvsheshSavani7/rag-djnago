@@ -307,6 +307,11 @@ class RSSFeedService:
                 flow_results = []
                 # Run merger classifier on the original webhook items (items_new)
                 for item in items_new:
+                    # Set pipeline context per RSS item
+                    from core.pipeline_logger import start_pipeline, RSS
+                    _item_id = (item.get("url") or "")[-40:].replace("/", "-")
+                    start_pipeline(RSS, accession=_item_id, doc_type="RSS")
+
                     try:
                         result = resolve_rss_item_flow(
                             item, deals_record_string)
@@ -453,6 +458,11 @@ class RSSFeedService:
                 deals_record_string = get_deals_record_string()
                 created_items = []
                 for item in items_new:
+                    # Set pipeline context per RSS item
+                    from core.pipeline_logger import start_pipeline, RSS
+                    _item_id = (item.get("url") or "")[-40:].replace("/", "-")
+                    start_pipeline(RSS, accession=_item_id, doc_type="RSS_FLOW2")
+
                     title = item.get("title") or ""
                     description = item.get("description_text") or ""
                     try:

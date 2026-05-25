@@ -9,6 +9,8 @@ __pycache__/
 
 # Logs
 *.log
+logs/
+rag_project/logs/
 
 # OS files (macOS)
 .DS_Store

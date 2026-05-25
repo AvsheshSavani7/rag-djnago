@@ -66,6 +66,13 @@ class DocumentProcessingService:
         Args:
             deal_id (str): ID of the deal to process
         """
+        from core.logging_context import set_pipeline_context, get_run_id, get_accession
+        set_pipeline_context(
+            pipeline="mae",
+            run_id=get_run_id(),
+            accession=get_accession(),
+            doc_type="EX21",
+        )
         try:
             logger.info(
                 f"Starting MAE extraction pipeline for deal_id: {deal_id}")
@@ -105,6 +112,13 @@ class DocumentProcessingService:
             sec_url: SEC EDGAR URL for the EX-2.1 document
             deal_name: human-readable deal name for the dashboard header
         """
+        from core.logging_context import set_pipeline_context, get_run_id, get_accession
+        set_pipeline_context(
+            pipeline="termination",
+            run_id=get_run_id(),
+            accession=get_accession(),
+            doc_type="EX21",
+        )
         if not sec_url:
             logger.warning(
                 "No sec_url available — skipping termination analysis pipeline")
@@ -145,6 +159,13 @@ class DocumentProcessingService:
     def _run_covenant_analysis_pipeline(self, deal_id: str, sec_url: str,
                                         deal_name: str = ""):
         """Run the S3-based covenant analysis pipeline for a 2.1 (merger agreement) filing."""
+        from core.logging_context import set_pipeline_context, get_run_id, get_accession
+        set_pipeline_context(
+            pipeline="covenant",
+            run_id=get_run_id(),
+            accession=get_accession(),
+            doc_type="EX21",
+        )
         if not sec_url:
             logger.warning(
                 "No sec_url available — skipping covenant analysis pipeline")
@@ -258,6 +279,15 @@ class DocumentProcessingService:
         Returns:
             dict: Result of the operation with status and details
         """
+        # Inherit run_id from the calling thread (process_8k_document_async); switch to dma pipeline
+        from core.logging_context import set_pipeline_context, get_run_id, get_accession
+        set_pipeline_context(
+            pipeline="dma",
+            run_id=get_run_id(),
+            accession=get_accession(),
+            doc_type="EX21",
+        )
+
         try:
             # Validate parameters
             if not file_url or not isinstance(file_url, str):
@@ -563,6 +593,15 @@ Output JSON format (ONLY this)
             job_id (str): ID of the job
             flattened_json_url (str): URL to the flattened JSON file
         """
+        # Keep dma pipeline context inherited from process_document thread
+        from core.logging_context import set_pipeline_context, get_run_id, get_accession
+        set_pipeline_context(
+            pipeline="dma",
+            run_id=get_run_id(),
+            accession=get_accession(),
+            doc_type="EX21",
+        )
+
         logger.info(
             f"Starting embedding process for job {job_id} with URL: {flattened_json_url}"
         )
@@ -2054,6 +2093,13 @@ class SummaryGenerationService:
         Generate document summaries based on schema results for the given deal_id.
         Uses the same summary generation logic as summary_main.py but with different input/output handling.
         """
+        from core.logging_context import set_pipeline_context, get_run_id, get_accession
+        set_pipeline_context(
+            pipeline="dma_summary",
+            run_id=get_run_id(),
+            accession=get_accession(),
+            doc_type="EX21",
+        )
         try:
             logger.info(f"Generating summary for deal ID: {deal_id}")
             logger.info(f"Temperature: {temperature}")

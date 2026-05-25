@@ -285,6 +285,20 @@ def run_comparison(
     Returns:
         dict with status, change counts, and S3 URLs for outputs.
     """
+    # Inherit run_id from caller; switch to proxy_comparison pipeline
+    try:
+        from core.logging_context import set_pipeline_context, get_run_id, get_accession
+        _acc = (latest_doc_record or {}).get("accession_number") or get_accession()
+        _form = (latest_doc_record or {}).get("form_type", "PROXY")
+        set_pipeline_context(
+            pipeline="proxy_comparison",
+            run_id=get_run_id(),
+            accession=_acc or "-",
+            doc_type=(_form or "PROXY").replace(" ", "_").upper(),
+        )
+    except Exception:
+        pass
+
     # 1. Load .env if provided
     if env_path is not None:
         env_path = Path(env_path)

@@ -7,8 +7,14 @@ services:
       - .env
     ports:
       - "8000"
+    volumes:
+      # Pipeline log files — persisted on host so logs survive container rebuilds.
+      # Host path: /opt/apps/django-app/logs  →  container path: /var/log/rag
+      # Run once on VPS: mkdir -p /opt/apps/django-app/logs && chmod 777 /opt/apps/django-app/logs
+      - /opt/apps/django-app/logs:/var/log/rag
     environment:
       - PORT=8000
+      - LOG_ROOT=/var/log/rag
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.django-app.rule=Host(`django.arbintel.cloud`)"

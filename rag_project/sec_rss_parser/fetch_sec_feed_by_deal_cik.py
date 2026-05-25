@@ -1298,6 +1298,18 @@ def process_items(items):
             continue
         acc = item_data.get("accession_number") or extract_accession_from_guid(
             item_data.get("guid"))
+
+        # Set pipeline context per item — all downstream log lines carry this automatically
+        from core.pipeline_logger import start_pipeline
+        _form = feed_form_type or "UNKNOWN"
+        if feed_form_type in PROXY_FORM_TYPES:
+            _pipeline_name = "proxy"
+        elif feed_form_type in TEN_K_TEN_Q_FORM_TYPES:
+            _pipeline_name = "ten_k_ten_q"
+        else:
+            _pipeline_name = "sec_feed"
+        start_pipeline(_pipeline_name, accession=acc, doc_type=_form)
+
         # Skip if already looked up; do not add to lookup here so read timeouts/failures can retry next run.
         if acc and AccessionLookedUp.objects(accession_number=acc).first():
             log_and_print(

@@ -376,6 +376,15 @@ def send_8k_summary_email(deal_id, company_name, form_type, cik_number, sec_url,
 
 def generate_8k_summary_async(deal_id, company_name, form_type, cik_number, sec_url, accession_number, max_attempts=60, delay_seconds=10):
     """Async function to generate summary for 8-K after processing completes."""
+    # Inherit run_id from parent thread; switch to dma_summary pipeline
+    from core.logging_context import set_pipeline_context, get_run_id
+    set_pipeline_context(
+        pipeline="dma_summary",
+        run_id=get_run_id(),
+        accession=accession_number or "-",
+        doc_type="EX21",
+    )
+
     object_id = None
     try:
         log_and_print(
@@ -906,6 +915,16 @@ def _reset_job_for_reprocessing(deal_id: str, sec_filing_id: str, sec_url: str, 
 
 def process_8k_document_async(ex21_url, cik_number, company_name, sec_filing_id, filing_date, item_data, company_details):
     """Async function to process 8-K document using Node API."""
+    # Inherit run_id from parent (process_8k_document_helper); keep ex21 pipeline
+    from core.logging_context import set_pipeline_context, get_run_id
+    accession_number = (item_data or {}).get("accession_number", "-")
+    set_pipeline_context(
+        pipeline="ex21",
+        run_id=get_run_id(),
+        accession=accession_number,
+        doc_type="EX21",
+    )
+
     try:
         log_and_print(
             f"🚀 Starting 8-K document processing for: {company_name}")

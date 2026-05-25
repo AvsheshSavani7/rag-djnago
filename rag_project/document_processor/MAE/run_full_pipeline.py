@@ -281,6 +281,18 @@ def run_pipeline_for_deal_id(deal_id: str) -> dict | None:
     Returns:
         Dictionary with analysis results or None if MAE text not found
     """
+    # Inherit run_id + accession from calling thread (_run_mae_extraction_pipeline)
+    try:
+        from core.logging_context import set_pipeline_context, get_run_id, get_accession
+        set_pipeline_context(
+            pipeline="mae",
+            run_id=get_run_id(),
+            accession=get_accession(),
+            doc_type="EX21",
+        )
+    except Exception:
+        pass
+
     from dotenv import load_dotenv
     load_dotenv()
 

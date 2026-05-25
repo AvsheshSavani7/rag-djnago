@@ -92,6 +92,15 @@ def process_sec_document_for_filing_summary(
     Returns:
         dict with status and sec_filing_summary_id, or None if error
     """
+    # Inherit run_id from caller; set proxy pipeline context
+    from core.logging_context import set_pipeline_context, get_run_id
+    set_pipeline_context(
+        pipeline="proxy",
+        run_id=get_run_id(),
+        accession=accession_number or "-",
+        doc_type=(form_type or "PROXY").replace(" ", "_").upper(),
+    )
+
     try:
         filing_dt = _parse_filing_date(filing_date)
 

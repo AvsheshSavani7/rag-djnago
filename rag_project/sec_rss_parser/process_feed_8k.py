@@ -605,6 +605,11 @@ class EightKFeedProcessor:
         """Process a single 8-K item"""
         accession_number = item_data.get(
             'accession_number') or extract_accession_from_guid(item_data.get('guid'))
+
+        # Set pipeline context — propagates automatically to all threads spawned here
+        from core.pipeline_logger import start_pipeline, SEC_8K
+        start_pipeline(SEC_8K, accession=accession_number, doc_type="8K")
+
         lock_owner = None
         if accession_number:
             lock_owner = acquire_accession_lock(
@@ -788,6 +793,15 @@ class EightKFeedProcessor:
         """
         accession_number = item_data.get('accession_number', 'N/A')
         try:
+            # Refine context: same run_id but switch pipeline to ex21 + doc_type
+            from core.logging_context import set_pipeline_context, get_run_id
+            set_pipeline_context(
+                pipeline="ex21",
+                run_id=get_run_id(),
+                accession=accession_number,
+                doc_type="EX21",
+            )
+
             logger.info(
                 f"{LOG_PREFIX} :_process_ex21_filing: accession=%s step=start", accession_number)
             log_and_print(
