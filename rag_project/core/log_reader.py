@@ -59,61 +59,8 @@ def list_pipelines(log_root: str) -> list:
     return result
 
 
-def _collect_log_files(pipeline_dir: Path, pipeline: str, include_rotated: bool) -> list[Path]:
-    """
-    Return log files to read, oldest-first so lines are in chronological order.
-
-    Active file:   {pipeline}.log
-    Rotated files: {pipeline}.log.1, .log.2, ... (higher number = older)
-    """
-    active = pipeline_dir / f"{pipeline}.log"
-    if not active.exists():
-        return []
-    if not include_rotated:
-        return [active]
-
-    rotated = sorted(
-        pipeline_dir.glob(f"{pipeline}.log.*"),
-        key=lambda p: int(p.suffix.lstrip(".")) if p.suffix.lstrip(".").isdigit() else 999,
-        reverse=True,   # highest number = oldest → read oldest first
-    )
-    return rotated + [active]
-
-
-def read_rolling_log(
-    log_root: str,
-    pipeline: str,
-    tail: int = 200,
-    level: str = None,
-    accession: str = None,
-    run_id: str = None,
-    search: str = None,
-    include_rotated: bool = False,
-) -> dict:
-    """
-    Read the rolling pipeline log and return the last `tail` matching lines.
-
-    Filters (all ANDed):
-        level           — exact level match (INFO / WARNING / ERROR / DEBUG)
-        accession       — substring match inside the accession field
-        run_id          — exact run_id match
-        search          — case-insensitive substring in the raw line
-        include_rotated — also read .log.1 / .log.2 … backup files (oldest first)
-    """
-    pipeline_dir = Path(log_root) / pipeline
-    files = _collect_log_files(pipeline_dir, pipeline, include_rotated)
-
-    if not files:
-        return {"error": f"No log file found for pipeline '{pipeline}'"}
-
-    active_file = pipeline_dir / f"{pipeline}.log"
-    meta = _file_meta(active_file)
-    total_size = sum(f.stat().st_size for f in files)
-
-    raw_lines: list[str] = []
-    for f in files:
-        raw_lines.extend(f.read_text(encoding="utf-8", errors="replace").splitlines())
-
+def _filter_lines(raw_lines: list, level: str, accession: str, run_id: str, search: str) -> list:
+    """Apply AND filters to a list of raw log lines, return parsed dicts."""
     matched = []
     for raw in raw_lines:
         parsed = _parse_line(raw)
@@ -128,15 +75,111 @@ def read_rolling_log(
         if search and search.lower() not in raw.lower():
             continue
         matched.append(parsed)
+    return matched
+
+
+def read_rolling_log(
+    log_root: str,
+    pipeline: str,
+    tail: int = 200,
+    level: str = None,
+    accession: str = None,
+    run_id: str = None,
+    search: str = None,
+) -> dict:
+    """
+    Read the active rolling log ({pipeline}.log) and return the last `tail` matched lines.
+
+    Filters (all ANDed):
+        level     — exact level match (INFO / WARNING / ERROR / DEBUG)
+        accession — substring match inside the accession field
+        run_id    — exact run_id match
+        search    — case-insensitive substring in the raw line
+    """
+    log_file = Path(log_root) / pipeline / f"{pipeline}.log"
+    if not log_file.exists():
+        return {"error": f"No log file found for pipeline '{pipeline}'"}
+
+    meta = _file_meta(log_file)
+    raw_lines = log_file.read_text(encoding="utf-8", errors="replace").splitlines()
+    matched = _filter_lines(raw_lines, level, accession, run_id, search)
 
     tail = max(1, min(tail, 5000))
     return {
         "pipeline": pipeline,
         "tail": tail,
         "total_matched": len(matched),
-        "files_read": len(files),
         "file_size_bytes": meta["size_bytes"],
-        "total_size_bytes": total_size,
+        "last_modified": meta["last_modified"],
+        "lines": matched[-tail:],
+    }
+
+
+def list_rotated_files(log_root: str, pipeline: str) -> list:
+    """
+    Return metadata for every rotation file under logs/{pipeline}/, newest first.
+
+    Active file  : {pipeline}.log       → rotation index 0
+    Rotated files: {pipeline}.log.1     → index 1 (most recent backup)
+                   {pipeline}.log.2     → index 2
+                   ...
+    """
+    pipeline_dir = Path(log_root) / pipeline
+    if not pipeline_dir.exists():
+        return []
+
+    files = []
+    active = pipeline_dir / f"{pipeline}.log"
+    if active.exists():
+        meta = _file_meta(active)
+        meta.update({"filename": active.name, "rotation": 0})
+        files.append(meta)
+
+    for p in sorted(
+        pipeline_dir.glob(f"{pipeline}.log.*"),
+        key=lambda f: int(f.suffix.lstrip(".")) if f.suffix.lstrip(".").isdigit() else 999,
+    ):
+        idx = int(p.suffix.lstrip(".")) if p.suffix.lstrip(".").isdigit() else 999
+        meta = _file_meta(p)
+        meta.update({"filename": p.name, "rotation": idx})
+        files.append(meta)
+
+    return files
+
+
+def read_rotated_file(
+    log_root: str,
+    pipeline: str,
+    filename: str,
+    tail: int = 500,
+    level: str = None,
+    accession: str = None,
+    run_id: str = None,
+    search: str = None,
+) -> dict:
+    """
+    Read a specific rotation file and return the last `tail` matched lines.
+    filename must be exactly {pipeline}.log or {pipeline}.log.N
+    """
+    path = Path(log_root) / pipeline / filename
+    if not path.exists():
+        return {"error": f"Rotated log file '{filename}' not found for pipeline '{pipeline}'"}
+
+    suffix = path.suffix.lstrip(".")
+    rotation = int(suffix) if suffix.isdigit() else 0
+
+    meta = _file_meta(path)
+    raw_lines = path.read_text(encoding="utf-8", errors="replace").splitlines()
+    matched = _filter_lines(raw_lines, level, accession, run_id, search)
+
+    tail = max(1, min(tail, 5000))
+    return {
+        "pipeline": pipeline,
+        "filename": filename,
+        "rotation": rotation,
+        "tail": tail,
+        "total_matched": len(matched),
+        "size_bytes": meta["size_bytes"],
         "last_modified": meta["last_modified"],
         "lines": matched[-tail:],
     }

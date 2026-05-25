@@ -3,6 +3,8 @@ from .views import (
     PipelineListView,
     GlobalSearchView,
     PipelineLogStreamView,
+    RotatedFileListView,
+    RotatedFileDetailView,
     TraceDateListView,
     TraceFileListView,
     TraceFileDetailView,
@@ -19,9 +21,17 @@ urlpatterns = [
     # GET /api/logs/search/?accession=XXX&level=ERROR&run_id=a8f91c&search=text
     path("search/", GlobalSearchView.as_view(), name="global_search"),
 
-    # Rolling log for one pipeline (with filters)
-    # GET /api/logs/sec_8k/stream/?tail=200&accession=XXX&level=ERROR
+    # Active rolling log for one pipeline (with filters)
+    # GET /api/logs/app/stream/?tail=200&level=ERROR
     path("<str:pipeline>/stream/", PipelineLogStreamView.as_view(), name="pipeline_stream"),
+
+    # List all rotation files for a pipeline
+    # GET /api/logs/app/rotated/
+    path("<str:pipeline>/rotated/", RotatedFileListView.as_view(), name="rotated_list"),
+
+    # Read one specific rotation file (with filters)
+    # GET /api/logs/app/rotated/app.log.3/?tail=500&level=ERROR
+    path("<str:pipeline>/rotated/<str:filename>/", RotatedFileDetailView.as_view(), name="rotated_detail"),
 
     # List dates that have trace files for a pipeline
     # GET /api/logs/sec_8k/traces/

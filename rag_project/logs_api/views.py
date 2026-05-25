@@ -34,9 +34,11 @@ from rest_framework.views import APIView
 
 from core.log_reader import (
     list_pipelines,
+    list_rotated_files,
     list_trace_dates,
     list_trace_files,
     read_rolling_log,
+    read_rotated_file,
     read_trace_file,
     search_all_pipelines,
 )
@@ -128,34 +130,49 @@ class PipelineLogStreamView(APIView):
     """
     GET /api/logs/<pipeline>/stream/
 
-    Read the rolling log for a specific pipeline.
+    Read the active rolling log ({pipeline}.log) for a specific pipeline.
 
     Query params (all optional):
-        tail             — last N matched lines to return (default 200, max 4000)
-        level            — INFO / WARNING / ERROR / DEBUG
-        accession        — substring match on accession field
-        run_id           — exact run_id match
-        search           — case-insensitive substring in the full log line
-        include_rotated  — true/1 to also read .log.1 .log.2 … backup files
+        tail      — last N matched lines to return (default 200, max 2000)
+        level     — INFO / WARNING / ERROR / DEBUG
+        accession — substring match on accession field
+        run_id    — exact run_id match
+        search    — case-insensitive substring in the full log line
+    """
+    permission_classes = [AllowAny]
+
+    def get(self, request, pipeline):
+        if not _safe_segment(pipeline):
+            return Response({"error": "Invalid pipeline name"}, status=status.HTTP_400_BAD_REQUEST)
+
+        tail = min(int(request.query_params.get("tail", 200)), 4000)
+        result = read_rolling_log(
+            log_root=LOG_ROOT,
+            pipeline=pipeline,
+            tail=tail,
+            level=request.query_params.get("level") or None,
+            accession=request.query_params.get("accession") or None,
+            run_id=request.query_params.get("run_id") or None,
+            search=request.query_params.get("search") or None,
+        )
+        if "error" in result:
+            return Response(result, status=status.HTTP_404_NOT_FOUND)
+        return Response(result)
+
+
+class RotatedFileListView(APIView):
+    """
+    GET /api/logs/<pipeline>/rotated/
+
+    List all rotation files for a pipeline, newest first.
 
     Response:
         {
-            "pipeline": "sec_8k",
-            "tail": 200,
-            "total_matched": 47,
-            "file_size_bytes": 172032,
-            "last_modified": "2026-05-25T11:30:00Z",
-            "lines": [
-                {
-                    "ts": "2026-05-25 11:30:42",
-                    "level": "INFO",
-                    "pipeline": "sec_8k",
-                    "run_id": "a8f91c",
-                    "accession": "0001193125-26-126362",
-                    "doc_type": "8K",
-                    "module": "sec_rss_parser.process_feed_8k:625",
-                    "message": "Processing started"
-                },
+            "pipeline": "app",
+            "files": [
+                {"filename": "app.log",   "rotation": 0, "size_bytes": 3200000, "last_modified": "..."},
+                {"filename": "app.log.1", "rotation": 1, "size_bytes": 5242880, "last_modified": "..."},
+                {"filename": "app.log.2", "rotation": 2, "size_bytes": 5242880, "last_modified": "..."},
                 ...
             ]
         }
@@ -166,18 +183,40 @@ class PipelineLogStreamView(APIView):
         if not _safe_segment(pipeline):
             return Response({"error": "Invalid pipeline name"}, status=status.HTTP_400_BAD_REQUEST)
 
-        tail = min(int(request.query_params.get("tail", 200)), 4000)
-        include_rotated = request.query_params.get(
-            "include_rotated", "").lower() in ("true", "1")
-        result = read_rolling_log(
+        files = list_rotated_files(LOG_ROOT, pipeline)
+        return Response({"pipeline": pipeline, "files": files})
+
+
+class RotatedFileDetailView(APIView):
+    """
+    GET /api/logs/<pipeline>/rotated/<filename>/
+
+    Read a specific rotation file with optional filters.
+    filename must be exactly {pipeline}.log or {pipeline}.log.N
+
+    Query params (all optional):
+        tail      — last N matched lines (default 500, max 2000)
+        level     — INFO / WARNING / ERROR / DEBUG
+        accession — substring match on accession field
+        run_id    — exact run_id match
+        search    — case-insensitive substring in the full log line
+    """
+    permission_classes = [AllowAny]
+
+    def get(self, request, pipeline, filename):
+        if not _safe_segment(pipeline) or not _safe_filename(filename):
+            return Response({"error": "Invalid path segment"}, status=status.HTTP_400_BAD_REQUEST)
+
+        tail = min(int(request.query_params.get("tail", 500)), 4000)
+        result = read_rotated_file(
             log_root=LOG_ROOT,
             pipeline=pipeline,
+            filename=filename,
             tail=tail,
             level=request.query_params.get("level") or None,
             accession=request.query_params.get("accession") or None,
             run_id=request.query_params.get("run_id") or None,
             search=request.query_params.get("search") or None,
-            include_rotated=include_rotated,
         )
         if "error" in result:
             return Response(result, status=status.HTTP_404_NOT_FOUND)

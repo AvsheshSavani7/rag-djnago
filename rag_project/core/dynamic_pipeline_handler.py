@@ -6,10 +6,11 @@ from pathlib import Path
 
 _lock = threading.Lock()
 _pipeline_handlers: dict = {}   # pipeline name → RotatingFileHandler
-_trace_handlers: dict    = {}   # absolute file path → FileHandler
+_trace_handlers: dict = {}   # absolute file path → FileHandler
 
-MAX_BYTES    = 5 * 1024 * 1024  # 5 MB per rolling log file
-BACKUP_COUNT = 20               # keep up to 20 rotations (~100 MB per pipeline)
+MAX_BYTES = 10 * 1024 * 1024  # 5 MB per rolling log file
+# keep up to 20 rotations (~100 MB per pipeline)
+BACKUP_COUNT = 20
 
 _IST = timezone(timedelta(hours=5, minutes=30))
 
@@ -84,10 +85,10 @@ class DynamicPipelineHandler(logging.Handler):
         self._log_root = log_root
 
     def emit(self, record: logging.LogRecord):
-        pipeline  = getattr(record, "pipeline",  "app")
+        pipeline = getattr(record, "pipeline",  "app")
         accession = getattr(record, "accession", "-")
-        doc_type  = getattr(record, "doc_type",  "UNKNOWN")
-        run_id    = getattr(record, "run_id",    "-")
+        doc_type = getattr(record, "doc_type",  "UNKNOWN")
+        run_id = getattr(record, "run_id",    "-")
 
         with _lock:
             # 1. Always write to rolling pipeline log
@@ -104,7 +105,8 @@ class DynamicPipelineHandler(logging.Handler):
                     safe_acc = accession.replace("/", "-")
                     filename = f"{safe_acc}_{doc_type}_{run_id}.log"
                     trace_path = (
-                        Path(self._log_root) / pipeline / "traces" / today / filename
+                        Path(self._log_root) / pipeline /
+                        "traces" / today / filename
                     )
                     th = _get_trace_handler(trace_path)
                     th.emit(record)
