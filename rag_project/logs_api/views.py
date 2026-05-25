@@ -42,14 +42,26 @@ from core.log_reader import (
 
 LOG_ROOT = getattr(settings, "LOG_ROOT", str(Path(settings.BASE_DIR) / "logs"))
 
-# Safety: never allow path traversal in URL segments
-_SAFE_SEGMENT = re.compile(r"^[\w\-\.]+$") if False else None  # imported below
+import re
+
+_SAFE_RE = re.compile(r"^[\w\-\.]+$")
+_UNSAFE_FILENAME_RE = re.compile(r'(\.\.)|[/\\]|\x00')
 
 
 def _safe_segment(value: str) -> bool:
-    """Return True if the URL segment contains only safe characters."""
-    import re
-    return bool(re.match(r"^[\w\-\.]+$", value))
+    """Return True if value is a safe pipeline name / date (strict allowlist)."""
+    return bool(_SAFE_RE.match(value))
+
+
+def _safe_filename(value: str) -> bool:
+    """Return True if value is safe to use as a filename.
+
+    Allows commas and other characters that appear in RSS-derived accession
+    slugs. Only blocks path-traversal characters (.. / \\ null-byte).
+    """
+    if not value:
+        return False
+    return not bool(_UNSAFE_FILENAME_RE.search(value))
 
 
 class PipelineListView(APIView):
@@ -248,7 +260,7 @@ class TraceFileDetailView(APIView):
     permission_classes = [AllowAny]
 
     def get(self, request, pipeline, date, filename):
-        if not _safe_segment(pipeline) or not _safe_segment(date) or not _safe_segment(filename):
+        if not _safe_segment(pipeline) or not _safe_segment(date) or not _safe_filename(filename):
             return Response({"error": "Invalid path segment"}, status=status.HTTP_400_BAD_REQUEST)
 
         result = read_trace_file(LOG_ROOT, pipeline, date, filename)

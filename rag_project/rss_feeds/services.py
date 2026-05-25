@@ -309,7 +309,9 @@ class RSSFeedService:
                 for item in items_new:
                     # Set pipeline context per RSS item
                     from core.pipeline_logger import start_pipeline, RSS
-                    _item_id = (item.get("url") or "")[-40:].replace("/", "-")
+                    import re as _re
+                    _raw = (item.get("url") or "").rstrip("/").rsplit("/", 1)[-1]
+                    _item_id = _re.sub(r"[^\w\-]", "-", _raw)[:50] or "rss-item"
                     start_pipeline(RSS, accession=_item_id, doc_type="RSS")
 
                     try:
@@ -460,7 +462,9 @@ class RSSFeedService:
                 for item in items_new:
                     # Set pipeline context per RSS item
                     from core.pipeline_logger import start_pipeline, RSS
-                    _item_id = (item.get("url") or "")[-40:].replace("/", "-")
+                    import re as _re
+                    _raw = (item.get("url") or "").rstrip("/").rsplit("/", 1)[-1]
+                    _item_id = _re.sub(r"[^\w\-]", "-", _raw)[:50] or "rss-item"
                     start_pipeline(RSS, accession=_item_id, doc_type="RSS_FLOW2")
 
                     title = item.get("title") or ""

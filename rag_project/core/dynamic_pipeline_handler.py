@@ -1,7 +1,7 @@
 import logging
 import logging.handlers
 import threading
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from pathlib import Path
 
 _lock = threading.Lock()
@@ -11,7 +11,18 @@ _trace_handlers: dict    = {}   # absolute file path → FileHandler
 MAX_BYTES    = 5 * 1024 * 1024  # 5 MB per rolling log file
 BACKUP_COUNT = 20               # keep up to 20 rotations (~100 MB per pipeline)
 
-PIPELINE_FORMATTER = logging.Formatter(
+_IST = timezone(timedelta(hours=5, minutes=30))
+
+
+class _ISTFormatter(logging.Formatter):
+    """Logging formatter that always stamps times in IST (UTC+5:30)."""
+
+    def formatTime(self, record: logging.LogRecord, datefmt: str = None) -> str:
+        dt = datetime.fromtimestamp(record.created, tz=_IST)
+        return dt.strftime(datefmt or "%Y-%m-%d %H:%M:%S")
+
+
+PIPELINE_FORMATTER = _ISTFormatter(
     fmt=(
         "{asctime} | {levelname:<5} | pipeline={pipeline} | run_id={run_id} | "
         "accession={accession} | doc_type={doc_type} | {name}:{lineno} | {message}"
@@ -89,7 +100,7 @@ class DynamicPipelineHandler(logging.Handler):
             # 2. Write to per-accession trace file only when context is set
             if accession and accession != "-":
                 try:
-                    today = datetime.now(tz=timezone.utc).strftime("%Y-%m-%d")
+                    today = datetime.now(tz=_IST).strftime("%Y-%m-%d")
                     safe_acc = accession.replace("/", "-")
                     filename = f"{safe_acc}_{doc_type}_{run_id}.log"
                     trace_path = (
