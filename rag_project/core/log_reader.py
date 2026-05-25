@@ -59,6 +59,27 @@ def list_pipelines(log_root: str) -> list:
     return result
 
 
+def _collect_log_files(pipeline_dir: Path, pipeline: str, include_rotated: bool) -> list[Path]:
+    """
+    Return log files to read, oldest-first so lines are in chronological order.
+
+    Active file:   {pipeline}.log
+    Rotated files: {pipeline}.log.1, .log.2, ... (higher number = older)
+    """
+    active = pipeline_dir / f"{pipeline}.log"
+    if not active.exists():
+        return []
+    if not include_rotated:
+        return [active]
+
+    rotated = sorted(
+        pipeline_dir.glob(f"{pipeline}.log.*"),
+        key=lambda p: int(p.suffix.lstrip(".")) if p.suffix.lstrip(".").isdigit() else 999,
+        reverse=True,   # highest number = oldest → read oldest first
+    )
+    return rotated + [active]
+
+
 def read_rolling_log(
     log_root: str,
     pipeline: str,
@@ -67,22 +88,31 @@ def read_rolling_log(
     accession: str = None,
     run_id: str = None,
     search: str = None,
+    include_rotated: bool = False,
 ) -> dict:
     """
     Read the rolling pipeline log and return the last `tail` matching lines.
 
     Filters (all ANDed):
-        level     — exact level match (INFO / WARNING / ERROR / DEBUG)
-        accession — substring match inside the accession field
-        run_id    — exact run_id match
-        search    — case-insensitive substring in the raw line
+        level           — exact level match (INFO / WARNING / ERROR / DEBUG)
+        accession       — substring match inside the accession field
+        run_id          — exact run_id match
+        search          — case-insensitive substring in the raw line
+        include_rotated — also read .log.1 / .log.2 … backup files (oldest first)
     """
-    log_file = Path(log_root) / pipeline / f"{pipeline}.log"
-    if not log_file.exists():
+    pipeline_dir = Path(log_root) / pipeline
+    files = _collect_log_files(pipeline_dir, pipeline, include_rotated)
+
+    if not files:
         return {"error": f"No log file found for pipeline '{pipeline}'"}
 
-    meta = _file_meta(log_file)
-    raw_lines = log_file.read_text(encoding="utf-8", errors="replace").splitlines()
+    active_file = pipeline_dir / f"{pipeline}.log"
+    meta = _file_meta(active_file)
+    total_size = sum(f.stat().st_size for f in files)
+
+    raw_lines: list[str] = []
+    for f in files:
+        raw_lines.extend(f.read_text(encoding="utf-8", errors="replace").splitlines())
 
     matched = []
     for raw in raw_lines:
@@ -104,7 +134,9 @@ def read_rolling_log(
         "pipeline": pipeline,
         "tail": tail,
         "total_matched": len(matched),
+        "files_read": len(files),
         "file_size_bytes": meta["size_bytes"],
+        "total_size_bytes": total_size,
         "last_modified": meta["last_modified"],
         "lines": matched[-tail:],
     }

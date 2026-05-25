@@ -22,6 +22,7 @@ Endpoints:
         Read full contents of one per-accession trace file.
 """
 
+import re
 import os
 from pathlib import Path
 
@@ -42,7 +43,6 @@ from core.log_reader import (
 
 LOG_ROOT = getattr(settings, "LOG_ROOT", str(Path(settings.BASE_DIR) / "logs"))
 
-import re
 
 _SAFE_RE = re.compile(r"^[\w\-\.]+$")
 _UNSAFE_FILENAME_RE = re.compile(r'(\.\.)|[/\\]|\x00')
@@ -131,11 +131,12 @@ class PipelineLogStreamView(APIView):
     Read the rolling log for a specific pipeline.
 
     Query params (all optional):
-        tail       — last N matched lines to return (default 200, max 2000)
-        level      — INFO / WARNING / ERROR / DEBUG
-        accession  — substring match on accession field
-        run_id     — exact run_id match
-        search     — case-insensitive substring in the full log line
+        tail             — last N matched lines to return (default 200, max 4000)
+        level            — INFO / WARNING / ERROR / DEBUG
+        accession        — substring match on accession field
+        run_id           — exact run_id match
+        search           — case-insensitive substring in the full log line
+        include_rotated  — true/1 to also read .log.1 .log.2 … backup files
 
     Response:
         {
@@ -165,7 +166,9 @@ class PipelineLogStreamView(APIView):
         if not _safe_segment(pipeline):
             return Response({"error": "Invalid pipeline name"}, status=status.HTTP_400_BAD_REQUEST)
 
-        tail = min(int(request.query_params.get("tail", 200)), 2000)
+        tail = min(int(request.query_params.get("tail", 200)), 4000)
+        include_rotated = request.query_params.get(
+            "include_rotated", "").lower() in ("true", "1")
         result = read_rolling_log(
             log_root=LOG_ROOT,
             pipeline=pipeline,
@@ -174,6 +177,7 @@ class PipelineLogStreamView(APIView):
             accession=request.query_params.get("accession") or None,
             run_id=request.query_params.get("run_id") or None,
             search=request.query_params.get("search") or None,
+            include_rotated=include_rotated,
         )
         if "error" in result:
             return Response(result, status=status.HTTP_404_NOT_FOUND)

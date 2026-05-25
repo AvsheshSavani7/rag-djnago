@@ -575,6 +575,49 @@ tail -f /var/log/rag/ten_k_ten_q/ten_k_ten_q.log
 
 ---
 
+
+
+Commands to check logs on the VPS
+See which pipeline folders exist:
+`ls -lah /opt/apps/django-app/logs/`
+
+Watch live as a new 8-K comes in:
+`tail -f /opt/apps/django-app/logs/app/app.log | grep -v "already_looked_up\|Skipping"`
+
+Once a new accession processes, check its pipeline folder:
+
+# See all folders that have been created
+`find /opt/apps/django-app/logs/ -type d`
+# Watch the sec_8k rolling log (created on first new 8-K)
+`tail -f /opt/apps/django-app/logs/sec_8k/sec_8k.log`
+# Watch sec_feed log
+`tail -f /opt/apps/django-app/logs/sec_feed/sec_feed.log`
+Check trace files for a specific accession once it processes:
+
+# List today's traces
+`ls /opt/apps/django-app/logs/sec_8k/traces/2026-05-25/`
+# Read full story of one accession
+`cat /opt/apps/django-app/logs/sec_8k/traces/2026-05-25/0001193125-26-XXXXXX_8K_a8f91c.log`
+Search across all pipelines for a specific accession:
+
+`grep -r "accession=0001193125-26-XXXXXX" /opt/apps/django-app/logs/`
+See only lines where context was actually set (non-default):
+
+`grep -v "pipeline=app" /opt/apps/django-app/logs/app/app.log | tail -50`
+Count new items processed per pipeline today:
+
+`grep "step=start" /opt/apps/django-app/logs/app/app.log | wc -l`
+How to confirm it's working when a new accession arrives
+To verify the pipeline folders get created, you can wait for the next cron run (your pipeline runs on a schedule), or trigger a manual test. When a genuinely new 8-K accession comes in that passes the filter, you'll see:
+
+`ls /opt/apps/django-app/logs/`
+# → app/  sec_8k/  (new)
+`ls /opt/apps/django-app/logs/sec_8k/`
+# → sec_8k.log  traces/
+`ls /opt/apps/django-app/logs/sec_8k/traces/2026-05-25/`
+# → 0001193125-26-XXXXXX_8K_a8f91c.log
+And that trace file will have pipeline=sec_8k instead of pipeline=app throughout. Everything is set up correctly — you just need a new accession to come through.
+
 ## Implementation Checklist
 
 ### Phase 1 — Core infrastructure
