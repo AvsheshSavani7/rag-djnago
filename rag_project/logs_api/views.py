@@ -37,6 +37,7 @@ from core.log_reader import (
     list_rotated_files,
     list_trace_dates,
     list_trace_files,
+    read_file_raw,
     read_rolling_log,
     read_rotated_file,
     read_trace_file,
@@ -145,6 +146,12 @@ class PipelineLogStreamView(APIView):
         if not _safe_segment(pipeline):
             return Response({"error": "Invalid pipeline name"}, status=status.HTTP_400_BAD_REQUEST)
 
+        if request.query_params.get("format") == "raw":
+            result = read_file_raw(Path(LOG_ROOT) / pipeline / f"{pipeline}.log")
+            if "error" in result:
+                return Response(result, status=status.HTTP_404_NOT_FOUND)
+            return Response(result)
+
         tail = min(int(request.query_params.get("tail", 200)), 4000)
         result = read_rolling_log(
             log_root=LOG_ROOT,
@@ -206,6 +213,12 @@ class RotatedFileDetailView(APIView):
     def get(self, request, pipeline, filename):
         if not _safe_segment(pipeline) or not _safe_filename(filename):
             return Response({"error": "Invalid path segment"}, status=status.HTTP_400_BAD_REQUEST)
+
+        if request.query_params.get("format") == "raw":
+            result = read_file_raw(Path(LOG_ROOT) / pipeline / filename)
+            if "error" in result:
+                return Response(result, status=status.HTTP_404_NOT_FOUND)
+            return Response(result)
 
         tail = min(int(request.query_params.get("tail", 500)), 4000)
         result = read_rotated_file(
@@ -305,6 +318,12 @@ class TraceFileDetailView(APIView):
     def get(self, request, pipeline, date, filename):
         if not _safe_segment(pipeline) or not _safe_segment(date) or not _safe_filename(filename):
             return Response({"error": "Invalid path segment"}, status=status.HTTP_400_BAD_REQUEST)
+
+        if request.query_params.get("format") == "raw":
+            result = read_file_raw(Path(LOG_ROOT) / pipeline / "traces" / date / filename)
+            if "error" in result:
+                return Response(result, status=status.HTTP_404_NOT_FOUND)
+            return Response(result)
 
         result = read_trace_file(LOG_ROOT, pipeline, date, filename)
         if "error" in result:

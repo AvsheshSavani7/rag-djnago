@@ -59,6 +59,13 @@ def list_pipelines(log_root: str) -> list:
     return result
 
 
+def read_file_raw(path: Path) -> dict:
+    """Return the full content of a log file as a single string. No parsing."""
+    if not path.exists():
+        return {"error": f"File not found: {path.name}"}
+    return {"content": path.read_text(encoding="utf-8", errors="replace")}
+
+
 def _filter_lines(raw_lines: list, level: str, accession: str, run_id: str, search: str) -> list:
     """Apply AND filters to a list of raw log lines, return parsed dicts."""
     matched = []
