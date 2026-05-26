@@ -5,14 +5,19 @@ from datetime import datetime, timezone, timedelta
 from pathlib import Path
 
 _lock = threading.Lock()
-_pipeline_handlers: dict = {}   # pipeline name → RotatingFileHandler
+# (pipeline, date) → RotatingFileHandler
+_pipeline_handlers: dict = {}
 _trace_handlers: dict = {}   # absolute file path → FileHandler
 
-MAX_BYTES = 10 * 1024 * 1024  # 5 MB per rolling log file
-# keep up to 20 rotations (~100 MB per pipeline)
-BACKUP_COUNT = 20
+MAX_BYTES = 10 * 1024 * 1024  # 10 MB per file
+# No practical cap within a day; old date folders removed by VPS cron after 7 days
+BACKUP_COUNT = 9999
 
 _IST = timezone(timedelta(hours=5, minutes=30))
+
+
+def _today_ist() -> str:
+    return datetime.now(tz=_IST).strftime("%Y-%m-%d")
 
 
 class _ISTFormatter(logging.Formatter):
@@ -20,7 +25,7 @@ class _ISTFormatter(logging.Formatter):
 
     def formatTime(self, record: logging.LogRecord, datefmt: str = None) -> str:
         dt = datetime.fromtimestamp(record.created, tz=_IST)
-        return dt.strftime(datefmt or "%Y-%m-%d %H:%M:%S")
+        return dt.strftime(datefmt or "%Y-%m-%d %I:%M:%S %p")
 
 
 PIPELINE_FORMATTER = _ISTFormatter(
@@ -28,15 +33,17 @@ PIPELINE_FORMATTER = _ISTFormatter(
         "{asctime} | {levelname:<5} | pipeline={pipeline} | run_id={run_id} | "
         "accession={accession} | doc_type={doc_type} | {name}:{lineno} | {message}"
     ),
-    datefmt="%Y-%m-%d %H:%M:%S",
+    datefmt="%Y-%m-%d %I:%M:%S %p",
     style="{",
 )
 
 
 def _get_pipeline_handler(log_root: str, pipeline: str) -> logging.Handler:
-    """Return (cached) RotatingFileHandler for logs/{pipeline}/{pipeline}.log."""
-    if pipeline not in _pipeline_handlers:
-        folder = Path(log_root) / pipeline
+    """Return (cached) RotatingFileHandler for logs/{pipeline}/daily/{date}/{pipeline}.log."""
+    today = _today_ist()
+    key = (pipeline, today)
+    if key not in _pipeline_handlers:
+        folder = Path(log_root) / pipeline / "daily" / today
         folder.mkdir(parents=True, exist_ok=True)
         h = logging.handlers.RotatingFileHandler(
             folder / f"{pipeline}.log",
@@ -45,8 +52,8 @@ def _get_pipeline_handler(log_root: str, pipeline: str) -> logging.Handler:
             encoding="utf-8",
         )
         h.setFormatter(PIPELINE_FORMATTER)
-        _pipeline_handlers[pipeline] = h
-    return _pipeline_handlers[pipeline]
+        _pipeline_handlers[key] = h
+    return _pipeline_handlers[key]
 
 
 def _get_trace_handler(trace_path: Path) -> logging.Handler:
@@ -64,20 +71,16 @@ class DynamicPipelineHandler(logging.Handler):
     """
     Single logging handler that routes every record to two destinations:
 
-    1. logs/{pipeline}/{pipeline}.log
-       Rolling file, max 5 MB, last 20 rotations kept.
-       Contains all accessions for that pipeline (easy to tail / monitor).
+    1. logs/{pipeline}/daily/{YYYY-MM-DD}/{pipeline}.log
+       Size-based rotation (10 MB) within each IST day — no file-count cap per day.
+       Whole daily/ folders older than 7 days are deleted by VPS cron.
 
     2. logs/{pipeline}/traces/{YYYY-MM-DD}/{accession}_{doc_type}_{run_id}.log
        Per-accession trace file — only created when accession context is set.
        Deleted by server cron after 30 days (see LOGGING_SYSTEM.md).
 
-    Configure in Django LOGGING as:
-        "pipeline_file": {
-            "()": "core.dynamic_pipeline_handler.DynamicPipelineHandler",
-            "log_root": LOG_ROOT,
-            "filters": ["pipeline_context"],
-        }
+    VPS cron (7-day daily cleanup):
+        find /opt/apps/logs/django/*/daily -mindepth 1 -maxdepth 1 -type d -mtime +7 -exec rm -rf {} +
     """
 
     def __init__(self, log_root: str):
@@ -91,7 +94,7 @@ class DynamicPipelineHandler(logging.Handler):
         run_id = getattr(record, "run_id",    "-")
 
         with _lock:
-            # 1. Always write to rolling pipeline log
+            # 1. Always write to daily rolling pipeline log
             try:
                 ph = _get_pipeline_handler(self._log_root, pipeline)
                 ph.emit(record)
@@ -101,7 +104,7 @@ class DynamicPipelineHandler(logging.Handler):
             # 2. Write to per-accession trace file only when context is set
             if accession and accession != "-":
                 try:
-                    today = datetime.now(tz=_IST).strftime("%Y-%m-%d")
+                    today = _today_ist()
                     safe_acc = accession.replace("/", "-")
                     filename = f"{safe_acc}_{doc_type}_{run_id}.log"
                     trace_path = (

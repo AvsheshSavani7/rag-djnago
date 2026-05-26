@@ -33,13 +33,15 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from core.log_reader import (
+    active_log_path,
+    list_daily_dates,
+    list_daily_files,
     list_pipelines,
-    list_rotated_files,
     list_trace_dates,
     list_trace_files,
+    read_daily_file,
     read_file_raw,
     read_rolling_log,
-    read_rotated_file,
     read_trace_file,
     search_all_pipelines,
 )
@@ -152,7 +154,10 @@ class PipelineLogStreamView(APIView):
             return Response({"error": "Invalid pipeline name"}, status=status.HTTP_400_BAD_REQUEST)
 
         if _wants_raw(request):
-            result = read_file_raw(Path(LOG_ROOT) / pipeline / f"{pipeline}.log")
+            log_path = active_log_path(LOG_ROOT, pipeline)
+            if not log_path.exists():
+                log_path = Path(LOG_ROOT) / pipeline / f"{pipeline}.log"
+            result = read_file_raw(log_path)
             if "error" in result:
                 return Response(result, status=status.HTTP_404_NOT_FOUND)
             return Response(result)
@@ -172,22 +177,11 @@ class PipelineLogStreamView(APIView):
         return Response(result)
 
 
-class RotatedFileListView(APIView):
+class RotatedDateListView(APIView):
     """
     GET /api/logs/<pipeline>/rotated/
 
-    List all rotation files for a pipeline, newest first.
-
-    Response:
-        {
-            "pipeline": "app",
-            "files": [
-                {"filename": "app.log",   "rotation": 0, "size_bytes": 3200000, "last_modified": "..."},
-                {"filename": "app.log.1", "rotation": 1, "size_bytes": 5242880, "last_modified": "..."},
-                {"filename": "app.log.2", "rotation": 2, "size_bytes": 5242880, "last_modified": "..."},
-                ...
-            ]
-        }
+    List IST dates that have daily rolling logs.
     """
     permission_classes = [AllowAny]
 
@@ -195,40 +189,56 @@ class RotatedFileListView(APIView):
         if not _safe_segment(pipeline):
             return Response({"error": "Invalid pipeline name"}, status=status.HTTP_400_BAD_REQUEST)
 
-        files = list_rotated_files(LOG_ROOT, pipeline)
-        return Response({"pipeline": pipeline, "files": files})
+        return Response({
+            "pipeline": pipeline,
+            "dates": list_daily_dates(LOG_ROOT, pipeline),
+        })
+
+
+class RotatedDateFilesView(APIView):
+    """
+    GET /api/logs/<pipeline>/rotated/<date>/
+
+    List rotation files for one day: app.log, app.log.1, app.log.2, ...
+    """
+    permission_classes = [AllowAny]
+
+    def get(self, request, pipeline, date):
+        if not _safe_segment(pipeline) or not _safe_segment(date):
+            return Response({"error": "Invalid path segment"}, status=status.HTTP_400_BAD_REQUEST)
+
+        files = list_daily_files(LOG_ROOT, pipeline, date)
+        return Response({
+            "pipeline": pipeline,
+            "date": date,
+            "count": len(files),
+            "files": files,
+        })
 
 
 class RotatedFileDetailView(APIView):
     """
-    GET /api/logs/<pipeline>/rotated/<filename>/
+    GET /api/logs/<pipeline>/rotated/<date>/<filename>/
 
-    Read a specific rotation file with optional filters.
-    filename must be exactly {pipeline}.log or {pipeline}.log.N
-
-    Query params (all optional):
-        tail      — last N matched lines (default 500, max 2000)
-        level     — INFO / WARNING / ERROR / DEBUG
-        accession — substring match on accession field
-        run_id    — exact run_id match
-        search    — case-insensitive substring in the full log line
+    Read a specific daily rotation file. filename: {pipeline}.log or {pipeline}.log.N
     """
     permission_classes = [AllowAny]
 
-    def get(self, request, pipeline, filename):
-        if not _safe_segment(pipeline) or not _safe_filename(filename):
+    def get(self, request, pipeline, date, filename):
+        if not _safe_segment(pipeline) or not _safe_segment(date) or not _safe_filename(filename):
             return Response({"error": "Invalid path segment"}, status=status.HTTP_400_BAD_REQUEST)
 
         if _wants_raw(request):
-            result = read_file_raw(Path(LOG_ROOT) / pipeline / filename)
+            result = read_file_raw(_daily_file_path(pipeline, date, filename))
             if "error" in result:
                 return Response(result, status=status.HTTP_404_NOT_FOUND)
             return Response(result)
 
         tail = min(int(request.query_params.get("tail", 500)), 4000)
-        result = read_rotated_file(
+        result = read_daily_file(
             log_root=LOG_ROOT,
             pipeline=pipeline,
+            date=date,
             filename=filename,
             tail=tail,
             level=request.query_params.get("level") or None,
@@ -239,6 +249,10 @@ class RotatedFileDetailView(APIView):
         if "error" in result:
             return Response(result, status=status.HTTP_404_NOT_FOUND)
         return Response(result)
+
+
+def _daily_file_path(pipeline: str, date: str, filename: str) -> Path:
+    return Path(LOG_ROOT) / pipeline / "daily" / date / filename
 
 
 class TraceDateListView(APIView):

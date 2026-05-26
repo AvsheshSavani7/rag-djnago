@@ -4,12 +4,15 @@ No Django imports — safe to use anywhere.
 """
 
 import re
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from pathlib import Path
 
+_IST = timezone(timedelta(hours=5, minutes=30))
+
 # Matches lines produced by PIPELINE_FORMATTER in dynamic_pipeline_handler.py
+# Supports both 24h (legacy) and 12h AM/PM (current) timestamp formats.
 LOG_LINE_RE = re.compile(
-    r"^(?P<ts>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})"
+    r"^(?P<ts>\d{4}-\d{2}-\d{2} (?:\d{2}:\d{2}:\d{2}|\d{1,2}:\d{2}:\d{2} (?:AM|PM)))"
     r" \| (?P<level>\w+)\s*"
     r" \| pipeline=(?P<pipeline>\S+)"
     r" \| run_id=(?P<run_id>\S+)"
@@ -38,12 +41,72 @@ def _file_meta(path: Path) -> dict:
     }
 
 
+def _today_ist() -> str:
+    return datetime.now(tz=_IST).strftime("%Y-%m-%d")
+
+
+def _daily_dir(log_root: str, pipeline: str, date: str = None) -> Path:
+    return Path(log_root) / pipeline / "daily" / (date or _today_ist())
+
+
+def active_log_path(log_root: str, pipeline: str, date: str = None) -> Path:
+    """Path to today's (or given date's) active log: daily/{date}/{pipeline}.log."""
+    d = date or _today_ist()
+    return _daily_dir(log_root, pipeline, d) / f"{pipeline}.log"
+
+
+def _resolve_active_log(log_root: str, pipeline: str, date: str = None) -> Path | None:
+    """Return active log path, falling back to legacy flat layout if needed."""
+    path = active_log_path(log_root, pipeline, date)
+    if path.exists():
+        return path
+    legacy = Path(log_root) / pipeline / f"{pipeline}.log"
+    if legacy.exists():
+        return legacy
+    return None
+
+
+def _rotation_index(filename: str, pipeline: str) -> int:
+    """Return rotation index: app.log → 0, app.log.3 → 3."""
+    prefix = f"{pipeline}.log."
+    if filename == f"{pipeline}.log":
+        return 0
+    if filename.startswith(prefix):
+        suffix = filename[len(prefix):]
+        if suffix.isdigit():
+            return int(suffix)
+    return 999
+
+
+def _list_rotation_files_in_dir(day_dir: Path, pipeline: str) -> list:
+    """List app.log + app.log.N in one daily folder, active first."""
+    files = []
+    active = day_dir / f"{pipeline}.log"
+    if active.exists():
+        meta = _file_meta(active)
+        meta.update({"filename": active.name, "rotation": 0})
+        files.append(meta)
+
+    rotated = sorted(
+        day_dir.glob(f"{pipeline}.log.*"),
+        key=lambda f: _rotation_index(f.name, pipeline),
+    )
+    for p in rotated:
+        idx = _rotation_index(p.name, pipeline)
+        if idx == 999:
+            continue
+        meta = _file_meta(p)
+        meta.update({"filename": p.name, "rotation": idx})
+        files.append(meta)
+    return files
+
+
 # ---------------------------------------------------------------------------
 # Public helpers
 # ---------------------------------------------------------------------------
 
 def list_pipelines(log_root: str) -> list:
-    """Return metadata for every pipeline folder that has a rolling log file."""
+    """Return metadata for every pipeline folder that has a daily or legacy log file."""
     root = Path(log_root)
     if not root.exists():
         return []
@@ -51,11 +114,13 @@ def list_pipelines(log_root: str) -> list:
     for folder in sorted(root.iterdir()):
         if not folder.is_dir():
             continue
-        log_file = folder / f"{folder.name}.log"
-        if log_file.exists():
-            meta = _file_meta(log_file)
-            meta["pipeline"] = folder.name
-            result.append(meta)
+        pipeline = folder.name
+        log_file = _resolve_active_log(log_root, pipeline)
+        if log_file is None:
+            continue
+        meta = _file_meta(log_file)
+        meta["pipeline"] = pipeline
+        result.append(meta)
     return result
 
 
@@ -103,8 +168,8 @@ def read_rolling_log(
         run_id    — exact run_id match
         search    — case-insensitive substring in the raw line
     """
-    log_file = Path(log_root) / pipeline / f"{pipeline}.log"
-    if not log_file.exists():
+    log_file = _resolve_active_log(log_root, pipeline)
+    if log_file is None:
         return {"error": f"No log file found for pipeline '{pipeline}'"}
 
     meta = _file_meta(log_file)
@@ -122,36 +187,66 @@ def read_rolling_log(
     }
 
 
-def list_rotated_files(log_root: str, pipeline: str) -> list:
-    """
-    Return metadata for every rotation file under logs/{pipeline}/, newest first.
-
-    Active file  : {pipeline}.log       → rotation index 0
-    Rotated files: {pipeline}.log.1     → index 1 (most recent backup)
-                   {pipeline}.log.2     → index 2
-                   ...
-    """
-    pipeline_dir = Path(log_root) / pipeline
-    if not pipeline_dir.exists():
+def list_daily_dates(log_root: str, pipeline: str) -> list:
+    """Return IST dates (most recent first) under logs/{pipeline}/daily/."""
+    daily_dir = Path(log_root) / pipeline / "daily"
+    if not daily_dir.exists():
         return []
+    return sorted(
+        [d.name for d in daily_dir.iterdir() if d.is_dir()],
+        reverse=True,
+    )
 
-    files = []
-    active = pipeline_dir / f"{pipeline}.log"
-    if active.exists():
-        meta = _file_meta(active)
-        meta.update({"filename": active.name, "rotation": 0})
-        files.append(meta)
 
-    for p in sorted(
-        pipeline_dir.glob(f"{pipeline}.log.*"),
-        key=lambda f: int(f.suffix.lstrip(".")) if f.suffix.lstrip(".").isdigit() else 999,
-    ):
-        idx = int(p.suffix.lstrip(".")) if p.suffix.lstrip(".").isdigit() else 999
-        meta = _file_meta(p)
-        meta.update({"filename": p.name, "rotation": idx})
-        files.append(meta)
+def list_daily_files(log_root: str, pipeline: str, date: str) -> list:
+    """
+    Return rotation files for one day: {pipeline}.log, {pipeline}.log.1, ...
+    under logs/{pipeline}/daily/{date}/.
+    """
+    day_dir = _daily_dir(log_root, pipeline, date)
+    if not day_dir.exists():
+        return []
+    return _list_rotation_files_in_dir(day_dir, pipeline)
 
-    return files
+
+def list_rotated_files(log_root: str, pipeline: str) -> list:
+    """Legacy alias — returns files for today only. Prefer list_daily_dates + list_daily_files."""
+    return list_daily_files(log_root, pipeline, _today_ist())
+
+
+def read_daily_file(
+    log_root: str,
+    pipeline: str,
+    date: str,
+    filename: str,
+    tail: int = 500,
+    level: str = None,
+    accession: str = None,
+    run_id: str = None,
+    search: str = None,
+) -> dict:
+    """Read a specific daily rotation file and return the last `tail` matched lines."""
+    path = _daily_dir(log_root, pipeline, date) / filename
+    if not path.exists():
+        return {"error": f"Log file '{filename}' not found for {pipeline}/{date}"}
+
+    rotation = _rotation_index(filename, pipeline)
+    meta = _file_meta(path)
+    raw_lines = path.read_text(encoding="utf-8", errors="replace").splitlines()
+    matched = _filter_lines(raw_lines, level, accession, run_id, search)
+
+    tail = max(1, min(tail, 5000))
+    return {
+        "pipeline": pipeline,
+        "date": date,
+        "filename": filename,
+        "rotation": rotation,
+        "tail": tail,
+        "total_matched": len(matched),
+        "size_bytes": meta["size_bytes"],
+        "last_modified": meta["last_modified"],
+        "lines": matched[-tail:],
+    }
 
 
 def read_rotated_file(
@@ -163,33 +258,20 @@ def read_rotated_file(
     accession: str = None,
     run_id: str = None,
     search: str = None,
+    date: str = None,
 ) -> dict:
-    """
-    Read a specific rotation file and return the last `tail` matched lines.
-    filename must be exactly {pipeline}.log or {pipeline}.log.N
-    """
-    path = Path(log_root) / pipeline / filename
-    if not path.exists():
-        return {"error": f"Rotated log file '{filename}' not found for pipeline '{pipeline}'"}
-
-    suffix = path.suffix.lstrip(".")
-    rotation = int(suffix) if suffix.isdigit() else 0
-
-    meta = _file_meta(path)
-    raw_lines = path.read_text(encoding="utf-8", errors="replace").splitlines()
-    matched = _filter_lines(raw_lines, level, accession, run_id, search)
-
-    tail = max(1, min(tail, 5000))
-    return {
-        "pipeline": pipeline,
-        "filename": filename,
-        "rotation": rotation,
-        "tail": tail,
-        "total_matched": len(matched),
-        "size_bytes": meta["size_bytes"],
-        "last_modified": meta["last_modified"],
-        "lines": matched[-tail:],
-    }
+    """Read a rotation file. Uses today's daily folder if date is omitted."""
+    return read_daily_file(
+        log_root=log_root,
+        pipeline=pipeline,
+        date=date or _today_ist(),
+        filename=filename,
+        tail=tail,
+        level=level,
+        accession=accession,
+        run_id=run_id,
+        search=search,
+    )
 
 
 def list_trace_dates(log_root: str, pipeline: str) -> list:
@@ -272,8 +354,8 @@ def search_all_pipelines(
     for folder in sorted(root.iterdir()):
         if not folder.is_dir():
             continue
-        log_file = folder / f"{folder.name}.log"
-        if not log_file.exists():
+        pipeline = folder.name
+        if _resolve_active_log(log_root, pipeline) is None:
             continue
         data = read_rolling_log(
             log_root=log_root,

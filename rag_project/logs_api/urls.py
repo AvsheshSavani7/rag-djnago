@@ -3,7 +3,8 @@ from .views import (
     PipelineListView,
     GlobalSearchView,
     PipelineLogStreamView,
-    RotatedFileListView,
+    RotatedDateListView,
+    RotatedDateFilesView,
     RotatedFileDetailView,
     TraceDateListView,
     TraceFileListView,
@@ -21,17 +22,22 @@ urlpatterns = [
     # GET /api/logs/search/?accession=XXX&level=ERROR&run_id=a8f91c&search=text
     path("search/", GlobalSearchView.as_view(), name="global_search"),
 
-    # Active rolling log for one pipeline (with filters)
+    # Today's active daily log (with filters)
     # GET /api/logs/app/stream/?tail=200&level=ERROR
     path("<str:pipeline>/stream/", PipelineLogStreamView.as_view(), name="pipeline_stream"),
 
-    # List all rotation files for a pipeline
+    # List dates with daily rolling logs
     # GET /api/logs/app/rotated/
-    path("<str:pipeline>/rotated/", RotatedFileListView.as_view(), name="rotated_list"),
+    path("<str:pipeline>/rotated/", RotatedDateListView.as_view(), name="rotated_dates"),
 
-    # Read one specific rotation file (with filters)
-    # GET /api/logs/app/rotated/app.log.3/?tail=500&level=ERROR
-    path("<str:pipeline>/rotated/<str:filename>/", RotatedFileDetailView.as_view(), name="rotated_detail"),
+    # List rotation files for one day
+    # GET /api/logs/app/rotated/2026-05-26/
+    path("<str:pipeline>/rotated/<str:date>/", RotatedDateFilesView.as_view(), name="rotated_date_files"),
+
+    # Read one daily rotation file
+    # GET /api/logs/app/rotated/2026-05-26/app.log.3/?raw=1
+    path("<str:pipeline>/rotated/<str:date>/<str:filename>/",
+         RotatedFileDetailView.as_view(), name="rotated_file_detail"),
 
     # List dates that have trace files for a pipeline
     # GET /api/logs/sec_8k/traces/
