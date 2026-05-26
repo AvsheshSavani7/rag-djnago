@@ -21,6 +21,7 @@ from .merger_news_classifier import (
 )
 from core.exception_email import send_exception_email
 from core.pipeline_logger import RSS
+from .rss_error_collector import RSSArticleErrorRegistry, record_rss_error
 from sec_rss_parser.sec_summarizers.filing_router import route_and_summarize
 from sec_rss_parser.utils_8k import get_deal_tickers
 
@@ -307,6 +308,10 @@ class RSSFeedService:
                 # AI summary (route_and_summarize) is only run for items that pass this filter.
                 deals_record_string = get_deals_record_string()
                 flow_results = []
+                error_registry = RSSArticleErrorRegistry(
+                    flow="merger",
+                    feed_title=feed_title_str,
+                )
                 # Run merger classifier on the original webhook items (items_new)
                 for item in items_new:
                     # Set pipeline context per RSS item
@@ -318,6 +323,9 @@ class RSSFeedService:
                         r"[^\w\-]", "-", _raw)[:50] or "rss-item"
                     start_pipeline(RSS, accession=_item_id, doc_type="RSS")
 
+                    collector = error_registry.get_collector(
+                        item.get("url"), item.get("title"))
+                    token = error_registry.activate(collector)
                     try:
                         result = resolve_rss_item_flow(
                             item, deals_record_string)
@@ -325,20 +333,19 @@ class RSSFeedService:
                     except Exception as e:
                         logger.exception(
                             "RSS item flow failed for %s", item.get("url"))
-                        send_exception_email(
-                            pipeline=RSS,
-                            error_message=f"RSS item flow failed: {e}",
-                            context={
-                                "module": "rss_feeds.services.process_webhook_payload",
-                                "feed_title": feed_title_str,
-                                "article_url": item.get("url"),
-                                "article_title": item.get("title"),
-                            },
+                        record_rss_error(
+                            step="resolve_rss_item_flow",
+                            message=f"RSS item flow failed: {e}",
                             exception=e,
-                            email_type="rss_item_flow_error",
+                            module="rss_feeds.services.process_webhook_payload",
+                            feed_title=feed_title_str,
+                            article_url=item.get("url"),
+                            article_title=item.get("title"),
                         )
                         flow_results.append(
                             (item, {"skip_email": True, "deal_id": None, "deal_info": None, "email_note": None}))
+                    finally:
+                        error_registry.deactivate(token)
 
                 # Log how many items passed the merger filter (only these get AI summary)
                 n_total = len(flow_results)
@@ -366,6 +373,9 @@ class RSSFeedService:
                     # Try to generate SEC/press-release summary via filing_router before saving
                     url = item_with_deal.get("url")
                     if url:
+                        summary_collector = error_registry.get_collector(
+                            url, item_with_deal.get("title"))
+                        summary_token = error_registry.activate(summary_collector)
                         try:
                             logger.info(
                                 "Calling route_and_summarize for merger-related item: %s", url
@@ -408,20 +418,18 @@ class RSSFeedService:
                         except Exception as e:
                             logger.exception(
                                 "route_and_summarize failed for %s", url)
-                            send_exception_email(
-                                pipeline=RSS,
-                                error_message=f"route_and_summarize failed: {e}",
-                                context={
-                                    "module": "rss_feeds.services.process_webhook_payload",
-                                    "step": "route_and_summarize",
-                                    "flow": "merger",
-                                    "feed_title": feed_title_str,
-                                    "article_url": url,
-                                    "article_title": item_with_deal.get("title"),
-                                },
+                            record_rss_error(
+                                step="route_and_summarize",
+                                message=f"route_and_summarize failed: {e}",
                                 exception=e,
-                                email_type="rss_summary_error",
+                                module="rss_feeds.services.process_webhook_payload",
+                                flow="merger",
+                                feed_title=feed_title_str,
+                                article_url=url,
+                                article_title=item_with_deal.get("title"),
                             )
+                        finally:
+                            error_registry.deactivate(summary_token)
 
                     items_to_save.append(item_with_deal)
                     email_items.append((item_with_deal, result))
@@ -483,11 +491,17 @@ class RSSFeedService:
                         logger.warning(
                             "Could not generate/send RSS feed item email: %s", e
                         )
+
+                error_registry.flush_all()
             elif use_merger_flow_2:
                 # Flow 2: no save. For each item, ask LLM if title/description mention a deal we follow;
                 # if yes, send one email per matching item with deal_id. Do not save any items.
                 deals_record_string = get_deals_record_string()
                 created_items = []
+                error_registry = RSSArticleErrorRegistry(
+                    flow="merger_flow_2",
+                    feed_title=feed_title_str,
+                )
                 for item in items_new:
                     # Set pipeline context per RSS item
                     from core.pipeline_logger import start_pipeline, RSS
@@ -501,6 +515,9 @@ class RSSFeedService:
 
                     title = item.get("title") or ""
                     description = item.get("description_text") or ""
+                    collector = error_registry.get_collector(
+                        item.get("url"), item.get("title"))
+                    token = error_registry.activate(collector)
                     try:
                         result = classify_feed_item_by_title_description(
                             deals_record_string, title, description
@@ -508,11 +525,25 @@ class RSSFeedService:
                         logger.info(
                             f"classify_feed_item_by_title_description result: {result}")
                     except Exception as e:
-                        logger.warning(
-                            "classify_feed_item_by_title_description failed for item %s: %s",
-                            item.get("url"), e,
+                        logger.exception(
+                            "classify_feed_item_by_title_description failed for item %s",
+                            item.get("url"),
+                        )
+                        record_rss_error(
+                            step="classify_feed_item_by_title_description",
+                            message=(
+                                "classify_feed_item_by_title_description failed: "
+                                f"{e}"
+                            ),
+                            exception=e,
+                            module="rss_feeds.services.process_webhook_payload",
+                            feed_title=feed_title_str,
+                            article_url=item.get("url"),
+                            article_title=title,
                         )
                         continue
+                    finally:
+                        error_registry.deactivate(token)
                     if not result.get("match") or not result.get("deal_id"):
                         continue
                     deal_id = result["deal_id"]
@@ -540,13 +571,22 @@ class RSSFeedService:
                         logger.error(
                             "Could not generate/send RSS feed item email (flow 2): %s", e
                         )
+
+                error_registry.flush_all()
             else:
                 # Old way: save all items, send email for every item (no deal logic)
                 items_with_summaries = []
+                error_registry = RSSArticleErrorRegistry(
+                    flow="legacy",
+                    feed_title=feed_title_str,
+                )
                 for item in items_new:
                     item_data = dict(item)
                     url = item_data.get("url")
                     if url:
+                        collector = error_registry.get_collector(
+                            url, item_data.get("title"))
+                        token = error_registry.activate(collector)
                         try:
                             summary = route_and_summarize(url)
                             s3_docx_url = summary.get(
@@ -568,20 +608,18 @@ class RSSFeedService:
                         except Exception as e:
                             logger.exception(
                                 "route_and_summarize failed for %s", url)
-                            send_exception_email(
-                                pipeline=RSS,
-                                error_message=f"route_and_summarize failed: {e}",
-                                context={
-                                    "module": "rss_feeds.services.process_webhook_payload",
-                                    "step": "route_and_summarize",
-                                    "flow": "legacy",
-                                    "feed_title": feed_title_str,
-                                    "article_url": url,
-                                    "article_title": item_data.get("title"),
-                                },
+                            record_rss_error(
+                                step="route_and_summarize",
+                                message=f"route_and_summarize failed: {e}",
                                 exception=e,
-                                email_type="rss_summary_error",
+                                module="rss_feeds.services.process_webhook_payload",
+                                flow="legacy",
+                                feed_title=feed_title_str,
+                                article_url=url,
+                                article_title=item_data.get("title"),
                             )
+                        finally:
+                            error_registry.deactivate(token)
                     items_with_summaries.append(item_data)
 
                 created_items = RSSFeedService.create_feed_items(
@@ -625,6 +663,8 @@ class RSSFeedService:
                         logger.error(
                             "Could not generate/send RSS feed item email: %s", e
                         )
+
+                error_registry.flush_all()
 
             return {
                 'success': True,

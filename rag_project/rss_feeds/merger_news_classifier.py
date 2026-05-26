@@ -11,8 +11,7 @@ from typing import Any, Dict, List, Optional
 
 import requests
 
-from core.exception_email import send_exception_email
-from core.pipeline_logger import RSS
+from .rss_error_collector import record_rss_error
 
 logger = logging.getLogger(__name__)
 
@@ -333,17 +332,13 @@ def _call_llm_json_simple(
             return json.loads(match.group(0))
     except Exception as e:
         logger.exception("LLM simple call failed (%s)", caller)
-        send_exception_email(
-            pipeline=RSS,
-            error_message=f"LLM simple call failed ({caller}): {e}",
-            context={
-                "module": "merger_news_classifier._call_llm_json_simple",
-                "caller": caller,
-                "model": model,
-                **(context or {}),
-            },
+        record_rss_error(
+            step=caller,
+            message=f"LLM simple call failed ({caller}): {e}",
             exception=e,
-            email_type="rss_llm_error",
+            model=model,
+            module="merger_news_classifier._call_llm_json_simple",
+            **(context or {}),
         )
     return None
 
@@ -418,17 +413,13 @@ def _call_llm_json_with_web_search(
             return json.loads(match.group(0))
     except Exception as e:
         logger.exception("LLM web search call failed (%s)", caller)
-        send_exception_email(
-            pipeline=RSS,
-            error_message=f"LLM web search call failed ({caller}): {e}",
-            context={
-                "module": "merger_news_classifier._call_llm_json_with_web_search",
-                "caller": caller,
-                "model": model,
-                **(context or {}),
-            },
+        record_rss_error(
+            step=caller,
+            message=f"LLM web search call failed ({caller}): {e}",
             exception=e,
-            email_type="rss_llm_error",
+            model=model,
+            module="merger_news_classifier._call_llm_json_with_web_search",
+            **(context or {}),
         )
     return None
 
@@ -674,15 +665,12 @@ def extract_new_deal_with_web_search(
     except Exception as e:
         logger.exception(
             "Extract new deal (web search) failed for %s", article_url)
-        send_exception_email(
-            pipeline=RSS,
-            error_message=f"Extract new deal (web search) failed: {e}",
-            context={
-                "module": "merger_news_classifier.extract_new_deal_with_web_search",
-                "article_url": article_url,
-            },
+        record_rss_error(
+            step="extract_new_deal_with_web_search",
+            message=f"Extract new deal (web search) failed: {e}",
             exception=e,
-            email_type="rss_llm_error",
+            module="merger_news_classifier.extract_new_deal_with_web_search",
+            article_url=article_url,
         )
         return {
             "target_name": None,
