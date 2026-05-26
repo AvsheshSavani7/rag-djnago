@@ -67,6 +67,11 @@ def _safe_filename(value: str) -> bool:
     return not bool(_UNSAFE_FILENAME_RE.search(value))
 
 
+def _wants_raw(request) -> bool:
+    """True when client wants plain file content (?raw=1 or ?raw=true)."""
+    return request.query_params.get("raw", "").lower() in ("1", "true")
+
+
 class PipelineListView(APIView):
     """
     GET /api/logs/pipelines/
@@ -146,7 +151,7 @@ class PipelineLogStreamView(APIView):
         if not _safe_segment(pipeline):
             return Response({"error": "Invalid pipeline name"}, status=status.HTTP_400_BAD_REQUEST)
 
-        if request.query_params.get("format") == "raw":
+        if _wants_raw(request):
             result = read_file_raw(Path(LOG_ROOT) / pipeline / f"{pipeline}.log")
             if "error" in result:
                 return Response(result, status=status.HTTP_404_NOT_FOUND)
@@ -214,7 +219,7 @@ class RotatedFileDetailView(APIView):
         if not _safe_segment(pipeline) or not _safe_filename(filename):
             return Response({"error": "Invalid path segment"}, status=status.HTTP_400_BAD_REQUEST)
 
-        if request.query_params.get("format") == "raw":
+        if _wants_raw(request):
             result = read_file_raw(Path(LOG_ROOT) / pipeline / filename)
             if "error" in result:
                 return Response(result, status=status.HTTP_404_NOT_FOUND)
@@ -319,7 +324,7 @@ class TraceFileDetailView(APIView):
         if not _safe_segment(pipeline) or not _safe_segment(date) or not _safe_filename(filename):
             return Response({"error": "Invalid path segment"}, status=status.HTTP_400_BAD_REQUEST)
 
-        if request.query_params.get("format") == "raw":
+        if _wants_raw(request):
             result = read_file_raw(Path(LOG_ROOT) / pipeline / "traces" / date / filename)
             if "error" in result:
                 return Response(result, status=status.HTTP_404_NOT_FOUND)
