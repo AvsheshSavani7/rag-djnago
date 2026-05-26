@@ -13,9 +13,10 @@ from pathlib import Path
 
 try:
     from ._naming import filing_uid
-from ._deal_context import inject_deal_context
+    from ._deal_context import inject_deal_context
 except ImportError:
     from _naming import filing_uid
+    from _deal_context import inject_deal_context
 
 # ──── PASTE YOUR PRNEWSWIRE URL HERE ────
 FILING_URL = ""
