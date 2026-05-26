@@ -32,6 +32,8 @@ from .models import (
     TenKTenQSummary,
     DealDmaSummary,
 )
+from core.exception_email import send_exception_email
+from core.pipeline_logger import EX21
 from .document_analyzer import SECDocumentAnalyzer
 from .websocket_service import SECWebSocketService
 from .email_templates import (
@@ -40,7 +42,6 @@ from .email_templates import (
     generate_8k_summary_email_html,
     generate_sec_filings_email_html,
     generate_8k_99_1_summary_email_html,
-    generate_parsing_error_email_html,
     generate_parsing_success_email_html,
 )
 from .sec_Last_Year import print_filings as fetch_sec_filings
@@ -1037,40 +1038,21 @@ def process_8k_document_async(ex21_url, cik_number, company_name, sec_filing_id,
                 return
             parsing_error_sent = True
 
-            try:
-                subject, html_email = generate_parsing_error_email_html(
-                    company_name=company_name,
-                    form_type=form_type,
-                    sec_filing_id=sec_filing_id,
-                    sec_url=ex21_url,
-                    accession_number=sec_filing_accession_number,
-                    error_message=error_message,
-                    log_records=log_records,
-                    api_response=api_response,
-                )
-
-                payload = {
-                    "subject": subject,
-                    "html": html_email,
+            send_exception_email(
+                pipeline=EX21,
+                error_message=error_message,
+                context={
                     "company_name": company_name,
-                    "accession_number": sec_filing_accession_number,
                     "form_type": form_type,
-                    "email_type": "parsing_error",
                     "sec_filing_id": sec_filing_id,
                     "sec_url": ex21_url,
-                }
-
-                send_webhook_notification(
-                    N8N_WEBHOOK_URL_PARSING_ERROR,
-                    payload,
-                    "parsing_error",
-                )
-            except Exception as email_e:
-                # Never block the main processing flow due to webhook/email issues.
-                log_and_print(
-                    f"❌ Failed to send parsing error email via webhook: {email_e}",
-                    "error",
-                )
+                    "accession_number": sec_filing_accession_number,
+                },
+                log_records=log_records,
+                extra_data=api_response,
+                webhook_url=N8N_WEBHOOK_URL_PARSING_ERROR,
+                email_type="parsing_error",
+            )
 
         def _send_parsing_success_email(log_records: list, parsed_json_url: str):
             nonlocal parsing_success_sent

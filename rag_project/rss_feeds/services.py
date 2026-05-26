@@ -19,6 +19,8 @@ from .merger_news_classifier import (
     classify_feed_item_by_title_description,
     get_deal_info_for_email,
 )
+from core.exception_email import send_exception_email
+from core.pipeline_logger import RSS
 from sec_rss_parser.sec_summarizers.filing_router import route_and_summarize
 from sec_rss_parser.utils_8k import get_deal_tickers
 
@@ -310,8 +312,10 @@ class RSSFeedService:
                     # Set pipeline context per RSS item
                     from core.pipeline_logger import start_pipeline, RSS
                     import re as _re
-                    _raw = (item.get("url") or "").rstrip("/").rsplit("/", 1)[-1]
-                    _item_id = _re.sub(r"[^\w\-]", "-", _raw)[:50] or "rss-item"
+                    _raw = (item.get("url") or "").rstrip(
+                        "/").rsplit("/", 1)[-1]
+                    _item_id = _re.sub(
+                        r"[^\w\-]", "-", _raw)[:50] or "rss-item"
                     start_pipeline(RSS, accession=_item_id, doc_type="RSS")
 
                     try:
@@ -319,8 +323,20 @@ class RSSFeedService:
                             item, deals_record_string)
                         flow_results.append((item, result))
                     except Exception as e:
-                        logger.warning(
-                            "RSS item flow failed for %s: %s", item.get("url"), e)
+                        logger.exception(
+                            "RSS item flow failed for %s", item.get("url"))
+                        send_exception_email(
+                            pipeline=RSS,
+                            error_message=f"RSS item flow failed: {e}",
+                            context={
+                                "module": "rss_feeds.services.process_webhook_payload",
+                                "feed_title": feed_title_str,
+                                "article_url": item.get("url"),
+                                "article_title": item.get("title"),
+                            },
+                            exception=e,
+                            email_type="rss_item_flow_error",
+                        )
                         flow_results.append(
                             (item, {"skip_email": True, "deal_id": None, "deal_info": None, "email_note": None}))
 
@@ -363,7 +379,8 @@ class RSSFeedService:
                                 "acquirer_ticker": _deal_tickers.get("acquirer_ticker"),
                                 "acquirer_name":   _deal_tickers.get("acquirer_name"),
                             } if any(_deal_tickers.values()) else None
-                            summary = route_and_summarize(url, deal_context=_deal_context)
+                            summary = route_and_summarize(
+                                url, deal_context=_deal_context)
                             s3_docx_url = summary.get(
                                 "s3_docx_url") or summary.get("s3_url")
                             if s3_docx_url:
@@ -389,9 +406,21 @@ class RSSFeedService:
                                         summary, dict) else type(summary).__name__,
                                 )
                         except Exception as e:
-                            logger.warning(
-                                "route_and_summarize failed for %s: %s", url, e,
-                                exc_info=True,
+                            logger.exception(
+                                "route_and_summarize failed for %s", url)
+                            send_exception_email(
+                                pipeline=RSS,
+                                error_message=f"route_and_summarize failed: {e}",
+                                context={
+                                    "module": "rss_feeds.services.process_webhook_payload",
+                                    "step": "route_and_summarize",
+                                    "flow": "merger",
+                                    "feed_title": feed_title_str,
+                                    "article_url": url,
+                                    "article_title": item_with_deal.get("title"),
+                                },
+                                exception=e,
+                                email_type="rss_summary_error",
                             )
 
                     items_to_save.append(item_with_deal)
@@ -463,9 +492,12 @@ class RSSFeedService:
                     # Set pipeline context per RSS item
                     from core.pipeline_logger import start_pipeline, RSS
                     import re as _re
-                    _raw = (item.get("url") or "").rstrip("/").rsplit("/", 1)[-1]
-                    _item_id = _re.sub(r"[^\w\-]", "-", _raw)[:50] or "rss-item"
-                    start_pipeline(RSS, accession=_item_id, doc_type="RSS_FLOW2")
+                    _raw = (item.get("url") or "").rstrip(
+                        "/").rsplit("/", 1)[-1]
+                    _item_id = _re.sub(
+                        r"[^\w\-]", "-", _raw)[:50] or "rss-item"
+                    start_pipeline(RSS, accession=_item_id,
+                                   doc_type="RSS_FLOW2")
 
                     title = item.get("title") or ""
                     description = item.get("description_text") or ""
@@ -505,7 +537,7 @@ class RSSFeedService:
                             feed_source_url=feed_source_url_str
                         )
                     except Exception as e:
-                        logger.warning(
+                        logger.error(
                             "Could not generate/send RSS feed item email (flow 2): %s", e
                         )
             else:
@@ -530,12 +562,25 @@ class RSSFeedService:
                                 item_data["s3_json_url"] = summary.get(
                                     "s3_json_url")
                             else:
-                                logger.warning(
+                                logger.error(
                                     "route_and_summarize returned no S3 docx URL for %s", url
                                 )
                         except Exception as e:
-                            logger.warning(
-                                "route_and_summarize failed for %s: %s", url, e
+                            logger.exception(
+                                "route_and_summarize failed for %s", url)
+                            send_exception_email(
+                                pipeline=RSS,
+                                error_message=f"route_and_summarize failed: {e}",
+                                context={
+                                    "module": "rss_feeds.services.process_webhook_payload",
+                                    "step": "route_and_summarize",
+                                    "flow": "legacy",
+                                    "feed_title": feed_title_str,
+                                    "article_url": url,
+                                    "article_title": item_data.get("title"),
+                                },
+                                exception=e,
+                                email_type="rss_summary_error",
                             )
                     items_with_summaries.append(item_data)
 
@@ -556,7 +601,7 @@ class RSSFeedService:
                                 RSSWebSocketService.emit_new_feed_items(created_items, feed))
                             loop.close()
                         except Exception as e:
-                            logger.warning(
+                            logger.error(
                                 f"Could not emit WebSocket notification: {str(e)}")
 
                     thread = threading.Thread(target=emit_websocket)
@@ -577,7 +622,7 @@ class RSSFeedService:
                             feed_source_url=feed_source_url_str
                         )
                     except Exception as e:
-                        logger.warning(
+                        logger.error(
                             "Could not generate/send RSS feed item email: %s", e
                         )
 
@@ -590,7 +635,26 @@ class RSSFeedService:
             }
 
         except Exception as e:
-            logger.error(f"Error processing webhook payload: {str(e)}")
+            logger.exception("Error processing webhook payload")
+            send_exception_email(
+                pipeline=RSS,
+                error_message=f"Error processing webhook payload: {e}",
+                context={
+                    "module": "rss_feeds.services.process_webhook_payload",
+                    "feed_title": (
+                        (payload.get("feed") or {}).get("title")
+                        if isinstance(payload, dict)
+                        else None
+                    ),
+                    "items_received": len(
+                        ((payload.get("data") or {}).get("items_new") or [])
+                        if isinstance(payload, dict)
+                        else []
+                    ),
+                },
+                exception=e,
+                email_type="rss_webhook_error",
+            )
             return {
                 'success': False,
                 'error': str(e)

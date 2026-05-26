@@ -25,8 +25,9 @@ from sec_rss_parser.s3_upload_utils import (
     build_parsed_jsons_s3_key,
     upload_json_file_to_s3,
 )
+from core.exception_email import send_exception_email
+from core.pipeline_logger import EX21
 from sec_rss_parser.email_templates import (
-    generate_parsing_error_email_html,
     generate_parsing_success_email_html,
 )
 from sec_rss_parser.utils_8k import send_webhook_notification
@@ -708,36 +709,21 @@ class AnnouncementWithUrlView(APIView):
                 log_records: list,
                 api_response=None,
             ):
-                try:
-                    subject, html_email = generate_parsing_error_email_html(
-                        company_name=company_name,
-                        form_type=form_type,
-                        sec_filing_id=sec_filing_id,
-                        sec_url=ex21_url,
-                        accession_number=sec_filing_accession_number,
-                        error_message=error_msg,
-                        log_records=log_records,
-                        api_response=api_response,
-                    )
-                    payload = {
-                        "subject": subject,
-                        "html": html_email,
+                send_exception_email(
+                    pipeline=EX21,
+                    error_message=error_msg,
+                    context={
                         "company_name": company_name,
-                        "accession_number": sec_filing_accession_number,
                         "form_type": form_type,
-                        "email_type": "parsing_error",
                         "sec_filing_id": sec_filing_id,
                         "sec_url": ex21_url,
-                    }
-                    send_webhook_notification(
-                        N8N_WEBHOOK_URL_PARSING_ERROR,
-                        payload,
-                        "parsing_error",
-                    )
-                except Exception as email_e:
-                    logger.error(
-                        f"❌ Failed to send parsing error email via webhook: {email_e}"
-                    )
+                        "accession_number": sec_filing_accession_number,
+                    },
+                    log_records=log_records,
+                    extra_data=api_response,
+                    webhook_url=N8N_WEBHOOK_URL_PARSING_ERROR,
+                    email_type="parsing_error",
+                )
 
             def _send_parsing_success_email(
                 log_records: list, parsed_json_url: str, deal_id: str

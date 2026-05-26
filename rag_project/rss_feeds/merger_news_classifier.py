@@ -11,6 +11,9 @@ from typing import Any, Dict, List, Optional
 
 import requests
 
+from core.exception_email import send_exception_email
+from core.pipeline_logger import RSS
+
 logger = logging.getLogger(__name__)
 
 # Optional OpenAI for LLM classification and extraction
@@ -298,7 +301,12 @@ Use deal_id only when match is true.
 """
 
 
-def _call_llm_json_simple(prompt: str, model: str = "gpt-5.2") -> Optional[Dict[str, Any]]:
+def _call_llm_json_simple(
+    prompt: str,
+    model: str = "gpt-5.2",
+    caller: str = "unknown",
+    context: Optional[Dict[str, Any]] = None,
+) -> Optional[Dict[str, Any]]:
     """Call OpenAI API without web search; parse first JSON object from output_text."""
     if not openai or not os.environ.get("OPENAI_API_KEY"):
         return None
@@ -324,7 +332,19 @@ def _call_llm_json_simple(prompt: str, model: str = "gpt-5.2") -> Optional[Dict[
         if match:
             return json.loads(match.group(0))
     except Exception as e:
-        logger.warning("LLM simple call failed: %s", e)
+        logger.exception("LLM simple call failed (%s)", caller)
+        send_exception_email(
+            pipeline=RSS,
+            error_message=f"LLM simple call failed ({caller}): {e}",
+            context={
+                "module": "merger_news_classifier._call_llm_json_simple",
+                "caller": caller,
+                "model": model,
+                **(context or {}),
+            },
+            exception=e,
+            email_type="rss_llm_error",
+        )
     return None
 
 
@@ -349,6 +369,11 @@ def classify_feed_item_by_title_description(
             description=(description or "").strip() or "(no description)",
         ),
         model="gpt-5.2",
+        caller="classify_title_desc",
+        context={
+            "title": (title or "")[:200],
+            "description": (description or "")[:200],
+        },
     )
     if not parsed or not isinstance(parsed, dict):
         return out
@@ -360,7 +385,10 @@ def classify_feed_item_by_title_description(
 
 
 def _call_llm_json_with_web_search(
-    prompt: str, model: str = "gpt-5.2"
+    prompt: str,
+    model: str = "gpt-5.2",
+    caller: str = "unknown",
+    context: Optional[Dict[str, Any]] = None,
 ) -> Optional[Dict[str, Any]]:
     """Call OpenAI Responses API with web_search tool; parse first JSON object from output_text."""
     if not openai or not os.environ.get("OPENAI_API_KEY"):
@@ -389,7 +417,19 @@ def _call_llm_json_with_web_search(
         if match:
             return json.loads(match.group(0))
     except Exception as e:
-        logger.warning("LLM web search call failed: %s", e)
+        logger.exception("LLM web search call failed (%s)", caller)
+        send_exception_email(
+            pipeline=RSS,
+            error_message=f"LLM web search call failed ({caller}): {e}",
+            context={
+                "module": "merger_news_classifier._call_llm_json_with_web_search",
+                "caller": caller,
+                "model": model,
+                **(context or {}),
+            },
+            exception=e,
+            email_type="rss_llm_error",
+        )
     return None
 
 
@@ -407,7 +447,9 @@ def prompt_1_deal_we_follow(
         PROMPT_1_DEAL_WE_FOLLOW.format(
             deals_record=deals_record_string or "(no deals)",
             article_url=article_url or "",
-        )
+        ),
+        caller="prompt_1_deal_we_follow",
+        context={"article_url": article_url},
     )
     if not parsed or not isinstance(parsed, dict):
         return out
@@ -469,7 +511,9 @@ def prompt_2_self_announce_extract(article_url: str) -> Dict[str, Any]:
     Returns: is_it_self_announce_merger, target_name, acquire_name, cik, acquirer_cik, announce_date, sec_ex_2_1_url.
     """
     parsed = _call_llm_json_with_web_search(
-        PROMPT_2_SELF_ANNOUNCE_EXTRACT.format(article_url=article_url or "")
+        PROMPT_2_SELF_ANNOUNCE_EXTRACT.format(article_url=article_url or ""),
+        caller="prompt_2_self_announce_extract",
+        context={"article_url": article_url},
     )
     if not parsed or not isinstance(parsed, dict):
         return _normalize_p2_parsed({})
@@ -491,7 +535,13 @@ def prompt_3_us_listed_market_cap(
             article_url=article_url or "",
             target_name=target_name or "—",
             acquire_name=acquire_name or "—",
-        )
+        ),
+        caller="prompt_3_us_listed_market_cap",
+        context={
+            "article_url": article_url,
+            "target_name": target_name,
+            "acquire_name": acquire_name,
+        },
     )
     if not parsed or not isinstance(parsed, dict):
         return out
@@ -622,7 +672,18 @@ def extract_new_deal_with_web_search(
                 break
         return _parse_extract_response(result_text or "")
     except Exception as e:
-        logger.warning("Extract new deal (web search) failed: %s", e)
+        logger.exception(
+            "Extract new deal (web search) failed for %s", article_url)
+        send_exception_email(
+            pipeline=RSS,
+            error_message=f"Extract new deal (web search) failed: {e}",
+            context={
+                "module": "merger_news_classifier.extract_new_deal_with_web_search",
+                "article_url": article_url,
+            },
+            exception=e,
+            email_type="rss_llm_error",
+        )
         return {
             "target_name": None,
             "acquire_name": None,
