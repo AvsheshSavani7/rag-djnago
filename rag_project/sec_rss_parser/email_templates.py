@@ -996,6 +996,37 @@ def _build_l123_summary_email_subject(
     return subject
 
 
+def _build_10k_10q_comparison_email_subject(
+    *,
+    target_ticker=None,
+    target_name=None,
+    matched_cik_label=None,
+    cik_number=None,
+    comparison_label: str = "10K Comparison",
+):
+    """
+    Subject: {deal_label}: Parent|Target Form 10K Comparison
+    or {deal_label}: {filer_cik} Form 10K Comparison when filer CIK is not target/acquirer.
+    """
+    deal_label = (
+        (target_ticker or "").strip()
+        or (target_name or "").strip()
+        or "Unknown"
+    )
+    label = (comparison_label or "10K Comparison").strip()
+
+    label_norm = (matched_cik_label or "").strip()
+    if label_norm == "(acquirer)":
+        middle = f"Parent Form {label}"
+    elif label_norm == "(target)":
+        middle = f"Target Form {label}"
+    else:
+        cik_display = str(cik_number).zfill(10) if cik_number else "0000000000"
+        middle = f"{cik_display} Form {label}"
+
+    return f"{deal_label}: {middle}"
+
+
 def generate_8k_99_1_summary_email_html(company_name: str, form_type: str, summary_doc_url: str, cik_number: str, sec_url: str, accession_number: str, summary_kind: str = "8-K", l1_headline: str = None, l2_brief: str = None, l3_detailed=None, ticker: str = None, filing_date=None, matched_cik_label: str = None, form_affects_deal: bool = None, target_ticker: str = None, target_name: str = None) -> tuple:
     """
     Generate HTML email for 8-K summary document notification.
@@ -1502,16 +1533,21 @@ def generate_10k_10q_comparison_summary_email_html(
     exec_summary_bullets: list = None,
     filings: list = None,
     filer_ticker: str = None,
+    target_ticker: str = None,
+    target_name: str = None,
+    matched_cik_label: str = None,
+    cik_number: str = None,
 ):
     """Generate email HTML for 10-K/10-Q comparison final summary with DOCX link and executive summary.
     Includes SEC filings URL table (from filings list) above the executive summary.
     Returns (subject, html). Used after orchestrator comparison run."""
     company_esc = escape_html(target_company or ticker or "Unknown Company")
-    filer_ticker_esc = escape_html(filer_ticker or "")
-    if filer_ticker_esc:
-        subject = f"{company_esc} : 10-K/10-Q By {filer_ticker_esc} - Comparison Summary"
-    else:
-        subject = f"{company_esc} : 10-K/10-Q Comparison Summary"
+    subject = _build_10k_10q_comparison_email_subject(
+        target_ticker=target_ticker,
+        target_name=target_name,
+        matched_cik_label=matched_cik_label,
+        cik_number=cik_number,
+    )
 
     labels_line = ", ".join(escape_html(l or "")
                             for l in (filing_labels or [])[:10])
@@ -1545,7 +1581,7 @@ def generate_10k_10q_comparison_summary_email_html(
     html_email = f"""
 <!DOCTYPE html>
 <html>
-<head><meta charset="utf-8"><title>10-K/10-Q Comparison Summary</title></head>
+<head><meta charset="utf-8"><title>{escape_html(subject)}</title></head>
 <body style="font-family: Arial, sans-serif; margin: 20px;">
   <div style="max-width:900px;">
     <h2 style="color:#333;">10-K/10-Q Comparison Summary</h2>

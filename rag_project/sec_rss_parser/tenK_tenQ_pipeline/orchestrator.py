@@ -51,25 +51,62 @@ def _get_ticker_for_deal(deal_id: str) -> str:
     return str(ticker).strip().upper() if len(str(ticker)) <= 10 else str(ticker).strip()
 
 
-def _resolve_filer_ticker(urls: List[str], deal_id: str) -> Optional[str]:
-    """Extract CIK from a filing URL and return the filer's ticker from the deal."""
+def _extract_filer_cik_from_urls(urls: List[str]) -> Optional[str]:
+    """Extract normalized 10-digit filer CIK from the first SEC filing URL."""
     import re
-    from document_processor.models import ProcessingJob
-
-    cik_from_url = None
     for url in urls:
         match = re.search(r"/edgar/data/(\d+)/", url or "")
         if match:
-            cik_from_url = match.group(1)
-            break
-    if not cik_from_url:
+            return match.group(1).zfill(10)
+    return None
+
+
+def _get_deal_target_for_email_subject(deal_id: str) -> tuple:
+    """Return (target_ticker, target_name) from ProcessingJob for email subject prefix."""
+    from document_processor.models import ProcessingJob
+
+    job = ProcessingJob.objects(id=deal_id).first()
+    if not job:
+        return None, None
+    target_ticker = (getattr(job, "target_ticker", None) or "").strip() or None
+    target_name = (getattr(job, "target_name", None) or "").strip() or None
+    return target_ticker, target_name
+
+
+def _resolve_filer_matched_cik_label(urls: List[str], deal_id: str) -> Optional[str]:
+    """Return '(target)' or '(acquirer)' when filer CIK matches the deal; else None."""
+    from document_processor.models import ProcessingJob
+
+    cik_norm = _extract_filer_cik_from_urls(urls)
+    if not cik_norm:
         return None
 
     job = ProcessingJob.objects(id=deal_id).first()
     if not job:
         return None
 
-    cik_norm = cik_from_url.zfill(10)
+    target_cik = (getattr(job, "cik", None) or "").zfill(10)
+    acquirer_cik = (getattr(job, "acquirer_cik", None) or "").zfill(10)
+
+    if cik_norm == acquirer_cik:
+        return "(acquirer)"
+    if cik_norm == target_cik:
+        return "(target)"
+    return None
+
+
+def _resolve_filer_ticker(urls: List[str], deal_id: str) -> Optional[str]:
+    """Extract CIK from a filing URL and return the filer's ticker from the deal."""
+    from document_processor.models import ProcessingJob
+
+    cik_norm = _extract_filer_cik_from_urls(urls)
+    if not cik_norm:
+        return None
+
+    job = ProcessingJob.objects(id=deal_id).first()
+    if not job:
+        return None
+
     target_cik = (getattr(job, "cik", None) or "").zfill(10)
     acquirer_cik = (getattr(job, "acquirer_cik", None) or "").zfill(10)
 
@@ -417,6 +454,9 @@ def run_pipeline(
         print(f"\n  Comparison: {len(merged)} changes ({sig} significant)")
 
         filer_ticker = _resolve_filer_ticker(urls, deal_id)
+        target_ticker, target_name = _get_deal_target_for_email_subject(deal_id)
+        matched_cik_label = _resolve_filer_matched_cik_label(urls, deal_id)
+        filer_cik = _extract_filer_cik_from_urls(urls)
 
         try:
             subject, html = generate_10k_10q_comparison_summary_email_html(
@@ -429,6 +469,10 @@ def run_pipeline(
                 exec_summary_bullets=exec_bullets,
                 filings=filings,
                 filer_ticker=filer_ticker,
+                target_ticker=target_ticker,
+                target_name=target_name,
+                matched_cik_label=matched_cik_label,
+                cik_number=filer_cik,
             )
             payload = {
                 "subject": subject,
