@@ -739,6 +739,19 @@ def create_deal_from_extracted(extracted: Dict[str, Any]) -> Optional[Any]:
     return job
 
 
+def _format_announce_date(value) -> str:
+    """Format announce_date from DB (datetime or legacy string)."""
+    if not value:
+        return ""
+    if isinstance(value, str):
+        return value[:10]
+    if isinstance(value, datetime):
+        return value.strftime("%Y-%m-%d")
+    if hasattr(value, "strftime"):
+        return value.strftime("%Y-%m-%d")
+    return str(value)
+
+
 def get_deal_info_for_email(deal_id: str) -> Optional[Dict[str, Any]]:
     """
     Fetch a single deal by ID and return a dict suitable for email template (deal_info).
@@ -768,7 +781,7 @@ def get_deal_info_for_email(deal_id: str) -> Optional[Dict[str, Any]]:
         "cik": job.cik or "",
         "acquirer_cik": job.acquirer_cik or "",
         "sec_url": job.sec_url or "",
-        "announce_date": job.announce_date.strftime("%Y-%m-%d") if job.announce_date else "",
+        "announce_date": _format_announce_date(job.announce_date),
     }
 
 

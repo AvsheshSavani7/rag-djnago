@@ -309,8 +309,41 @@ def fetch_article_text(source: str) -> str:
     return text
 
 
+def _s(value, default: str = "N/A") -> str:
+    """Coerce optional/null LLM fields to a safe string for display."""
+    if value is None:
+        return default
+    return str(value)
+
+
+def _extract_response_text(msg) -> str:
+    """Collect text from all Claude content blocks."""
+    parts = []
+    for block in msg.content:
+        text = getattr(block, "text", None)
+        if text:
+            parts.append(text)
+    return "\n".join(parts).strip()
+
+
+def _parse_json_response(raw: str, *, context: str = "Claude response") -> dict:
+    """Parse JSON from Claude output, stripping markdown fences."""
+    raw = raw.strip()
+    raw = re.sub(r"^```json\s*", "", raw)
+    raw = re.sub(r"\s*```$", "", raw)
+    if not raw:
+        raise ValueError(f"{context}: empty response")
+    try:
+        return json.loads(raw)
+    except json.JSONDecodeError as e:
+        raise ValueError(f"{context}: invalid JSON: {raw[:500]!r}") from e
+
+
 def summarize(text: str, model: str = "claude-opus-4-6") -> dict:
     """Call Claude API to produce multi-level summary."""
+    if not text or not text.strip():
+        raise ValueError("Cannot summarize: no article text extracted")
+
     if not ANTHROPIC_API_KEY:
         raise ValueError(
             "ANTHROPIC_API_KEY not set. Set it in .env or Django settings (ANTHROPIC_API_KEY).")
@@ -325,12 +358,14 @@ def summarize(text: str, model: str = "claude-opus-4-6") -> dict:
         }]
     )
 
-    raw = msg.content[0].text.strip()
-    # Strip markdown fences if present
-    raw = re.sub(r"^```json\s*", "", raw)
-    raw = re.sub(r"\s*```$", "", raw)
+    raw = _extract_response_text(msg)
+    if msg.stop_reason != "end_turn":
+        if raw.count("{") > raw.count("}"):
+            raw += '"' + "}" * (raw.count("{") - raw.count("}"))
+        if raw.count("[") > raw.count("]"):
+            raw += "]" * (raw.count("[") - raw.count("]"))
 
-    return json.loads(raw)
+    return _parse_json_response(raw, context="summarize")
 
 
 def search_perplexity(query: str):
@@ -552,9 +587,9 @@ def export_docx(s: dict, s3_key_suffix: str):
     """Build summary as Word doc, upload to S3 (summary_docx/), return (s3_path, s3_url)."""
     from .s3_utils import upload_docx_bytes
 
-    target = s.get("target", "UNKNOWN")
-    acquirer = s.get("acquirer", "UNKNOWN")
-    date = s.get("announcement_date", "")
+    target = _s(s.get("target"), "UNKNOWN")
+    acquirer = _s(s.get("acquirer"), "UNKNOWN")
+    date = _s(s.get("announcement_date"), "")
 
     doc = DocxDocument()
 
@@ -578,37 +613,37 @@ def export_docx(s: dict, s3_key_suffix: str):
     meta2.add_run("Announcement Date: ").bold = True
     meta2.add_run(date)
     meta2.add_run("    Deal Type: ").bold = True
-    meta2.add_run(s.get("deal_type", "N/A"))
+    meta2.add_run(_s(s.get("deal_type")))
 
     # -- L1: Headline --
     doc.add_heading("L1 — Headline", level=1)
     p = doc.add_paragraph()
-    run = p.add_run(s["L1_headline"])
+    run = p.add_run(_s(s.get("L1_headline")))
     run.bold = True
     run.font.size = Pt(14)
     run.font.color.rgb = RGBColor(0, 51, 102)
 
     # -- L2: Brief --
     doc.add_heading("L2 — Brief", level=1)
-    doc.add_paragraph(s["L2_brief"])
+    doc.add_paragraph(_s(s.get("L2_brief")))
 
     # -- L3: Detailed --
     doc.add_heading("L3 — Detailed", level=1)
-    d = s["L3_detailed"]
+    d = s.get("L3_detailed") or {}
 
     doc.add_heading("Deal Terms", level=2)
     terms = doc.add_paragraph()
     terms.add_run("Deal Value: ").bold = True
-    terms.add_run(d.get("deal_value", "N/A") + "\n")
+    terms.add_run(_s(d.get("deal_value")) + "\n")
     terms.add_run("Structure: ").bold = True
-    terms.add_run(d.get("deal_structure", "N/A") + "\n")
+    terms.add_run(_s(d.get("deal_structure")) + "\n")
     terms.add_run("Premium: ").bold = True
-    terms.add_run(d.get("premium", "N/A") + "\n")
+    terms.add_run(_s(d.get("premium")) + "\n")
     terms.add_run("Timeline: ").bold = True
-    terms.add_run(d.get("timeline", "N/A"))
+    terms.add_run(_s(d.get("timeline")))
 
     doc.add_heading("Strategic Rationale", level=2)
-    doc.add_paragraph(d.get("strategic_rationale", "N/A"))
+    doc.add_paragraph(_s(d.get("strategic_rationale")))
 
     if d.get("conditions"):
         doc.add_heading("Closing Conditions", level=2)
@@ -653,16 +688,16 @@ def export_docx(s: dict, s3_key_suffix: str):
         details.add_run("Market Cap > $100M: ").bold = True
         details.add_run(_bool_label(is_cap) + "\n")
         details.add_run("Estimated Market Cap: ").bold = True
-        details.add_run(cc.get("estimated_market_cap", "Unknown") + "\n")
+        details.add_run(_s(cc.get("estimated_market_cap"), "Unknown") + "\n")
         details.add_run("Exchange: ").bold = True
-        details.add_run(cc.get("exchange", "Unknown") + "\n")
+        details.add_run(_s(cc.get("exchange"), "Unknown") + "\n")
         if cc.get("ticker_confirmed"):
             details.add_run("Confirmed Ticker: ").bold = True
-            details.add_run(cc["ticker_confirmed"] + "\n")
+            details.add_run(_s(cc.get("ticker_confirmed")) + "\n")
         details.add_run("Confidence: ").bold = True
-        details.add_run(cc.get("confidence", "N/A") + "\n")
+        details.add_run(_s(cc.get("confidence")) + "\n")
         details.add_run("Rationale: ").bold = True
-        details.add_run(cc.get("rationale", ""))
+        details.add_run(_s(cc.get("rationale"), ""))
 
         if cc.get("perplexity_raw"):
             doc.add_heading("Perplexity Raw Response", level=2)
@@ -734,10 +769,13 @@ def main():
         result, f"PRNewswire_summary_{uid}.json")
     print(f"\nJSON uploaded to S3: {s3_json_url}")
 
+    if not isinstance(result.get("L3_detailed"), dict):
+        result["L3_detailed"] = {}
+
     target_name = result.get("target") or "UNKNOWN"
-    date = result.get("announcement_date", "")
+    date = result.get("announcement_date") or ""
     safe_target = re.sub(r'[^\w\-\.]', '_', target_name)
-    safe_date = date.replace("/", "-")
+    safe_date = date.replace("/", "-") if date else "unknown-date"
     docx_suffix = f"PRNewswire_Summary_{safe_target}_{safe_date}_{uid}.docx"
     s3_docx_path, s3_docx_url = export_docx(result, docx_suffix)
     print(f"DOCX uploaded to S3: {s3_docx_url}")

@@ -14,7 +14,7 @@ from typing import Any, Dict, List, Optional, Tuple
 logger = logging.getLogger(__name__)
 
 N8N_WEBHOOK_URL_EXCEPTION = os.environ.get(
-    "N8N_WEBHOOK_URL_EXCEPTION",
+    "N8N_WEBHOOK_INTERNAL",
     "https://n8n.arbintel.cloud/webhook/80830c6d-ff5b-45e3-9ef3-a061db1fbf0c",
 )
 
