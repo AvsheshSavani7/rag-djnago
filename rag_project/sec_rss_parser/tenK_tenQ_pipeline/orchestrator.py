@@ -457,6 +457,7 @@ def run_pipeline(
         target_ticker, target_name = _get_deal_target_for_email_subject(deal_id)
         matched_cik_label = _resolve_filer_matched_cik_label(urls, deal_id)
         filer_cik = _extract_filer_cik_from_urls(urls)
+        comparison_form_type = newest_record.get("filing_type")
 
         try:
             subject, html = generate_10k_10q_comparison_summary_email_html(
@@ -473,6 +474,7 @@ def run_pipeline(
                 target_name=target_name,
                 matched_cik_label=matched_cik_label,
                 cik_number=filer_cik,
+                comparison_form_type=comparison_form_type,
             )
             payload = {
                 "subject": subject,

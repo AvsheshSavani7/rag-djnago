@@ -1002,18 +1002,22 @@ def _build_10k_10q_comparison_email_subject(
     target_name=None,
     matched_cik_label=None,
     cik_number=None,
-    comparison_label: str = "10K Comparison",
+    form_type=None,
 ):
     """
-    Subject: {deal_label}: Parent|Target Form 10K Comparison
-    or {deal_label}: {filer_cik} Form 10K Comparison when filer CIK is not target/acquirer.
+    Subject: {deal_label}: Parent|Target Form {form_type} Comparison
+    or {deal_label}: {filer_cik} Form {form_type} Comparison when filer CIK is not target/acquirer.
+    form_type should be the newest filing in the comparison run (e.g. 10-K, 10-Q, 10-K/A).
     """
     deal_label = (
         (target_ticker or "").strip()
         or (target_name or "").strip()
         or "Unknown"
     )
-    label = (comparison_label or "10K Comparison").strip()
+    form_type_norm = _normalize_form_type_subject(form_type, None)
+    if not form_type_norm or form_type_norm.lower() in ("unknown",):
+        form_type_norm = "10-K"
+    label = f"{form_type_norm} Comparison"
 
     label_norm = (matched_cik_label or "").strip()
     if label_norm == "(acquirer)":
@@ -1537,6 +1541,7 @@ def generate_10k_10q_comparison_summary_email_html(
     target_name: str = None,
     matched_cik_label: str = None,
     cik_number: str = None,
+    comparison_form_type: str = None,
 ):
     """Generate email HTML for 10-K/10-Q comparison final summary with DOCX link and executive summary.
     Includes SEC filings URL table (from filings list) above the executive summary.
@@ -1547,6 +1552,7 @@ def generate_10k_10q_comparison_summary_email_html(
         target_name=target_name,
         matched_cik_label=matched_cik_label,
         cik_number=cik_number,
+        form_type=comparison_form_type,
     )
 
     labels_line = ", ".join(escape_html(l or "")
@@ -1618,14 +1624,21 @@ def generate_proxy_comparison_summary_email_html(
     changes_json_url: str = None,
     tier1_changes: int = None,
     tier2_changes: int = None,
+    target_ticker: str = None,
+    target_name: str = None,
+    matched_cik_label: str = None,
 ):
     """Generate email HTML for proxy comparison (DEFM14A, S-4/A, etc.) with change report links.
     Returns (subject, html). Used after proxy_comparision orchestrator run_comparison."""
     company_esc = escape_html(company_name or "Unknown Company")
-    ticker_esc = escape_html(ticker or "")
     form_esc = escape_html(form_type or "PROXY")
-    label_esc = escape_html(label or "")
-    subject = f"{label_esc} : ({form_esc}) - Proxy Comparison"
+    subject = _build_10k_10q_comparison_email_subject(
+        target_ticker=target_ticker,
+        target_name=target_name,
+        matched_cik_label=matched_cik_label,
+        cik_number=cik_number,
+        form_type=form_type,
+    )
 
     changes_line = ""
     if tier1_changes is not None or tier2_changes is not None:
@@ -1659,7 +1672,7 @@ def generate_proxy_comparison_summary_email_html(
     html_email = f"""
 <!DOCTYPE html>
 <html>
-<head><meta charset="utf-8"><title>Proxy Comparison Summary</title></head>
+<head><meta charset="utf-8"><title>{escape_html(subject)}</title></head>
 <body style="font-family: Arial, sans-serif; margin: 20px;">
   <div style="max-width:900px;">
     <h2 style="color:#333;">Proxy Comparison Summary</h2>

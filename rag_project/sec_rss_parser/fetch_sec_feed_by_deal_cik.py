@@ -666,12 +666,34 @@ def _send_proxy_comparison_email(
 ):
     """Send proxy comparison summary email after run_comparison returns. Uses email_templates."""
     try:
+        deal_tickers = get_deal_tickers(deal_id, cik_number)
+        matched_cik_label = None
+        email_company_name = company_name
+        if deal_id and cik_number:
+            try:
+                deal = ProcessingJob.objects(id=ObjectId(deal_id)).only(
+                    "cik", "acquirer_cik", "target_name", "acquire_name"
+                ).first()
+                cik_n = normalize_cik(cik_number)
+                if deal and cik_n:
+                    if normalize_cik(deal.acquirer_cik) == cik_n:
+                        matched_cik_label = "(acquirer)"
+                        email_company_name = deal.acquire_name or company_name
+                    elif normalize_cik(deal.cik) == cik_n:
+                        matched_cik_label = "(target)"
+                        email_company_name = deal.target_name or company_name
+            except Exception as deal_e:
+                log_and_print(
+                    f"{LOG_PREFIX} :_send_proxy_comparison_email: Deal lookup: {deal_e}",
+                    "warning",
+                )
+
         ticker = get_ticker_for_deal_and_cik(deal_id, cik_number)
         subject, html = generate_proxy_comparison_summary_email_html(
-            company_name=company_name,
+            company_name=email_company_name,
             form_type=form_type,
             ticker=ticker or "",
-            label=company_name or ticker,
+            label=email_company_name or ticker,
             deal_id=deal_id,
             cik_number=cik_number,
             past_record_id=result_from_orchestrator.get("past_id"),
@@ -681,11 +703,14 @@ def _send_proxy_comparison_email(
             changes_json_url=result_from_orchestrator.get("changes_json_url"),
             tier1_changes=result_from_orchestrator.get("tier1_changes"),
             tier2_changes=result_from_orchestrator.get("tier2_changes"),
+            target_ticker=deal_tickers.get("target_ticker"),
+            target_name=deal_tickers.get("target_name"),
+            matched_cik_label=matched_cik_label,
         )
         payload = {
             "subject": subject,
             "html": html,
-            "company_name": company_name,
+            "company_name": email_company_name,
             "form_type": form_type,
             "email_type": "proxy_comparison_summary",
             "change_docx_url": result_from_orchestrator.get("change_docx_url"),
