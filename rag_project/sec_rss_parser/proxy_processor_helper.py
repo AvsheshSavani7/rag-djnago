@@ -16,7 +16,12 @@ from sec_rss_parser.proxy_summary_service_v2 import (
 from sec_rss_parser.sec_processor_and_pinecone_v2 import SectionProcessorV2
 from sec_rss_parser.agentic_sec_processor_v2 import AgenticSECProcessor
 from sec_rss_parser.models import SECFilingSummary, SECFiling
-from sec_rss_parser.utils_8k import get_ticker_for_deal_and_cik
+from sec_rss_parser.utils_8k import (
+    get_ticker_for_deal_and_cik,
+    get_deal_tickers,
+    normalize_cik,
+)
+from sec_rss_parser.email_templates import _build_proxy_background_summary_email_subject
 import os
 import sys
 import logging
@@ -596,6 +601,9 @@ def generate_summary_email_html(
     qa_items: list = None,
     chronological_summary: list = None,
     chronological_summary_only: bool = False,
+    target_ticker: str = None,
+    target_name: str = None,
+    matched_cik_label: str = None,
 ) -> tuple:
     """
     Generate HTML email for proxy summary document notification.
@@ -606,26 +614,24 @@ def generate_summary_email_html(
         summary_doc_url: URL of the generated summary document
         cik_number: CIK number
         proxy_sec_url: URL of the SEC proxy document
-        ticker: Optional ticker (from deal); if present, used in subject instead of company_name
-        filing_date: Optional filing date for subject (datetime or str)
+        ticker: Deprecated; kept for call-site compatibility (not used in subject)
+        filing_date: Deprecated; kept for call-site compatibility (not used in subject)
         qa_items: Optional list of Q&A dicts with "question" and "answer" keys
         chronological_summary: Optional list of chronological summary lines
         chronological_summary_only: True for SC 14D family — Q&A omitted; label email accordingly
+        target_ticker: Deal target ticker for subject prefix (preferred over target_name)
+        target_name: Deal target name for subject prefix when target_ticker is missing
+        matched_cik_label: "(target)" or "(acquirer)" for Parent/Target Form in subject
     Returns:
         tuple: (subject, html_email)
     """
-    # Subject: ticker (if from deal) else company_name : form_type Summary : filing_date
-    label = (ticker or "").strip() or (company_name or "Unknown")
-    filing_date_str = ""
-    if filing_date is not None:
-        if hasattr(filing_date, "strftime"):
-            filing_date_str = filing_date.strftime("%Y-%m-%d")
-        else:
-            filing_date_str = str(filing_date)[:10] if str(
-                filing_date) else ""
-    subject = f"{label} :Form {form_type} Summary By {company_name} on [ {filing_date_str} ]"
-    if chronological_summary_only:
-        subject = f"{subject} — Background summary"
+    subject = _build_proxy_background_summary_email_subject(
+        target_ticker=target_ticker,
+        target_name=target_name,
+        matched_cik_label=matched_cik_label,
+        cik_number=cik_number,
+        form_type=form_type,
+    )
 
     notice_html = ""
 
@@ -726,11 +732,29 @@ def send_summary_email_notification_v2(filing_summary):
         logger.info(
             f"Preparing to send summary email for: {company_name} (CIK {filing_summary.cik_number})")
 
-        # Ticker from deal by CIK: target_ticker if filing CIK is deal cik, acquirer_ticker if filing CIK is acquirer_cik
-        ticker = get_ticker_for_deal_and_cik(
-            getattr(filing_summary, "deal_id", None),
-            getattr(filing_summary, "cik_number", None),
-        )
+        deal_id = getattr(filing_summary, "deal_id", None)
+        cik_number = getattr(filing_summary, "cik_number", None)
+        deal_tickers = get_deal_tickers(deal_id, cik_number)
+        matched_cik_label = None
+        if deal_id and cik_number:
+            try:
+                from bson import ObjectId
+                from document_processor.models import ProcessingJob
+
+                deal = ProcessingJob.objects(id=ObjectId(deal_id)).only(
+                    "cik", "acquirer_cik"
+                ).first()
+                cik_n = normalize_cik(cik_number)
+                if deal and cik_n:
+                    if normalize_cik(deal.acquirer_cik) == cik_n:
+                        matched_cik_label = "(acquirer)"
+                    elif normalize_cik(deal.cik) == cik_n:
+                        matched_cik_label = "(target)"
+            except Exception as deal_e:
+                logger.warning(
+                    f"Deal lookup for proxy summary email subject: {deal_e}")
+
+        ticker = get_ticker_for_deal_and_cik(deal_id, cik_number)
         filing_date = getattr(filing_summary, "filing_date", None)
 
         chronological_summary_only = is_sc14d_chronological_summary_only_form(
@@ -764,6 +788,9 @@ def send_summary_email_notification_v2(filing_summary):
             qa_items=qa_items,
             chronological_summary=chronological_summary,
             chronological_summary_only=chronological_summary_only,
+            target_ticker=deal_tickers.get("target_ticker"),
+            target_name=deal_tickers.get("target_name"),
+            matched_cik_label=matched_cik_label,
         )
         logger.info(f"Generated email subject: {subject}")
 

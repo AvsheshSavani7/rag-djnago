@@ -954,6 +954,7 @@ def _truncate_l1_for_subject(l1_headline, max_len=120):
     if not l1_headline or not str(l1_headline).strip():
         return ""
     cleaned = " ".join(str(l1_headline).split())
+    cleaned = cleaned.lstrip("+").strip()
     if len(cleaned) <= max_len:
         return cleaned
     return cleaned[: max_len - 3].rstrip() + "..."
@@ -1018,6 +1019,40 @@ def _build_10k_10q_comparison_email_subject(
     if not form_type_norm or form_type_norm.lower() in ("unknown",):
         form_type_norm = "10-K"
     label = f"{form_type_norm} Comparison"
+
+    label_norm = (matched_cik_label or "").strip()
+    if label_norm == "(acquirer)":
+        middle = f"Parent Form {label}"
+    elif label_norm == "(target)":
+        middle = f"Target Form {label}"
+    else:
+        cik_display = str(cik_number).zfill(10) if cik_number else "0000000000"
+        middle = f"{cik_display} Form {label}"
+
+    return f"{deal_label}: {middle}"
+
+
+def _build_proxy_background_summary_email_subject(
+    *,
+    target_ticker=None,
+    target_name=None,
+    matched_cik_label=None,
+    cik_number=None,
+    form_type=None,
+):
+    """
+    Subject: {deal_label}: Parent|Target Form {form_type} Background Summary
+    or {deal_label}: {filer_cik} Form {form_type} Background Summary when filer CIK is not target/acquirer.
+    """
+    deal_label = (
+        (target_ticker or "").strip()
+        or (target_name or "").strip()
+        or "Unknown"
+    )
+    form_type_norm = _normalize_form_type_subject(form_type, None)
+    if not form_type_norm or form_type_norm.lower() in ("unknown",):
+        form_type_norm = "PROXY"
+    label = f"{form_type_norm} Background Summary"
 
     label_norm = (matched_cik_label or "").strip()
     if label_norm == "(acquirer)":
