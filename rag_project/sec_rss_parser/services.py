@@ -47,6 +47,7 @@ from .email_templates import (
 from .sec_Last_Year import print_filings as fetch_sec_filings
 
 from .Eight_k_summary import summarize_8k_filing
+from .utils_8k import get_deal_tickers
 from document_processor.models import ProcessingJob, DealSchemaResults
 from document_processor.services import DocumentProcessingService, SummaryGenerationService
 from proxy_processor.views import process_sec_document_helper
@@ -317,7 +318,7 @@ def send_summary_email_via_webhook(summary_doc_url, company_name, form_type, cik
 
 # Main Functions
 def send_8k_summary_email(deal_id, company_name, form_type, cik_number, sec_url, accession_number, summary_kind: str):
-    """Send email notification with 8-K summary document URL."""
+    """Send email notification with EX-2.1 (DMA) summary document URL."""
     try:
         # Get DMA summary record to retrieve summary_docx_url
         try:
@@ -335,6 +336,23 @@ def send_8k_summary_email(deal_id, company_name, form_type, cik_number, sec_url,
 
         log_and_print(
             f"Preparing to send 8-K summary email for: {company_name}")
+
+        deal_tickers = get_deal_tickers(deal_id, cik_number)
+        matched_cik_label = None
+        if deal_id and cik_number:
+            try:
+                deal = ProcessingJob.objects(id=ObjectId(deal_id)).only(
+                    "cik", "acquirer_cik"
+                ).first()
+                cik_n = normalize_cik(cik_number)
+                if deal and cik_n:
+                    if normalize_cik(deal.acquirer_cik) == cik_n:
+                        matched_cik_label = "(acquirer)"
+                    elif normalize_cik(deal.cik) == cik_n:
+                        matched_cik_label = "(target)"
+            except Exception as deal_e:
+                log_and_print(
+                    f"Deal lookup for EX-2.1 summary email subject: {deal_e}", 'warning')
 
         # Parse the DOCX to extract concise sections for inline display
         concise_sections = None
@@ -355,6 +373,9 @@ def send_8k_summary_email(deal_id, company_name, form_type, cik_number, sec_url,
             accession_number=accession_number,
             summary_kind=summary_kind,
             concise_sections=concise_sections,
+            target_ticker=deal_tickers.get("target_ticker"),
+            target_name=deal_tickers.get("target_name"),
+            matched_cik_label=matched_cik_label,
         )
         log_and_print(f"Generated email subject: {subject}")
 

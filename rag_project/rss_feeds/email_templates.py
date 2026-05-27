@@ -26,6 +26,22 @@ FEED_TITLE_DISPLAY_NAME_2 = {
 }
 
 
+def _rss_deal_subject_label(deal_info: Optional[Dict[str, Any]]) -> str:
+    """Deal target ticker for RSS subject prefix; fallback to target_name or Unknown."""
+    if not deal_info:
+        return "Unknown"
+    ticker = (deal_info.get("target_ticker") or "").strip()
+    if ticker:
+        return ticker
+    name = (deal_info.get("target_name") or "").strip()
+    return name or "Unknown"
+
+
+def rss_subject_uses_client_webhook(subject: str) -> bool:
+    """True when subject should go to N8N_WEBHOOK_SEND_TO_ALL (NWB / NWT existing-deal tags)."""
+    return subject.endswith(" - [NWB]") or subject.endswith(" - [NWT]")
+
+
 def escape_html(text: Any) -> str:
     """Escape HTML special characters."""
     if text is None:
@@ -284,20 +300,21 @@ def generate_rss_feed_item_email_html(
         match_details: Optional dict with matched_side and match_keywords from Prompt 1.
 
     Returns:
-        tuple: (subject, html_email) with subject "PR News : {item title}"
+        tuple: (subject, html_email)
     """
-    item_title = escape_html(item.get("title") or "Untitled")
+    raw_item_title = (item.get("title") or "Untitled").strip()
+    item_title = escape_html(raw_item_title)
     raw_feed_title = feed_data.get("title") or "RSS Feed"
     feed_display_name = FEED_TITLE_DISPLAY_NAMES.get(
         raw_feed_title, raw_feed_title
     )
     feed_display_name_escaped = escape_html(feed_display_name)
-    base_subject = f"{feed_display_name} : {item_title}"
+    base_subject = f"{feed_display_name} : {raw_item_title}"
 
-    # Subject prefix rules (requested):
-    # - Deal we follow (existing deal match) => prefix by matched_side
-    # - Deal we not follow (new deal paths) => prefix by target US listed + market cap > $100M
-    # - Otherwise keep subject unchanged
+    # Subject prefix rules:
+    # - existing_deal => NWB/NWA/NWT suffix: {ticker}: {feed} - {title} - [NWB]
+    # - new deal NWNDWT => {ticker}: {feed} - New Deal Announcement - {title}
+    # - new deal NWNDW/OT => legacy [NWNDW/OT] {feed} : {title}
     subject_prefix = ""
     if deal_info and email_note == "existing_deal":
         matched_side = (match_details or {}).get("matched_side")
@@ -314,7 +331,24 @@ def generate_rss_feed_item_email_html(
         subject_prefix = "NWNDWT" if (
             is_us_listed and is_market_cap_gt_100m) else "NWNDW/OT"
 
-    subject = f"[{subject_prefix}] {base_subject}" if subject_prefix else base_subject
+    if deal_info and email_note == "existing_deal" and subject_prefix:
+        deal_label = _rss_deal_subject_label(deal_info)
+        subject = (
+            f"{deal_label}: {feed_display_name} - {raw_item_title} - [{subject_prefix}]"
+        )
+    elif (
+        deal_info
+        and email_note in ("new_deal_in_db", "new_deal_not_in_db")
+        and subject_prefix == "NWNDWT"
+    ):
+        deal_label = _rss_deal_subject_label(deal_info)
+        subject = (
+            f"{deal_label}: {feed_display_name} - New Deal Announcement - {raw_item_title}"
+        )
+    elif subject_prefix:
+        subject = f"[{subject_prefix}] {base_subject}"
+    else:
+        subject = base_subject
 
     url = item.get("url") or "#"
     desc = item.get("description_text") or ""

@@ -169,6 +169,52 @@ def _build_company_details_rows(company_details):
     return html
 
 
+def _normalize_cik_for_email(cik_number):
+    if not cik_number:
+        return ""
+    return str(cik_number).strip().zfill(10)
+
+
+def _ex21_filing_subject_ticker(filing_data, company_details=None, deal_details=None):
+    """Deal target ticker for EX-2.1 filing alert subject (GPT or existing deal)."""
+    cd = company_details if company_details is not None else (filing_data.get('company_details') or {})
+    dd = deal_details or {}
+    ticker = (dd.get('target_ticker') or cd.get('target_ticker') or "").strip()
+    if ticker:
+        return ticker
+    name = (cd.get('target_name') or dd.get('target_name') or "").strip()
+    return name or "Unknown"
+
+
+def _ex21_filing_parent_or_target_role(filing_data, company_details=None, deal_details=None):
+    """Parent = acquirer filer; Target = target filer (from deal match or GPT CIKs)."""
+    label = (
+        (filing_data.get('matched_cik_label') or '')
+        or ((deal_details or {}).get('matched_cik_label') or '')
+    ).strip()
+    if label == "(acquirer)":
+        return "Parent"
+    if label == "(target)":
+        return "Target"
+    cd = company_details if company_details is not None else (filing_data.get('company_details') or {})
+    filer = _normalize_cik_for_email(filing_data.get('cik_number'))
+    if filer:
+        if _normalize_cik_for_email(cd.get('acquirer_cik')) == filer:
+            return "Parent"
+        if _normalize_cik_for_email(cd.get('target_cik')) == filer:
+            return "Target"
+    return "Target"
+
+
+def _build_ex21_filing_alert_email_subject(
+    filing_data, suffix_label, company_details=None, deal_details=None
+):
+    """e.g. NL: Parent 2.1 - New Deal Announcement"""
+    deal_label = _ex21_filing_subject_ticker(filing_data, company_details, deal_details)
+    role = _ex21_filing_parent_or_target_role(filing_data, company_details, deal_details)
+    return f"{deal_label}: {role} 2.1 - {suffix_label}"
+
+
 def generate_filing_email_html(filing_data, doc_files):
     """Generate HTML email for SEC filing notification (8-K EX-2.1, etc.)."""
     form_type = filing_data.get('form_type', 'N/A')
@@ -193,8 +239,10 @@ def generate_filing_email_html(filing_data, doc_files):
     documents_count = len(doc_files) if doc_files else 0
 
     doc_files_html = build_doc_files_table(doc_files)
-    title_text = f"{form_type} – {company_name}" if form_type != 'N/A' and company_name != 'Unknown Company' else f"Filing #{accession_no}"
-    subject = f"SEC Filing – {form_type} – {company_name}"
+    subject = _build_ex21_filing_alert_email_subject(
+        filing_data, "New Deal Announcement", company_details=company_details
+    )
+    title_text = subject
 
     company_details_html = ""
     if form_type == '8-K' and company_details:
@@ -400,11 +448,13 @@ def generate_filing_email_with_deal_html(filing_data, doc_files, deal_details):
 
     doc_files_html = build_doc_files_table(doc_files)
 
-    deal_target = (deal_details or {}).get('target_name', '')
-    deal_acquirer = (deal_details or {}).get('acquire_name', '')
-    deal_label = f"{deal_target} / {deal_acquirer}" if deal_target and deal_acquirer else deal_target or deal_acquirer or company_name
-    title_text = f"{form_type} – {company_name} (Existing Deal: {deal_label})"
-    subject = f"SEC Filing – EX-2.1 – {company_name} – Existing CIK Matched"
+    subject = _build_ex21_filing_alert_email_subject(
+        filing_data,
+        "New Deal Details",
+        company_details=company_details,
+        deal_details=deal_details,
+    )
+    title_text = subject
 
     company_details_html = ""
     if form_type == '8-K' and company_details:
@@ -783,9 +833,29 @@ def _render_concise_sections_html(concise_sections: list) -> str:
 # From here we send ex-2.1 summary email
 
 
-def generate_8k_summary_email_html(company_name: str, form_type: str, summary_doc_url: str, cik_number: str, sec_url: str, accession_number: str, summary_kind: str = "8-K", concise_sections: list = None) -> tuple:
+def _build_ex21_dma_summary_email_subject(
+    *,
+    target_ticker=None,
+    target_name=None,
+    matched_cik_label=None,
+):
     """
-    Generate HTML email for 8-K summary document notification.
+    Subject: {deal_label}: Parent|Target 2.1 - DMA Summary
+    deal_label is deal target ticker (or target name, or Unknown).
+    """
+    deal_label = (
+        (target_ticker or "").strip()
+        or (target_name or "").strip()
+        or "Unknown"
+    )
+    label_norm = (matched_cik_label or "").strip()
+    role = "Parent" if label_norm == "(acquirer)" else "Target"
+    return f"{deal_label}: {role} 2.1 - DMA Summary"
+
+
+def generate_8k_summary_email_html(company_name: str, form_type: str, summary_doc_url: str, cik_number: str, sec_url: str, accession_number: str, summary_kind: str = "8-K", concise_sections: list = None, target_ticker: str = None, target_name: str = None, matched_cik_label: str = None) -> tuple:
+    """
+    Generate HTML email for EX-2.1 (DMA) summary document notification.
 
     Args:
         company_name: Name of the company
@@ -794,10 +864,19 @@ def generate_8k_summary_email_html(company_name: str, form_type: str, summary_do
         cik_number: CIK number
         sec_url: URL of the SEC filing
         accession_number: SEC accession number
+        summary_kind: Legacy label (e.g. EX-2.1); subject uses DMA format
+        target_ticker: Deal target ticker for subject prefix
+        target_name: Deal target name when target_ticker is missing
+        matched_cik_label: "(target)" or "(acquirer)" for Parent vs Target in subject
     Returns:
         tuple: (subject, html_email)
     """
-    subject = f"New {summary_kind} Summary Document – {form_type} – {company_name}"
+    subject = _build_ex21_dma_summary_email_subject(
+        target_ticker=target_ticker,
+        target_name=target_name,
+        matched_cik_label=matched_cik_label,
+    )
+    banner_title = subject
 
     inline_summary_html = _render_concise_sections_html(concise_sections)
 
@@ -811,12 +890,12 @@ def generate_8k_summary_email_html(company_name: str, form_type: str, summary_do
 <body style="margin:0; padding:0; font-family:Arial,sans-serif; background-color:#f4f4f4;">
   <div style="max-width:700px; margin:20px auto; background-color:#ffffff; padding:30px; border-radius:8px; box-shadow:0 2px 4px rgba(0,0,0,0.1);">
     <h2 style="color:#333; text-align:center; margin-top:0; padding-bottom:20px; border-bottom:3px solid #4a90e2;">
-      New {summary_kind} Summary Document
+      {escape_html(banner_title)}
     </h2>
 
     <div style="margin-bottom:30px;">
       <p style="color:#333; font-size:16px; line-height:1.6;">
-        The {summary_kind} summary document has been successfully generated for:
+        The DMA summary document has been successfully generated for:
       </p>
 
       <div style="background-color:#f9f9f9; padding:15px; border-radius:5px; margin:20px 0;">

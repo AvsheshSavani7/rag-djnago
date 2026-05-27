@@ -10,6 +10,7 @@ from .websocket_service import RSSWebSocketService
 from .email_templates import (
     generate_rss_feed_item_email_html,
     generate_rss_feed_item_email_html_flow2,
+    rss_subject_uses_client_webhook,
     FEED_TITLE_DISPLAY_NAMES,
     FEED_TITLE_DISPLAY_NAME_2,
 )
@@ -522,7 +523,7 @@ class RSSFeedService:
                             continue
                         webhook_url = (
                             N8N_WEBHOOK_SEND_TO_ALL
-                            if subject.startswith("[NWB]") or subject.startswith("[NWT]")
+                            if rss_subject_uses_client_webhook(subject)
                             else N8N_WEKHOOK_INTERNAL_WITH_JOSH
                         )
                         _send_rss_feed_email_via_webhook(
