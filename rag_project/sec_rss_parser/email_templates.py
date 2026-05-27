@@ -940,7 +940,63 @@ def _render_l3_detailed(l3_data: dict, level: int = 0) -> str:
     return "".join(parts)
 
 
-def generate_8k_99_1_summary_email_html(company_name: str, form_type: str, summary_doc_url: str, cik_number: str, sec_url: str, accession_number: str, summary_kind: str = "8-K", l1_headline: str = None, l2_brief: str = None, l3_detailed=None, ticker: str = None, filing_date=None, matched_cik_label: str = None, form_affects_deal: bool = None) -> tuple:
+def _normalize_form_type_subject(summary_kind, form_type):
+    """Form label for subject lines; strip leading/trailing dashes and whitespace."""
+    raw = (summary_kind or form_type or "").strip()
+    while raw.startswith("-"):
+        raw = raw[1:].strip()
+    while raw.endswith("-"):
+        raw = raw[:-1].strip()
+    return raw or "Unknown"
+
+
+def _truncate_l1_for_subject(l1_headline, max_len=120):
+    if not l1_headline or not str(l1_headline).strip():
+        return ""
+    cleaned = " ".join(str(l1_headline).split())
+    if len(cleaned) <= max_len:
+        return cleaned
+    return cleaned[: max_len - 3].rstrip() + "..."
+
+
+def _build_l123_summary_email_subject(
+    *,
+    summary_kind,
+    form_type,
+    l1_headline,
+    cik_number,
+    matched_cik_label,
+    target_ticker=None,
+    target_name=None,
+):
+    """
+    Subject: {deal_label}: Parent|Target Form {form_type} [- L1]
+    or {deal_label}: {filer_cik} Form {form_type} [- L1] when filer CIK is not target/acquirer.
+    """
+    form_type_subject = _normalize_form_type_subject(summary_kind, form_type)
+    deal_label = (
+        (target_ticker or "").strip()
+        or (target_name or "").strip()
+        or "Unknown"
+    )
+
+    label_norm = (matched_cik_label or "").strip()
+    if label_norm == "(acquirer)":
+        middle = f"Parent Form {form_type_subject}"
+    elif label_norm == "(target)":
+        middle = f"Target Form {form_type_subject}"
+    else:
+        cik_display = str(cik_number).zfill(10) if cik_number else "0000000000"
+        middle = f"{cik_display} Form {form_type_subject}"
+
+    subject = f"{deal_label}: {middle}"
+    l1_part = _truncate_l1_for_subject(l1_headline)
+    if l1_part:
+        subject = f"{subject} - {l1_part}"
+    return subject
+
+
+def generate_8k_99_1_summary_email_html(company_name: str, form_type: str, summary_doc_url: str, cik_number: str, sec_url: str, accession_number: str, summary_kind: str = "8-K", l1_headline: str = None, l2_brief: str = None, l3_detailed=None, ticker: str = None, filing_date=None, matched_cik_label: str = None, form_affects_deal: bool = None, target_ticker: str = None, target_name: str = None) -> tuple:
     """
     Generate HTML email for 8-K summary document notification.
 
@@ -955,24 +1011,25 @@ def generate_8k_99_1_summary_email_html(company_name: str, form_type: str, summa
         l1_headline: Optional L1 headline from the summary doc (shown so user can see content without opening doc)
         l2_brief: Optional L2 brief from the summary doc (shown so user can see content without opening doc)
         l3_detailed: Optional L3 detailed: dict (key-value by type, recursively rendered) or str (legacy, shown as one block)
-        ticker: Optional ticker (from deal); if present, used in subject instead of company_name
-        filing_date: Optional filing date for subject (datetime or str, formatted as YYYY-MM-DD)
-        matched_cik_label: Optional "(target)" or "(acquirer)" to show beside company name
+        ticker: Deprecated; kept for call-site compatibility (not used in subject)
+        filing_date: Deprecated for subject; kept for call-site compatibility
+        matched_cik_label: Optional "(target)" or "(acquirer)" for subject and beside company name in body
         form_affects_deal: Optional bool; when True/False (acquirer filing), show "Affects deal: Yes/No"
+        target_ticker: Deal target ticker for subject prefix (preferred over target_name)
+        target_name: Deal target name for subject prefix when target_ticker is missing
     Returns:
         tuple: (subject, html_email)
     """
-    # Subject: ticker (if from deal) else company_name : form_type Summary : filing_date
-    form_type_subject = summary_kind or f"-{form_type}-"
-    filing_date_str = ""
-    if filing_date is not None:
-        if isinstance(filing_date, datetime):
-            filing_date_str = filing_date.strftime("%Y-%m-%d")
-        else:
-            filing_date_str = str(filing_date)[:10] if str(
-                filing_date) else ""
-    label = (ticker or "").strip() or (company_name or "Unknown")
-    subject = f"{label} :Form {form_type_subject} Summary By {company_name} on [ {filing_date_str} ]"
+    form_type_subject = _normalize_form_type_subject(summary_kind, form_type)
+    subject = _build_l123_summary_email_subject(
+        summary_kind=summary_kind,
+        form_type=form_type,
+        l1_headline=l1_headline,
+        cik_number=cik_number,
+        matched_cik_label=matched_cik_label,
+        target_ticker=target_ticker,
+        target_name=target_name,
+    )
 
     headline_block = ""
     if l1_headline and l1_headline.strip():

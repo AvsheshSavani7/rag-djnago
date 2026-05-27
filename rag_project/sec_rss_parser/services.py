@@ -265,8 +265,8 @@ def send_webhook_notification(webhook_url, payload, notification_type="notificat
 # Below fucntion is still use in new fetch form by cik flow
 
 
-def send_summary_email_via_webhook(summary_doc_url, company_name, form_type, cik_number, sec_url, accession_number, summary_kind: str, l1_headline: str = None, l2_brief: str = None, l3_detailed: str = None, ticker: str = None, filing_date=None, matched_cik_label: str = None, form_affects_deal: bool = None):
-    """Generate 8-K/EX-99.1 summary email HTML and send via N8N testing webhook (includes .docx URL and L1 headline so user can see content without opening doc). Subject uses ticker if provided, else company_name. matched_cik_label is '(target)' or '(acquirer)' to show beside company name; form_affects_deal is set only for acquirer filings (LLM)."""
+def send_summary_email_via_webhook(summary_doc_url, company_name, form_type, cik_number, sec_url, accession_number, summary_kind: str, l1_headline: str = None, l2_brief: str = None, l3_detailed: str = None, ticker: str = None, filing_date=None, matched_cik_label: str = None, form_affects_deal: bool = None, target_ticker: str = None, target_name: str = None):
+    """Generate 8-K/EX-99.1 summary email HTML and send via N8N webhook. Subject uses deal target_ticker/target_name; matched_cik_label is '(target)' or '(acquirer)' for Parent/Target Form in subject."""
     try:
         subject, html_email = generate_8k_99_1_summary_email_html(
             company_name=company_name,
@@ -283,6 +283,8 @@ def send_summary_email_via_webhook(summary_doc_url, company_name, form_type, cik
             filing_date=filing_date,
             matched_cik_label=matched_cik_label,
             form_affects_deal=form_affects_deal,
+            target_ticker=target_ticker,
+            target_name=target_name,
         )
         payload = {
             "subject": subject,

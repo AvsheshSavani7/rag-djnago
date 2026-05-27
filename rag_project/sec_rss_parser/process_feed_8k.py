@@ -1572,9 +1572,8 @@ class EightKFeedProcessor:
 
             from sec_rss_parser.email_templates import generate_8k_99_1_summary_email_html
 
-            ticker = get_ticker_for_deal_and_cik(
+            deal_tickers = get_deal_tickers(
                 item_data.get('deal_id'), item_data.get('cik_number'))
-            filing_date = item_data.get('filing_date')
             email_company_name = item_data.get(
                 'email_company_name') or item_data.get('company_name') or ''
             matched_cik_label = item_data.get('matched_cik_label')
@@ -1592,9 +1591,9 @@ class EightKFeedProcessor:
                 l1_headline=summary_result.get('L1_headline'),
                 l2_brief=summary_result.get('L2_brief'),
                 l3_detailed=summary_result.get('L3_detailed'),
-                ticker=ticker,
-                filing_date=filing_date,
                 matched_cik_label=matched_cik_label,
+                target_ticker=deal_tickers.get('target_ticker'),
+                target_name=deal_tickers.get('target_name'),
 
             )
 
@@ -1635,9 +1634,8 @@ class EightKFeedProcessor:
 
             from sec_rss_parser.email_templates import generate_8k_99_1_summary_email_html
 
-            ticker = get_ticker_for_deal_and_cik(
+            deal_tickers = get_deal_tickers(
                 item_data.get('deal_id'), item_data.get('cik_number'))
-            filing_date = item_data.get('filing_date')
             email_company_name = item_data.get(
                 'email_company_name') or item_data.get('company_name') or ''
             matched_cik_label = item_data.get('matched_cik_label')
@@ -1652,9 +1650,9 @@ class EightKFeedProcessor:
                 summary_kind='EX-99.1',
                 l1_headline=summary_result.get('L1_headline'),
                 l2_brief=summary_result.get('L2_brief'),
-                ticker=ticker,
-                filing_date=filing_date,
                 matched_cik_label=matched_cik_label,
+                target_ticker=deal_tickers.get('target_ticker'),
+                target_name=deal_tickers.get('target_name'),
             )
 
             payload = {

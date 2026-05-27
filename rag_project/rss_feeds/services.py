@@ -27,6 +27,37 @@ from sec_rss_parser.utils_8k import get_deal_tickers
 
 logger = logging.getLogger(__name__)
 
+# Substrings in route_and_summarize failures that mean "article isn't M&A" — log only, no error email.
+_NON_MA_SUMMARY_SKIP_MARKERS = (
+    "not a merger",
+    "not an m&a",
+    "no m&a transaction",
+    "financing round",
+    "series b extension",
+    "does not match the content",
+    "does not relate to any provided deal context",
+    "this press release describes",
+)
+
+
+def _is_skippable_non_ma_summary_error(exc: BaseException) -> bool:
+    """True when summarizer refused or skipped a non-M&A / deal-mismatch article."""
+    try:
+        from sec_rss_parser.sec_summarizers.PRNewswire_summary import (
+            NotMergerPressReleaseError,
+        )
+        if isinstance(exc, NotMergerPressReleaseError):
+            return True
+    except ImportError:
+        pass
+
+    msg = str(exc).lower()
+    if "summarize: empty response" in msg:
+        return True
+    if "summarize: invalid json:" in msg:
+        return any(marker in msg for marker in _NON_MA_SUMMARY_SKIP_MARKERS)
+    return False
+
 # N8N webhook for RSS feed update emails (testing – same as sec_rss_parser)
 N8N_WEBHOOK_ONLY_ME = os.environ.get(
     "N8N_WEBHOOK_ONLY_ME",
@@ -375,7 +406,8 @@ class RSSFeedService:
                     if url:
                         summary_collector = error_registry.get_collector(
                             url, item_with_deal.get("title"))
-                        summary_token = error_registry.activate(summary_collector)
+                        summary_token = error_registry.activate(
+                            summary_collector)
                         try:
                             logger.info(
                                 "Calling route_and_summarize for merger-related item: %s", url
@@ -391,43 +423,57 @@ class RSSFeedService:
                             } if any(_deal_tickers.values()) else None
                             summary = route_and_summarize(
                                 url, deal_context=_deal_context)
-                            s3_docx_url = summary.get(
-                                "s3_docx_url") or summary.get("s3_url")
-                            if s3_docx_url:
-                                item_with_deal["l1_headline"] = summary.get(
-                                    "L1_headline")
-                                item_with_deal["l2_brief"] = summary.get(
-                                    "L2_brief")
-                                item_with_deal["l3_detailed"] = summary.get(
-                                    "L3_detailed") or None
-                                item_with_deal["s3_docx_url"] = s3_docx_url
-                                item_with_deal["s3_json_url"] = summary.get(
-                                    "s3_json_url")
+                            if isinstance(summary, dict) and summary.get("skipped"):
                                 logger.info(
-                                    "AI summary attached for %s (L1: %s)",
+                                    "Skipped AI summary (not M&A press release) for %s: %s",
                                     url,
-                                    (summary.get("L1_headline") or "")[:60],
+                                    (summary.get("skip_reason") or "")[:300],
                                 )
                             else:
-                                logger.warning(
-                                    "route_and_summarize returned no S3 docx URL for %s (keys: %s)",
-                                    url,
-                                    list(summary.keys()) if isinstance(
-                                        summary, dict) else type(summary).__name__,
-                                )
+                                s3_docx_url = summary.get(
+                                    "s3_docx_url") or summary.get("s3_url")
+                                if s3_docx_url:
+                                    item_with_deal["l1_headline"] = summary.get(
+                                        "L1_headline")
+                                    item_with_deal["l2_brief"] = summary.get(
+                                        "L2_brief")
+                                    item_with_deal["l3_detailed"] = summary.get(
+                                        "L3_detailed") or None
+                                    item_with_deal["s3_docx_url"] = s3_docx_url
+                                    item_with_deal["s3_json_url"] = summary.get(
+                                        "s3_json_url")
+                                    logger.info(
+                                        "AI summary attached for %s (L1: %s)",
+                                        url,
+                                        (summary.get("L1_headline") or "")[:60],
+                                    )
+                                else:
+                                    logger.warning(
+                                        "route_and_summarize returned no S3 docx URL for %s (keys: %s)",
+                                        url,
+                                        list(summary.keys()) if isinstance(
+                                            summary, dict) else type(summary).__name__,
+                                    )
                         except Exception as e:
-                            logger.exception(
-                                "route_and_summarize failed for %s", url)
-                            record_rss_error(
-                                step="route_and_summarize",
-                                message=f"route_and_summarize failed: {e}",
-                                exception=e,
-                                module="rss_feeds.services.process_webhook_payload",
-                                flow="merger",
-                                feed_title=feed_title_str,
-                                article_url=url,
-                                article_title=item_with_deal.get("title"),
-                            )
+                            if _is_skippable_non_ma_summary_error(e):
+                                logger.info(
+                                    "Skipped AI summary (not M&A / deal mismatch) for %s: %s",
+                                    url,
+                                    str(e)[:300],
+                                )
+                            else:
+                                logger.exception(
+                                    "route_and_summarize failed for %s", url)
+                                record_rss_error(
+                                    step="route_and_summarize",
+                                    message=f"route_and_summarize failed: {e}",
+                                    exception=e,
+                                    module="rss_feeds.services.process_webhook_payload",
+                                    flow="merger",
+                                    feed_title=feed_title_str,
+                                    article_url=url,
+                                    article_title=item_with_deal.get("title"),
+                                )
                         finally:
                             error_registry.deactivate(summary_token)
 

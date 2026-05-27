@@ -1214,7 +1214,6 @@ def _route_summarize_and_save(item_data, html_data):
             # Send email with the generated summary (doc link + L1 headline)
             log_and_print(
                 f"{LOG_PREFIX} :_route_summarize_and_save: 📧 Sending summary email for {summary_kind}...")
-            ticker = get_ticker_for_deal_and_cik(deal_id, cik_number)
 
             # Deal match: target vs acquirer for "(target)" or "(acquirer)" beside company name; acquirer-only LLM
             matched_cik_label = None
@@ -1255,10 +1254,11 @@ def _route_summarize_and_save(item_data, html_data):
                     l1_headline=result.get("L1_headline"),
                     l2_brief=result.get("L2_brief"),
                     l3_detailed=result.get("L3_detailed"),
-                    ticker=ticker,
                     filing_date=filing_dt,
                     matched_cik_label=matched_cik_label,
                     form_affects_deal=form_affects_deal,
+                    target_ticker=deal_tickers.get("target_ticker"),
+                    target_name=deal_tickers.get("target_name"),
                 )
                 log_and_print(
                     f"{LOG_PREFIX} :_route_summarize_and_save: ✅ Summary email sent for {summary_kind}")
