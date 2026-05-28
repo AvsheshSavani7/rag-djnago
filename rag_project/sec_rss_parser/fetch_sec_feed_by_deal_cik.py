@@ -799,12 +799,77 @@ def _handle_proxy_form_by_type(item_data, html_data, filing):
     current_doc = _get_current_proxy_summary(
         deal_id, accession_number, form_type)
     if not current_doc:
-        log_and_print(
-            f"{LOG_PREFIX} :_handle_proxy_form_by_type: current summary not found in DB (deal_id={deal_id}, accession={accession_number}), falling back to _process_proxy_item",
-            "warning",
+        # Create a minimal stub so comparison can proceed.
+        #
+        # Why: _route_summarize_and_save (which normally creates the record) may
+        # have failed (e.g. token-limit error on large DEFM14A), leaving no row
+        # in DB for this accession.  We create one here using the same
+        # sec_document_url + form_type dedup key that process_sec_document_for_filing_summary
+        # uses, so if proxy-V2 runs later it will UPDATE this record rather than
+        # insert a duplicate (uniqueness: deal_id + accession_number).
+        xbrl_files_stub = html_data.get("xbrl_files") or item_data.get("xbrl_files") or []
+        proxy_file_stub = find_file_by_type(xbrl_files_stub, PROXY_FORM_TYPES)
+        proxy_sec_url_stub = (
+            build_full_sec_url(proxy_file_stub.get("url")) if proxy_file_stub else None
         )
-        _process_proxy_item(item_data, html_data, filing)
-        return
+
+        if not proxy_sec_url_stub:
+            log_and_print(
+                f"{LOG_PREFIX} :_handle_proxy_form_by_type: current summary not found and no proxy URL "
+                f"(deal_id={deal_id}, accession={accession_number}), falling back to _process_proxy_item",
+                "warning",
+            )
+            _process_proxy_item(item_data, html_data, filing)
+            return
+
+        try:
+            # Dedup check: record might already exist by URL (e.g. different accession path).
+            current_doc = SECFilingSummary.objects(
+                sec_document_url=proxy_sec_url_stub, form_type=form_type
+            ).first()
+            if current_doc:
+                # Patch missing accession/deal fields and reuse.
+                changed = False
+                if not current_doc.accession_number:
+                    current_doc.accession_number = accession_number
+                    changed = True
+                if not current_doc.deal_id:
+                    current_doc.deal_id = deal_id
+                    changed = True
+                if changed:
+                    current_doc.save()
+                logger.info(
+                    f"{LOG_PREFIX} :_handle_proxy_form_by_type: reusing existing SECFilingSummary by URL "
+                    f"for comparison: {current_doc.id} (accession={accession_number})"
+                )
+            else:
+                filing_date_raw = html_data.get("filing_date") or item_data.get("filing_date")
+                filing_dt = filing_date_raw if isinstance(filing_date_raw, datetime) else None
+                current_doc = SECFilingSummary(
+                    accession_number=accession_number,
+                    cik_number=cik_number,
+                    sec_document_url=proxy_sec_url_stub,
+                    filing_date=filing_dt,
+                    deal_id=deal_id,
+                    form_type=form_type,
+                    proxy={"proxy_parsing_status": "pending"},
+                )
+                current_doc.save()
+                logger.info(
+                    f"{LOG_PREFIX} :_handle_proxy_form_by_type: created stub SECFilingSummary for comparison: "
+                    f"{current_doc.id} (deal_id={deal_id}, accession={accession_number})"
+                )
+        except Exception as stub_e:
+            log_and_print(
+                f"{LOG_PREFIX} :_handle_proxy_form_by_type: ❌ Failed to create/find stub record "
+                f"(deal_id={deal_id}, accession={accession_number}): {stub_e}, falling back to _process_proxy_item",
+                "error",
+            )
+            logger.exception(
+                f"{LOG_PREFIX} :_handle_proxy_form_by_type: stub creation error={stub_e}"
+            )
+            _process_proxy_item(item_data, html_data, filing)
+            return
 
     # Convert DB docs to record dicts (same shape as test_runner / run_comparison expects).
     current_record = _sec_filing_summary_to_comparison_record(current_doc)
