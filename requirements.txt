@@ -74,6 +74,6 @@ llama-index-core==0.12.48
 html2text==2020.1.16
 
 google-generativeai
-anthropic
+anthropic==v0.104.1
 cohere>=5.0.0
 scipy>=1.11.0
