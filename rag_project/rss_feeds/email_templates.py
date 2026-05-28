@@ -313,7 +313,7 @@ def generate_rss_feed_item_email_html(
 
     # Subject prefix rules:
     # - existing_deal => NWB/NWA/NWT suffix: {ticker}: {feed} - {title} - [NWB]
-    # - new deal NWNDWT => {ticker}: {feed} - New Deal Announcement - {title}
+    # - new deal NWNDWT => {ticker}: {feed} - New Deal Announcement - {title} [NWNDWT]
     # - new deal NWNDW/OT => legacy [NWNDW/OT] {feed} : {title}
     subject_prefix = ""
     if deal_info and email_note == "existing_deal":
@@ -343,7 +343,8 @@ def generate_rss_feed_item_email_html(
     ):
         deal_label = _rss_deal_subject_label(deal_info)
         subject = (
-            f"{deal_label}: {feed_display_name} - New Deal Announcement - {raw_item_title}"
+            f"{deal_label}: {feed_display_name} - New Deal Announcement - "
+            f"{raw_item_title} [NWNDWT]"
         )
     elif subject_prefix:
         subject = f"[{subject_prefix}] {base_subject}"

@@ -177,7 +177,8 @@ def _normalize_cik_for_email(cik_number):
 
 def _ex21_filing_subject_ticker(filing_data, company_details=None, deal_details=None):
     """Deal target ticker for EX-2.1 filing alert subject (GPT or existing deal)."""
-    cd = company_details if company_details is not None else (filing_data.get('company_details') or {})
+    cd = company_details if company_details is not None else (
+        filing_data.get('company_details') or {})
     dd = deal_details or {}
     ticker = (dd.get('target_ticker') or cd.get('target_ticker') or "").strip()
     if ticker:
@@ -196,7 +197,8 @@ def _ex21_filing_parent_or_target_role(filing_data, company_details=None, deal_d
         return "Parent"
     if label == "(target)":
         return "Target"
-    cd = company_details if company_details is not None else (filing_data.get('company_details') or {})
+    cd = company_details if company_details is not None else (
+        filing_data.get('company_details') or {})
     filer = _normalize_cik_for_email(filing_data.get('cik_number'))
     if filer:
         if _normalize_cik_for_email(cd.get('acquirer_cik')) == filer:
@@ -209,10 +211,13 @@ def _ex21_filing_parent_or_target_role(filing_data, company_details=None, deal_d
 def _build_ex21_filing_alert_email_subject(
     filing_data, suffix_label, company_details=None, deal_details=None
 ):
-    """e.g. NL: Parent 2.1 - New Deal Announcement"""
-    deal_label = _ex21_filing_subject_ticker(filing_data, company_details, deal_details)
-    role = _ex21_filing_parent_or_target_role(filing_data, company_details, deal_details)
-    return f"{deal_label}: {role} 2.1 - {suffix_label}"
+    """e.g. NL: Parent 2.1 - New Deal Announcement [SND]"""
+    deal_label = _ex21_filing_subject_ticker(
+        filing_data, company_details, deal_details)
+    role = _ex21_filing_parent_or_target_role(
+        filing_data, company_details, deal_details)
+    suffix_tag = "[SNDD]" if suffix_label == "New Deal Details" else "[SND]"
+    return f"{deal_label}: {role} 2.1 - {suffix_label} {suffix_tag}"
 
 
 def generate_filing_email_html(filing_data, doc_files):
@@ -840,7 +845,7 @@ def _build_ex21_dma_summary_email_subject(
     matched_cik_label=None,
 ):
     """
-    Subject: {deal_label}: Parent|Target 2.1 - DMA Summary
+    Subject: {deal_label}: Parent|Target 2.1 - DMA Summary [SNS]
     deal_label is deal target ticker (or target name, or Unknown).
     """
     deal_label = (
@@ -850,7 +855,7 @@ def _build_ex21_dma_summary_email_subject(
     )
     label_norm = (matched_cik_label or "").strip()
     role = "Parent" if label_norm == "(acquirer)" else "Target"
-    return f"{deal_label}: {role} 2.1 - DMA Summary"
+    return f"{deal_label}: {role} 2.1 - DMA Summary [SNS]"
 
 
 def generate_8k_summary_email_html(company_name: str, form_type: str, summary_doc_url: str, cik_number: str, sec_url: str, accession_number: str, summary_kind: str = "8-K", concise_sections: list = None, target_ticker: str = None, target_name: str = None, matched_cik_label: str = None) -> tuple:
@@ -1050,8 +1055,8 @@ def _build_l123_summary_email_subject(
     target_name=None,
 ):
     """
-    Subject: {deal_label}: Parent|Target Form {form_type} [- L1]
-    or {deal_label}: {filer_cik} Form {form_type} [- L1] when filer CIK is not target/acquirer.
+    Subject: {deal_label}: Parent|Target Form {form_type} [- L1] [SSM]
+    or {deal_label}: {filer_cik} Form {form_type} [- L1] [SSM] when filer CIK is not target/acquirer.
     """
     form_type_subject = _normalize_form_type_subject(summary_kind, form_type)
     deal_label = (
@@ -1073,7 +1078,7 @@ def _build_l123_summary_email_subject(
     l1_part = _truncate_l1_for_subject(l1_headline)
     if l1_part:
         subject = f"{subject} - {l1_part}"
-    return subject
+    return f"{subject} [SSM]"
 
 
 def _build_10k_10q_comparison_email_subject(
@@ -1085,8 +1090,8 @@ def _build_10k_10q_comparison_email_subject(
     form_type=None,
 ):
     """
-    Subject: {deal_label}: Parent|Target Form {form_type} Comparison
-    or {deal_label}: {filer_cik} Form {form_type} Comparison when filer CIK is not target/acquirer.
+    Subject: {deal_label}: Parent|Target Form {form_type} Comparison [SCM]
+    or {deal_label}: {filer_cik} Form {form_type} Comparison [SCM] when filer CIK is not target/acquirer.
     form_type should be the newest filing in the comparison run (e.g. 10-K, 10-Q, 10-K/A).
     """
     deal_label = (
@@ -1108,7 +1113,7 @@ def _build_10k_10q_comparison_email_subject(
         cik_display = str(cik_number).zfill(10) if cik_number else "0000000000"
         middle = f"{cik_display} Form {label}"
 
-    return f"{deal_label}: {middle}"
+    return f"{deal_label}: {middle} [SCM]"
 
 
 def _build_proxy_background_summary_email_subject(
@@ -1120,8 +1125,8 @@ def _build_proxy_background_summary_email_subject(
     form_type=None,
 ):
     """
-    Subject: {deal_label}: Parent|Target Form {form_type} Background Summary
-    or {deal_label}: {filer_cik} Form {form_type} Background Summary when filer CIK is not target/acquirer.
+    Subject: {deal_label}: Parent|Target Form {form_type} Background Summary [SBM]
+    or {deal_label}: {filer_cik} Form {form_type} Background Summary [SBM] when filer CIK is not target/acquirer.
     """
     deal_label = (
         (target_ticker or "").strip()
@@ -1142,7 +1147,7 @@ def _build_proxy_background_summary_email_subject(
         cik_display = str(cik_number).zfill(10) if cik_number else "0000000000"
         middle = f"{cik_display} Form {label}"
 
-    return f"{deal_label}: {middle}"
+    return f"{deal_label}: {middle} [SBM]"
 
 
 def generate_8k_99_1_summary_email_html(company_name: str, form_type: str, summary_doc_url: str, cik_number: str, sec_url: str, accession_number: str, summary_kind: str = "8-K", l1_headline: str = None, l2_brief: str = None, l3_detailed=None, ticker: str = None, filing_date=None, matched_cik_label: str = None, form_affects_deal: bool = None, target_ticker: str = None, target_name: str = None) -> tuple:

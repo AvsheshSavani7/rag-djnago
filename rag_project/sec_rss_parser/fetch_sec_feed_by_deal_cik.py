@@ -807,10 +807,12 @@ def _handle_proxy_form_by_type(item_data, html_data, filing):
         # sec_document_url + form_type dedup key that process_sec_document_for_filing_summary
         # uses, so if proxy-V2 runs later it will UPDATE this record rather than
         # insert a duplicate (uniqueness: deal_id + accession_number).
-        xbrl_files_stub = html_data.get("xbrl_files") or item_data.get("xbrl_files") or []
+        xbrl_files_stub = html_data.get(
+            "xbrl_files") or item_data.get("xbrl_files") or []
         proxy_file_stub = find_file_by_type(xbrl_files_stub, PROXY_FORM_TYPES)
         proxy_sec_url_stub = (
-            build_full_sec_url(proxy_file_stub.get("url")) if proxy_file_stub else None
+            build_full_sec_url(proxy_file_stub.get(
+                "url")) if proxy_file_stub else None
         )
 
         if not proxy_sec_url_stub:
@@ -843,8 +845,10 @@ def _handle_proxy_form_by_type(item_data, html_data, filing):
                     f"for comparison: {current_doc.id} (accession={accession_number})"
                 )
             else:
-                filing_date_raw = html_data.get("filing_date") or item_data.get("filing_date")
-                filing_dt = filing_date_raw if isinstance(filing_date_raw, datetime) else None
+                filing_date_raw = html_data.get(
+                    "filing_date") or item_data.get("filing_date")
+                filing_dt = filing_date_raw if isinstance(
+                    filing_date_raw, datetime) else None
                 current_doc = SECFilingSummary(
                     accession_number=accession_number,
                     cik_number=cik_number,
