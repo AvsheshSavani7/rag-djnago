@@ -55,15 +55,90 @@ def active_log_path(log_root: str, pipeline: str, date: str = None) -> Path:
     return _daily_dir(log_root, pipeline, d) / f"{pipeline}.log"
 
 
+def resolve_rolling_log_path(
+    log_root: str, pipeline: str, date: str = None
+) -> tuple[Path | None, str | None]:
+    """Public helper: path + IST date for stream/raw reads (latest daily fallback)."""
+    return _resolve_log_for_read(log_root, pipeline, date=date, prefer_latest=True)
+
+
 def _resolve_active_log(log_root: str, pipeline: str, date: str = None) -> Path | None:
-    """Return active log path, falling back to legacy flat layout if needed."""
-    path = active_log_path(log_root, pipeline, date)
+    """Return active log path for a specific date, falling back to legacy flat layout."""
+    path, _ = _resolve_log_for_read(log_root, pipeline, date=date, prefer_latest=False)
+    return path
+
+
+def _resolve_log_for_read(
+    log_root: str,
+    pipeline: str,
+    date: str = None,
+    prefer_latest: bool = True,
+) -> tuple[Path | None, str | None]:
+    """
+    Resolve which log file to read.
+
+    Order:
+      1. Explicit date (if given)
+      2. Today IST (if prefer_latest or no date)
+      3. Most recent daily/ date folder with {pipeline}.log
+      4. Legacy flat {pipeline}/{pipeline}.log
+
+    Returns (path, date_used) — date_used is None for legacy-only files.
+    """
+    if date:
+        path = active_log_path(log_root, pipeline, date)
+        if path.exists():
+            return path, date
+        legacy = Path(log_root) / pipeline / f"{pipeline}.log"
+        if legacy.exists():
+            return legacy, None
+        return None, None
+
+    today = _today_ist()
+    path = active_log_path(log_root, pipeline, today)
     if path.exists():
-        return path
+        return path, today
+
+    if prefer_latest:
+        for d in list_daily_dates(log_root, pipeline):
+            path = active_log_path(log_root, pipeline, d)
+            if path.exists():
+                return path, d
+
     legacy = Path(log_root) / pipeline / f"{pipeline}.log"
     if legacy.exists():
-        return legacy
-    return None
+        return legacy, None
+
+    return None, None
+
+
+def _pipeline_has_logs(log_root: str, pipeline: str) -> bool:
+    """True if pipeline has daily logs, trace files, or legacy rolling log."""
+    if list_daily_dates(log_root, pipeline):
+        return True
+    if list_trace_dates(log_root, pipeline):
+        return True
+    return (Path(log_root) / pipeline / f"{pipeline}.log").exists()
+
+
+def _newest_file_meta(log_root: str, pipeline: str) -> dict | None:
+    """Pick newest file under daily/ or traces/ for listing metadata when no active log."""
+    candidates: list[Path] = []
+    for d in list_daily_dates(log_root, pipeline):
+        day_dir = _daily_dir(log_root, pipeline, d)
+        if day_dir.exists():
+            candidates.extend(day_dir.glob(f"{pipeline}.log*"))
+    for d in list_trace_dates(log_root, pipeline):
+        trace_dir = Path(log_root) / pipeline / "traces" / d
+        if trace_dir.exists():
+            candidates.extend(trace_dir.glob("*.log"))
+    legacy = Path(log_root) / pipeline / f"{pipeline}.log"
+    if legacy.exists():
+        candidates.append(legacy)
+    if not candidates:
+        return None
+    newest = max(candidates, key=lambda p: p.stat().st_mtime)
+    return _file_meta(newest)
 
 
 def _rotation_index(filename: str, pipeline: str) -> int:
@@ -106,7 +181,12 @@ def _list_rotation_files_in_dir(day_dir: Path, pipeline: str) -> list:
 # ---------------------------------------------------------------------------
 
 def list_pipelines(log_root: str) -> list:
-    """Return metadata for every pipeline folder that has a daily or legacy log file."""
+    """
+    Return metadata for every pipeline folder that has logs (daily, traces, or legacy).
+
+    Includes pipelines like proxy / proxy_comparison even when today's daily log
+    does not exist yet — uses latest daily date or trace activity for metadata.
+    """
     root = Path(log_root)
     if not root.exists():
         return []
@@ -115,11 +195,29 @@ def list_pipelines(log_root: str) -> list:
         if not folder.is_dir():
             continue
         pipeline = folder.name
-        log_file = _resolve_active_log(log_root, pipeline)
-        if log_file is None:
+        if not _pipeline_has_logs(log_root, pipeline):
             continue
-        meta = _file_meta(log_file)
+
+        daily_dates = list_daily_dates(log_root, pipeline)
+        trace_dates = list_trace_dates(log_root, pipeline)
+
+        log_file, active_date = _resolve_log_for_read(
+            log_root, pipeline, prefer_latest=True
+        )
+        if log_file:
+            meta = _file_meta(log_file)
+        else:
+            meta = _newest_file_meta(log_root, pipeline)
+            if not meta:
+                continue
+            active_date = daily_dates[0] if daily_dates else trace_dates[0]
+
         meta["pipeline"] = pipeline
+        meta["active_date"] = active_date
+        meta["latest_daily_date"] = daily_dates[0] if daily_dates else None
+        meta["latest_trace_date"] = trace_dates[0] if trace_dates else None
+        meta["has_daily_logs"] = bool(daily_dates)
+        meta["has_traces"] = bool(trace_dates)
         result.append(meta)
     return result
 
@@ -158,9 +256,13 @@ def read_rolling_log(
     accession: str = None,
     run_id: str = None,
     search: str = None,
+    date: str = None,
 ) -> dict:
     """
-    Read the active rolling log ({pipeline}.log) and return the last `tail` matched lines.
+    Read the rolling log ({pipeline}.log) and return the last `tail` matched lines.
+
+    Uses today IST by default; if missing, falls back to the most recent daily/ date.
+    Pass date=YYYY-MM-DD to read a specific day.
 
     Filters (all ANDed):
         level     — exact level match (INFO / WARNING / ERROR / DEBUG)
@@ -168,17 +270,21 @@ def read_rolling_log(
         run_id    — exact run_id match
         search    — case-insensitive substring in the raw line
     """
-    log_file = _resolve_active_log(log_root, pipeline)
+    log_file, used_date = _resolve_log_for_read(
+        log_root, pipeline, date=date, prefer_latest=True
+    )
     if log_file is None:
         return {"error": f"No log file found for pipeline '{pipeline}'"}
 
     meta = _file_meta(log_file)
-    raw_lines = log_file.read_text(encoding="utf-8", errors="replace").splitlines()
+    raw_lines = log_file.read_text(
+        encoding="utf-8", errors="replace").splitlines()
     matched = _filter_lines(raw_lines, level, accession, run_id, search)
 
     tail = max(1, min(tail, 5000))
     return {
         "pipeline": pipeline,
+        "date": used_date,
         "tail": tail,
         "total_matched": len(matched),
         "file_size_bytes": meta["size_bytes"],
@@ -340,10 +446,11 @@ def search_all_pipelines(
     level: str = None,
     search: str = None,
     tail: int = 500,
+    date: str = None,
 ) -> dict:
     """
     Search across ALL pipeline rolling logs simultaneously.
-    Returns results grouped by pipeline.
+    Returns results grouped by pipeline (includes proxy, proxy_comparison, etc.).
     """
     root = Path(log_root)
     if not root.exists():
@@ -355,19 +462,22 @@ def search_all_pipelines(
         if not folder.is_dir():
             continue
         pipeline = folder.name
-        if _resolve_active_log(log_root, pipeline) is None:
+        if not _pipeline_has_logs(log_root, pipeline):
             continue
         data = read_rolling_log(
             log_root=log_root,
-            pipeline=folder.name,
+            pipeline=pipeline,
             tail=tail,
             level=level,
             accession=accession,
             run_id=run_id,
             search=search,
+            date=date,
         )
+        if "error" in data:
+            continue
         if data.get("total_matched", 0) > 0:
-            results[folder.name] = data
+            results[pipeline] = data
             total += data["total_matched"]
 
     return {"results": results, "total_matched": total}

@@ -33,7 +33,6 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from core.log_reader import (
-    active_log_path,
     list_daily_dates,
     list_daily_files,
     list_pipelines,
@@ -43,6 +42,7 @@ from core.log_reader import (
     read_file_raw,
     read_rolling_log,
     read_trace_file,
+    resolve_rolling_log_path,
     search_all_pipelines,
 )
 
@@ -82,7 +82,16 @@ class PipelineListView(APIView):
         {
             "log_root": "/var/log/rag",
             "pipelines": [
-                {"pipeline": "sec_8k", "size_bytes": 172032, "last_modified": "..."},
+                {
+                    "pipeline": "proxy",
+                    "size_bytes": 172032,
+                    "last_modified": "...",
+                    "active_date": "2026-05-27",
+                    "latest_daily_date": "2026-05-27",
+                    "latest_trace_date": "2026-05-27",
+                    "has_daily_logs": true,
+                    "has_traces": true
+                },
                 ...
             ]
         }
@@ -108,6 +117,7 @@ class GlobalSearchView(APIView):
         level      — INFO / WARNING / ERROR / DEBUG
         search     — case-insensitive substring in the full log line
         tail       — max lines per pipeline to scan (default 500, max 5000)
+        date       — IST YYYY-MM-DD; default uses today, then latest daily folder
 
     Response:
         {
@@ -122,6 +132,9 @@ class GlobalSearchView(APIView):
 
     def get(self, request):
         tail = min(int(request.query_params.get("tail", 500)), 5000)
+        date = request.query_params.get("date") or None
+        if date and not _safe_segment(date):
+            return Response({"error": "Invalid date"}, status=status.HTTP_400_BAD_REQUEST)
         return Response(
             search_all_pipelines(
                 log_root=LOG_ROOT,
@@ -130,6 +143,7 @@ class GlobalSearchView(APIView):
                 level=request.query_params.get("level") or None,
                 search=request.query_params.get("search") or None,
                 tail=tail,
+                date=date,
             )
         )
 
@@ -142,6 +156,7 @@ class PipelineLogStreamView(APIView):
 
     Query params (all optional):
         tail      — last N matched lines to return (default 200, max 2000)
+        date      — IST YYYY-MM-DD; default uses today, then latest daily folder
         level     — INFO / WARNING / ERROR / DEBUG
         accession — substring match on accession field
         run_id    — exact run_id match
@@ -153,10 +168,17 @@ class PipelineLogStreamView(APIView):
         if not _safe_segment(pipeline):
             return Response({"error": "Invalid pipeline name"}, status=status.HTTP_400_BAD_REQUEST)
 
+        date = request.query_params.get("date") or None
+        if date and not _safe_segment(date):
+            return Response({"error": "Invalid date"}, status=status.HTTP_400_BAD_REQUEST)
+
         if _wants_raw(request):
-            log_path = active_log_path(LOG_ROOT, pipeline)
-            if not log_path.exists():
-                log_path = Path(LOG_ROOT) / pipeline / f"{pipeline}.log"
+            log_path, _ = resolve_rolling_log_path(LOG_ROOT, pipeline, date=date)
+            if log_path is None:
+                return Response(
+                    {"error": f"No log file found for pipeline '{pipeline}'"},
+                    status=status.HTTP_404_NOT_FOUND,
+                )
             result = read_file_raw(log_path)
             if "error" in result:
                 return Response(result, status=status.HTTP_404_NOT_FOUND)
@@ -171,6 +193,7 @@ class PipelineLogStreamView(APIView):
             accession=request.query_params.get("accession") or None,
             run_id=request.query_params.get("run_id") or None,
             search=request.query_params.get("search") or None,
+            date=date,
         )
         if "error" in result:
             return Response(result, status=status.HTTP_404_NOT_FOUND)
