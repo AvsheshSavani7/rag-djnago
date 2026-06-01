@@ -199,10 +199,14 @@ def process_sec_document_for_filing_summary(
             logger.error(
                 f"Error updating SEC filing {sec_filling_id}: {str(e)}")
 
+        # Capture logging context now (ContextVar is not inherited by threads).
+        from core.logging_context import get_pipeline, get_run_id, get_accession, get_doc_type
+        _ctx = (get_pipeline(), get_run_id(), get_accession(), get_doc_type())
+
         # Start processing in a separate thread
         processing_thread = threading.Thread(
             target=process_proxy_async,
-            args=(filing_summary_id, proxy_sec_url)
+            args=(filing_summary_id, proxy_sec_url, *_ctx)
         )
         processing_thread.daemon = True
         processing_thread.start()
@@ -226,11 +230,25 @@ def process_sec_document_for_filing_summary(
         return None
 
 
-def process_proxy_async(filing_summary_id, proxy_sec_url):
+def process_proxy_async(
+    filing_summary_id,
+    proxy_sec_url,
+    _log_pipeline="proxy",
+    _log_run_id="-",
+    _log_accession="-",
+    _log_doc_type="PROXY",
+):
     """
     Process proxy document asynchronously.
     Updates SECFilingSummary.proxy node directly.
     """
+    from core.logging_context import set_pipeline_context
+    set_pipeline_context(
+        pipeline=_log_pipeline,
+        run_id=_log_run_id,
+        accession=_log_accession,
+        doc_type=_log_doc_type,
+    )
     try:
         # Get the filing summary
         filing_summary = SECFilingSummary.objects(
@@ -323,10 +341,12 @@ def process_proxy_async(filing_summary_id, proxy_sec_url):
                 logger.info(
                     f"Starting Pinecone processing for sections: {sections_json_url}")
 
-                # Start Pinecone processing in a separate thread
+                # Start Pinecone processing in a separate thread (propagate logging context).
+                from core.logging_context import get_pipeline, get_run_id, get_accession, get_doc_type
+                _pctx = (get_pipeline(), get_run_id(), get_accession(), get_doc_type())
                 pinecone_thread = threading.Thread(
                     target=process_sections_with_pinecone_v2,
-                    args=(filing_summary_id, sections_json_url)
+                    args=(filing_summary_id, sections_json_url, *_pctx)
                 )
                 pinecone_thread.daemon = True
                 pinecone_thread.start()
@@ -369,11 +389,25 @@ def process_proxy_async(filing_summary_id, proxy_sec_url):
             f"Error processing proxy document {filing_summary_id}: {str(e)}")
 
 
-def process_sections_with_pinecone_v2(filing_summary_id, sections_json_url):
+def process_sections_with_pinecone_v2(
+    filing_summary_id,
+    sections_json_url,
+    _log_pipeline="proxy",
+    _log_run_id="-",
+    _log_accession="-",
+    _log_doc_type="PROXY",
+):
     """
     Process sections with Pinecone after SEC processing is complete.
     Updates SECFilingSummary.proxy node directly.
     """
+    from core.logging_context import set_pipeline_context
+    set_pipeline_context(
+        pipeline=_log_pipeline,
+        run_id=_log_run_id,
+        accession=_log_accession,
+        doc_type=_log_doc_type,
+    )
     try:
         # Get the filing summary
         filing_summary = SECFilingSummary.objects(
@@ -410,10 +444,12 @@ def process_sections_with_pinecone_v2(filing_summary_id, sections_json_url):
             logger.info(
                 f"Starting summary generation for {filing_summary_id}")
 
-            # Start summary generation in a separate thread
+            # Start summary generation in a separate thread (propagate logging context).
+            from core.logging_context import get_pipeline, get_run_id, get_accession, get_doc_type
+            _sctx = (get_pipeline(), get_run_id(), get_accession(), get_doc_type())
             summary_thread = threading.Thread(
                 target=generate_proxy_summary_v2,
-                args=(filing_summary_id,)
+                args=(filing_summary_id, *_sctx)
             )
             summary_thread.daemon = True
             summary_thread.start()
@@ -442,11 +478,24 @@ def process_sections_with_pinecone_v2(filing_summary_id, sections_json_url):
             f"Error in Pinecone processing for {filing_summary_id}: {str(e)}")
 
 
-def generate_proxy_summary_v2(filing_summary_id):
+def generate_proxy_summary_v2(
+    filing_summary_id,
+    _log_pipeline="proxy",
+    _log_run_id="-",
+    _log_accession="-",
+    _log_doc_type="PROXY",
+):
     """
     Generate summary document for proxy after Pinecone processing completes.
     Updates SECFilingSummary.proxy node directly.
     """
+    from core.logging_context import set_pipeline_context
+    set_pipeline_context(
+        pipeline=_log_pipeline,
+        run_id=_log_run_id,
+        accession=_log_accession,
+        doc_type=_log_doc_type,
+    )
     try:
         # Get the filing summary
         filing_summary = SECFilingSummary.objects(

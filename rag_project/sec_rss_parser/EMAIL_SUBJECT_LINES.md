@@ -8,9 +8,9 @@ This document lists **only** email types whose subject lines were updated in the
 
 | Label in subject | Meaning |
 |------------------|---------|
-| `Parent Form …` / `Parent 2.1 …` | Filer CIK matches the deal **acquirer** (`matched_cik_label == "(acquirer)"`) |
-| `Target Form …` / `Target 2.1 …` | Filer CIK matches the deal **target** (`matched_cik_label == "(target)"`) |
-| `{10-digit CIK} Form …` | Filer CIK does not match target or acquirer on the deal record |
+| `Parent …` / `Parent 2.1 …` | Filer CIK matches the deal **acquirer** (`matched_cik_label == "(acquirer)"`) |
+| `Target …` / `Target 2.1 …` | Filer CIK matches the deal **target** (`matched_cik_label == "(target)"`) |
+| `{10-digit CIK} …` | Filer CIK does not match target or acquirer on the deal record |
 
 For EX-2.1 **filing alert** emails (no DB deal yet), Parent/Target is derived from GPT `company_details` (`target_cik` / `acquirer_cik`) vs the 8-K filer CIK, with default **Target** if unclear.
 
@@ -25,9 +25,9 @@ For EX-2.1 **filing alert** emails (no DB deal yet), Parent/Target is derived fr
 ### Subject format
 
 ```
-{target_ticker}: Parent Form {form_type} [- {L1}] [SSM]
-{target_ticker}: Target Form {form_type} [- {L1}] [SSM]
-{target_ticker}: {filer_cik} Form {form_type} [- {L1}] [SSM]
+{target_ticker}: Parent {form_type} [- {L1}] [SSM]
+{target_ticker}: Target {form_type} [- {L1}] [SSM]
+{target_ticker}: {filer_cik} {form_type} [- {L1}] [SSM]
 ```
 
 - `{form_type}` comes from `summary_kind` / `form_type` (e.g. `8-K`, `EX-99.1`, `DEFM14A`, `10-Q`).
@@ -35,8 +35,8 @@ For EX-2.1 **filing alert** emails (no DB deal yet), Parent/Target is derived fr
 
 ### Examples
 
-- `UDMY: Target Form 8-K - Company announces merger agreement [SSM]`
-- `ACME: Parent Form 10-Q - Q1 results beat estimates [SSM]`
+- `UDMY: Target 8-K - Company announces merger agreement [SSM]`
+- `ACME: Parent 10-Q - Q1 results beat estimates [SSM]`
 
 ### Who calls it (active flows)
 
@@ -59,16 +59,16 @@ For EX-2.1 **filing alert** emails (no DB deal yet), Parent/Target is derived fr
 ### Subject format
 
 ```
-{target_ticker}: Parent Form {form_type} Comparison [SCM]
-{target_ticker}: Target Form {form_type} Comparison [SCM]
-{target_ticker}: {filer_cik} Form {form_type} Comparison [SCM]
+{target_ticker}: Parent {form_type} Comparison [SCM]
+{target_ticker}: Target {form_type} Comparison [SCM]
+{target_ticker}: {filer_cik} {form_type} Comparison [SCM]
 ```
 
 - `{form_type}` is the **newest** filing in the comparison run (e.g. `10-K`, `10-Q`, `10-K/A`). Defaults to `10-K` if unknown.
 
 ### Example
 
-- `UDMY: Target Form 10-Q Comparison [SCM]`
+- `UDMY: Target 10-Q Comparison [SCM]`
 
 ### Who calls it
 
@@ -91,7 +91,7 @@ Same as §2, with `{form_type}` = proxy form (e.g. `DEFM14A`, `S-4`).
 
 ### Example
 
-- `UDMY: Target Form DEFM14A Comparison [SCM]`
+- `UDMY: Target DEFM14A Comparison [SCM]`
 
 ### Who calls it
 
@@ -109,14 +109,14 @@ Same as §2, with `{form_type}` = proxy form (e.g. `DEFM14A`, `S-4`).
 ### Subject format
 
 ```
-{target_ticker}: Parent Form {form_type} Background Summary [SBM]
-{target_ticker}: Target Form {form_type} Background Summary [SBM]
-{target_ticker}: {filer_cik} Form {form_type} Background Summary [SBM]
+{target_ticker}: Parent {form_type} Background Summary [SBM]
+{target_ticker}: Target {form_type} Background Summary [SBM]
+{target_ticker}: {filer_cik} {form_type} Background Summary [SBM]
 ```
 
 ### Example
 
-- `UDMY: Target Form DEFM14A Background Summary [SBM]`
+- `UDMY: Target DEFM14A Background Summary [SBM]`
 
 ### Who calls it
 

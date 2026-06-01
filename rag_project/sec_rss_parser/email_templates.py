@@ -577,7 +577,7 @@ def generate_8k_document_email_html(filing_data, doc_files):
     label = ticker or company_name
     filing_date_str = filing_date if isinstance(filing_date, str) else (filing_date.strftime(
         "%Y-%m-%d") if isinstance(filing_date, datetime) else str(filing_date))
-    subject = f"{label} : Form 8-K New Merger by {company_name} on [ {filing_date_str} ]"
+    subject = f"{label} : 8-K New Merger by {company_name} on [ {filing_date_str} ]"
     confidence_badge = f"<span style='background:#28a745;color:white;padding:2px 8px;border-radius:4px;'>{confidence}% confidence</span>" if confidence else ""
     doc_files_html = build_doc_files_table(doc_files)
 
@@ -703,7 +703,7 @@ def generate_ex99_1_merger_email_html(filing_data, doc_files):
     label = ticker or company_name
     filing_date_str = filing_date if isinstance(filing_date, str) else (filing_date.strftime(
         "%Y-%m-%d") if isinstance(filing_date, datetime) else str(filing_date))
-    subject = f"{label} : Form EX-99.1 New Merger by {company_name} on [ {filing_date_str} ]"
+    subject = f"{label} : EX-99.1 New Merger by {company_name} on [ {filing_date_str} ]"
     confidence_badge = f"<span style='background:#28a745;color:white;padding:2px 8px;border-radius:4px;'>{confidence}% confidence</span>" if confidence else ""
     doc_files_html = build_doc_files_table(doc_files)
 
@@ -1055,8 +1055,8 @@ def _build_l123_summary_email_subject(
     target_name=None,
 ):
     """
-    Subject: {deal_label}: Parent|Target Form {form_type} [- L1] [SSM]
-    or {deal_label}: {filer_cik} Form {form_type} [- L1] [SSM] when filer CIK is not target/acquirer.
+    Subject: {deal_label}: Parent|Target {form_type} [- L1] [SSM]
+    or {deal_label}: {filer_cik} {form_type} [- L1] [SSM] when filer CIK is not target/acquirer.
     """
     form_type_subject = _normalize_form_type_subject(summary_kind, form_type)
     deal_label = (
@@ -1067,12 +1067,12 @@ def _build_l123_summary_email_subject(
 
     label_norm = (matched_cik_label or "").strip()
     if label_norm == "(acquirer)":
-        middle = f"Parent Form {form_type_subject}"
+        middle = f"Parent {form_type_subject}"
     elif label_norm == "(target)":
-        middle = f"Target Form {form_type_subject}"
+        middle = f"Target {form_type_subject}"
     else:
         cik_display = str(cik_number).zfill(10) if cik_number else "0000000000"
-        middle = f"{cik_display} Form {form_type_subject}"
+        middle = f"{cik_display} {form_type_subject}"
 
     subject = f"{deal_label}: {middle}"
     l1_part = _truncate_l1_for_subject(l1_headline)
@@ -1090,8 +1090,8 @@ def _build_10k_10q_comparison_email_subject(
     form_type=None,
 ):
     """
-    Subject: {deal_label}: Parent|Target Form {form_type} Comparison [SCM]
-    or {deal_label}: {filer_cik} Form {form_type} Comparison [SCM] when filer CIK is not target/acquirer.
+    Subject: {deal_label}: Parent|Target {form_type} Comparison [SCM]
+    or {deal_label}: {filer_cik} {form_type} Comparison [SCM] when filer CIK is not target/acquirer.
     form_type should be the newest filing in the comparison run (e.g. 10-K, 10-Q, 10-K/A).
     """
     deal_label = (
@@ -1106,12 +1106,12 @@ def _build_10k_10q_comparison_email_subject(
 
     label_norm = (matched_cik_label or "").strip()
     if label_norm == "(acquirer)":
-        middle = f"Parent Form {label}"
+        middle = f"Parent {label}"
     elif label_norm == "(target)":
-        middle = f"Target Form {label}"
+        middle = f"Target {label}"
     else:
         cik_display = str(cik_number).zfill(10) if cik_number else "0000000000"
-        middle = f"{cik_display} Form {label}"
+        middle = f"{cik_display} {label}"
 
     return f"{deal_label}: {middle} [SCM]"
 
@@ -1125,8 +1125,8 @@ def _build_proxy_background_summary_email_subject(
     form_type=None,
 ):
     """
-    Subject: {deal_label}: Parent|Target Form {form_type} Background Summary [SBM]
-    or {deal_label}: {filer_cik} Form {form_type} Background Summary [SBM] when filer CIK is not target/acquirer.
+    Subject: {deal_label}: Parent|Target {form_type} Background Summary [SBM]
+    or {deal_label}: {filer_cik} {form_type} Background Summary [SBM] when filer CIK is not target/acquirer.
     """
     deal_label = (
         (target_ticker or "").strip()
@@ -1140,12 +1140,12 @@ def _build_proxy_background_summary_email_subject(
 
     label_norm = (matched_cik_label or "").strip()
     if label_norm == "(acquirer)":
-        middle = f"Parent Form {label}"
+        middle = f"Parent {label}"
     elif label_norm == "(target)":
-        middle = f"Target Form {label}"
+        middle = f"Target {label}"
     else:
         cik_display = str(cik_number).zfill(10) if cik_number else "0000000000"
-        middle = f"{cik_display} Form {label}"
+        middle = f"{cik_display} {label}"
 
     return f"{deal_label}: {middle} [SBM]"
 
@@ -1333,16 +1333,16 @@ def build_sec_filings_table(filings):
 def generate_sec_filings_email_html(company_name, filings, form_type):
     """Generate full email HTML for SEC form filings (last year) table. Returns (subject, html).
     form_type identifies which email is for which (e.g. '8-K(EX-2.1)', '10-K', '10-Q').
-    Subject: for 8-K(EX-2.1) -> company name : form_type All One Year Forms.;
+    Subject: for 8-K(EX-2.1) -> company name : form_type All One Year Filings.;
     for 10-K/10-Q -> company name : form_type All 10k/10q since announcing date."""
     form_type_esc = escape_html(form_type)
     company_esc = escape_html(company_name or "Unknown Company")
     if form_type and "8-K" in str(form_type):
-        subject = f"{company_esc} : {form_type_esc} All One Year Forms."
+        subject = f"{company_esc} : {form_type_esc} All One Year Filings."
     elif form_type and str(form_type).upper() in ("10-K", "10-Q"):
         subject = f"{company_esc} : {form_type_esc} All 10k/10q since announcing date."
     else:
-        subject = f"SEC Form Filings ({form_type_esc}) – {company_esc}"
+        subject = f"SEC Filings ({form_type_esc}) – {company_esc}"
     table_html = build_sec_filings_table(filings)
     html_email = f"""
 <!DOCTYPE html>
@@ -1364,11 +1364,11 @@ def generate_item_5_02_one_year_filings_email_html(company_name, filings, trigge
     """Generate email HTML for 8-K Item 5.02 trigger: one-year SEC filings for the company.
     Separate format from generate_sec_filings_email_html. Returns (subject, html)."""
     company_esc = escape_html(company_name or "Unknown Company")
-    # Subject: same pattern as generate_8k_99_1_summary_email_html — {label} :Form {form_type_subject} Item 5.02 All Filing of last one year By {company_name}
+    # Subject: {label} : {form_type} (Item 5.02) All Filing Of Last One Year By {company_name}
     form_type_subject = "8-K"
     label = (ticker or "").strip() or (company_name or "Unknown")
     label_esc = escape_html(label)
-    subject = f"{label_esc} :Form {form_type_subject} (Item 5.02) All Filing Of Last One Year By {company_esc}"
+    subject = f"{label_esc} : {form_type_subject} (Item 5.02) All Filing Of Last One Year By {company_esc}"
     table_html = build_sec_filings_table(filings)
     cik_display = (str(cik_number).zfill(10) if cik_number else "").strip()
     intro_parts = [
