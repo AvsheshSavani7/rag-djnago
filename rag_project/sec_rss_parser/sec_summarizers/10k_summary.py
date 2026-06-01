@@ -174,7 +174,7 @@ M&A relevance is important but is ONE of many factors — do not force an M&A na
 Respond ONLY in valid JSON (no markdown fences):
 
 {{
-  "ticker": "<ticker symbol>",
+  "ticker": "<ticker symbol as stated in the filing, or null if not stated>",
   "company": "<company name>",
   "filing_type": "<10-K | 10-K/A | 10-Q | 10-Q/A>",
   "period_end_date": "<fiscal period end, MM/DD/YY>",
@@ -611,7 +611,8 @@ def synthesize_extracts(client, extracts: list, filing_type: str, ticker_hint: s
     """Pass 2: Combine section extracts into final L1/L2/L3 summary."""
     extracts_text = json.dumps(extracts, indent=2)
 
-    prompt = inject_deal_context(SYNTHESIS_PROMPT.format(filing_type=filing_type), DEAL_CONTEXT)
+    prompt = inject_deal_context(SYNTHESIS_PROMPT.format(
+        filing_type=filing_type), DEAL_CONTEXT)
 
     # Inject known metadata so the model doesn't have to guess
     metadata_lines = []

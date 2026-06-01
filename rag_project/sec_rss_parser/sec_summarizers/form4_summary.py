@@ -57,7 +57,7 @@ Form 4 reports changes in beneficial ownership by company insiders (officers, di
 Given the Form 4 text below, produce summaries at 3 levels. Respond ONLY in valid JSON (no markdown fences).
 
 {
-  "ticker": "<issuer ticker symbol>",
+  "ticker": "<issuer ticker symbol as stated in the filing, or null if not stated>",
   "issuer": "<issuer company name>",
   "filing_date": "<MM/DD/YY>",
   "insider_name": "<name of reporting person>",
@@ -66,7 +66,7 @@ Given the Form 4 text below, produce summaries at 3 levels. Respond ONLY in vali
 
   "L1_headline": "+ <TICKER> – <insider name> <bought/sold/exercised> <shares/options>. | <date>",
 
-  "L2_brief": "<2-3 sentence summary covering: who traded, what they did, how many shares, at what price, and what it might signal>",
+  "L2_brief": "<2-3 sentence summary covering: who traded, what they did, how many shares, at what price, and and relationship to any pending transaction>",
 
   "L3_detailed": {
     "transactions": [
@@ -81,32 +81,48 @@ Given the Form 4 text below, produce summaries at 3 levels. Respond ONLY in vali
     ],
     "post_transaction_holdings": "<total shares held after transaction>",
     "ownership_type": "<Direct | Indirect (through trust, LLC, etc.)>",
-    "deal_signal": "<for pending M&A: what this insider activity may signal about deal confidence. Otherwise 'N/A'>",
-    "pattern_notes": "<any notable pattern — cluster buying, first purchase, selling into strength, etc.>",
+     "deal_signal": "<for pending M&A: connection to any pending transaction as stated in the filing. Otherwise 'N/A'>",
+    "pattern_notes": "<factual transaction pattern (e.g., multiple purchases on same date, first transaction by this insider)>",
     "risks_flagged": ["<10b5-1 plan noted, blackout period concerns, large disposal relative to holdings>"]
   }
 }
 
 Rules:
-- TONE: State only facts from the filing. Do NOT speculate on motives, interpret what actions "signal" or "suggest", assess confidence levels, or draw conclusions beyond what is explicitly stated. GOOD: "Company suspended earnings calls due to pending transaction." BAD: "Company suspended earnings calls, signaling high confidence in deal completion."
+- CRITICAL — FACTS ONLY: Every statement in your summary must be directly traceable to the filing text. Report ONLY what the document says. Do NOT add analysis, assess significance, interpret motives, predict outcomes, evaluate probability, or editorialize. Do NOT state what is "not disclosed" or "not mentioned" — simply omit fields where the filing is silent. If the filing does not say it, do not write it.
+  GOOD: "CADE requested revenue data for 2021-2025 across four markets."
+  BAD: "The broad scope of information requested indicates potentially detailed competitive analysis ahead."
+  GOOD: "The offer expires June 10, 2026."
+  BAD: "This tight timeline may create pressure on shareholders to tender quickly."
+- PRECISION: Use the filing's exact terminology for legal, regulatory, and financial terms. Do NOT paraphrase in ways that broaden or narrow the stated meaning. GOOD: "All 14 Pennsylvania PUC hearings have concluded." BAD: "Regulatory proceedings concluded in Pennsylvania."
 - L1 format MUST be: + <TICKER> – <insider> <action>. | <date>
 - Extract EVERY transaction listed in the filing with exact shares, prices, and dates
 - Calculate total transaction value where possible
 - Note whether trades were under a 10b5-1 plan (pre-planned) vs discretionary
-- For companies involved in pending mergers, assess whether insider activity signals deal confidence
+- For companies involved in pending mergers, note any connection to pending transactions as stated in the filing
 - Flag unusually large transactions relative to the insider's total holdings
 
 FORM 4 TEXT:
 """
 
+EXTRACTION_GUIDANCE = """This is a Form 4 insider ownership change filing.
+Extract:
+- Reporting person name, title, and relationship to issuer
+- ALL transactions listed: transaction type, date, number of shares, price per share, acquired or disposed
+- Post-transaction holdings (total shares owned)
+- Ownership type (direct vs indirect, and beneficial owner details)
+- Whether trades were under a Rule 10b5-1 plan
+- All footnotes explaining the transactions
+- Any derivative securities (options, warrants) and their terms
+"""
+
 
 def fetch_filing_text(source: str) -> str:
     """Fetch and extract text from a Form 4 filing (URL, local file, or PDF)."""
-    from .fetch_utils import fetch_text
-    return fetch_text(source)
+    from .fetch_utils import fetch_text_with_extraction
+    return fetch_text_with_extraction(source, extraction_guidance=EXTRACTION_GUIDANCE)
 
 
-def summarize(text: str, model: str = "claude-sonnet-4-6") -> dict:
+def summarize(text: str, model: str = "claude-opus-4-6") -> dict:
     """Call Claude API to produce multi-level summary."""
     if not ANTHROPIC_API_KEY:
         raise ValueError(
@@ -115,7 +131,7 @@ def summarize(text: str, model: str = "claude-sonnet-4-6") -> dict:
 
     msg = client.messages.create(
         model=model,
-        max_tokens=1500,
+        max_tokens=4096,
         messages=[{
             "role": "user",
             "content": inject_deal_context(SUMMARY_PROMPT, DEAL_CONTEXT) + "\n\n" + text
@@ -169,9 +185,11 @@ def print_summary(s: dict):
 
 def export_docx(s: dict, s3_key_suffix: str):
     """Build summary as Word doc, upload to S3 (summary_docx/), return (s3_path, s3_url)."""
+    from .fetch_utils import is_empty_value, has_content, add_field
     from .s3_utils import upload_docx_bytes
 
     ticker = s.get("ticker", "UNKNOWN")
+    date = s.get("filing_date", "")
     doc = DocxDocument()
 
     style = doc.styles["Normal"]
@@ -182,18 +200,20 @@ def export_docx(s: dict, s3_key_suffix: str):
     title.runs[0].font.size = Pt(20)
 
     meta = doc.add_paragraph()
-    meta.add_run(f"Issuer: ").bold = True
-    meta.add_run(s.get("issuer", "N/A"))
-    meta.add_run(f"    Insider: ").bold = True
-    meta.add_run(
-        f"{s.get('insider_name', 'N/A')} ({s.get('insider_title', 'N/A')})")
+    add_field(meta, "Issuer: ", s.get("issuer"), newline=False)
+    insider_name = s.get("insider_name")
+    insider_title = s.get("insider_title")
+    if not is_empty_value(insider_name):
+        meta.add_run("    Insider: ").bold = True
+        label = str(insider_name)
+        if not is_empty_value(insider_title):
+            label += f" ({insider_title})"
+        meta.add_run(label)
 
-    date = s.get("filing_date", "")
     meta2 = doc.add_paragraph()
-    meta2.add_run(f"Filing Date: ").bold = True
-    meta2.add_run(date)
-    meta2.add_run(f"    Relationship: ").bold = True
-    meta2.add_run(s.get("relationship", "N/A"))
+    add_field(meta2, "Filing Date: ", date, newline=False)
+    add_field(meta2, "    Relationship: ",
+              s.get("relationship"), newline=False)
 
     doc.add_heading("L1 — Headline", level=1)
     p = doc.add_paragraph()
@@ -208,31 +228,38 @@ def export_docx(s: dict, s3_key_suffix: str):
     doc.add_heading("L3 — Detailed", level=1)
     d = s["L3_detailed"]
 
-    doc.add_heading("Transactions", level=2)
-    for t in d.get("transactions", []):
-        doc.add_paragraph(
-            f"{t.get('type', 'N/A')}: {t.get('shares', 'N/A')} shares @ "
-            f"${t.get('price_per_share', 'N/A')} on {t.get('date', 'N/A')} "
-            f"({t.get('acquired_or_disposed', 'N/A')}) — {t.get('total_value', 'N/A')}",
-            style="List Bullet"
-        )
+    transactions = d.get("transactions")
+    if has_content(transactions):
+        doc.add_heading("Transactions", level=2)
+        for t in transactions:
+            if has_content(t):
+                doc.add_paragraph(
+                    f"{t.get('type', 'N/A')}: {t.get('shares', 'N/A')} shares @ "
+                    f"${t.get('price_per_share', 'N/A')} on {t.get('date', 'N/A')} "
+                    f"({t.get('acquired_or_disposed', 'N/A')}) — {t.get('total_value', 'N/A')}",
+                    style="List Bullet"
+                )
 
     details = doc.add_paragraph()
-    details.add_run("Post-Transaction Holdings: ").bold = True
-    details.add_run(d.get("post_transaction_holdings", "N/A") + "\n")
-    details.add_run("Ownership Type: ").bold = True
-    details.add_run(d.get("ownership_type", "N/A"))
+    add_field(details, "Post-Transaction Holdings: ",
+              d.get("post_transaction_holdings"))
+    add_field(details, "Ownership Type: ", d.get(
+        "ownership_type"), newline=False)
 
-    doc.add_heading("Deal Signal", level=2)
-    doc.add_paragraph(d.get("deal_signal", "N/A"))
+    if not is_empty_value(d.get("deal_signal")):
+        doc.add_heading("Deal Signal", level=2)
+        doc.add_paragraph(d.get("deal_signal"))
 
-    doc.add_heading("Pattern Notes", level=2)
-    doc.add_paragraph(d.get("pattern_notes", "N/A"))
+    if not is_empty_value(d.get("pattern_notes")):
+        doc.add_heading("Pattern Notes", level=2)
+        doc.add_paragraph(d.get("pattern_notes"))
 
-    if d.get("risks_flagged"):
+    risks = d.get("risks_flagged")
+    if has_content(risks):
         doc.add_heading("Risks Flagged", level=2)
-        for r in d["risks_flagged"]:
-            doc.add_paragraph(r, style="List Bullet")
+        for r in risks:
+            if not is_empty_value(r):
+                doc.add_paragraph(r, style="List Bullet")
 
     buf = io.BytesIO()
     doc.save(buf)

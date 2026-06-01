@@ -57,7 +57,7 @@ Rule 425 filings are communications related to proposed business combinations (m
 Given the Rule 425 text below, produce summaries at 3 levels. Respond ONLY in valid JSON (no markdown fences).
 
 {
-  "ticker": "<subject company ticker>",
+  "ticker": "<subject company ticker, or null if not stated in the filing>",
   "filer": "<company that filed the 425>",
   "subject_company": "<company that is the subject of the transaction>",
   "filing_date": "<MM/DD/YY>",
@@ -129,7 +129,7 @@ def summarize(text: str, model: str = "claude-opus-4-6") -> dict:
 
     msg = client.messages.create(
         model=model,
-        max_tokens=1500,
+        max_tokens=4096,
         messages=[{
             "role": "user",
             "content": inject_deal_context(SUMMARY_PROMPT, DEAL_CONTEXT) + "\n\n" + text
@@ -185,9 +185,11 @@ def print_summary(s: dict):
 
 def export_docx(s: dict, s3_key_suffix: str):
     """Build summary as Word doc, upload to S3 (summary_docx/), return (s3_path, s3_url)."""
+    from .fetch_utils import is_empty_value, has_content, add_field
     from .s3_utils import upload_docx_bytes
 
     ticker = s.get("ticker", "UNKNOWN")
+    date = s.get("filing_date", "")
     doc = DocxDocument()
 
     style = doc.styles["Normal"]
@@ -198,16 +200,15 @@ def export_docx(s: dict, s3_key_suffix: str):
     title.runs[0].font.size = Pt(20)
 
     meta = doc.add_paragraph()
-    meta.add_run(f"Filer: ").bold = True
+    meta.add_run("Filer: ").bold = True
     meta.add_run(s.get("filer", "N/A"))
-    meta.add_run(f"    Subject: ").bold = True
+    meta.add_run("    Subject: ").bold = True
     meta.add_run(s.get("subject_company", "N/A"))
 
-    date = s.get("filing_date", "")
     meta2 = doc.add_paragraph()
-    meta2.add_run(f"Filing Date: ").bold = True
+    meta2.add_run("Filing Date: ").bold = True
     meta2.add_run(date)
-    meta2.add_run(f"    Communication Type: ").bold = True
+    meta2.add_run("    Communication Type: ").bold = True
     meta2.add_run(s.get("communication_type", "N/A"))
 
     doc.add_heading("L1 — Headline", level=1)
@@ -223,38 +224,48 @@ def export_docx(s: dict, s3_key_suffix: str):
     doc.add_heading("L3 — Detailed", level=1)
     d = s["L3_detailed"]
 
-    doc.add_heading("Deal Status", level=2)
-    status_p = doc.add_paragraph()
-    status_p.add_run("Parties: ").bold = True
-    status_p.add_run(d.get("deal_parties", "N/A") + "\n")
-    status_p.add_run("Current Status: ").bold = True
-    status_p.add_run(d.get("deal_status_update", "N/A") + "\n")
-    status_p.add_run("Timeline: ").bold = True
-    status_p.add_run(d.get("timeline_update", "N/A") + "\n")
-    status_p.add_run("Terms: ").bold = True
-    status_p.add_run(d.get("terms_update", "N/A"))
+    deal_parties = d.get("deal_parties")
+    deal_status = d.get("deal_status_update")
+    timeline = d.get("timeline_update")
+    terms = d.get("terms_update")
+    if (not is_empty_value(deal_parties) or not is_empty_value(deal_status)
+            or not is_empty_value(timeline) or not is_empty_value(terms)):
+        doc.add_heading("Deal Status", level=2)
+        status_p = doc.add_paragraph()
+        add_field(status_p, "Parties: ", deal_parties)
+        add_field(status_p, "Current Status: ", deal_status)
+        add_field(status_p, "Timeline: ", timeline)
+        add_field(status_p, "Terms: ", terms)
 
-    doc.add_heading("Management Tone", level=2)
-    doc.add_paragraph(d.get("management_tone", "N/A"))
+    if not is_empty_value(d.get("management_tone")):
+        doc.add_heading("Management Tone", level=2)
+        doc.add_paragraph(d["management_tone"])
 
-    if d.get("key_messages"):
+    key_messages = d.get("key_messages", [])
+    if has_content(key_messages):
         doc.add_heading("Key Messages", level=2)
-        for m in d["key_messages"]:
-            doc.add_paragraph(m, style="List Bullet")
+        for m in key_messages:
+            if not is_empty_value(m):
+                doc.add_paragraph(m, style="List Bullet")
 
-    doc.add_heading("Regulatory Update", level=2)
-    doc.add_paragraph(d.get("regulatory_update", "N/A"))
+    if not is_empty_value(d.get("regulatory_update")):
+        doc.add_heading("Regulatory Update", level=2)
+        doc.add_paragraph(d["regulatory_update"])
 
-    doc.add_heading("Shareholder Vote Info", level=2)
-    doc.add_paragraph(d.get("shareholder_vote_info", "N/A"))
+    if not is_empty_value(d.get("shareholder_vote_info")):
+        doc.add_heading("Shareholder Vote Info", level=2)
+        doc.add_paragraph(d["shareholder_vote_info"])
 
-    doc.add_heading("Integration Details", level=2)
-    doc.add_paragraph(d.get("integration_details", "N/A"))
+    if not is_empty_value(d.get("integration_details")):
+        doc.add_heading("Integration Details", level=2)
+        doc.add_paragraph(d["integration_details"])
 
-    if d.get("risks_flagged"):
+    risks = d.get("risks_flagged", [])
+    if has_content(risks):
         doc.add_heading("Risks Flagged", level=2)
-        for r in d["risks_flagged"]:
-            doc.add_paragraph(r, style="List Bullet")
+        for r in risks:
+            if not is_empty_value(r):
+                doc.add_paragraph(r, style="List Bullet")
 
     buf = io.BytesIO()
     doc.save(buf)

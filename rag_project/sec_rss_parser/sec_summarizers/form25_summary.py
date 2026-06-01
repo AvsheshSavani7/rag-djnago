@@ -67,7 +67,7 @@ This is a short, structured filing. Extract every detail available.
 Given the Form 25 text below, produce summaries at 3 levels. Respond ONLY in valid JSON (no markdown fences).
 
 {
-  "ticker": "<ticker being delisted>",
+  "ticker": "<ticker being delisted as stated in the filing, or null if not stated>",
   "company": "<issuer name>",
   "filing_date": "<MM/DD/YY>",
   "filed_by": "<who filed — the exchange or the issuer>",
@@ -86,17 +86,22 @@ Given the Form 25 text below, produce summaries at 3 levels. Respond ONLY in val
       "acquirer": "<acquiring company, if this is a post-merger delisting>",
       "deal_closed_date": "<date the merger closed, if stated or inferable>",
       "final_consideration": "<what shareholders received — price per share, exchange ratio>",
-      "short_form_merger": "<was this a short-form merger (no shareholder vote required)? Yes/No/Unknown>"
+      "short_form_merger": "<merger type if stated in the filing (e.g., short-form under DGCL Section 253)>"
     },
     "deregistration": "<will the company also deregister (suspend SEC reporting obligations)? Yes/No/Unknown>",
     "last_trading_date": "<last date shares traded on the exchange, if stated>",
     "cusip": "<CUSIP number if mentioned>",
-    "arb_implications": "<what this means for arb positions — deal confirmed closed, final payment timeline, any remaining stub/CVR considerations>"
+    "arb_implications": "<stated deal status, payment details, and effective dates from the filing>"
   }
 }
 
 Rules:
-- TONE: State only facts from the filing. Do NOT speculate on motives, interpret what actions "signal" or "suggest", assess confidence levels, or draw conclusions beyond what is explicitly stated. GOOD: "Company suspended earnings calls due to pending transaction." BAD: "Company suspended earnings calls, signaling high confidence in deal completion."
+- CRITICAL — FACTS ONLY: Every statement in your summary must be directly traceable to the filing text. Report ONLY what the document says. Do NOT add analysis, assess significance, interpret motives, predict outcomes, evaluate probability, or editorialize. Do NOT state what is "not disclosed" or "not mentioned" — simply omit fields where the filing is silent. If the filing does not say it, do not write it.
+  GOOD: "CADE requested revenue data for 2021-2025 across four markets."
+  BAD: "The broad scope of information requested indicates potentially detailed competitive analysis ahead."
+  GOOD: "The offer expires June 10, 2026."
+  BAD: "This tight timeline may create pressure on shareholders to tender quickly."
+- PRECISION: Use the filing's exact terminology for legal, regulatory, and financial terms. Do NOT paraphrase in ways that broaden or narrow the stated meaning. GOOD: "All 14 Pennsylvania PUC hearings have concluded." BAD: "Regulatory proceedings concluded in Pennsylvania."
 - L1 format MUST be: + <TICKER> – delisted from <exchange>. | <date>
 - Identify whether this is a post-merger delisting (most important for arb) or other reason
 - Extract the effective date — this is when shares officially stop trading
@@ -109,14 +114,27 @@ Rules:
 FORM 25 TEXT:
 """
 
+EXTRACTION_GUIDANCE = """This is a Form 25 notification of delisting/deregistration.
+Extract:
+- Company name and ticker symbol
+- Exchange from which securities are being delisted
+- Reason for delisting (post-merger, voluntary, regulatory, etc.)
+- Effective date of delisting
+- Rule 12d2-2 date
+- Merger context if applicable: acquirer name, closing date, merger consideration
+- Whether Section 12 deregistration will follow
+- CUSIP number
+- Last trading date
+- Who filed the Form 25 (company or exchange)"""
+
 
 def fetch_filing_text(source: str) -> str:
     """Fetch and extract text from a Form 25 filing (URL, local file, or PDF)."""
-    from .fetch_utils import fetch_text
-    return fetch_text(source)
+    from .fetch_utils import fetch_text_with_extraction
+    return fetch_text_with_extraction(source, extraction_guidance=EXTRACTION_GUIDANCE)
 
 
-def summarize(text: str, model: str = "claude-sonnet-4-6") -> dict:
+def summarize(text: str, model: str = "claude-opus-4-6") -> dict:
     """Call Claude API to produce multi-level summary."""
     if not ANTHROPIC_API_KEY:
         raise ValueError(
@@ -125,7 +143,7 @@ def summarize(text: str, model: str = "claude-sonnet-4-6") -> dict:
 
     msg = client.messages.create(
         model=model,
-        max_tokens=1500,
+        max_tokens=4096,
         messages=[{
             "role": "user",
             "content": inject_deal_context(SUMMARY_PROMPT, DEAL_CONTEXT) + "\n\n" + text
@@ -185,9 +203,11 @@ def print_summary(s: dict):
 
 def export_docx(s: dict, s3_key_suffix: str):
     """Build summary as Word doc, upload to S3 (summary_docx/), return (s3_path, s3_url)."""
+    from .fetch_utils import is_empty_value, has_content, add_field
     from .s3_utils import upload_docx_bytes
 
     ticker = s.get("ticker", "UNKNOWN")
+    date = s.get("filing_date", "")
     doc = DocxDocument()
 
     style = doc.styles["Normal"]
@@ -198,15 +218,12 @@ def export_docx(s: dict, s3_key_suffix: str):
     title.runs[0].font.size = Pt(20)
 
     meta = doc.add_paragraph()
-    meta.add_run("Company: ").bold = True
-    meta.add_run(s.get("company", "N/A"))
-    meta.add_run("    Filed By: ").bold = True
-    meta.add_run(s.get("filed_by", "N/A"))
+    add_field(meta, "Company: ", s.get("company"), newline=False)
+    meta.add_run("    ")
+    add_field(meta, "Filed By: ", s.get("filed_by"), newline=False)
 
-    date = s.get("filing_date", "")
     meta2 = doc.add_paragraph()
-    meta2.add_run("Filing Date: ").bold = True
-    meta2.add_run(date)
+    add_field(meta2, "Filing Date: ", date, newline=False)
 
     doc.add_heading("L1 — Headline", level=1)
     p = doc.add_paragraph()
@@ -223,44 +240,35 @@ def export_docx(s: dict, s3_key_suffix: str):
 
     doc.add_heading("Delisting Details", level=2)
     det_p = doc.add_paragraph()
-    det_p.add_run("Securities Delisted: ").bold = True
-    det_p.add_run(d.get("securities_delisted", "N/A") + "\n")
-    det_p.add_run("Exchange: ").bold = True
-    det_p.add_run(d.get("exchange", "N/A") + "\n")
-    det_p.add_run("Reason: ").bold = True
-    reason = d.get("delisting_reason", "N/A")
-    reason_run = det_p.add_run(reason + "\n")
-    if "post-merger" in reason.lower():
-        reason_run.font.color.rgb = RGBColor(0, 128, 0)
-        reason_run.bold = True
-    det_p.add_run("Effective Date: ").bold = True
-    det_p.add_run(d.get("effective_date", "N/A") + "\n")
-    if d.get("rule_12d2_2_date"):
-        det_p.add_run("Rule 12d2-2 Date: ").bold = True
-        det_p.add_run(d["rule_12d2_2_date"] + "\n")
-    det_p.add_run("Last Trading Date: ").bold = True
-    det_p.add_run(d.get("last_trading_date", "N/A") + "\n")
-    if d.get("cusip"):
-        det_p.add_run("CUSIP: ").bold = True
-        det_p.add_run(d["cusip"] + "\n")
-    det_p.add_run("Deregistration: ").bold = True
-    det_p.add_run(d.get("deregistration", "N/A"))
+    add_field(det_p, "Securities Delisted: ", d.get("securities_delisted"))
+    add_field(det_p, "Exchange: ", d.get("exchange"))
+    reason = d.get("delisting_reason")
+    if not is_empty_value(reason):
+        det_p.add_run("Reason: ").bold = True
+        reason_run = det_p.add_run(reason + "\n")
+        if "post-merger" in reason.lower():
+            reason_run.font.color.rgb = RGBColor(0, 128, 0)
+            reason_run.bold = True
+    add_field(det_p, "Effective Date: ", d.get("effective_date"))
+    add_field(det_p, "Rule 12d2-2 Date: ", d.get("rule_12d2_2_date"))
+    add_field(det_p, "Last Trading Date: ", d.get("last_trading_date"))
+    add_field(det_p, "CUSIP: ", d.get("cusip"))
+    add_field(det_p, "Deregistration: ", d.get(
+        "deregistration"), newline=False)
 
     mc = d.get("merger_context", {})
-    if mc.get("acquirer"):
+    if has_content(mc):
         doc.add_heading("Merger Context", level=2)
         mc_p = doc.add_paragraph()
-        mc_p.add_run("Acquirer: ").bold = True
-        mc_p.add_run(mc.get("acquirer", "N/A") + "\n")
-        mc_p.add_run("Deal Closed: ").bold = True
-        mc_p.add_run(mc.get("deal_closed_date", "N/A") + "\n")
-        mc_p.add_run("Final Consideration: ").bold = True
-        mc_p.add_run(mc.get("final_consideration", "N/A") + "\n")
-        mc_p.add_run("Short-Form Merger: ").bold = True
-        mc_p.add_run(mc.get("short_form_merger", "N/A"))
+        add_field(mc_p, "Acquirer: ", mc.get("acquirer"))
+        add_field(mc_p, "Deal Closed: ", mc.get("deal_closed_date"))
+        add_field(mc_p, "Final Consideration: ", mc.get("final_consideration"))
+        add_field(mc_p, "Short-Form Merger: ",
+                  mc.get("short_form_merger"), newline=False)
 
-    doc.add_heading("Arb Implications", level=2)
-    doc.add_paragraph(d.get("arb_implications", "N/A"))
+    if not is_empty_value(d.get("arb_implications")):
+        doc.add_heading("Arb Implications", level=2)
+        doc.add_paragraph(d.get("arb_implications"))
 
     buf = io.BytesIO()
     doc.save(buf)

@@ -58,7 +58,7 @@ Form 6-K is the report used by foreign private issuers (non-US companies listed 
 Given the 6-K text below, produce summaries at 3 levels. Respond ONLY in valid JSON (no markdown fences).
 
 {
-  "ticker": "<US ticker or ADR symbol>",
+  "ticker": "<US ticker or ADR symbol as stated in the filing, or null if not stated>",
   "company": "<company name>",
   "home_country": "<country of incorporation>",
   "filing_date": "<MM/DD/YY>",
@@ -66,7 +66,7 @@ Given the 6-K text below, produce summaries at 3 levels. Respond ONLY in valid J
 
   "L1_headline": "+ <TICKER> – <key event in ≤8 words>. | <date>",
 
- "L2_brief": "<2-3 sentence summary covering: what happened, key numbers, and stated impact if any>",
+  "L2_brief": "<2-3 sentence summary covering: what happened, key numbers, and stated impact if any>",
 
   "L3_detailed": {
     "event": "<what happened>",
@@ -122,7 +122,7 @@ def summarize(text: str, model: str = "claude-opus-4-6") -> dict:
 
     msg = client.messages.create(
         model=model,
-        max_tokens=1500,
+        max_tokens=4096,
         messages=[{
             "role": "user",
             "content": inject_deal_context(SUMMARY_PROMPT, DEAL_CONTEXT) + "\n\n" + text
@@ -174,6 +174,7 @@ def print_summary(s: dict):
 
 def export_docx(s: dict, s3_key_suffix: str):
     """Build summary as Word doc, upload to S3 (summary_docx/), return S3 path only."""
+    from .fetch_utils import is_empty_value, has_content, add_field
     from .s3_utils import upload_docx_bytes
 
     ticker = s.get("ticker", "UNKNOWN")
@@ -187,17 +188,12 @@ def export_docx(s: dict, s3_key_suffix: str):
     title.runs[0].font.size = Pt(20)
 
     meta = doc.add_paragraph()
-    meta.add_run(f"Company: ").bold = True
-    meta.add_run(s.get("company", "N/A"))
-    meta.add_run(f"    Country: ").bold = True
-    meta.add_run(s.get("home_country", "N/A"))
+    add_field(meta, "Company: ", s.get("company"), newline=False)
+    add_field(meta, "    Country: ", s.get("home_country"), newline=False)
 
-    date = s.get("filing_date", "")
     meta2 = doc.add_paragraph()
-    meta2.add_run(f"Filing Date: ").bold = True
-    meta2.add_run(date)
-    meta2.add_run(f"    Report Type: ").bold = True
-    meta2.add_run(s.get("report_type", "N/A"))
+    add_field(meta2, "Filing Date: ", s.get("filing_date"), newline=False)
+    add_field(meta2, "    Report Type: ", s.get("report_type"), newline=False)
 
     doc.add_heading("L1 — Headline", level=1)
     p = doc.add_paragraph()
@@ -212,29 +208,39 @@ def export_docx(s: dict, s3_key_suffix: str):
     doc.add_heading("L3 — Detailed", level=1)
     d = s["L3_detailed"]
 
-    doc.add_heading("Event", level=2)
-    doc.add_paragraph(d["event"])
+    if not is_empty_value(d.get("event")):
+        doc.add_heading("Event", level=2)
+        doc.add_paragraph(d.get("event"))
 
-    doc.add_heading("Key Figures", level=2)
-    for fig in d.get("key_figures", []):
-        doc.add_paragraph(fig, style="List Bullet")
+    key_figures = d.get("key_figures")
+    if has_content(key_figures):
+        doc.add_heading("Key Figures", level=2)
+        for fig in key_figures:
+            if not is_empty_value(fig):
+                doc.add_paragraph(fig, style="List Bullet")
 
-    doc.add_heading("Market Impact", level=2)
-    doc.add_paragraph(d.get("market_impact", "N/A"))
+    if not is_empty_value(d.get("market_impact")):
+        doc.add_heading("Market Impact", level=2)
+        doc.add_paragraph(d.get("market_impact"))
 
-    doc.add_heading("Deal Relevance", level=2)
-    doc.add_paragraph(d.get("deal_relevance", "N/A"))
+    if not is_empty_value(d.get("deal_relevance")):
+        doc.add_heading("Deal Relevance", level=2)
+        doc.add_paragraph(d.get("deal_relevance"))
 
-    doc.add_heading("Regulatory Notes", level=2)
-    doc.add_paragraph(d.get("regulatory_notes", "N/A"))
+    if not is_empty_value(d.get("regulatory_notes")):
+        doc.add_heading("Regulatory Notes", level=2)
+        doc.add_paragraph(d.get("regulatory_notes"))
 
-    doc.add_heading("Cross-Border Considerations", level=2)
-    doc.add_paragraph(d.get("cross_border_considerations", "N/A"))
+    if not is_empty_value(d.get("cross_border_considerations")):
+        doc.add_heading("Cross-Border Considerations", level=2)
+        doc.add_paragraph(d.get("cross_border_considerations"))
 
-    if d.get("risks_flagged"):
+    risks = d.get("risks_flagged")
+    if has_content(risks):
         doc.add_heading("Risks Flagged", level=2)
-        for r in d["risks_flagged"]:
-            doc.add_paragraph(r, style="List Bullet")
+        for r in risks:
+            if not is_empty_value(r):
+                doc.add_paragraph(r, style="List Bullet")
 
     buf = io.BytesIO()
     doc.save(buf)

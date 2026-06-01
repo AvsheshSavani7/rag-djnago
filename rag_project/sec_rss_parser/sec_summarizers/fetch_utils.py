@@ -149,11 +149,16 @@ def _get_anthropic_client() -> anthropic.Anthropic:
     return anthropic.Anthropic(api_key=api_key)
 
 
+MAX_CHUNK_WORDS = 100_000  # safe limit per Haiku call (~130K tokens)
+
+
 def extract_relevant_sections(full_text: str, extraction_guidance: str) -> str:
     """Use Haiku to extract relevant sections from a long filing.
 
     Pass 1 of two-pass approach: Haiku reads the full document and returns
     only the sections relevant to the specific filing type.
+     For very large filings (>150K words), splits into chunks and extracts
+    from each chunk separately, then combines the results.
     """
     client = _get_anthropic_client()
 
@@ -165,17 +170,37 @@ def extract_relevant_sections(full_text: str, extraction_guidance: str) -> str:
     print(
         f"   Extraction pass: sending {word_count:,} words to {EXTRACTION_MODEL}...")
 
-    msg = client.messages.create(
-        model=EXTRACTION_MODEL,
-        max_tokens=EXTRACTION_MAX_TOKENS,
-        messages=[{"role": "user", "content": prompt + full_text}],
-    )
+    if word_count <= MAX_CHUNK_WORDS:
+        # Single pass — fits in one call
+        msg = client.messages.create(
+            model=EXTRACTION_MODEL,
+            max_tokens=EXTRACTION_MAX_TOKENS,
+            messages=[{"role": "user", "content": prompt + full_text}],
+        )
+        extracted = msg.content[0].text.strip()
+    else:
+        # Chunk the text and extract from each chunk
+        words = full_text.split()
+        chunks = []
+        for start in range(0, len(words), MAX_CHUNK_WORDS):
+            chunks.append(" ".join(words[start:start + MAX_CHUNK_WORDS]))
+        print(
+            f"   Document exceeds {MAX_CHUNK_WORDS:,} words — splitting into {len(chunks)} chunks")
 
-    extracted = msg.content[0].text.strip()
+        extracts = []
+        for i, chunk in enumerate(chunks, 1):
+            print(
+                f"   Extracting chunk {i}/{len(chunks)} ({len(chunk.split()):,} words)...")
+            msg = client.messages.create(
+                model=EXTRACTION_MODEL,
+                max_tokens=EXTRACTION_MAX_TOKENS,
+                messages=[{"role": "user", "content": prompt + chunk}],
+            )
+            extracts.append(msg.content[0].text.strip())
+        extracted = ("\n\n" + "=" * 40 + "\n\n").join(extracts)
     extract_words = len(extracted.split())
-    pct = (extract_words / word_count * 100) if word_count else 0
     print(f"   Extraction complete: {extract_words:,} words extracted "
-          f"({pct:.0f}% of original)")
+          f"({extract_words / word_count * 100:.0f}% of original)")
 
     return extracted
 

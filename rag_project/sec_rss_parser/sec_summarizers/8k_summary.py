@@ -55,7 +55,7 @@ SUMMARY_PROMPT = """You are an expert analyst summarizing SEC 8-K filings for a 
 Given the 8-K text below, produce summaries at 3 levels. Respond ONLY in valid JSON (no markdown fences).
 
 {
-  "ticker": "<ticker symbol>",
+  "ticker": "<ticker symbol as stated in the filing, or null if not stated>",
   "company": "<company name>",
   "filing_date": "<MM/DD/YY>",
   "items_reported": ["<Item numbers, e.g. Item 5.07, Item 8.01>"],
@@ -230,7 +230,7 @@ def summarize(text: str, model: str = "claude-opus-4-6", prompt: str = None) -> 
 
     msg = client.messages.create(
         model=model,
-        max_tokens=1500,
+        max_tokens=4096,
         messages=[{
             "role": "user",
             "content": inject_deal_context(prompt, DEAL_CONTEXT) + "\n\n" + text
@@ -293,6 +293,7 @@ def print_summary(s: dict):
 
 def export_docx(s: dict, s3_key_suffix: str):
     """Build summary as Word doc, upload to S3 (summary_docx/), return (s3_path, s3_url)."""
+    from .fetch_utils import is_empty_value, has_content
     from .s3_utils import upload_docx_bytes
 
     ticker = s.get("ticker", "UNKNOWN")
@@ -307,20 +308,21 @@ def export_docx(s: dict, s3_key_suffix: str):
     title = doc.add_heading(title_text, level=0)
     title.runs[0].font.size = Pt(20)
 
-    date = s.get("filing_date", "")
     meta = doc.add_paragraph()
-    if s.get("company"):
+    if not is_empty_value(s.get("company")):
         meta.add_run("Company: ").bold = True
-        meta.add_run(s.get("company", "N/A"))
+        meta.add_run(s.get("company"))
         meta.add_run("    ")
     meta.add_run("Filing Date: ").bold = True
-    meta.add_run(date)
-    meta.add_run("    Items: ").bold = True
-    meta.add_run(", ".join(s.get("items_reported", [])))
-    if is_combined and s.get("exhibit_type"):
+    meta.add_run(s.get("filing_date", ""))
+    items = s.get("items_reported", [])
+    if has_content(items):
+        meta.add_run("    Items: ").bold = True
+        meta.add_run(", ".join(items))
+    if is_combined and not is_empty_value(s.get("exhibit_type")):
         meta2 = doc.add_paragraph()
         meta2.add_run("Exhibit Type: ").bold = True
-        meta2.add_run(s.get("exhibit_type", "N/A"))
+        meta2.add_run(s.get("exhibit_type"))
 
     doc.add_heading("L1 — Headline", level=1)
     p = doc.add_paragraph()
@@ -335,33 +337,34 @@ def export_docx(s: dict, s3_key_suffix: str):
     doc.add_heading("L3 — Detailed", level=1)
     d = s["L3_detailed"]
 
-    doc.add_heading("Event", level=2)
-    doc.add_paragraph(d["event"])
+    if not is_empty_value(d.get("event")):
+        doc.add_heading("Event", level=2)
+        doc.add_paragraph(d.get("event"))
 
-    doc.add_heading("Key Figures", level=2)
-    for fig in d.get("key_figures", []):
-        doc.add_paragraph(fig, style="List Bullet")
+    key_figures = d.get("key_figures")
+    if has_content(key_figures):
+        doc.add_heading("Key Figures", level=2)
+        for fig in key_figures:
+            if not is_empty_value(fig):
+                doc.add_paragraph(fig, style="List Bullet")
 
-    doc.add_heading("Deal Implications", level=2)
-    doc.add_paragraph(d.get("deal_implications", "N/A"))
+    if not is_empty_value(d.get("deal_implications")):
+        doc.add_heading("Deal Implications", level=2)
+        doc.add_paragraph(d.get("deal_implications"))
 
-    if d.get("market_impact"):
-        doc.add_heading("Market Impact", level=2)
-        doc.add_paragraph(d["market_impact"])
-
-    if d.get("forward_guidance"):
-        doc.add_heading("Forward Guidance", level=2)
-        doc.add_paragraph(d["forward_guidance"])
-
-    if d.get("remaining_conditions"):
+    remaining = d.get("remaining_conditions")
+    if has_content(remaining):
         doc.add_heading("Remaining Conditions", level=2)
-        for c in d["remaining_conditions"]:
-            doc.add_paragraph(c, style="List Bullet")
+        for c in remaining:
+            if not is_empty_value(c):
+                doc.add_paragraph(c, style="List Bullet")
 
-    if d.get("risks_flagged"):
+    risks = d.get("risks_flagged")
+    if has_content(risks):
         doc.add_heading("Risks Flagged", level=2)
-        for r in d["risks_flagged"]:
-            doc.add_paragraph(r, style="List Bullet")
+        for r in risks:
+            if not is_empty_value(r):
+                doc.add_paragraph(r, style="List Bullet")
 
     buf = io.BytesIO()
     doc.save(buf)

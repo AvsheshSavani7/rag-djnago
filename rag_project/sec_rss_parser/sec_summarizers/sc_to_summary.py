@@ -69,9 +69,9 @@ Given the tender offer filing text below, produce summaries at 3 levels. Respond
 {
   "filing_type": "<SC TO-T | SC TO-T/A | SC 14D-9 | SC 14D-9/A>",
   "bidder": "<name of entity making the tender offer>",
-  "bidder_ticker": "<bidder ticker or null>",
+  "bidder_ticker": "<bidder ticker as stated in the filing, or null if not stated>",
   "target": "<name of target company>",
-  "target_ticker": "<target ticker>",
+  "target_ticker": "<target ticker as stated in the filing, or null if not stated>",
   "filing_date": "<MM/DD/YY>",
 
   "L1_headline": "+ <TARGET TICKER> – <key event in ≤8 words>. | <date>",
@@ -169,7 +169,7 @@ def fetch_filing_text(source: str) -> str:
     return fetch_text_with_extraction(source, EXTRACTION_GUIDANCE)
 
 
-def summarize(text: str, model: str = "claude-sonnet-4-6") -> dict:
+def summarize(text: str, model: str = "claude-opus-4-6") -> dict:
     """Call Claude API to produce multi-level summary."""
     if not ANTHROPIC_API_KEY:
         raise ValueError(
@@ -301,6 +301,7 @@ def print_summary(s: dict):
 
 def export_docx(s: dict, s3_key_suffix: str):
     """Build summary as Word doc, upload to S3 (summary_docx/), return (s3_path, s3_url)."""
+    from .fetch_utils import is_empty_value, has_content, add_field
     from .s3_utils import upload_docx_bytes
 
     filing_type = s.get("filing_type", "SC_TO")
@@ -311,8 +312,7 @@ def export_docx(s: dict, s3_key_suffix: str):
     style.font.name = "Arial"
     style.font.size = Pt(11)
 
-    title = doc.add_heading(
-        f"{filing_type} Summary: {s.get('target', 'N/A')}", level=0)
+    title = doc.add_heading(f"{filing_type} Summary: {s.get('target', 'N/A')}", level=0)
     title.runs[0].font.size = Pt(20)
 
     # Deal parties
@@ -346,136 +346,122 @@ def export_docx(s: dict, s3_key_suffix: str):
 
     # Offer Terms
     ot = d.get("offer_terms", {})
-    doc.add_heading("Offer Terms", level=2)
-    terms_p = doc.add_paragraph()
-    terms_p.add_run("Offer Price: ").bold = True
-    terms_p.add_run(ot.get("offer_price", "N/A") + "\n")
-    terms_p.add_run("Offer Type: ").bold = True
-    terms_p.add_run(ot.get("offer_type", "N/A") + "\n")
-    if ot.get("exchange_ratio"):
-        terms_p.add_run("Exchange Ratio: ").bold = True
-        terms_p.add_run(ot["exchange_ratio"] + "\n")
-    terms_p.add_run("Premium: ").bold = True
-    terms_p.add_run(ot.get("premium", "N/A") + "\n")
-    terms_p.add_run("Total Deal Value: ").bold = True
-    terms_p.add_run(ot.get("total_deal_value", "N/A") + "\n")
-    terms_p.add_run("Shares Sought: ").bold = True
-    terms_p.add_run(ot.get("shares_sought", "N/A") + "\n")
-    terms_p.add_run("Minimum Condition: ").bold = True
-    terms_p.add_run(ot.get("minimum_condition", "N/A"))
-    if ot.get("top_up_option"):
-        terms_p.add_run("\n")
-        terms_p.add_run("Top-Up Option: ").bold = True
-        terms_p.add_run(ot["top_up_option"])
+    if has_content(ot):
+        doc.add_heading("Offer Terms", level=2)
+        terms_p = doc.add_paragraph()
+        add_field(terms_p, "Offer Price: ", ot.get("offer_price"))
+        add_field(terms_p, "Offer Type: ", ot.get("offer_type"))
+        add_field(terms_p, "Exchange Ratio: ", ot.get("exchange_ratio"))
+        add_field(terms_p, "Premium: ", ot.get("premium"))
+        add_field(terms_p, "Total Deal Value: ", ot.get("total_deal_value"))
+        add_field(terms_p, "Shares Sought: ", ot.get("shares_sought"))
+        add_field(terms_p, "Minimum Condition: ", ot.get("minimum_condition"))
+        add_field(terms_p, "Top-Up Option: ", ot.get("top_up_option"))
 
     # Timing
     tm = d.get("timing", {})
-    doc.add_heading("Timing", level=2)
-    time_p = doc.add_paragraph()
-    time_p.add_run("Offer Commenced: ").bold = True
-    time_p.add_run(tm.get("offer_commenced", "N/A") + "\n")
-    time_p.add_run("Expiration Date: ").bold = True
-    time_p.add_run(tm.get("expiration_date", "N/A") + "\n")
-    time_p.add_run("Withdrawal Deadline: ").bold = True
-    time_p.add_run(tm.get("withdrawal_deadline", "N/A") + "\n")
-    time_p.add_run("Expected Closing: ").bold = True
-    time_p.add_run(tm.get("expected_closing", "N/A"))
-    if tm.get("extensions"):
-        time_p.add_run("\n")
-        time_p.add_run("Extensions: ").bold = True
-        time_p.add_run(tm["extensions"])
+    if has_content(tm):
+        doc.add_heading("Timing", level=2)
+        time_p = doc.add_paragraph()
+        add_field(time_p, "Offer Commenced: ", tm.get("offer_commenced"))
+        add_field(time_p, "Expiration Date: ", tm.get("expiration_date"))
+        add_field(time_p, "Withdrawal Deadline: ", tm.get("withdrawal_deadline"))
+        add_field(time_p, "Expected Closing: ", tm.get("expected_closing"))
+        add_field(time_p, "Extensions: ", tm.get("extensions"))
 
-    # Board Recommendation
-    doc.add_heading("Board Recommendation", level=2)
-    rec_p = doc.add_paragraph()
-    rec_run = rec_p.add_run(d.get("board_recommendation", "N/A"))
-    rec_run.bold = True
-    rec_run.font.size = Pt(12)
-    rec = d.get("board_recommendation", "").upper()
-    if "RECOMMEND" in rec and "AGAINST" not in rec:
-        rec_run.font.color.rgb = RGBColor(0, 128, 0)
-    elif "AGAINST" in rec:
-        rec_run.font.color.rgb = RGBColor(192, 0, 0)
+    # Board Recommendation (keep special color formatting)
+    board_rec = d.get("board_recommendation")
+    if not is_empty_value(board_rec):
+        doc.add_heading("Board Recommendation", level=2)
+        rec_p = doc.add_paragraph()
+        rec_run = rec_p.add_run(board_rec)
+        rec_run.bold = True
+        rec_run.font.size = Pt(12)
+        rec_upper = board_rec.upper()
+        if "RECOMMEND" in rec_upper and "AGAINST" not in rec_upper:
+            rec_run.font.color.rgb = RGBColor(0, 128, 0)
+        elif "AGAINST" in rec_upper:
+            rec_run.font.color.rgb = RGBColor(192, 0, 0)
 
-    doc.add_heading("Fairness Opinion", level=2)
-    doc.add_paragraph(d.get("fairness_opinion", "N/A"))
+    if not is_empty_value(d.get("fairness_opinion")):
+        doc.add_heading("Fairness Opinion", level=2)
+        doc.add_paragraph(d["fairness_opinion"])
 
     # Background
-    if d.get("background_of_transaction"):
+    if not is_empty_value(d.get("background_of_transaction")):
         doc.add_heading("Background of Transaction", level=2)
         doc.add_paragraph(d["background_of_transaction"])
 
     # Conditions
-    if d.get("conditions_to_offer"):
+    conditions = d.get("conditions_to_offer", [])
+    if has_content(conditions):
         doc.add_heading("Conditions to Offer", level=2)
-        for c in d["conditions_to_offer"]:
-            doc.add_paragraph(c, style="List Bullet")
+        for c in conditions:
+            if not is_empty_value(c):
+                doc.add_paragraph(c, style="List Bullet")
 
-    # Financing
+    # Financing (keep special color formatting for financing condition)
     fin = d.get("financing", {})
-    doc.add_heading("Financing", level=2)
-    fin_p = doc.add_paragraph()
-    fin_p.add_run("Source: ").bold = True
-    fin_p.add_run(fin.get("source", "N/A") + "\n")
-    fin_p.add_run("Committed Financing: ").bold = True
-    fin_p.add_run(fin.get("committed_financing", "N/A") + "\n")
-    fin_p.add_run("Financing Condition: ").bold = True
-    fin_cond = fin.get("financing_condition", "N/A")
-    fin_run = fin_p.add_run(fin_cond)
-    if fin_cond and "YES" in fin_cond.upper():
-        fin_run.font.color.rgb = RGBColor(192, 0, 0)
-        fin_run.bold = True
+    if has_content(fin):
+        doc.add_heading("Financing", level=2)
+        fin_p = doc.add_paragraph()
+        add_field(fin_p, "Source: ", fin.get("source"))
+        add_field(fin_p, "Committed Financing: ", fin.get("committed_financing"))
+        fin_cond = fin.get("financing_condition")
+        if not is_empty_value(fin_cond):
+            fin_p.add_run("Financing Condition: ").bold = True
+            fin_run = fin_p.add_run(fin_cond)
+            if "YES" in fin_cond.upper():
+                fin_run.font.color.rgb = RGBColor(192, 0, 0)
+                fin_run.bold = True
 
     # Regulatory
     reg = d.get("regulatory_approvals", {})
-    doc.add_heading("Regulatory Approvals", level=2)
-    if reg.get("required"):
-        for r in reg["required"]:
-            doc.add_paragraph(r, style="List Bullet")
-    reg_p = doc.add_paragraph()
-    reg_p.add_run("Status: ").bold = True
-    reg_p.add_run(reg.get("status", "N/A") + "\n")
-    reg_p.add_run("Expected Timeline: ").bold = True
-    reg_p.add_run(reg.get("expected_timeline", "N/A"))
+    if has_content(reg):
+        doc.add_heading("Regulatory Approvals", level=2)
+        required = reg.get("required", [])
+        if has_content(required):
+            for r in required:
+                if not is_empty_value(r):
+                    doc.add_paragraph(r, style="List Bullet")
+        reg_p = doc.add_paragraph()
+        add_field(reg_p, "Status: ", reg.get("status"))
+        add_field(reg_p, "Expected Timeline: ", reg.get("expected_timeline"))
 
     # Deal Protections
     dp = d.get("deal_protections", {})
-    doc.add_heading("Deal Protections", level=2)
-    dp_p = doc.add_paragraph()
-    dp_p.add_run("Breakup Fee: ").bold = True
-    dp_p.add_run(dp.get("breakup_fee", "N/A") + "\n")
-    dp_p.add_run("Reverse Breakup Fee: ").bold = True
-    dp_p.add_run(dp.get("reverse_breakup_fee", "N/A") + "\n")
-    dp_p.add_run("Go-Shop: ").bold = True
-    dp_p.add_run(dp.get("go_shop", "N/A") + "\n")
-    dp_p.add_run("Matching Rights: ").bold = True
-    dp_p.add_run(dp.get("matching_rights", "N/A"))
-    if dp.get("force_the_vote"):
-        dp_p.add_run("\n")
-        dp_p.add_run("Force the Vote: ").bold = True
-        dp_p.add_run(dp["force_the_vote"])
+    if has_content(dp):
+        doc.add_heading("Deal Protections", level=2)
+        dp_p = doc.add_paragraph()
+        add_field(dp_p, "Breakup Fee: ", dp.get("breakup_fee"))
+        add_field(dp_p, "Reverse Breakup Fee: ", dp.get("reverse_breakup_fee"))
+        add_field(dp_p, "Go-Shop: ", dp.get("go_shop"))
+        add_field(dp_p, "Matching Rights: ", dp.get("matching_rights"))
+        add_field(dp_p, "Force the Vote: ", dp.get("force_the_vote"))
 
     # Other sections
-    if d.get("competing_offers"):
+    if not is_empty_value(d.get("competing_offers")):
         doc.add_heading("Competing Offers", level=2)
         doc.add_paragraph(d["competing_offers"])
 
-    if d.get("litigation"):
+    if not is_empty_value(d.get("litigation")):
         doc.add_heading("Litigation", level=2)
         doc.add_paragraph(d["litigation"])
 
-    if d.get("dissenting_shareholders"):
+    if not is_empty_value(d.get("dissenting_shareholders")):
         doc.add_heading("Dissenting Shareholders", level=2)
         doc.add_paragraph(d["dissenting_shareholders"])
 
-    if d.get("amendment_changes"):
+    if not is_empty_value(d.get("amendment_changes")):
         doc.add_heading("Amendment Changes", level=2)
         doc.add_paragraph(d["amendment_changes"])
 
-    if d.get("risks_flagged"):
+    risks = d.get("risks_flagged", [])
+    if not is_empty_value(risks):
         doc.add_heading("Risks Flagged", level=2)
-        for r in d["risks_flagged"]:
-            doc.add_paragraph(r, style="List Bullet")
+        for r in risks:
+            if not is_empty_value(r):
+                doc.add_paragraph(r, style="List Bullet")
 
     buf = io.BytesIO()
     doc.save(buf)

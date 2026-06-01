@@ -67,7 +67,7 @@ Given the S-4 text below, produce summaries at 3 levels. Respond ONLY in valid J
   "acquirer": "<acquiring company>",
   "acquirer_ticker": "<acquirer ticker>",
   "target": "<target company>",
-  "target_ticker": "<target ticker>",
+  "target_ticker": "<target ticker as stated in the filing, or null if not stated>",
   "filing_date": "<MM/DD/YY>",
 
   "L1_headline": "+ <TARGET TICKER> – <key event in ≤8 words>. | <date>",
@@ -245,8 +245,10 @@ def print_summary(s: dict):
 
 def export_docx(s: dict, s3_key_suffix: str):
     """Build summary as Word doc, upload to S3 (summary_docx/), return (s3_path, s3_url)."""
+    from .fetch_utils import is_empty_value, has_content, add_field
     from .s3_utils import upload_docx_bytes
 
+    date = s.get("filing_date", "")
     doc = DocxDocument()
 
     style = doc.styles["Normal"]
@@ -258,13 +260,11 @@ def export_docx(s: dict, s3_key_suffix: str):
 
     meta = doc.add_paragraph()
     meta.add_run("Acquirer: ").bold = True
-    meta.add_run(
-        f"{s.get('acquirer', 'N/A')} ({s.get('acquirer_ticker') or '—'})")
+    meta.add_run(f"{s.get('acquirer', 'N/A')} ({s.get('acquirer_ticker') or '—'})")
     meta.add_run("    Target: ").bold = True
     meta.add_run(f"{s.get('target', 'N/A')} ({s.get('target_ticker') or '—'})")
 
     meta2 = doc.add_paragraph()
-    date = s.get("filing_date", "")
     meta2.add_run("Filing Date: ").bold = True
     meta2.add_run(date)
     meta2.add_run("    Filing Type: ").bold = True
@@ -284,76 +284,74 @@ def export_docx(s: dict, s3_key_suffix: str):
     d = s["L3_detailed"]
     c = d.get("consideration", {})
 
-    doc.add_heading("Deal Terms", level=2)
-    terms_p = doc.add_paragraph()
-    terms_p.add_run("Structure: ").bold = True
-    terms_p.add_run(d.get("deal_structure", "N/A") + "\n")
-    terms_p.add_run("Consideration Type: ").bold = True
-    terms_p.add_run(c.get("type", "N/A") + "\n")
-    terms_p.add_run("Per Share Value: ").bold = True
-    terms_p.add_run(c.get("per_share_value", "N/A") + "\n")
-    if c.get("exchange_ratio"):
-        terms_p.add_run("Exchange Ratio: ").bold = True
-        terms_p.add_run(c["exchange_ratio"] + "\n")
-    if c.get("cash_component"):
-        terms_p.add_run("Cash Component: ").bold = True
-        terms_p.add_run(c["cash_component"] + "\n")
-    terms_p.add_run("Total Deal Value: ").bold = True
-    terms_p.add_run(c.get("total_deal_value", "N/A") + "\n")
-    terms_p.add_run("Premium: ").bold = True
-    terms_p.add_run(c.get("premium", "N/A"))
+    if has_content(c) or not is_empty_value(d.get("deal_structure")):
+        doc.add_heading("Deal Terms", level=2)
+        terms_p = doc.add_paragraph()
+        add_field(terms_p, "Structure: ", d.get("deal_structure"))
+        add_field(terms_p, "Consideration Type: ", c.get("type"))
+        add_field(terms_p, "Per Share Value: ", c.get("per_share_value"))
+        add_field(terms_p, "Exchange Ratio: ", c.get("exchange_ratio"))
+        add_field(terms_p, "Cash Component: ", c.get("cash_component"))
+        add_field(terms_p, "Total Deal Value: ", c.get("total_deal_value"))
+        add_field(terms_p, "Premium: ", c.get("premium"))
 
-    if d.get("conditions_precedent"):
+    conditions = d.get("conditions_precedent", [])
+    if has_content(conditions):
         doc.add_heading("Conditions Precedent", level=2)
-        for cond in d["conditions_precedent"]:
-            doc.add_paragraph(cond, style="List Bullet")
+        for cond in conditions:
+            if not is_empty_value(cond):
+                doc.add_paragraph(cond, style="List Bullet")
 
     reg = d.get("regulatory_approvals", {})
-    doc.add_heading("Regulatory Approvals", level=2)
-    if reg.get("required"):
-        for r in reg["required"]:
-            doc.add_paragraph(r, style="List Bullet")
-    reg_p = doc.add_paragraph()
-    reg_p.add_run("Status: ").bold = True
-    reg_p.add_run(reg.get("status", "N/A"))
+    if has_content(reg):
+        doc.add_heading("Regulatory Approvals", level=2)
+        required = reg.get("required", [])
+        if has_content(required):
+            for r in required:
+                if not is_empty_value(r):
+                    doc.add_paragraph(r, style="List Bullet")
+        reg_p = doc.add_paragraph()
+        add_field(reg_p, "Status: ", reg.get("status"))
 
     dp = d.get("deal_protections", {})
-    doc.add_heading("Deal Protections", level=2)
-    dp_p = doc.add_paragraph()
-    dp_p.add_run("Target Termination Fee: ").bold = True
-    dp_p.add_run(dp.get("breakup_fee_target", "N/A") + "\n")
-    dp_p.add_run("Acquirer Termination Fee: ").bold = True
-    dp_p.add_run(dp.get("breakup_fee_acquirer", "N/A") + "\n")
-    dp_p.add_run("Go-Shop: ").bold = True
-    dp_p.add_run(dp.get("go_shop", "N/A") + "\n")
-    dp_p.add_run("Matching Rights: ").bold = True
-    dp_p.add_run(dp.get("matching_rights", "N/A") + "\n")
-    dp_p.add_run("No-Shop: ").bold = True
-    dp_p.add_run(dp.get("no_shop", "N/A"))
+    if has_content(dp):
+        doc.add_heading("Deal Protections", level=2)
+        dp_p = doc.add_paragraph()
+        add_field(dp_p, "Target Termination Fee: ", dp.get("breakup_fee_target"))
+        add_field(dp_p, "Acquirer Termination Fee: ", dp.get("breakup_fee_acquirer"))
+        add_field(dp_p, "Go-Shop: ", dp.get("go_shop"))
+        add_field(dp_p, "Matching Rights: ", dp.get("matching_rights"))
+        add_field(dp_p, "No-Shop: ", dp.get("no_shop"))
 
-    doc.add_heading("Timeline & Vote", level=2)
-    tv_p = doc.add_paragraph()
-    tv_p.add_run("Expected Timeline: ").bold = True
-    tv_p.add_run(d.get("expected_timeline", "N/A") + "\n")
-    tv_p.add_run("Shareholder Vote: ").bold = True
-    tv_p.add_run(d.get("shareholder_vote", "N/A"))
+    timeline = d.get("expected_timeline")
+    vote = d.get("shareholder_vote")
+    if not is_empty_value(timeline) or not is_empty_value(vote):
+        doc.add_heading("Timeline & Vote", level=2)
+        tv_p = doc.add_paragraph()
+        add_field(tv_p, "Expected Timeline: ", timeline)
+        add_field(tv_p, "Shareholder Vote: ", vote)
 
-    doc.add_heading("Fairness Opinion", level=2)
-    doc.add_paragraph(d.get("fairness_opinion", "N/A"))
+    if not is_empty_value(d.get("fairness_opinion")):
+        doc.add_heading("Fairness Opinion", level=2)
+        doc.add_paragraph(d["fairness_opinion"])
 
-    if d.get("pro_forma_highlights"):
+    pro_forma = d.get("pro_forma_highlights", [])
+    if has_content(pro_forma):
         doc.add_heading("Pro Forma Highlights", level=2)
-        for pf in d["pro_forma_highlights"]:
-            doc.add_paragraph(pf, style="List Bullet")
+        for pf in pro_forma:
+            if not is_empty_value(pf):
+                doc.add_paragraph(pf, style="List Bullet")
 
-    if d.get("background_summary"):
+    if not is_empty_value(d.get("background_summary")):
         doc.add_heading("Background of Transaction", level=2)
         doc.add_paragraph(d["background_summary"])
 
-    if d.get("risk_factors"):
+    risks = d.get("risk_factors", [])
+    if has_content(risks):
         doc.add_heading("Key Risk Factors", level=2)
-        for r in d["risk_factors"]:
-            doc.add_paragraph(r, style="List Bullet")
+        for r in risks:
+            if not is_empty_value(r):
+                doc.add_paragraph(r, style="List Bullet")
 
     buf = io.BytesIO()
     doc.save(buf)

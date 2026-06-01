@@ -205,6 +205,7 @@ def print_summary(s: dict):
 
 def export_docx(s: dict, s3_key_suffix: str):
     """Build summary as Word doc, upload to S3 (summary_docx/), return (s3_path, s3_url)."""
+    from .fetch_utils import is_empty_value, has_content, add_field
     from .s3_utils import upload_docx_bytes
 
     ticker = s.get("ticker", "UNKNOWN")
@@ -220,14 +221,12 @@ def export_docx(s: dict, s3_key_suffix: str):
     title.runs[0].font.size = Pt(20)
 
     meta = doc.add_paragraph()
-    meta.add_run(f"Company: ").bold = True
-    meta.add_run(s.get("company", "N/A"))
-    meta.add_run(f"    Filing Type: ").bold = True
-    meta.add_run(filing_type)
+    add_field(meta, "Company: ", s.get("company"), newline=False)
+    meta.add_run("    ")
+    add_field(meta, "Filing Type: ", filing_type, newline=False)
 
     meta2 = doc.add_paragraph()
-    meta2.add_run(f"Filing Date: ").bold = True
-    meta2.add_run(date)
+    add_field(meta2, "Filing Date: ", date, newline=False)
 
     doc.add_heading("L1 — Headline", level=1)
     p = doc.add_paragraph()
@@ -242,39 +241,52 @@ def export_docx(s: dict, s3_key_suffix: str):
     doc.add_heading("L3 — Detailed", level=1)
     d = s["L3_detailed"]
 
-    doc.add_heading("Filing Purpose", level=2)
-    doc.add_paragraph(d.get("filing_purpose", "N/A"))
+    if not is_empty_value(d.get("filing_purpose")):
+        doc.add_heading("Filing Purpose", level=2)
+        doc.add_paragraph(d.get("filing_purpose"))
 
-    if d.get("key_information"):
+    items = d.get("key_information")
+    if has_content(items):
         doc.add_heading("Key Information", level=2)
-        for k in d["key_information"]:
-            doc.add_paragraph(k, style="List Bullet")
+        for k in items:
+            if not is_empty_value(k):
+                doc.add_paragraph(k, style="List Bullet")
 
-    if d.get("financial_highlights"):
+    items = d.get("financial_highlights")
+    if has_content(items):
         doc.add_heading("Financial Highlights", level=2)
-        for f in d["financial_highlights"]:
-            doc.add_paragraph(f, style="List Bullet")
+        for f in items:
+            if not is_empty_value(f):
+                doc.add_paragraph(f, style="List Bullet")
 
-    doc.add_heading("Deal Relevance", level=2)
-    doc.add_paragraph(d.get("deal_relevance", "N/A"))
+    if not is_empty_value(d.get("deal_relevance")):
+        doc.add_heading("Deal Relevance", level=2)
+        doc.add_paragraph(d.get("deal_relevance"))
 
-    doc.add_heading("Regulatory Mentions", level=2)
-    doc.add_paragraph(d.get("regulatory_mentions", "N/A"))
+    if not is_empty_value(d.get("regulatory_mentions")):
+        doc.add_heading("Regulatory Mentions", level=2)
+        doc.add_paragraph(d.get("regulatory_mentions"))
 
-    if d.get("timeline_or_dates"):
+    items = d.get("timeline_or_dates")
+    if has_content(items):
         doc.add_heading("Key Dates & Timeline", level=2)
-        for t in d["timeline_or_dates"]:
-            doc.add_paragraph(t, style="List Bullet")
+        for t in items:
+            if not is_empty_value(t):
+                doc.add_paragraph(t, style="List Bullet")
 
-    if d.get("conditions_or_requirements"):
+    items = d.get("conditions_or_requirements")
+    if has_content(items):
         doc.add_heading("Conditions & Requirements", level=2)
-        for c in d["conditions_or_requirements"]:
-            doc.add_paragraph(c, style="List Bullet")
+        for c in items:
+            if not is_empty_value(c):
+                doc.add_paragraph(c, style="List Bullet")
 
-    if d.get("risks_flagged"):
+    items = d.get("risks_flagged")
+    if has_content(items):
         doc.add_heading("Risks Flagged", level=2)
-        for r in d["risks_flagged"]:
-            doc.add_paragraph(r, style="List Bullet")
+        for r in items:
+            if not is_empty_value(r):
+                doc.add_paragraph(r, style="List Bullet")
 
     buf = io.BytesIO()
     doc.save(buf)

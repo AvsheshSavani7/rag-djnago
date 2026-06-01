@@ -57,7 +57,7 @@ Form S-8 registers securities to be offered to employees under benefit plans (st
 Given the S-8 text below, produce summaries at 3 levels. Respond ONLY in valid JSON (no markdown fences).
 
 {
-  "ticker": "<ticker symbol>",
+  "ticker": "<ticker symbol as stated in the filing, or null if not stated>",
   "company": "<registrant company name>",
   "filing_date": "<MM/DD/YY>",
 
@@ -72,14 +72,19 @@ Given the S-8 text below, produce summaries at 3 levels. Respond ONLY in valid J
     "securities_type": "<common stock, preferred, options, etc.>",
     "offering_price_basis": "<how offering price is determined — market price, fixed, formula>",
     "dilution_impact": "<percentage of outstanding shares this registration represents>",
-    "deal_context": "<if related to M&A: explains connection — assumed awards, inducement grants, post-close retention. Otherwise 'N/A'>",
+    "deal_context": "<connection to transaction as stated in the filing, if any. Otherwise 'N/A'>",
     "plan_details": "<key terms — vesting schedule, eligibility, administration>",
     "risks_flagged": ["<dilution concerns, large registration relative to float, post-merger equity integration>"]
   }
 }
 
 Rules:
-- TONE: State only facts from the filing. Do NOT speculate on motives, interpret what actions "signal" or "suggest", assess confidence levels, or draw conclusions beyond what is explicitly stated. GOOD: "Company suspended earnings calls due to pending transaction." BAD: "Company suspended earnings calls, signaling high confidence in deal completion."
+- CRITICAL — FACTS ONLY: Every statement in your summary must be directly traceable to the filing text. Report ONLY what the document says. Do NOT add analysis, assess significance, interpret motives, predict outcomes, evaluate probability, or editorialize. Do NOT state what is "not disclosed" or "not mentioned" — simply omit fields where the filing is silent. If the filing does not say it, do not write it.
+  GOOD: "CADE requested revenue data for 2021-2025 across four markets."
+  BAD: "The broad scope of information requested indicates potentially detailed competitive analysis ahead."
+  GOOD: "The offer expires June 10, 2026."
+  BAD: "This tight timeline may create pressure on shareholders to tender quickly."
+- PRECISION: Use the filing's exact terminology for legal, regulatory, and financial terms. Do NOT paraphrase in ways that broaden or narrow the stated meaning. GOOD: "All 14 Pennsylvania PUC hearings have concluded." BAD: "Regulatory proceedings concluded in Pennsylvania."
 - L1 format MUST be: + <TICKER> – registers <share count> for <plan type>. | <date>
 - Extract exact share counts and plan names
 - Calculate dilution as a percentage of outstanding shares if information is available
@@ -90,14 +95,25 @@ Rules:
 S-8 TEXT:
 """
 
+EXTRACTION_GUIDANCE = """This is an S-8 employee benefit plan registration statement.
+Extract:
+- Number of shares being registered
+- Name and type of benefit plan (stock option plan, ESPP, RSU plan, etc.)
+- Securities type being registered
+- Offering price or price basis
+- Plan terms: vesting schedule, eligibility
+- If M&A-related: connection to deal (assumed awards, inducement grants, post-merger plans)
+- Shares outstanding for dilution calculation
+- Any incorporation by reference details"""
+
 
 def fetch_filing_text(source: str) -> str:
     """Fetch and extract text from an S-8 filing (URL, local file, or PDF)."""
-    from .fetch_utils import fetch_text
-    return fetch_text(source)
+    from .fetch_utils import fetch_text_with_extraction
+    return fetch_text_with_extraction(source, extraction_guidance=EXTRACTION_GUIDANCE)
 
 
-def summarize(text: str, model: str = "claude-sonnet-4-6") -> dict:
+def summarize(text: str, model: str = "claude-opus-4-6") -> dict:
     """Call Claude API to produce multi-level summary."""
     if not ANTHROPIC_API_KEY:
         raise ValueError(
@@ -106,7 +122,7 @@ def summarize(text: str, model: str = "claude-sonnet-4-6") -> dict:
 
     msg = client.messages.create(
         model=model,
-        max_tokens=1500,
+        max_tokens=4096,
         messages=[{
             "role": "user",
             "content": inject_deal_context(SUMMARY_PROMPT, DEAL_CONTEXT) + "\n\n" + text
@@ -156,9 +172,11 @@ def print_summary(s: dict):
 
 def export_docx(s: dict, s3_key_suffix: str):
     """Build summary as Word doc, upload to S3 (summary_docx/), return (s3_path, s3_url)."""
+    from .fetch_utils import is_empty_value, has_content, add_field
     from .s3_utils import upload_docx_bytes
 
     ticker = s.get("ticker", "UNKNOWN")
+    date = s.get("filing_date", "")
     doc = DocxDocument()
 
     style = doc.styles["Normal"]
@@ -169,11 +187,9 @@ def export_docx(s: dict, s3_key_suffix: str):
     title.runs[0].font.size = Pt(20)
 
     meta = doc.add_paragraph()
-    meta.add_run(f"Company: ").bold = True
-    meta.add_run(s.get("company", "N/A"))
-    date = s.get("filing_date", "")
-    meta.add_run(f"    Filing Date: ").bold = True
-    meta.add_run(date)
+    add_field(meta, "Company: ", s.get("company"), newline=False)
+    meta.add_run("    ")
+    add_field(meta, "Filing Date: ", date, newline=False)
 
     doc.add_heading("L1 — Headline", level=1)
     p = doc.add_paragraph()
@@ -190,30 +206,31 @@ def export_docx(s: dict, s3_key_suffix: str):
 
     doc.add_heading("Registration Details", level=2)
     reg_p = doc.add_paragraph()
-    reg_p.add_run("Shares Registered: ").bold = True
-    reg_p.add_run(d.get("shares_registered", "N/A") + "\n")
-    reg_p.add_run("Plan Name: ").bold = True
-    reg_p.add_run(d.get("plan_name", "N/A") + "\n")
-    reg_p.add_run("Plan Type: ").bold = True
-    reg_p.add_run(d.get("plan_type", "N/A") + "\n")
-    reg_p.add_run("Securities Type: ").bold = True
-    reg_p.add_run(d.get("securities_type", "N/A") + "\n")
-    reg_p.add_run("Offering Price Basis: ").bold = True
-    reg_p.add_run(d.get("offering_price_basis", "N/A"))
+    add_field(reg_p, "Shares Registered: ", d.get("shares_registered"))
+    add_field(reg_p, "Plan Name: ", d.get("plan_name"))
+    add_field(reg_p, "Plan Type: ", d.get("plan_type"))
+    add_field(reg_p, "Securities Type: ", d.get("securities_type"))
+    add_field(reg_p, "Offering Price Basis: ", d.get(
+        "offering_price_basis"), newline=False)
 
-    doc.add_heading("Dilution Impact", level=2)
-    doc.add_paragraph(d.get("dilution_impact", "N/A"))
+    if not is_empty_value(d.get("dilution_impact")):
+        doc.add_heading("Dilution Impact", level=2)
+        doc.add_paragraph(d.get("dilution_impact"))
 
-    doc.add_heading("Deal Context", level=2)
-    doc.add_paragraph(d.get("deal_context", "N/A"))
+    if not is_empty_value(d.get("deal_context")):
+        doc.add_heading("Deal Context", level=2)
+        doc.add_paragraph(d.get("deal_context"))
 
-    doc.add_heading("Plan Details", level=2)
-    doc.add_paragraph(d.get("plan_details", "N/A"))
+    if not is_empty_value(d.get("plan_details")):
+        doc.add_heading("Plan Details", level=2)
+        doc.add_paragraph(d.get("plan_details"))
 
-    if d.get("risks_flagged"):
+    items = d.get("risks_flagged")
+    if has_content(items):
         doc.add_heading("Risks Flagged", level=2)
-        for r in d["risks_flagged"]:
-            doc.add_paragraph(r, style="List Bullet")
+        for r in items:
+            if not is_empty_value(r):
+                doc.add_paragraph(r, style="List Bullet")
 
     buf = io.BytesIO()
     doc.save(buf)

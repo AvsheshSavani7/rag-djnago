@@ -57,7 +57,7 @@ Form 144 is filed by affiliates or insiders who intend to sell restricted or con
 Given the Form 144 text below, produce summaries at 3 levels. Respond ONLY in valid JSON (no markdown fences).
 
 {
-  "ticker": "<ticker symbol>",
+  "ticker": "<ticker symbol as stated in the filing, or null if not stated>",
   "issuer": "<issuer company name>",
   "filing_date": "<MM/DD/YY>",
   "seller_name": "<name of person filing>",
@@ -65,7 +65,7 @@ Given the Form 144 text below, produce summaries at 3 levels. Respond ONLY in va
 
   "L1_headline": "+ <TICKER> – <seller> files to sell <amount>. | <date>",
 
-  "L2_brief": "<2-3 sentence summary covering: who plans to sell, how many shares, approximate value, and what it may signal>",
+  "L2_brief": "<2-3 sentence summary covering: who plans to sell, how many shares, approximate value, and and relationship to any pending transaction>",
 
   "L3_detailed": {
     "proposed_sale": {
@@ -78,31 +78,47 @@ Given the Form 144 text below, produce summaries at 3 levels. Respond ONLY in va
     "broker_info": "<name of broker through whom sale will be made, if disclosed>",
     "seller_total_holdings": "<total shares held by seller, if disclosed>",
     "percentage_of_holdings": "<what % of total holdings this sale represents, if calculable>",
-    "deal_signal": "<for pending M&A: what this proposed sale may signal. Otherwise 'N/A'>",
+    "deal_signal": "<for pending M&A: connection to any pending transaction as stated in the filing. Otherwise 'N/A'>",,
     "risks_flagged": ["<large sale relative to holdings, timing concerns, pending deal implications>"]
   }
 }
 
 Rules:
-- TONE: State only facts from the filing. Do NOT speculate on motives, interpret what actions "signal" or "suggest", assess confidence levels, or draw conclusions beyond what is explicitly stated. GOOD: "Company suspended earnings calls due to pending transaction." BAD: "Company suspended earnings calls, signaling high confidence in deal completion."
+- CRITICAL — FACTS ONLY: Every statement in your summary must be directly traceable to the filing text. Report ONLY what the document says. Do NOT add analysis, assess significance, interpret motives, predict outcomes, evaluate probability, or editorialize. Do NOT state what is "not disclosed" or "not mentioned" — simply omit fields where the filing is silent. If the filing does not say it, do not write it.
+  GOOD: "CADE requested revenue data for 2021-2025 across four markets."
+  BAD: "The broad scope of information requested indicates potentially detailed competitive analysis ahead."
+  GOOD: "The offer expires June 10, 2026."
+  BAD: "This tight timeline may create pressure on shareholders to tender quickly."
+- PRECISION: Use the filing's exact terminology for legal, regulatory, and financial terms. Do NOT paraphrase in ways that broaden or narrow the stated meaning. GOOD: "All 14 Pennsylvania PUC hearings have concluded." BAD: "Regulatory proceedings concluded in Pennsylvania."
 - L1 format MUST be: + <TICKER> – <seller> files to sell <shares>. | <date>
 - Extract exact share counts, dates, and acquisition details
 - Calculate approximate value using recent trading price if mentioned
 - Note the relationship between the seller and the issuer
-- For companies in pending mergers, assess whether this sale filing is routine or potentially signals deal risk
+- For companies in pending mergers, note any connection to pending transactions as stated in the filing
 - Flag if the proposed sale is a large percentage of total holdings
 
 FORM 144 TEXT:
 """
 
+EXTRACTION_GUIDANCE = """This is a Form 144 notice of proposed sale of restricted securities.
+Extract:
+- Seller name and relationship/title at issuer
+- Number of shares proposed for sale
+- Securities type and class
+- Approximate date of sale
+- Acquisition date and method of acquisition
+- Broker/dealer information
+- Seller's total holdings before and after proposed sale
+- If M&A-related: connection to pending deal"""
+
 
 def fetch_filing_text(source: str) -> str:
     """Fetch and extract text from a Form 144 filing (URL, local file, or PDF)."""
-    from .fetch_utils import fetch_text
-    return fetch_text(source)
+    from .fetch_utils import fetch_text_with_extraction
+    return fetch_text_with_extraction(source, extraction_guidance=EXTRACTION_GUIDANCE)
 
 
-def summarize(text: str, model: str = "claude-sonnet-4-6") -> dict:
+def summarize(text: str, model: str = "claude-opus-4-6") -> dict:
     """Call Claude API to produce multi-level summary."""
     if not ANTHROPIC_API_KEY:
         raise ValueError(
@@ -111,7 +127,7 @@ def summarize(text: str, model: str = "claude-sonnet-4-6") -> dict:
 
     msg = client.messages.create(
         model=model,
-        max_tokens=1500,
+        max_tokens=4096,
         messages=[{
             "role": "user",
             "content": inject_deal_context(SUMMARY_PROMPT, DEAL_CONTEXT) + "\n\n" + text
@@ -165,9 +181,11 @@ def print_summary(s: dict):
 
 def export_docx(s: dict, s3_key_suffix: str):
     """Build summary as Word doc, upload to S3 (summary_docx/), return (s3_path, s3_url)."""
+    from .fetch_utils import is_empty_value, has_content, add_field
     from .s3_utils import upload_docx_bytes
 
     ticker = s.get("ticker", "UNKNOWN")
+    date = s.get("filing_date", "")
     doc = DocxDocument()
 
     style = doc.styles["Normal"]
@@ -178,16 +196,19 @@ def export_docx(s: dict, s3_key_suffix: str):
     title.runs[0].font.size = Pt(20)
 
     meta = doc.add_paragraph()
-    meta.add_run(f"Issuer: ").bold = True
-    meta.add_run(s.get("issuer", "N/A"))
-    meta.add_run(f"    Seller: ").bold = True
-    meta.add_run(
-        f"{s.get('seller_name', 'N/A')} ({s.get('seller_relationship', 'N/A')})")
+    add_field(meta, "Issuer: ", s.get("issuer"), newline=False)
+    seller_name = s.get("seller_name")
+    seller_rel = s.get("seller_relationship")
+    if not is_empty_value(seller_name):
+        meta.add_run("    ")
+        meta.add_run("Seller: ").bold = True
+        seller_text = str(seller_name)
+        if not is_empty_value(seller_rel):
+            seller_text += f" ({seller_rel})"
+        meta.add_run(seller_text)
 
-    date = s.get("filing_date", "")
     meta2 = doc.add_paragraph()
-    meta2.add_run(f"Filing Date: ").bold = True
-    meta2.add_run(date)
+    add_field(meta2, "Filing Date: ", date, newline=False)
 
     doc.add_heading("L1 — Headline", level=1)
     p = doc.add_paragraph()
@@ -205,32 +226,27 @@ def export_docx(s: dict, s3_key_suffix: str):
 
     doc.add_heading("Proposed Sale", level=2)
     sale_p = doc.add_paragraph()
-    sale_p.add_run("Shares to Sell: ").bold = True
-    sale_p.add_run(ps.get("shares_to_sell", "N/A") + "\n")
-    sale_p.add_run("Estimated Value: ").bold = True
-    sale_p.add_run(ps.get("estimated_value", "N/A") + "\n")
-    sale_p.add_run("Securities Type: ").bold = True
-    sale_p.add_run(ps.get("securities_type", "N/A") + "\n")
-    sale_p.add_run("Acquisition Date: ").bold = True
-    sale_p.add_run(ps.get("acquisition_date", "N/A") + "\n")
-    sale_p.add_run("Acquisition Method: ").bold = True
-    sale_p.add_run(ps.get("acquisition_method", "N/A"))
+    add_field(sale_p, "Shares to Sell: ", ps.get("shares_to_sell"))
+    add_field(sale_p, "Estimated Value: ", ps.get("estimated_value"))
+    add_field(sale_p, "Securities Type: ", ps.get("securities_type"))
+    add_field(sale_p, "Acquisition Date: ", ps.get("acquisition_date"))
+    add_field(sale_p, "Acquisition Method: ", ps.get("acquisition_method"), newline=False)
 
     details = doc.add_paragraph()
-    details.add_run("Broker: ").bold = True
-    details.add_run(d.get("broker_info", "N/A") + "\n")
-    details.add_run("Total Holdings: ").bold = True
-    details.add_run(d.get("seller_total_holdings", "N/A") + "\n")
-    details.add_run("% of Holdings: ").bold = True
-    details.add_run(d.get("percentage_of_holdings", "N/A"))
+    add_field(details, "Broker: ", d.get("broker_info"))
+    add_field(details, "Total Holdings: ", d.get("seller_total_holdings"))
+    add_field(details, "% of Holdings: ", d.get("percentage_of_holdings"), newline=False)
 
-    doc.add_heading("Deal Signal", level=2)
-    doc.add_paragraph(d.get("deal_signal", "N/A"))
+    if not is_empty_value(d.get("deal_signal")):
+        doc.add_heading("Deal Signal", level=2)
+        doc.add_paragraph(d.get("deal_signal"))
 
-    if d.get("risks_flagged"):
+    items = d.get("risks_flagged")
+    if has_content(items):
         doc.add_heading("Risks Flagged", level=2)
-        for r in d["risks_flagged"]:
-            doc.add_paragraph(r, style="List Bullet")
+        for r in items:
+            if not is_empty_value(r):
+                doc.add_paragraph(r, style="List Bullet")
 
     buf = io.BytesIO()
     doc.save(buf)

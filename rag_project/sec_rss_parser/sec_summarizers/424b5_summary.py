@@ -57,7 +57,7 @@ SUMMARY_PROMPT = """You are an expert analyst summarizing SEC Form 424(B)(5) pro
 Given the 424(B)(5) text below, produce summaries at 3 levels. Respond ONLY in valid JSON (no markdown fences).
 
 {
-  "ticker": "<ticker symbol>",
+  "ticker": "<ticker symbol as stated in the filing, or null if not stated>",
   "company": "<company name>",
   "filing_date": "<MM/DD/YY>",
   "offering_type": "<Common Stock | Preferred Stock | Debt/Notes | Convertible Notes | Units | Warrants | Mixed>",
@@ -79,32 +79,51 @@ Given the 424(B)(5) text below, produce summaries at 3 levels. Respond ONLY in v
     "dilution": "<dilution impact — shares outstanding before/after, percentage dilution if stated>",
     "underwriters": ["<lead underwriters/bookrunners>"],
     "settlement_date": "<expected settlement/closing date>",
-    "deal_relevance": "<if related to M&A financing: how this offering connects to a pending deal. Otherwise 'N/A'>",
+    "deal_relevance": "<if related to M&A financing: connection to pending transaction as stated in the filing. Otherwise 'N/A'>",
     "key_risk_factors": ["<offering-specific risks — dilution, market conditions, use of proceeds risk>"]
   }
 }
 
 Rules:
-- TONE: State only facts from the filing. Do NOT speculate on motives, interpret what actions "signal" or "suggest", assess confidence levels, or draw conclusions beyond what is explicitly stated. GOOD: "Company suspended earnings calls due to pending transaction." BAD: "Company suspended earnings calls, signaling high confidence in deal completion."
+- CRITICAL — FACTS ONLY: Every statement in your summary must be directly traceable to the filing text. Report ONLY what the document says. Do NOT add analysis, assess significance, interpret motives, predict outcomes, evaluate probability, or editorialize. Do NOT state what is "not disclosed" or "not mentioned" — simply omit fields where the filing is silent. If the filing does not say it, do not write it.
+  GOOD: "CADE requested revenue data for 2021-2025 across four markets."
+  BAD: "The broad scope of information requested indicates potentially detailed competitive analysis ahead."
+  GOOD: "The offer expires June 10, 2026."
+  BAD: "This tight timeline may create pressure on shareholders to tender quickly."
+- PRECISION: Use the filing's exact terminology for legal, regulatory, and financial terms. Do NOT paraphrase in ways that broaden or narrow the stated meaning. GOOD: "All 14 Pennsylvania PUC hearings have concluded." BAD: "Regulatory proceedings concluded in Pennsylvania."
 - L1 format MUST be: + <TICKER> – <offering description>. | <date>
 - Extract EXACT offering price, share count, gross/net proceeds, and underwriting terms
 - Note the overallotment (greenshoe) option if present — this affects total potential dilution
 - Identify the lead underwriters/bookrunners
 - For M&A-related offerings: explain how proceeds relate to the deal (acquisition financing, etc.)
 - Calculate dilution percentage if pre/post share counts are available
-- Flag any lock-up agreements mentioned
+PRIORITY_ITEMS_10Q = ["1", "1A", "2", "3", "4", "5"]  
 
 424(B)(5) TEXT:
+"""
+
+EXTRACTION_GUIDANCE = """This is a 424(B)(5) prospectus supplement (securities offering).
+Extract:
+- Securities offered: type, number of shares/units
+- Offering price per share/unit
+- Gross and net proceeds
+- Underwriting discount/commission
+- Overallotment (greenshoe) option details
+- Use of proceeds
+- Dilution: shares outstanding before and after offering
+- Lead underwriters/bookrunners
+- Settlement date and lock-up agreements
+- If M&A-related: connection to pending deal
 """
 
 
 def fetch_filing_text(source: str) -> str:
     """Fetch and extract text from a 424(B)(5) filing (URL, local file, or PDF)."""
-    from .fetch_utils import fetch_text
-    return fetch_text(source)
+    from .fetch_utils import fetch_text_with_extraction
+    return fetch_text_with_extraction(source, extraction_guidance=EXTRACTION_GUIDANCE)
 
 
-def summarize(text: str, model: str = "claude-sonnet-4-6") -> dict:
+def summarize(text: str, model: str = "claude-opus-4-6") -> dict:
     """Call Claude API to produce multi-level summary."""
     if not ANTHROPIC_API_KEY:
         raise ValueError(
@@ -113,7 +132,7 @@ def summarize(text: str, model: str = "claude-sonnet-4-6") -> dict:
 
     msg = client.messages.create(
         model=model,
-        max_tokens=1500,
+        max_tokens=8000,
         messages=[{
             "role": "user",
             "content": inject_deal_context(SUMMARY_PROMPT, DEAL_CONTEXT) + "\n\n" + text
@@ -172,9 +191,11 @@ def print_summary(s: dict):
 
 def export_docx(s: dict, s3_key_suffix: str):
     """Build summary as Word doc, upload to S3 (summary_docx/), return (s3_path, s3_url)."""
+    from .fetch_utils import is_empty_value, has_content, add_field
     from .s3_utils import upload_docx_bytes
 
     ticker = s.get("ticker", "UNKNOWN")
+    date = s.get("filing_date", "")
     doc = DocxDocument()
 
     style = doc.styles["Normal"]
@@ -185,15 +206,12 @@ def export_docx(s: dict, s3_key_suffix: str):
     title.runs[0].font.size = Pt(20)
 
     meta = doc.add_paragraph()
-    meta.add_run(f"Company: ").bold = True
-    meta.add_run(s.get("company", "N/A"))
-    meta.add_run(f"    Offering Type: ").bold = True
-    meta.add_run(s.get("offering_type", "N/A"))
+    add_field(meta, "Company: ", s.get("company"), newline=False)
+    add_field(meta, "    Offering Type: ", s.get(
+        "offering_type"), newline=False)
 
-    date = s.get("filing_date", "")
     meta2 = doc.add_paragraph()
-    meta2.add_run(f"Filing Date: ").bold = True
-    meta2.add_run(date)
+    add_field(meta2, "Filing Date: ", date, newline=False)
 
     doc.add_heading("L1 — Headline", level=1)
     p = doc.add_paragraph()
@@ -211,40 +229,44 @@ def export_docx(s: dict, s3_key_suffix: str):
 
     doc.add_heading("Offering Terms", level=2)
     terms_p = doc.add_paragraph()
-    terms_p.add_run("Securities Offered: ").bold = True
-    terms_p.add_run(ot.get("securities_offered", "N/A") + "\n")
-    terms_p.add_run("Offering Price: ").bold = True
-    terms_p.add_run(ot.get("offering_price", "N/A") + "\n")
-    terms_p.add_run("Gross Proceeds: ").bold = True
-    terms_p.add_run(ot.get("gross_proceeds", "N/A") + "\n")
-    terms_p.add_run("Net Proceeds: ").bold = True
-    terms_p.add_run(ot.get("net_proceeds", "N/A") + "\n")
-    terms_p.add_run("Underwriting Discount: ").bold = True
-    terms_p.add_run(ot.get("underwriting_discount", "N/A") + "\n")
-    terms_p.add_run("Overallotment Option: ").bold = True
-    terms_p.add_run(ot.get("overallotment_option", "N/A"))
+    add_field(terms_p, "Securities Offered: ", ot.get("securities_offered"))
+    add_field(terms_p, "Offering Price: ", ot.get("offering_price"))
+    add_field(terms_p, "Gross Proceeds: ", ot.get("gross_proceeds"))
+    add_field(terms_p, "Net Proceeds: ", ot.get("net_proceeds"))
+    add_field(terms_p, "Underwriting Discount: ",
+              ot.get("underwriting_discount"))
+    add_field(terms_p, "Overallotment Option: ", ot.get(
+        "overallotment_option"), newline=False)
 
-    doc.add_heading("Use of Proceeds", level=2)
-    doc.add_paragraph(d.get("use_of_proceeds", "N/A"))
+    if not is_empty_value(d.get("use_of_proceeds")):
+        doc.add_heading("Use of Proceeds", level=2)
+        doc.add_paragraph(d.get("use_of_proceeds"))
 
-    doc.add_heading("Dilution", level=2)
-    doc.add_paragraph(d.get("dilution", "N/A"))
+    if not is_empty_value(d.get("dilution")):
+        doc.add_heading("Dilution", level=2)
+        doc.add_paragraph(d.get("dilution"))
 
-    doc.add_heading("Settlement Date", level=2)
-    doc.add_paragraph(d.get("settlement_date", "N/A"))
+    if not is_empty_value(d.get("settlement_date")):
+        doc.add_heading("Settlement Date", level=2)
+        doc.add_paragraph(d.get("settlement_date"))
 
-    if d.get("underwriters"):
+    underwriters = d.get("underwriters")
+    if has_content(underwriters):
         doc.add_heading("Underwriters", level=2)
-        for u in d["underwriters"]:
-            doc.add_paragraph(u, style="List Bullet")
+        for u in underwriters:
+            if not is_empty_value(u):
+                doc.add_paragraph(u, style="List Bullet")
 
-    doc.add_heading("Deal Relevance", level=2)
-    doc.add_paragraph(d.get("deal_relevance", "N/A"))
+    if not is_empty_value(d.get("deal_relevance")):
+        doc.add_heading("Deal Relevance", level=2)
+        doc.add_paragraph(d.get("deal_relevance"))
 
-    if d.get("key_risk_factors"):
+    risks = d.get("key_risk_factors")
+    if has_content(risks):
         doc.add_heading("Key Risk Factors", level=2)
-        for r in d["key_risk_factors"]:
-            doc.add_paragraph(r, style="List Bullet")
+        for r in risks:
+            if not is_empty_value(r):
+                doc.add_paragraph(r, style="List Bullet")
 
     buf = io.BytesIO()
     doc.save(buf)

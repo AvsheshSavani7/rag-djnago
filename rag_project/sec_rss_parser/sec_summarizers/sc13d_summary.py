@@ -57,7 +57,7 @@ Schedule 13D is filed when an investor acquires more than 5% of a company's shar
 Given the SC 13D or 13G text below, produce summaries at 3 levels. Respond ONLY in valid JSON (no markdown fences).
 
 {
-  "ticker": "<subject company ticker>",
+  "ticker": "<subject company ticker, or null if not stated in the filing>",
   "subject_company": "<name of the company whose shares are owned>",
   "filing_date": "<MM/DD/YY>",
   "filing_type": "<SC 13D | SC 13D/A | SC 13G | SC 13G/A>",
@@ -80,15 +80,20 @@ Given the SC 13D or 13G text below, produce summaries at 3 levels. Respond ONLY 
     "position_change": "<new position, increased, decreased, or unchanged — with prior % if amendment>",
     "source_of_funds": "<personal funds, working capital, margin, etc.>",
     "purpose_of_transaction": "<stated purpose — investment, influence board, seek merger, oppose deal, passive, etc.>",
-    "activist_intentions": "<any plans to: seek board seats, propose transactions, influence management, or change business strategy>",
-    "deal_implications": "<for pending M&A: how this stake affects deal probability, voting dynamics, or potential competing bids>",
+    "activist_intentions": "<plans or proposals explicitly stated in Item 4 of the filing>",
+    "deal_implications": "<for pending M&A: stated intentions regarding any pending transaction or corporate action>",
     "related_agreements": "<any standstill, voting, or lock-up agreements mentioned>",
     "risks_flagged": ["<activist risk, potential competing bid, deal opposition, regulatory implications>"]
   }
 }
 
 Rules:
-- TONE: State only facts from the filing. Do NOT speculate on motives, interpret what actions "signal" or "suggest", assess confidence levels, or draw conclusions beyond what is explicitly stated. GOOD: "Company suspended earnings calls due to pending transaction." BAD: "Company suspended earnings calls, signaling high confidence in deal completion."
+- CRITICAL — FACTS ONLY: Every statement in your summary must be directly traceable to the filing text. Report ONLY what the document says. Do NOT add analysis, assess significance, interpret motives, predict outcomes, evaluate probability, or editorialize. Do NOT state what is "not disclosed" or "not mentioned" — simply omit fields where the filing is silent. If the filing does not say it, do not write it.
+  GOOD: "CADE requested revenue data for 2021-2025 across four markets."
+  BAD: "The broad scope of information requested indicates potentially detailed competitive analysis ahead."
+  GOOD: "The offer expires June 10, 2026."
+  BAD: "This tight timeline may create pressure on shareholders to tender quickly."
+- PRECISION: Use the filing's exact terminology for legal, regulatory, and financial terms. Do NOT paraphrase in ways that broaden or narrow the stated meaning. GOOD: "All 14 Pennsylvania PUC hearings have concluded." BAD: "Regulatory proceedings concluded in Pennsylvania."
 - L1 format MUST be: + <TICKER> – <filer> discloses <X>% stake. | <date>
 - Distinguish between 13D (potentially activist) and 13G (passive) — this signals intent
 - Extract EXACT share counts, percentages, and voting/dispositive power breakdown
@@ -100,14 +105,27 @@ Rules:
 SC 13D/13G TEXT:
 """
 
+EXTRACTION_GUIDANCE = """This is an SC 13D or SC 13G beneficial ownership filing (5%+ stake disclosure).
+Extract:
+- Reporting person/entity name and type (individual, fund, corporation)
+- Total shares beneficially owned and percentage of class
+- Voting power breakdown (sole vs shared)
+- Dispositive power breakdown (sole vs shared)
+- Item 4: Purpose of Transaction — extract in FULL (this is the most critical section for arb)
+- Source and amount of funds used for acquisition
+- If amendment: prior share count/percentage and what changed
+- Any agreements (standstill, voting, lock-up, joint filing agreements)
+- Plans regarding merger, board seats, strategic changes, or activism
+"""
+
 
 def fetch_filing_text(source: str) -> str:
     """Fetch and extract text from an SC 13D/13G filing (URL, local file, or PDF)."""
-    from .fetch_utils import fetch_text
-    return fetch_text(source)
+    from .fetch_utils import fetch_text_with_extraction
+    return fetch_text_with_extraction(source, extraction_guidance=EXTRACTION_GUIDANCE)
 
 
-def summarize(text: str, model: str = "claude-sonnet-4-6") -> dict:
+def summarize(text: str, model: str = "claude-opus-4-6") -> dict:
     """Call Claude API to produce multi-level summary."""
     if not ANTHROPIC_API_KEY:
         raise ValueError(
@@ -116,7 +134,7 @@ def summarize(text: str, model: str = "claude-sonnet-4-6") -> dict:
 
     msg = client.messages.create(
         model=model,
-        max_tokens=1500,
+        max_tokens=4096,
         messages=[{
             "role": "user",
             "content": inject_deal_context(SUMMARY_PROMPT, DEAL_CONTEXT) + "\n\n" + text
@@ -173,9 +191,11 @@ def print_summary(s: dict):
 
 def export_docx(s: dict, s3_key_suffix: str):
     """Build summary as Word doc, upload to S3 (summary_docx/), return (s3_path, s3_url)."""
+    from .fetch_utils import is_empty_value, has_content, add_field
     from .s3_utils import upload_docx_bytes
 
     ticker = s.get("ticker", "UNKNOWN")
+    date = s.get("filing_date", "")
     doc = DocxDocument()
 
     style = doc.styles["Normal"]
@@ -186,18 +206,19 @@ def export_docx(s: dict, s3_key_suffix: str):
     title.runs[0].font.size = Pt(20)
 
     meta = doc.add_paragraph()
-    meta.add_run(f"Subject Company: ").bold = True
-    meta.add_run(s.get("subject_company", "N/A"))
-    meta.add_run(f"    Filing Type: ").bold = True
-    meta.add_run(s.get("filing_type", "N/A"))
+    add_field(meta, "Subject Company: ", s.get("subject_company"), newline=False)
+    add_field(meta, "    Filing Type: ", s.get("filing_type"), newline=False)
 
     meta2 = doc.add_paragraph()
-    meta2.add_run(f"Filer: ").bold = True
-    meta2.add_run(
-        f"{s.get('filer_name', 'N/A')} ({s.get('filer_type', 'N/A')})")
-    date = s.get("filing_date", "")
-    meta2.add_run(f"    Date: ").bold = True
-    meta2.add_run(date)
+    filer_name = s.get("filer_name")
+    filer_type = s.get("filer_type")
+    if not is_empty_value(filer_name):
+        meta2.add_run("Filer: ").bold = True
+        label = str(filer_name)
+        if not is_empty_value(filer_type):
+            label += f" ({filer_type})"
+        meta2.add_run(label)
+    add_field(meta2, "    Date: ", date, newline=False)
 
     doc.add_heading("L1 — Headline", level=1)
     p = doc.add_paragraph()
@@ -215,41 +236,43 @@ def export_docx(s: dict, s3_key_suffix: str):
 
     doc.add_heading("Ownership Details", level=2)
     own_p = doc.add_paragraph()
-    own_p.add_run("Shares Held: ").bold = True
-    own_p.add_run(od.get("shares_held", "N/A") + "\n")
-    own_p.add_run("Percentage Owned: ").bold = True
-    own_p.add_run(od.get("percentage_owned", "N/A") + "\n")
-    own_p.add_run("Sole Voting Power: ").bold = True
-    own_p.add_run(od.get("sole_voting_power", "N/A") + "\n")
-    own_p.add_run("Shared Voting Power: ").bold = True
-    own_p.add_run(od.get("shared_voting_power", "N/A") + "\n")
-    own_p.add_run("Sole Dispositive Power: ").bold = True
-    own_p.add_run(od.get("sole_dispositive_power", "N/A") + "\n")
-    own_p.add_run("Shared Dispositive Power: ").bold = True
-    own_p.add_run(od.get("shared_dispositive_power", "N/A"))
+    add_field(own_p, "Shares Held: ", od.get("shares_held"))
+    add_field(own_p, "Percentage Owned: ", od.get("percentage_owned"))
+    add_field(own_p, "Sole Voting Power: ", od.get("sole_voting_power"))
+    add_field(own_p, "Shared Voting Power: ", od.get("shared_voting_power"))
+    add_field(own_p, "Sole Dispositive Power: ", od.get("sole_dispositive_power"))
+    add_field(own_p, "Shared Dispositive Power: ", od.get("shared_dispositive_power"), newline=False)
 
-    doc.add_heading("Position Change", level=2)
-    doc.add_paragraph(d.get("position_change", "N/A"))
+    if not is_empty_value(d.get("position_change")):
+        doc.add_heading("Position Change", level=2)
+        doc.add_paragraph(d.get("position_change"))
 
-    doc.add_heading("Source of Funds", level=2)
-    doc.add_paragraph(d.get("source_of_funds", "N/A"))
+    if not is_empty_value(d.get("source_of_funds")):
+        doc.add_heading("Source of Funds", level=2)
+        doc.add_paragraph(d.get("source_of_funds"))
 
-    doc.add_heading("Purpose of Transaction", level=2)
-    doc.add_paragraph(d.get("purpose_of_transaction", "N/A"))
+    if not is_empty_value(d.get("purpose_of_transaction")):
+        doc.add_heading("Purpose of Transaction", level=2)
+        doc.add_paragraph(d.get("purpose_of_transaction"))
 
-    doc.add_heading("Activist Intentions", level=2)
-    doc.add_paragraph(d.get("activist_intentions", "N/A"))
+    if not is_empty_value(d.get("activist_intentions")):
+        doc.add_heading("Activist Intentions", level=2)
+        doc.add_paragraph(d.get("activist_intentions"))
 
-    doc.add_heading("Deal Implications", level=2)
-    doc.add_paragraph(d.get("deal_implications", "N/A"))
+    if not is_empty_value(d.get("deal_implications")):
+        doc.add_heading("Deal Implications", level=2)
+        doc.add_paragraph(d.get("deal_implications"))
 
-    doc.add_heading("Related Agreements", level=2)
-    doc.add_paragraph(d.get("related_agreements", "N/A"))
+    if not is_empty_value(d.get("related_agreements")):
+        doc.add_heading("Related Agreements", level=2)
+        doc.add_paragraph(d.get("related_agreements"))
 
-    if d.get("risks_flagged"):
+    risks = d.get("risks_flagged")
+    if has_content(risks):
         doc.add_heading("Risks Flagged", level=2)
-        for r in d["risks_flagged"]:
-            doc.add_paragraph(r, style="List Bullet")
+        for r in risks:
+            if not is_empty_value(r):
+                doc.add_paragraph(r, style="List Bullet")
 
     buf = io.BytesIO()
     doc.save(buf)

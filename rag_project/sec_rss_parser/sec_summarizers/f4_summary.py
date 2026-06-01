@@ -67,7 +67,7 @@ Given the F-4 text below, produce summaries at 3 levels. Respond ONLY in valid J
   "acquirer_ticker": "<acquirer US ticker or ADR>",
   "acquirer_home_country": "<country of incorporation>",
   "target": "<target company>",
-  "target_ticker": "<target ticker>",
+  "target_ticker": "<target ticker as stated in the filing, or null if not stated>",
   "target_home_country": "<target country of incorporation>",
   "filing_date": "<MM/DD/YY>",
 
@@ -92,7 +92,7 @@ Given the F-4 text below, produce summaries at 3 levels. Respond ONLY in valid J
       "status": "<current status of each>"
     },
     "cross_border_considerations": {
-      "structure_rationale": "<why this structure was chosen — tax efficiency, regulatory, listing requirements>",
+      "structure_rationale": "<stated reasons for the transaction structure, if disclosed>",
       "tax_treatment": "<tax implications for US shareholders, withholding, treaty benefits>",
       "listing_plans": "<where combined company will be listed — US exchange, home exchange, dual listing>",
       "currency_exposure": "<FX risk to shareholders — hedging, conversion at closing>"
@@ -111,7 +111,12 @@ Given the F-4 text below, produce summaries at 3 levels. Respond ONLY in valid J
 }
 
 Rules:
-- TONE: State only facts from the filing. Do NOT speculate on motives, interpret what actions "signal" or "suggest", assess confidence levels, or draw conclusions beyond what is explicitly stated. GOOD: "Company suspended earnings calls due to pending transaction." BAD: "Company suspended earnings calls, signaling high confidence in deal completion."
+- CRITICAL — FACTS ONLY: Every statement in your summary must be directly traceable to the filing text. Report ONLY what the document says. Do NOT add analysis, assess significance, interpret motives, predict outcomes, evaluate probability, or editorialize. Do NOT state what is "not disclosed" or "not mentioned" — simply omit fields where the filing is silent. If the filing does not say it, do not write it.
+  GOOD: "CADE requested revenue data for 2021-2025 across four markets."
+  BAD: "The broad scope of information requested indicates potentially detailed competitive analysis ahead."
+  GOOD: "The offer expires June 10, 2026."
+  BAD: "This tight timeline may create pressure on shareholders to tender quickly."
+- PRECISION: Use the filing's exact terminology for legal, regulatory, and financial terms. Do NOT paraphrase in ways that broaden or narrow the stated meaning. GOOD: "All 14 Pennsylvania PUC hearings have concluded." BAD: "Regulatory proceedings concluded in Pennsylvania."
 - L1 format MUST be: + <TARGET TICKER> – <event>. | <date>
 - Identify the countries involved and any cross-border structural considerations
 - Note if this is a scheme of arrangement (common in UK/Australian deals) vs. a traditional merger
@@ -124,12 +129,27 @@ Rules:
 
 F-4 TEXT:
 """
+EXTRACTION_GUIDANCE = """This is an F-4 registration statement (cross-border merger registration).
+Extract the following sections in full:
+- Deal structure: merger, scheme of arrangement, exchange offer
+- Consideration: per-share value, exchange ratio, cash component, total value, premium, currencies
+- Currency conversion mechanics (fixed vs floating)
+- ALL conditions precedent including court approvals for schemes
+- Regulatory approvals across ALL jurisdictions (US, EU, home-country, sector-specific) with status
+- Cross-border considerations: tax treatment, listing plans, currency exposure, structure rationale
+- Deal protections: termination fees (both sides), matching rights, go-shop, no-shop
+- Shareholder vote thresholds (note if scheme requires 75%)
+- Pro forma financials and synergy estimates
+- Fairness opinion: advisor name and conclusion
+- Background of the Transaction
+- Key risk factors including cross-border risks
+- If amendment (F-4/A): what changed from prior filing"""
 
 
 def fetch_filing_text(source: str) -> str:
     """Fetch and extract text from an F-4 filing (URL, local file, or PDF)."""
-    from .fetch_utils import fetch_text
-    return fetch_text(source, word_limit=20000)
+    from .fetch_utils import fetch_text_with_extraction
+    return fetch_text_with_extraction(source, extraction_guidance=EXTRACTION_GUIDANCE)
 
 
 def summarize(text: str, model: str = "claude-opus-4-6") -> dict:
@@ -234,8 +254,10 @@ def print_summary(s: dict):
 
 def export_docx(s: dict, s3_key_suffix: str):
     """Build summary as Word doc, upload to S3 (summary_docx/), return (s3_path, s3_url)."""
+    from .fetch_utils import is_empty_value, has_content, add_field
     from .s3_utils import upload_docx_bytes
 
+    date = s.get("filing_date", "")
     doc = DocxDocument()
 
     style = doc.styles["Normal"]
@@ -256,7 +278,6 @@ def export_docx(s: dict, s3_key_suffix: str):
         f"{s.get('target', 'N/A')} ({s.get('target_ticker') or '—'}) — {s.get('target_home_country', 'N/A')}")
 
     meta2 = doc.add_paragraph()
-    date = s.get("filing_date", "")
     meta2.add_run("Filing Date: ").bold = True
     meta2.add_run(date)
     meta2.add_run("    Filing Type: ").bold = True
@@ -276,83 +297,77 @@ def export_docx(s: dict, s3_key_suffix: str):
     d = s["L3_detailed"]
     c = d.get("consideration", {})
 
-    doc.add_heading("Deal Terms", level=2)
-    terms_p = doc.add_paragraph()
-    terms_p.add_run("Structure: ").bold = True
-    terms_p.add_run(d.get("deal_structure", "N/A") + "\n")
-    terms_p.add_run("Consideration Type: ").bold = True
-    terms_p.add_run(c.get("type", "N/A") + "\n")
-    terms_p.add_run("Per Share Value: ").bold = True
-    terms_p.add_run(c.get("per_share_value", "N/A") + "\n")
-    if c.get("exchange_ratio"):
-        terms_p.add_run("Exchange Ratio: ").bold = True
-        terms_p.add_run(c["exchange_ratio"] + "\n")
-    if c.get("cash_component"):
-        terms_p.add_run("Cash Component: ").bold = True
-        terms_p.add_run(c["cash_component"] + "\n")
-    terms_p.add_run("Total Deal Value: ").bold = True
-    terms_p.add_run(c.get("total_deal_value", "N/A") + "\n")
-    terms_p.add_run("Premium: ").bold = True
-    terms_p.add_run(c.get("premium", "N/A"))
-    if c.get("currency_details"):
-        terms_p.add_run("\n")
-        terms_p.add_run("Currency Details: ").bold = True
-        terms_p.add_run(c["currency_details"])
+    if has_content(c) or not is_empty_value(d.get("deal_structure")):
+        doc.add_heading("Deal Terms", level=2)
+        terms_p = doc.add_paragraph()
+        add_field(terms_p, "Structure: ", d.get("deal_structure"))
+        add_field(terms_p, "Consideration Type: ", c.get("type"))
+        add_field(terms_p, "Per Share Value: ", c.get("per_share_value"))
+        add_field(terms_p, "Exchange Ratio: ", c.get("exchange_ratio"))
+        add_field(terms_p, "Cash Component: ", c.get("cash_component"))
+        add_field(terms_p, "Total Deal Value: ", c.get("total_deal_value"))
+        add_field(terms_p, "Premium: ", c.get("premium"))
+        add_field(terms_p, "Currency Details: ", c.get("currency_details"))
 
-    if d.get("conditions_precedent"):
+    conditions = d.get("conditions_precedent", [])
+    if has_content(conditions):
         doc.add_heading("Conditions Precedent", level=2)
-        for cond in d["conditions_precedent"]:
-            doc.add_paragraph(cond, style="List Bullet")
+        for cond in conditions:
+            if not is_empty_value(cond):
+                doc.add_paragraph(cond, style="List Bullet")
 
     reg = d.get("regulatory_approvals", {})
-    doc.add_heading("Regulatory Approvals", level=2)
-    if reg.get("required"):
-        for r in reg["required"]:
-            doc.add_paragraph(r, style="List Bullet")
-    reg_p = doc.add_paragraph()
-    reg_p.add_run("Status: ").bold = True
-    reg_p.add_run(reg.get("status", "N/A"))
+    if has_content(reg):
+        doc.add_heading("Regulatory Approvals", level=2)
+        required = reg.get("required", [])
+        if has_content(required):
+            for r in required:
+                if not is_empty_value(r):
+                    doc.add_paragraph(r, style="List Bullet")
+        reg_p = doc.add_paragraph()
+        add_field(reg_p, "Status: ", reg.get("status"))
 
     cb = d.get("cross_border_considerations", {})
-    doc.add_heading("Cross-Border Considerations", level=2)
-    cb_p = doc.add_paragraph()
-    cb_p.add_run("Structure Rationale: ").bold = True
-    cb_p.add_run(cb.get("structure_rationale", "N/A") + "\n")
-    cb_p.add_run("Tax Treatment: ").bold = True
-    cb_p.add_run(cb.get("tax_treatment", "N/A") + "\n")
-    cb_p.add_run("Listing Plans: ").bold = True
-    cb_p.add_run(cb.get("listing_plans", "N/A") + "\n")
-    cb_p.add_run("Currency Exposure: ").bold = True
-    cb_p.add_run(cb.get("currency_exposure", "N/A"))
+    if has_content(cb):
+        doc.add_heading("Cross-Border Considerations", level=2)
+        cb_p = doc.add_paragraph()
+        add_field(cb_p, "Structure Rationale: ", cb.get("structure_rationale"))
+        add_field(cb_p, "Tax Treatment: ", cb.get("tax_treatment"))
+        add_field(cb_p, "Listing Plans: ", cb.get("listing_plans"))
+        add_field(cb_p, "Currency Exposure: ", cb.get("currency_exposure"))
 
     dp = d.get("deal_protections", {})
-    doc.add_heading("Deal Protections", level=2)
-    dp_p = doc.add_paragraph()
-    dp_p.add_run("Target Termination Fee: ").bold = True
-    dp_p.add_run(dp.get("breakup_fee_target", "N/A") + "\n")
-    dp_p.add_run("Acquirer Termination Fee: ").bold = True
-    dp_p.add_run(dp.get("breakup_fee_acquirer", "N/A") + "\n")
-    dp_p.add_run("Matching Rights: ").bold = True
-    dp_p.add_run(dp.get("matching_rights", "N/A") + "\n")
-    dp_p.add_run("Other Protections: ").bold = True
-    dp_p.add_run(dp.get("other_protections", "N/A"))
+    if has_content(dp):
+        doc.add_heading("Deal Protections", level=2)
+        dp_p = doc.add_paragraph()
+        add_field(dp_p, "Target Termination Fee: ",
+                  dp.get("breakup_fee_target"))
+        add_field(dp_p, "Acquirer Termination Fee: ",
+                  dp.get("breakup_fee_acquirer"))
+        add_field(dp_p, "Matching Rights: ", dp.get("matching_rights"))
+        add_field(dp_p, "Other Protections: ", dp.get("other_protections"))
 
-    doc.add_heading("Timeline & Vote", level=2)
-    tv_p = doc.add_paragraph()
-    tv_p.add_run("Expected Timeline: ").bold = True
-    tv_p.add_run(d.get("expected_timeline", "N/A") + "\n")
-    tv_p.add_run("Shareholder Vote: ").bold = True
-    tv_p.add_run(d.get("shareholder_vote", "N/A"))
+    timeline = d.get("expected_timeline")
+    vote = d.get("shareholder_vote")
+    if not is_empty_value(timeline) or not is_empty_value(vote):
+        doc.add_heading("Timeline & Vote", level=2)
+        tv_p = doc.add_paragraph()
+        add_field(tv_p, "Expected Timeline: ", timeline)
+        add_field(tv_p, "Shareholder Vote: ", vote)
 
-    if d.get("pro_forma_highlights"):
+    pro_forma = d.get("pro_forma_highlights", [])
+    if has_content(pro_forma):
         doc.add_heading("Pro Forma Highlights", level=2)
-        for pf in d["pro_forma_highlights"]:
-            doc.add_paragraph(pf, style="List Bullet")
+        for pf in pro_forma:
+            if not is_empty_value(pf):
+                doc.add_paragraph(pf, style="List Bullet")
 
-    if d.get("risk_factors"):
+    risks = d.get("risk_factors", [])
+    if has_content(risks):
         doc.add_heading("Key Risk Factors", level=2)
-        for r in d["risk_factors"]:
-            doc.add_paragraph(r, style="List Bullet")
+        for r in risks:
+            if not is_empty_value(r):
+                doc.add_paragraph(r, style="List Bullet")
 
     buf = io.BytesIO()
     doc.save(buf)
