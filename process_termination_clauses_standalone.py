@@ -32,7 +32,7 @@ class TerminationClauseProcessor:
     def __init__(self, max_workers: int = 4):
         # Initialize OpenAI client
         self.openai_client = openai.OpenAI(
-            api_key=os.environ.get("OPENAI_API_KEY"))
+            api_key=os.environ.get("OPENAI_API_KEY_SEC_FILING"))
 
         # Initialize Pinecone connection
         self.pc = pinecone.Pinecone(api_key=os.environ.get("PINECONE_API_KEY"))

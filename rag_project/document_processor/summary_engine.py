@@ -38,7 +38,7 @@ RUN_FULSOME_SUMMARIES = True
 def load_api_keys():
     load_dotenv()
     api_keys = {
-        'openai': os.getenv("OPENAI_API_KEY"),
+        'openai': os.getenv("OPENAI_API_KEY_SEC_FILING"),
         'google': os.getenv("GOOGLE_API_KEY"),
         'anthropic': os.getenv("ANTHROPIC_API_KEY")
     }

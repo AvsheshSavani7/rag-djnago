@@ -68,14 +68,15 @@ class HighValueFollowersTweetAnalyzer:
 
         # Setup API keys
         self.twitter_api_key = twitter_api_key or os.getenv('TWITTER_API_KEY')
-        self.openai_api_key = openai_api_key or os.getenv('OPENAI_API_KEY')
+        self.openai_api_key = openai_api_key or os.getenv(
+            'OPENAI_API_KEY_SEC_FILING')
 
         if not self.twitter_api_key:
             raise ValueError(
                 "Twitter API key is required. Set TWITTER_API_KEY environment variable.")
         if not self.openai_api_key:
             raise ValueError(
-                "OpenAI API key is required. Set OPENAI_API_KEY environment variable.")
+                "OpenAI API key is required. Set OPENAI_API_KEY_SEC_FILING environment variable.")
 
         # Setup clients
         self.openai_client = openai.OpenAI(api_key=self.openai_api_key)

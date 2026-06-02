@@ -303,11 +303,13 @@ Return JSON format:
 
         # Identify outliers first
         outliers = [c for c in classified_clauses
-                   if c.get('similarity_score', 1.0) < self.outlier_threshold]
+                    if c.get('similarity_score', 1.0) < self.outlier_threshold]
 
         if outliers:
-            print(f"   ⚠️  Found {len(outliers)} outlier clauses (similarity < {self.outlier_threshold:.0%})")
-            print(f"   These will receive detailed analysis to explain WHY they're unusual")
+            print(
+                f"   ⚠️  Found {len(outliers)} outlier clauses (similarity < {self.outlier_threshold:.0%})")
+            print(
+                f"   These will receive detailed analysis to explain WHY they're unusual")
 
         assessed_clauses = []
 
@@ -316,7 +318,8 @@ Return JSON format:
             assessment = self.assess_clause(clause)
 
             # CRITICAL: For outliers, add specific analysis (MAE Stage 7 approach)
-            is_outlier = clause.get('similarity_score', 1.0) < self.outlier_threshold
+            is_outlier = clause.get(
+                'similarity_score', 1.0) < self.outlier_threshold
             if is_outlier:
                 outlier_analysis = self.analyze_outlier_with_context(clause)
                 assessment['is_outlier'] = True
@@ -333,10 +336,11 @@ Return JSON format:
             print(f"\n📊 Outlier Analysis Complete:")
             print(f"   {len(outliers)} clauses analyzed for unusual patterns")
             high_risk_outliers = sum(1 for c in assessed_clauses
-                                    if c.get('is_outlier') and
-                                    c.get('outlier_analysis', {}).get('outlier_risk_level') == 'high')
+                                     if c.get('is_outlier') and
+                                     c.get('outlier_analysis', {}).get('outlier_risk_level') == 'high')
             if high_risk_outliers:
-                print(f"   🔴 {high_risk_outliers} HIGH-RISK outliers requiring lawyer review")
+                print(
+                    f"   🔴 {high_risk_outliers} HIGH-RISK outliers requiring lawyer review")
 
         return assessed_clauses
 
@@ -366,7 +370,7 @@ Return JSON format:
         # Outlier statistics (NEW - matches MAE Stage 7)
         outliers = [c for c in assessed_clauses if c.get('is_outlier', False)]
         high_risk_outliers = [c for c in outliers
-                             if c.get('outlier_analysis', {}).get('outlier_risk_level') == 'high']
+                              if c.get('outlier_analysis', {}).get('outlier_risk_level') == 'high']
 
         return {
             'total_clauses': len(assessed_clauses),
@@ -405,9 +409,9 @@ def run_stage7(classification_s3_url, accession, doc_type=None):
     print(f"  Deal ID: {deal_id}")
     print(f"  Clauses to assess: {len(classified_clauses)}")
 
-    openai_key = os.getenv('OPENAI_API_KEY')
+    openai_key = os.getenv('OPENAI_API_KEY_SEC_FILING')
     if not openai_key:
-        raise RuntimeError("OPENAI_API_KEY not set")
+        raise RuntimeError("OPENAI_API_KEY_SEC_FILING not set")
 
     assessor = NewDealRiskAssessor(openai_key)
     assessed_clauses = assessor.assess_all_clauses(classified_clauses)
@@ -424,7 +428,7 @@ def run_stage7(classification_s3_url, accession, doc_type=None):
             'input_tokens': assessor.total_input_tokens,
             'output_tokens': assessor.total_output_tokens,
             'estimated_cost': (assessor.total_input_tokens / 1_000_000 * 0.15 +
-                             assessor.total_output_tokens / 1_000_000 * 0.60)
+                               assessor.total_output_tokens / 1_000_000 * 0.60)
         }
     }
 
@@ -459,7 +463,8 @@ def main():
         return
 
     # Load classification data
-    print(f"\n📂 Loading classification: {os.path.basename(classification_file)}")
+    print(
+        f"\n📂 Loading classification: {os.path.basename(classification_file)}")
     with open(classification_file, 'r') as f:
         classification_data = json.load(f)
 
@@ -470,9 +475,9 @@ def main():
     print(f"  ✓ Clauses to assess: {len(classified_clauses)}")
 
     # Get API key
-    openai_key = os.getenv('OPENAI_API_KEY')
+    openai_key = os.getenv('OPENAI_API_KEY_SEC_FILING')
     if not openai_key:
-        print("\n❌ ERROR: OPENAI_API_KEY not set")
+        print("\n❌ ERROR: OPENAI_API_KEY_SEC_FILING not set")
         print("   Please add to .env file")
         return
 
@@ -499,12 +504,13 @@ def main():
                 'input_tokens': assessor.total_input_tokens,
                 'output_tokens': assessor.total_output_tokens,
                 'estimated_cost': (assessor.total_input_tokens / 1_000_000 * 0.15 +
-                                 assessor.total_output_tokens / 1_000_000 * 0.60)
+                                   assessor.total_output_tokens / 1_000_000 * 0.60)
             }
         }
 
         # Save report
-        output_file = os.path.join(OUTPUT_DIR, f"deal_assessment_{deal_id}_{timestamp}.json")
+        output_file = os.path.join(
+            OUTPUT_DIR, f"deal_assessment_{deal_id}_{timestamp}.json")
         with open(output_file, 'w') as f:
             json.dump(output, f, indent=2)
 
@@ -515,8 +521,10 @@ def main():
 
         print(f"\n🆔 Deal: {deal_id}")
         print(f"📊 Clauses assessed: {summary['total_clauses']}")
-        print(f"📈 Avg restrictiveness: {summary['avg_restrictiveness']:.2f}/10")
-        print(f"📊 Median restrictiveness: {summary['median_restrictiveness']}/10")
+        print(
+            f"📈 Avg restrictiveness: {summary['avg_restrictiveness']:.2f}/10")
+        print(
+            f"📊 Median restrictiveness: {summary['median_restrictiveness']}/10")
 
         print(f"\n📊 Restrictiveness Distribution:")
         for category, count in summary['restrictiveness_distribution'].items():
@@ -528,35 +536,44 @@ def main():
             print(f"  • {priority}: {count} clauses")
 
         print(f"\n💡 Key Findings:")
-        print(f"  • Requires investigation: {summary['investigation_required']} clauses")
-        print(f"  • Seller-favorable aspects: {summary['seller_favorable_count']} clauses")
+        print(
+            f"  • Requires investigation: {summary['investigation_required']} clauses")
+        print(
+            f"  • Seller-favorable aspects: {summary['seller_favorable_count']} clauses")
         print(f"  • Red flags: {summary['clauses_with_red_flags']} clauses")
 
         # Outlier analysis (NEW - matches MAE Stage 7)
         outlier_stats = summary.get('outlier_statistics', {})
         if outlier_stats.get('total_outliers', 0) > 0:
             print(f"\n⚠️  OUTLIER ANALYSIS (LOW SIMILARITY TO BENCHMARK):")
-            print(f"  • Total outliers: {outlier_stats['total_outliers']} ({outlier_stats['outlier_percentage']:.1f}%)")
-            print(f"  • High-risk outliers: {outlier_stats['high_risk_outliers']}")
-            print(f"  • Similarity threshold: {outlier_stats['outlier_threshold']:.0%}")
+            print(
+                f"  • Total outliers: {outlier_stats['total_outliers']} ({outlier_stats['outlier_percentage']:.1f}%)")
+            print(
+                f"  • High-risk outliers: {outlier_stats['high_risk_outliers']}")
+            print(
+                f"  • Similarity threshold: {outlier_stats['outlier_threshold']:.0%}")
 
             # Show top outlier concerns
             high_risk_outliers = [c for c in assessed_clauses
-                                 if c.get('is_outlier') and
-                                 c.get('outlier_analysis', {}).get('outlier_risk_level') == 'high']
+                                  if c.get('is_outlier') and
+                                  c.get('outlier_analysis', {}).get('outlier_risk_level') == 'high']
 
             if high_risk_outliers:
                 print(f"\n  🔴 HIGH-RISK OUTLIERS (Require Lawyer Review):")
                 for i, outlier in enumerate(high_risk_outliers[:3], 1):
                     analysis = outlier.get('outlier_analysis', {})
-                    print(f"\n  {i}. {outlier.get('section_title', 'Unknown')}")
-                    print(f"     Similarity: {outlier.get('similarity_score', 0):.1%}")
-                    print(f"     Why unusual: {analysis.get('why_unusual', 'N/A')[:100]}...")
+                    print(
+                        f"\n  {i}. {outlier.get('section_title', 'Unknown')}")
+                    print(
+                        f"     Similarity: {outlier.get('similarity_score', 0):.1%}")
+                    print(
+                        f"     Why unusual: {analysis.get('why_unusual', 'N/A')[:100]}...")
 
         print(f"\n💰 Token Usage:")
         print(f"  • Input: {assessor.total_input_tokens:,} tokens")
         print(f"  • Output: {assessor.total_output_tokens:,} tokens")
-        print(f"  • Estimated cost: ${output['token_usage']['estimated_cost']:.2f}")
+        print(
+            f"  • Estimated cost: ${output['token_usage']['estimated_cost']:.2f}")
 
         print("\n" + "="*80)
         print("✅ STAGE 7 COMPLETE!")

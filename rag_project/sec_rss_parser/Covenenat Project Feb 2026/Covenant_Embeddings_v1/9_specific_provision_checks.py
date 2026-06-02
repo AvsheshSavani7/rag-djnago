@@ -541,7 +541,8 @@ Identify specific asymmetries and assess their significance."""
         ]
 
         for check_name, check_func in tqdm(checks_to_run, desc="Checking provisions"):
-            check_key = check_name.split(". ")[1].lower().replace(" ", "_").replace("/", "_").replace("-", "_")
+            check_key = check_name.split(". ")[1].lower().replace(
+                " ", "_").replace("/", "_").replace("-", "_")
             checks[check_key] = check_func(all_text)
 
         return checks
@@ -592,11 +593,13 @@ Identify specific asymmetries and assess their significance."""
         # Check for highest priority risks
         oc_check = checks.get('ordinary_course_(highest_risk)', {})
         if oc_check.get('present') and oc_check.get('risk_level') == 'high':
-            concerns.append("🚨 Ordinary Course covenant is highly restrictive (litigation risk)")
+            concerns.append(
+                "🚨 Ordinary Course covenant is highly restrictive (litigation risk)")
 
         pc_check = checks.get('parent_consent_rights', {})
         if pc_check.get('present') and pc_check.get('consent_standard') == 'sole_discretion':
-            concerns.append("🚨 Parent consent is at sole discretion (high control risk)")
+            concerns.append(
+                "🚨 Parent consent is at sole discretion (high control risk)")
 
         mae_check = checks.get('mae_linked_covenants', {})
         if mae_check.get('litigation_risk_setup'):
@@ -607,7 +610,8 @@ Identify specific asymmetries and assess their significance."""
             if len(concerns) >= 3:
                 break
             if result.get('present') and result.get('risk_level') == 'high' and provision not in [c.split(':')[0] for c in concerns]:
-                concerns.append(f"⚠️  {provision.replace('_', ' ').title()} flagged as high risk")
+                concerns.append(
+                    f"⚠️  {provision.replace('_', ' ').title()} flagged as high risk")
 
         return concerns[:3]
 
@@ -626,9 +630,9 @@ def run_stage9(clauses_s3_url, accession, doc_type=None):
         clause.get('original_text', '') for clause in clauses
     ])
 
-    openai_key = os.getenv('OPENAI_API_KEY')
+    openai_key = os.getenv('OPENAI_API_KEY_SEC_FILING')
     if not openai_key:
-        raise ValueError("OPENAI_API_KEY not set")
+        raise ValueError("OPENAI_API_KEY_SEC_FILING not set")
 
     checker = SpecificProvisionChecker(openai_key)
 
@@ -647,7 +651,8 @@ def run_stage9(clauses_s3_url, accession, doc_type=None):
     ]
 
     for check_name, check_func in tqdm(checks_to_run, desc="Checking provisions"):
-        check_key = check_name.split(". ")[1].lower().replace(" ", "_").replace("/", "_").replace("-", "_")
+        check_key = check_name.split(". ")[1].lower().replace(
+            " ", "_").replace("/", "_").replace("-", "_")
         checks[check_key] = check_func(combined_text)
 
     risk_summary = checker.generate_risk_summary(checks)
@@ -663,11 +668,12 @@ def run_stage9(clauses_s3_url, accession, doc_type=None):
             'input_tokens': checker.total_input_tokens,
             'output_tokens': checker.total_output_tokens,
             'estimated_cost': (checker.total_input_tokens / 1_000_000 * 0.15 +
-                             checker.total_output_tokens / 1_000_000 * 0.60)
+                               checker.total_output_tokens / 1_000_000 * 0.60)
         }
     }
 
-    _, provision_url = upload_json(output, accession, "specific_provisions_json.json")
+    _, provision_url = upload_json(
+        output, accession, "specific_provisions_json.json")
 
     return {"specific_provisions_json": provision_url, "output": output}
 
@@ -705,14 +711,15 @@ def main():
         print("❌ Error: No clauses found in deal file")
         return
 
-    deal_id = deal_data.get('deal_id') or deal_data.get('document_id', 'unknown')
+    deal_id = deal_data.get('deal_id') or deal_data.get(
+        'document_id', 'unknown')
     print(f"  ✓ Deal ID: {deal_id}")
     print(f"  ✓ Clauses: {len(deal_data['clauses'])}")
 
     # Get API key
-    openai_key = os.getenv('OPENAI_API_KEY')
+    openai_key = os.getenv('OPENAI_API_KEY_SEC_FILING')
     if not openai_key:
-        print("\n❌ ERROR: OPENAI_API_KEY not set")
+        print("\n❌ ERROR: OPENAI_API_KEY_SEC_FILING not set")
         return
 
     try:
@@ -738,13 +745,14 @@ def main():
                 'input_tokens': checker.total_input_tokens,
                 'output_tokens': checker.total_output_tokens,
                 'estimated_cost': (checker.total_input_tokens / 1_000_000 * 0.15 +
-                                 checker.total_output_tokens / 1_000_000 * 0.60)
+                                   checker.total_output_tokens / 1_000_000 * 0.60)
             }
         }
 
         # Save report
         os.makedirs(OUTPUT_DIR, exist_ok=True)
-        output_file = os.path.join(OUTPUT_DIR, f"specific_provisions_{deal_id}_{timestamp}.json")
+        output_file = os.path.join(
+            OUTPUT_DIR, f"specific_provisions_{deal_id}_{timestamp}.json")
 
         with open(output_file, 'w') as f:
             json.dump(output, f, indent=2)
@@ -757,16 +765,19 @@ def main():
         print(f"\n🆔 Deal: {deal_id}")
         print(f"📊 Provisions checked: {risk_summary['provisions_checked']}")
         print(f"✅ Provisions found: {risk_summary['provisions_present']}")
-        print(f"⚠️  Overall risk level: {risk_summary['overall_risk_level'].upper()}")
+        print(
+            f"⚠️  Overall risk level: {risk_summary['overall_risk_level'].upper()}")
         print(f"📈 Risk score: {risk_summary['risk_score']}/30")
 
         if risk_summary['high_risk_provisions']:
-            print(f"\n🔴 HIGH RISK PROVISIONS ({len(risk_summary['high_risk_provisions'])}):")
+            print(
+                f"\n🔴 HIGH RISK PROVISIONS ({len(risk_summary['high_risk_provisions'])}):")
             for prov in risk_summary['high_risk_provisions']:
                 print(f"  • {prov.replace('_', ' ').title()}")
 
         if risk_summary['medium_risk_provisions']:
-            print(f"\n🟡 MEDIUM RISK PROVISIONS ({len(risk_summary['medium_risk_provisions'])}):")
+            print(
+                f"\n🟡 MEDIUM RISK PROVISIONS ({len(risk_summary['medium_risk_provisions'])}):")
             for prov in risk_summary['medium_risk_provisions']:
                 print(f"  • {prov.replace('_', ' ').title()}")
 
@@ -778,7 +789,8 @@ def main():
         print(f"\n💰 Token Usage:")
         print(f"  • Input: {checker.total_input_tokens:,} tokens")
         print(f"  • Output: {checker.total_output_tokens:,} tokens")
-        print(f"  • Estimated cost: ${output['token_usage']['estimated_cost']:.2f}")
+        print(
+            f"  • Estimated cost: ${output['token_usage']['estimated_cost']:.2f}")
 
         print("\n" + "="*80)
         print("✅ STAGE 9 COMPLETE!")

@@ -39,7 +39,7 @@ class SECDocumentAnalyzer:
 
         # Initialize OpenAI client
         self.openai_client = openai.OpenAI(
-            api_key=os.environ.get("OPENAI_API_KEY"))
+            api_key=os.environ.get("OPENAI_API_KEY_SEC_FILING"))
 
     def download_htm_file(self, url: str) -> Optional[str]:
         """Download HTM file from SEC URL"""
@@ -682,10 +682,12 @@ Respond ONLY with valid JSON.
                 filing_data.get('company_name', 'Unknown Company')
             )
 
-            filing_data['is_merger_related'] = analysis.get('is_merger_related')
+            filing_data['is_merger_related'] = analysis.get(
+                'is_merger_related')
             filing_data['confidence'] = analysis.get('confidence', 0)
             filing_data['reasoning'] = analysis.get('reasoning', '')
-            filing_data['is_target_us_listed'] = analysis.get('is_target_us_listed')
+            filing_data['is_target_us_listed'] = analysis.get(
+                'is_target_us_listed')
             filing_data['is_target_market_cap_greater_than_100m'] = analysis.get(
                 'is_target_market_cap_greater_than_100m')
 

@@ -7,9 +7,10 @@ import openai
 class LLMClient:
     def __init__(self):
         load_dotenv()
-        self.api_key = os.getenv("OPENAI_API_KEY")
+        self.api_key = os.getenv("OPENAI_API_KEY_SEC_FILING")
         if not self.api_key:
-            raise ValueError("OPENAI_API_KEY not found in .env file")
+            raise ValueError(
+                "OPENAI_API_KEY_SEC_FILING not found in .env file")
         openai.api_key = self.api_key
         self.client = openai.OpenAI()
 

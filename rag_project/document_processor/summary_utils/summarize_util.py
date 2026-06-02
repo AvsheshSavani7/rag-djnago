@@ -14,7 +14,7 @@ class SummaryEngineUtil:
 
         # Set up openAi cleint
         self.openai_client = openai.OpenAI(
-            api_key=os.environ.get("OPENAI_API_KEY"))
+            api_key=os.environ.get("OPENAI_API_KEY_SEC_FILING"))
 
     # =========================
     # LLM FUNCTION FOR GENERATING BULLET POINTS
@@ -23,7 +23,7 @@ class SummaryEngineUtil:
         try:
 
             self.openai_client = openai.OpenAI(
-                api_key=os.environ.get("OPENAI_API_KEY"))
+                api_key=os.environ.get("OPENAI_API_KEY_SEC_FILING"))
             # self.MAX_METADATA_SIZE = 40960
 
             response = self.openai_client.chat.completions.create(

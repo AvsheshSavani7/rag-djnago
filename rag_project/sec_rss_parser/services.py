@@ -145,7 +145,7 @@ def _extract_announce_date_with_llm(company_details_str):
     company_details_str: plain text with company names, CIKs, target/acquirer if available.
     Returns datetime.date or None. On any failure or if not found, returns None.
     """
-    if not openai or not os.environ.get("OPENAI_API_KEY"):
+    if not openai or not os.environ.get("OPENAI_API_KEY_SEC_FILING"):
         return None
     prompt = f"""You are a financial research assistant. Use web search to find the **deal announcement date** (the date the merger/acquisition was first publicly announced) for this company/deal.
 
@@ -160,7 +160,8 @@ If you cannot find a reliable announcement date, return: {{ "announce_date": nul
 Use only the date of the initial public announcement (e.g. press release, 8-K filing date of the deal announcement), not closing or other dates.
 """
     try:
-        client = openai.OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+        client = openai.OpenAI(
+            api_key=os.environ.get("OPENAI_API_KEY_SEC_FILING"))
         response = client.responses.create(
             model="gpt-5",
             tools=[{"type": "web_search"}],
@@ -735,7 +736,7 @@ def _match_deal_with_gpt(current_deal_str, excerpts_str):
     Ask GPT whether the current deal details match any of the given deal excerpts.
     Returns matched deal_id (str) if one match is found, else None.
     """
-    if not openai or not os.environ.get("OPENAI_API_KEY"):
+    if not openai or not os.environ.get("OPENAI_API_KEY_SEC_FILING"):
         return None
     if not excerpts_str or not current_deal_str:
         return None
@@ -778,7 +779,8 @@ Return ONLY valid JSON in this exact format:
 Use only the deal_id values from the Existing deals list. Return nothing else."""
 
     try:
-        client = openai.OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+        client = openai.OpenAI(
+            api_key=os.environ.get("OPENAI_API_KEY_SEC_FILING"))
         response = client.responses.create(
             model="gpt-5.2",
             tools=[{"type": "web_search"}],

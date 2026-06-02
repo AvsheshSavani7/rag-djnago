@@ -269,7 +269,7 @@ The orchestrator includes comprehensive error handling:
 
 ### Common Issues
 
-1. **Missing API Keys**: Ensure `OPENAI_API_KEY` and `TWITTER_API_KEY` are set
+1. **Missing API Keys**: Ensure `OPENAI_API_KEY_SEC_FILING` and `TWITTER_API_KEY` are set
 2. **Django Setup**: Make sure Django is properly configured
 3. **Deal Not Found**: Verify the deal ID exists in the database
 4. **Rate Limiting**: Adjust worker counts and delays if hitting API limits

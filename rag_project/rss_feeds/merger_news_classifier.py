@@ -307,10 +307,11 @@ def _call_llm_json_simple(
     context: Optional[Dict[str, Any]] = None,
 ) -> Optional[Dict[str, Any]]:
     """Call OpenAI API without web search; parse first JSON object from output_text."""
-    if not openai or not os.environ.get("OPENAI_API_KEY"):
+    if not openai or not os.environ.get("OPENAI_API_KEY_NEWSWIRE"):
         return None
     try:
-        client = openai.OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+        client = openai.OpenAI(
+            api_key=os.environ.get("OPENAI_API_KEY_NEWSWIRE"))
         response = client.responses.create(
             model=model,
             input=prompt,
@@ -386,11 +387,12 @@ def _call_llm_json_with_web_search(
     context: Optional[Dict[str, Any]] = None,
 ) -> Optional[Dict[str, Any]]:
     """Call OpenAI Responses API with web_search tool; parse first JSON object from output_text."""
-    if not openai or not os.environ.get("OPENAI_API_KEY"):
+    if not openai or not os.environ.get("OPENAI_API_KEY_NEWSWIRE"):
         return None
     try:
 
-        client = openai.OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+        client = openai.OpenAI(
+            api_key=os.environ.get("OPENAI_API_KEY_NEWSWIRE"))
         response = client.responses.create(
             model=model,
             tools=[{"type": "web_search"}],
@@ -630,7 +632,7 @@ def extract_new_deal_with_web_search(
     Returns:
         Dict with keys: target_name, acquire_name, cik, acquirer_cik, sec_url, announce_date (strings or None).
     """
-    if not openai or not os.environ.get("OPENAI_API_KEY"):
+    if not openai or not os.environ.get("OPENAI_API_KEY_NEWSWIRE"):
         return {
             "target_name": None,
             "acquire_name": None,
@@ -645,7 +647,8 @@ def extract_new_deal_with_web_search(
     prompt = EXTRACT_NEW_DEAL_PROMPT.format(article_url=article_url or "")
 
     try:
-        client = openai.OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+        client = openai.OpenAI(
+            api_key=os.environ.get("OPENAI_API_KEY_NEWSWIRE"))
         response = client.responses.create(
             model="gpt-5.2",
             tools=[{"type": "web_search"}],

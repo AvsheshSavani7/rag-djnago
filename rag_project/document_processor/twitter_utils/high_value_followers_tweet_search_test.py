@@ -311,10 +311,10 @@ class HighValueFollowersTweetSearchProcessorTest:
             import openai
 
             # Check if OpenAI API key is available
-            openai_api_key = os.getenv('OPENAI_API_KEY')
+            openai_api_key = os.getenv('OPENAI_API_KEY_SEC_FILING')
             if not openai_api_key:
                 self.logger.warning(
-                    "OPENAI_API_KEY not found, using base query structure")
+                    "OPENAI_API_KEY_SEC_FILING not found, using base query structure")
                 return base_query
 
             # Initialize OpenAI client

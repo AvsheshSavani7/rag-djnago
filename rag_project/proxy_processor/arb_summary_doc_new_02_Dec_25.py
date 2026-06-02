@@ -41,10 +41,10 @@ class QueryProcessor:
         logger.info("Initializing QueryProcessor")
         # Initialize OpenAI client (for embeddings)
         self.openai_client = openai.OpenAI(
-            api_key=os.environ.get("OPENAI_API_KEY")
+            api_key=os.environ.get("OPENAI_API_KEY_SEC_FILING")
         )
         logger.info(
-            f"OpenAI API key set: {'Yes' if os.environ.get('OPENAI_API_KEY') else 'No'}"
+            f"OpenAI API key set: {'Yes' if os.environ.get('OPENAI_API_KEY_SEC_FILING') else 'No'}"
         )
 
         # Initialize Claude client (for Q&A)

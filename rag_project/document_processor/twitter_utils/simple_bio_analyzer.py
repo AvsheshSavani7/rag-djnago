@@ -42,10 +42,11 @@ class SimpleBioAnalyzer:
         }
 
         # Setup OpenAI client
-        self.openai_api_key = openai_api_key or os.getenv('OPENAI_API_KEY')
+        self.openai_api_key = openai_api_key or os.getenv(
+            'OPENAI_API_KEY_SEC_FILING')
         if not self.openai_api_key:
             raise ValueError(
-                "OpenAI API key is required. Set OPENAI_API_KEY environment variable.")
+                "OpenAI API key is required. Set OPENAI_API_KEY_SEC_FILING environment variable.")
 
         self.client = OpenAI(api_key=self.openai_api_key)
 

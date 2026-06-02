@@ -97,7 +97,7 @@ The app requires the following Python packages:
 ## Configuration
 
 Make sure to set the following environment variables:
-- `OPENAI_API_KEY`: OpenAI API key for GPT processing
+- `OPENAI_API_KEY_SEC_FILING`: OpenAI API key for GPT processing
 - `MONGODB_CONNECTION_STRING`: MongoDB connection string
 - `MONGODB_NAME`: MongoDB database name
 

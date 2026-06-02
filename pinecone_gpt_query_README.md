@@ -11,7 +11,7 @@ This tool retrieves vector chunks from Pinecone based on a question, passes them
 
 2. Create a `.env` file with the following variables:
    ```
-   OPENAI_API_KEY=your_openai_api_key
+   OPENAI_API_KEY_SEC_FILING=your_openai_api_key
    PINECONE_API_KEY=your_pinecone_api_key
    PINECONE_INDEX_NAME=your_pinecone_index_name
    ```

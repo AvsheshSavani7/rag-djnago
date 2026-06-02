@@ -98,7 +98,7 @@ python high_value_followers_processor.py 68ac4a254a6006a0946ec3bb --max-follower
 ## Configuration
 
 ### Environment Variables
-- `OPENAI_API_KEY`: Required for GPT analysis
+- `OPENAI_API_KEY_SEC_FILING`: Required for GPT analysis
 - `TWITTER_API_KEY`: Optional, for additional Twitter API access
 
 ### Default Settings
@@ -274,7 +274,7 @@ The HighValueFollowers collection can be queried via:
 ### Common Issues
 1. **No followers found**: Ensure GUNSHOT approach completed successfully
 2. **Missing Twitter handles**: Check deal.twitter_details structure
-3. **GPT API errors**: Verify OPENAI_API_KEY and rate limits
+3. **GPT API errors**: Verify OPENAI_API_KEY_SEC_FILING and rate limits
 4. **Database errors**: Check MongoDB connection and permissions
 
 ### Debug Mode

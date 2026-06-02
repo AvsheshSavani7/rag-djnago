@@ -35,7 +35,7 @@ class SectionProcessor:
 
         # Initialize OpenAI
         self.openai_client = openai.OpenAI(
-            api_key=os.environ.get("OPENAI_API_KEY")
+            api_key=os.environ.get("OPENAI_API_KEY_SEC_FILING")
         )
 
         # Initialize Pinecone

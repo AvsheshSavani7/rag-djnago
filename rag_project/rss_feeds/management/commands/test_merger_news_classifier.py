@@ -76,10 +76,10 @@ class Command(BaseCommand):
                 "Dry run: will not create new deal in DB"))
         self.stdout.write("")
 
-        if not os.environ.get("OPENAI_API_KEY"):
+        if not os.environ.get("OPENAI_API_KEY_NEWSWIRE"):
             self.stdout.write(
                 self.style.ERROR(
-                    "OPENAI_API_KEY not set; flow will be skipped.")
+                    "OPENAI_API_KEY_NEWSWIRE not set; flow will be skipped.")
             )
 
         item = {

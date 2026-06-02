@@ -69,10 +69,10 @@ END_PATTERN = r"agrees?\s*,?\s*as\s+follows[:.]?"
 # END_PATTERN = r"agree\s*,?\s*as\s+follows\b"
 
 # Load API keys from environment variables
-openai.api_key = os.getenv('OPENAI_API_KEY')
+openai.api_key = os.getenv('OPENAI_API_KEY_SEC_FILING')
 if not openai.api_key:
     raise ValueError(
-        "OPENAI_API_KEY not found in environment variables. Please check your .env file.")
+        "OPENAI_API_KEY_SEC_FILING not found in environment variables. Please check your .env file.")
 
 # Initialize Anthropic client
 anthropic_client = Anthropic(api_key=os.getenv('ANTHROPIC_API_KEY'))
@@ -1243,7 +1243,8 @@ Return ONLY the JSON object. No explanation."""
     s3_urls = {}
     if pipeline_doc_type:
         from Termination_Embeddings_v1.termination_s3_utils import upload_json as _s3_upload_json
-        _, fees_8k_url = _s3_upload_json(fees_data, accession, pipeline_doc_type, "fees_8k_json.json")
+        _, fees_8k_url = _s3_upload_json(
+            fees_data, accession, pipeline_doc_type, "fees_8k_json.json")
         s3_urls["fees_8k_json"] = fees_8k_url
         print(f"\n  Fees uploaded to S3: {fees_8k_url}")
     else:
@@ -1314,7 +1315,8 @@ Return ONLY the JSON object. No explanation."""
     # Write triggers output (tagged as 8K source)
     if pipeline_doc_type:
         from Termination_Embeddings_v1.termination_s3_utils import upload_json as _s3_upload_json
-        _, triggers_8k_url = _s3_upload_json(triggers_data, accession, pipeline_doc_type, "triggers_8k_json.json")
+        _, triggers_8k_url = _s3_upload_json(
+            triggers_data, accession, pipeline_doc_type, "triggers_8k_json.json")
         s3_urls["triggers_8k_json"] = triggers_8k_url
         print(f"  Triggers uploaded to S3: {triggers_8k_url}")
     else:
@@ -1770,15 +1772,18 @@ def worker(url, pipeline_deal_id: str = None, pipeline_accession: str = None,
         s3_urls = {}
         if pipeline_doc_type:
             from Termination_Embeddings_v1.termination_s3_utils import upload_json as _s3_upload_json
-            _, triggers_url = _s3_upload_json(triggers_payload, accession, pipeline_doc_type, "triggers_json.json")
+            _, triggers_url = _s3_upload_json(
+                triggers_payload, accession, pipeline_doc_type, "triggers_json.json")
             s3_urls["triggers_json"] = triggers_url
-            print(f"\n✅ Generated {len(all_trigger_clauses)} termination trigger clauses")
+            print(
+                f"\n✅ Generated {len(all_trigger_clauses)} termination trigger clauses")
             print(f"📄 Triggers uploaded to S3: {triggers_url}")
         else:
             triggers_filename = f"termination_response_{accession}_triggers.json"
             with open(triggers_filename, "w", encoding="utf-8") as f:
                 json.dump(triggers_payload, f, indent=2, ensure_ascii=False)
-            print(f"\n✅ Generated {len(all_trigger_clauses)} termination trigger clauses")
+            print(
+                f"\n✅ Generated {len(all_trigger_clauses)} termination trigger clauses")
             print(f"📄 Triggers output: {triggers_filename}")
 
         # ------ TRACK 2: Termination Fees (Section 8.3) ------
@@ -1816,11 +1821,13 @@ def worker(url, pipeline_deal_id: str = None, pipeline_accession: str = None,
         # Write fees output
         if pipeline_doc_type:
             from Termination_Embeddings_v1.termination_s3_utils import upload_json as _s3_upload_json
-            _, fees_url = _s3_upload_json(fees_data, accession, pipeline_doc_type, "fees_json.json")
+            _, fees_url = _s3_upload_json(
+                fees_data, accession, pipeline_doc_type, "fees_json.json")
             s3_urls["fees_json"] = fees_url
             print(f"📄 Fees uploaded to S3: {fees_url}")
 
-            _, raw_url = _s3_upload_json({"clauses": all_trigger_clauses}, accession, pipeline_doc_type, "triggers_raw_json.json")
+            _, raw_url = _s3_upload_json(
+                {"clauses": all_trigger_clauses}, accession, pipeline_doc_type, "triggers_raw_json.json")
             s3_urls["triggers_raw_json"] = raw_url
         else:
             fees_filename = f"termination_response_{accession}_fees.json"
@@ -1836,7 +1843,8 @@ def worker(url, pipeline_deal_id: str = None, pipeline_accession: str = None,
 
         if pipeline_doc_type:
             from Termination_Embeddings_v1.termination_s3_utils import upload_json as _s3_upload_json
-            _, full_url = _s3_upload_json(enriched, accession, pipeline_doc_type, "full_json.json")
+            _, full_url = _s3_upload_json(
+                enriched, accession, pipeline_doc_type, "full_json.json")
             s3_urls["full_json"] = full_url
             logger.info(f"LEVEL 2 TEXT UPLOADED TO S3: {full_url}")
         else:
@@ -2758,7 +2766,7 @@ Return ONLY the JSON array. No explanation.
                 fees_data[field]["amount_description"] = r.get(
                     "amount_description", "")
                 logger.info(
-                    f"Definition enrichment for {field}: {r.get('amount_description','')}")
+                    f"Definition enrichment for {field}: {r.get('amount_description', '')}")
 
     except Exception as e:
         logger.error(f"Fee definition enrichment failed for {accession}: {e}")

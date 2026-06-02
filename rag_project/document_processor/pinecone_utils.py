@@ -99,7 +99,8 @@ class PineconeSectionFetcher:
         # set to your index dimension
         self.dim = int(os.getenv("PINECONE_DIM", "3072"))
         self.default_top_k = int(os.getenv("PINECONE_TOP_K", "300"))
-        self.openai_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+        self.openai_client = OpenAI(
+            api_key=os.getenv("OPENAI_API_KEY_SEC_FILING"))
         # Optional namespace if you use it
         self.namespace = os.getenv("PINECONE_NAMESPACE", None)
 

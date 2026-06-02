@@ -162,7 +162,7 @@ A test script `test_integration.py` has been created to verify the integration:
 
 ## Environment Variables Required
 
-- `OPENAI_API_KEY`: For creating embeddings
+- `OPENAI_API_KEY_SEC_FILING`: For creating embeddings
 - `PINECONE_API_KEY`: For Pinecone vector database access
 - `PINECONE_INDEX_NAME`: Name of the Pinecone index to use
 

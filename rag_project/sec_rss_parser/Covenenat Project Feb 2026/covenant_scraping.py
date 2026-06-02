@@ -69,10 +69,10 @@ END_PATTERN = r"agrees?\s*,?\s*as\s+follows[:.]?"
 # END_PATTERN = r"agree\s*,?\s*as\s+follows\b"
 
 # Load API keys from environment variables
-openai.api_key = os.getenv('OPENAI_API_KEY')
+openai.api_key = os.getenv('OPENAI_API_KEY_SEC_FILING')
 if not openai.api_key:
     raise ValueError(
-        "OPENAI_API_KEY not found in environment variables. Please check your .env file.")
+        "OPENAI_API_KEY_SEC_FILING not found in environment variables. Please check your .env file.")
 
 # Initialize Anthropic client
 anthropic_client = Anthropic(api_key=os.getenv('ANTHROPIC_API_KEY'))
@@ -1078,7 +1078,8 @@ def worker(url, pipeline_deal_id: str = None, pipeline_accession: str = None,
                             "Accept-Encoding": "gzip, deflate",
                             "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
                         }
-                        response = _requests_lib.get(url, headers=headers, timeout=60)
+                        response = _requests_lib.get(
+                            url, headers=headers, timeout=60)
                         html_content = response.text or ""
 
                         if (
@@ -1086,12 +1087,15 @@ def worker(url, pipeline_deal_id: str = None, pipeline_accession: str = None,
                             or "Undeclared Automated Tool" in html_content
                             or "Request Originates" in html_content
                         ):
-                            raise ValueError(f"SEC blocked via requests (status={response.status_code})")
+                            raise ValueError(
+                                f"SEC blocked via requests (status={response.status_code})")
 
                         if len(html_content) < 1000:
-                            raise ValueError(f"HTML too short ({len(html_content)} chars)")
+                            raise ValueError(
+                                f"HTML too short ({len(html_content)} chars)")
 
-                        page.set_content(html_content, wait_until="domcontentloaded")
+                        page.set_content(
+                            html_content, wait_until="domcontentloaded")
                         page.wait_for_timeout(1000)
 
                         text = page.inner_text("body") or ""
@@ -1111,7 +1115,8 @@ def worker(url, pipeline_deal_id: str = None, pipeline_accession: str = None,
 
                 thread_local.doc_text = text
                 full_text = text
-                print(f"[fetch] OK — document length: {len(full_text):,} chars")
+                print(
+                    f"[fetch] OK — document length: {len(full_text):,} chars")
                 break
 
             except Exception as e:
@@ -1344,15 +1349,18 @@ def worker(url, pipeline_deal_id: str = None, pipeline_accession: str = None,
         if pipeline_doc_type:
             from Covenant_Embeddings_v1.covenant_s3_utils import upload_json as _s3_upload_json
 
-            _, clauses_url = _s3_upload_json(clauses_payload, accession, "individual_clauses_json.json")
+            _, clauses_url = _s3_upload_json(
+                clauses_payload, accession, "individual_clauses_json.json")
             s3_urls["individual_clauses_json"] = clauses_url
             print(f"\n✅ Generated {len(all_clauses)} individual clauses")
             print(f"📄 Clauses uploaded to S3: {clauses_url}")
 
-            _, covenants_url = _s3_upload_json({"clauses": all_clauses}, accession, "covenants_json.json")
+            _, covenants_url = _s3_upload_json(
+                {"clauses": all_clauses}, accession, "covenants_json.json")
             s3_urls["covenants_json"] = covenants_url
 
-            _, full_url = _s3_upload_json(enriched, accession, "full_json.json")
+            _, full_url = _s3_upload_json(
+                enriched, accession, "full_json.json")
             s3_urls["full_json"] = full_url
             logger.info(f"LEVEL 2 TEXT UPLOADED TO S3: {full_url}")
         else:
@@ -1363,7 +1371,8 @@ def worker(url, pipeline_deal_id: str = None, pipeline_accession: str = None,
             print(f"📄 Output: {clauses_filename}")
 
             with open(cv_filename, "w", encoding="utf-8") as f:
-                json.dump({"clauses": all_clauses}, f, indent=2, ensure_ascii=False)
+                json.dump({"clauses": all_clauses}, f,
+                          indent=2, ensure_ascii=False)
 
             with open(filename, "w", encoding="utf-8") as f:
                 json.dump(enriched, f, indent=2, ensure_ascii=False)

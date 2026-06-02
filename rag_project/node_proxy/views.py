@@ -33,7 +33,7 @@ from sec_rss_parser.email_templates import (
 from sec_rss_parser.utils_8k import send_webhook_notification
 
 logger = logging.getLogger(__name__)
-openai_client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+openai_client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY_SEC_FILING"))
 MODEL = "gpt-5-nano-2025-08-07"
 
 # Keep these in sync with `sec_rss_parser/services.py`.

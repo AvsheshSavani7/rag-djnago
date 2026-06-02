@@ -111,7 +111,7 @@ class ProxySummaryServiceV2:
         self.analyzer = ProxyBackgroundAnalyzer()
         # Initialize OpenAI client (for embeddings)
         self.openai_client = openai.OpenAI(
-            api_key=os.environ.get("OPENAI_API_KEY")
+            api_key=os.environ.get("OPENAI_API_KEY_SEC_FILING")
         )
 
     def get_background_chunks_by_filing_id(self, sec_filing_summary_id: str) -> str:

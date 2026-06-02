@@ -59,7 +59,7 @@ END_PATTERN = r"agrees?\s*,?\s*as\s+follows[:.]?"
 # END_PATTERN = r"agree\s*,?\s*as\s+follows\b"
 
 # Load API key from environment (never hardcode in production)
-_openai_key = os.environ.get("OPENAI_API_KEY")
+_openai_key = os.environ.get("OPENAI_API_KEY_SEC_FILING")
 if _openai_key:
     openai.api_key = _openai_key
 else:
@@ -67,7 +67,7 @@ else:
     try:
         from dotenv import load_dotenv
         load_dotenv()
-        openai.api_key = os.environ.get("OPENAI_API_KEY") or ""
+        openai.api_key = os.environ.get("OPENAI_API_KEY_SEC_FILING") or ""
     except ImportError:
         openai.api_key = ""
 

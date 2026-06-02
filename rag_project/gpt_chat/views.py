@@ -14,7 +14,7 @@ from mongoengine.errors import DoesNotExist
 
 logger = logging.getLogger(__name__)
 
-client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
+client = OpenAI(api_key=os.getenv('OPENAI_API_KEY_SEC_FILING'))
 assistant_id = os.getenv('OPENAI_ASSISTANT_ID')
 
 
@@ -104,7 +104,6 @@ class ThreadDeleteView(APIView):
         except Exception as e:
             logger.error(f"Error deleting thread: {str(e)}")
             return Response({"error": "Failed to delete thread"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
 
 
 class MessageListView(APIView):

@@ -29,6 +29,7 @@ class SectionProcessorV2:
     Process proxy sections and upload to Pinecone.
     V2: Uses sec_filing_summary_id instead of proxy_id.
     """
+
     def __init__(self, sec_filing_summary_id: str = None, deal_id: str = None):
         # Load environment variables
         load_dotenv()
@@ -39,7 +40,7 @@ class SectionProcessorV2:
 
         # Initialize OpenAI
         self.openai_client = openai.OpenAI(
-            api_key=os.environ.get("OPENAI_API_KEY")
+            api_key=os.environ.get("OPENAI_API_KEY_SEC_FILING")
         )
 
         # Initialize Pinecone

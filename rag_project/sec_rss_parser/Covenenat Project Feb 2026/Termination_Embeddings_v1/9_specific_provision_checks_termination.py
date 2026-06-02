@@ -535,14 +535,22 @@ RISK ASSESSMENT:
         print("\nRunning 8 specific termination provision checks...")
 
         checks_to_run = [
-            ("1. Outside Date Duration (>= 18 months?)", "outside_date_duration", self.check_outside_date_duration),
-            ("2. Regulatory / Antitrust RTF", "regulatory_rtf", self.check_regulatory_rtf),
-            ("3. Tail Provision (12-month standard)", "tail_provision", self.check_tail_provision),
-            ("4. Specific Performance Availability", "specific_performance", self.check_specific_performance),
-            ("5. Willful Breach Carveout", "willful_breach", self.check_willful_breach),
-            ("6. Matching Rights / Intervening Events", "matching_rights", self.check_matching_rights),
-            ("7. Financing Failure Trigger", "financing_failure", self.check_financing_failure),
-            ("8. Unilateral Outside Date Extension", "unilateral_extension", self.check_unilateral_extension),
+            ("1. Outside Date Duration (>= 18 months?)",
+             "outside_date_duration", self.check_outside_date_duration),
+            ("2. Regulatory / Antitrust RTF",
+             "regulatory_rtf", self.check_regulatory_rtf),
+            ("3. Tail Provision (12-month standard)",
+             "tail_provision", self.check_tail_provision),
+            ("4. Specific Performance Availability",
+             "specific_performance", self.check_specific_performance),
+            ("5. Willful Breach Carveout",
+             "willful_breach", self.check_willful_breach),
+            ("6. Matching Rights / Intervening Events",
+             "matching_rights", self.check_matching_rights),
+            ("7. Financing Failure Trigger",
+             "financing_failure", self.check_financing_failure),
+            ("8. Unilateral Outside Date Extension",
+             "unilateral_extension", self.check_unilateral_extension),
         ]
 
         checks = {}
@@ -582,7 +590,8 @@ RISK ASSESSMENT:
         traffic_light = {}
         for provision, result in checks.items():
             level = result.get("risk_level", "unknown")
-            color = {"high": "red", "medium": "yellow", "low": "green"}.get(level, "grey")
+            color = {"high": "red", "medium": "yellow",
+                     "low": "green"}.get(level, "grey")
             party = result.get("party_favored", "unknown")
             confidence = result.get("confidence", "unknown")
             traffic_light[provision] = {
@@ -633,7 +642,8 @@ RISK ASSESSMENT:
                 break
             if result.get("risk_level") == "high" and result.get("confidence") in ("high", "medium"):
                 label = provision.replace("_", " ").title()
-                concerns.append(f"{label} flagged HIGH risk: {'; '.join(result.get('risk_factors', [])[:1])}")
+                concerns.append(
+                    f"{label} flagged HIGH risk: {'; '.join(result.get('risk_factors', [])[:1])}")
 
         return concerns[:5]
 
@@ -694,16 +704,17 @@ def run_stage9(fees_s3_url: str, triggers_s3_url: str,
     print(f"  Accession: {accession}")
     print(f"  Fees source: {fees_s3_url}")
     if triggers_data:
-        print(f"  Triggers source: {triggers_s3_url} ({triggers_data.get('total_clauses', '?')} clauses)")
+        print(
+            f"  Triggers source: {triggers_s3_url} ({triggers_data.get('total_clauses', '?')} clauses)")
     else:
         print(f"  Triggers: not available (fees notes only)")
 
     combined_text = build_combined_text(fees_data, triggers_data)
     print(f"  Combined text length: {len(combined_text):,} chars")
 
-    openai_key = os.getenv("OPENAI_API_KEY")
+    openai_key = os.getenv("OPENAI_API_KEY_SEC_FILING")
     if not openai_key:
-        raise ValueError("OPENAI_API_KEY not set")
+        raise ValueError("OPENAI_API_KEY_SEC_FILING not set")
 
     checker = TerminationProvisionChecker(openai_key)
     checks = checker.run_all_checks(combined_text)
@@ -730,7 +741,8 @@ def run_stage9(fees_s3_url: str, triggers_s3_url: str,
         },
     }
 
-    _, provision_url = upload_json(output, accession, doc_type, "provision_checks_json.json")
+    _, provision_url = upload_json(
+        output, accession, doc_type, "provision_checks_json.json")
     print(f"  Provision checks uploaded to S3: {provision_url}")
 
     print("\n" + "=" * 80)
@@ -748,7 +760,8 @@ def main():
     print("STAGE 9 (TERMINATION): SPECIFIC PROVISION CHECKS")
     print("=" * 80)
     print("\nChecking 8 critical termination provisions lawyers care about")
-    print("Input: termination_response_{accession}_fees.json from project root")
+    print(
+        "Input: termination_response_{accession}_fees.json from project root")
 
     if len(sys.argv) < 2:
         print("\nERROR: Please provide path to fees JSON file")
@@ -774,7 +787,8 @@ def main():
         # Try to extract from filename
         basename = os.path.basename(fees_file)
         # termination_response_{deal_id}_fees.json
-        parts = basename.replace("termination_response_", "").replace("_fees.json", "")
+        parts = basename.replace(
+            "termination_response_", "").replace("_fees.json", "")
         deal_id = parts
 
     print(f"  Deal ID: {deal_id}")
@@ -785,16 +799,17 @@ def main():
     if os.path.exists(triggers_file):
         with open(triggers_file, "r") as fh:
             triggers_data = json.load(fh)
-        print(f"  Triggers file: {os.path.basename(triggers_file)} ({triggers_data.get('total_clauses', '?')} clauses)")
+        print(
+            f"  Triggers file: {os.path.basename(triggers_file)} ({triggers_data.get('total_clauses', '?')} clauses)")
     else:
         print(f"  Triggers file: Not found (will use fees notes only)")
 
     combined_text = build_combined_text(fees_data, triggers_data)
     print(f"  Combined text length: {len(combined_text):,} chars")
 
-    openai_key = os.getenv("OPENAI_API_KEY")
+    openai_key = os.getenv("OPENAI_API_KEY_SEC_FILING")
     if not openai_key:
-        print("\nERROR: OPENAI_API_KEY not set in environment / .env")
+        print("\nERROR: OPENAI_API_KEY_SEC_FILING not set in environment / .env")
         return
 
     try:
@@ -837,8 +852,10 @@ def main():
         print(f"\nDeal             : {deal_id}")
         print(f"Provisions checked: {risk_summary['provisions_checked']}")
         print(f"Provisions found : {risk_summary['provisions_present']}")
-        print(f"Overall risk     : {risk_summary['overall_risk_level'].upper()}")
-        print(f"Risk score       : {risk_summary['risk_score']}/{risk_summary['max_risk_score']}")
+        print(
+            f"Overall risk     : {risk_summary['overall_risk_level'].upper()}")
+        print(
+            f"Risk score       : {risk_summary['risk_score']}/{risk_summary['max_risk_score']}")
 
         tl = risk_summary["traffic_light"]
         print("\nTraffic Light Summary:")
@@ -852,7 +869,8 @@ def main():
             "financing_failure":     "7. Financing Failure Trigger",
             "unilateral_extension":  "8. Unilateral Extension Right",
         }
-        color_symbol = {"red": "[RED]", "yellow": "[YLW]", "green": "[GRN]", "grey": "[---]"}
+        color_symbol = {"red": "[RED]", "yellow": "[YLW]",
+                        "green": "[GRN]", "grey": "[---]"}
         for key, label in provision_labels.items():
             info = tl.get(key, {})
             sym = color_symbol.get(info.get("color", "grey"), "[---]")
@@ -861,12 +879,14 @@ def main():
             print(f"  {sym} {label:<40} party: {party:<20} conf: {confidence}")
 
         if risk_summary["high_risk_provisions"]:
-            print(f"\nHIGH RISK ({len(risk_summary['high_risk_provisions'])}):")
+            print(
+                f"\nHIGH RISK ({len(risk_summary['high_risk_provisions'])}):")
             for p in risk_summary["high_risk_provisions"]:
                 print(f"  - {provision_labels.get(p, p)}")
 
         if risk_summary["medium_risk_provisions"]:
-            print(f"\nMEDIUM RISK ({len(risk_summary['medium_risk_provisions'])}):")
+            print(
+                f"\nMEDIUM RISK ({len(risk_summary['medium_risk_provisions'])}):")
             for p in risk_summary["medium_risk_provisions"]:
                 print(f"  - {provision_labels.get(p, p)}")
 

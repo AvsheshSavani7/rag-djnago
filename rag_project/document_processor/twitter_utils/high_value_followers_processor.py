@@ -93,10 +93,11 @@ class HighValueFollowersProcessor:
             self.config.update(config_overrides)
 
         # Setup OpenAI client
-        self.openai_api_key = openai_api_key or os.getenv('OPENAI_API_KEY')
+        self.openai_api_key = openai_api_key or os.getenv(
+            'OPENAI_API_KEY_SEC_FILING')
         if not self.openai_api_key:
             raise ValueError(
-                "OpenAI API key is required. Set OPENAI_API_KEY environment variable.")
+                "OpenAI API key is required. Set OPENAI_API_KEY_SEC_FILING environment variable.")
 
         self.client = OpenAI(api_key=self.openai_api_key)
 
@@ -221,9 +222,9 @@ class HighValueFollowersProcessor:
             has_description = description and description.strip()
 
             if (followers_count >= min_followers_count and
-                statuses_count >= min_statuses_count and
-                    not protected and has_description
-                ):
+                    statuses_count >= min_statuses_count and
+                        not protected and has_description
+                    ):
                 filtered_followers.append(follower)
 
         self.logger.info(

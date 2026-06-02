@@ -41,7 +41,7 @@ class SECDocumentAnalyzer:
 
         # Initialize OpenAI client
         self.openai_client = openai.OpenAI(
-            api_key=os.environ.get("OPENAI_API_KEY"))
+            api_key=os.environ.get("OPENAI_API_KEY_SEC_FILING"))
 
     def download_htm_file(self, url: str) -> Optional[str]:
         """Download HTM file from SEC URL"""
@@ -438,9 +438,11 @@ Respond only with valid JSON.
                     try:
                         adv_result = get_adv(target_ticker)
                         company_details['adv_dollars_fmt'] = adv_result['adv_dollars_fmt']
-                        logger.info(f"ADV for {target_ticker}: {adv_result['adv_dollars_fmt']}")
+                        logger.info(
+                            f"ADV for {target_ticker}: {adv_result['adv_dollars_fmt']}")
                     except Exception as adv_err:
-                        logger.warning(f"ADV lookup failed for ticker '{target_ticker}': {adv_err}")
+                        logger.warning(
+                            f"ADV lookup failed for ticker '{target_ticker}': {adv_err}")
 
                 filing_data['company_details'] = company_details
 

@@ -25,10 +25,10 @@ class GPTProductAnalyzer:
             api_key: OpenAI API key (defaults to environment variable)
             model: GPT model to use (default: gpt-4.1-mini)
         """
-        self.api_key = api_key or os.getenv('OPENAI_API_KEY')
+        self.api_key = api_key or os.getenv('OPENAI_API_KEY_SEC_FILING')
         if not self.api_key:
             raise ValueError(
-                "OpenAI API key is required. Set OPENAI_API_KEY environment variable.")
+                "OpenAI API key is required. Set OPENAI_API_KEY_SEC_FILING environment variable.")
 
         # Initialize OpenAI client (matching services.py pattern)
         self.openai_client = openai.OpenAI(api_key=self.api_key)

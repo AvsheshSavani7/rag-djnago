@@ -7,7 +7,7 @@ import openai
 class LLMClient:
     def __init__(self):
         load_dotenv()
-        self.api_key = os.getenv("OPENAI_API_KEY")
+        self.api_key = os.getenv("OPENAI_API_KEY_SEC_FILING")
         openai.api_key = self.api_key
         self.client = openai.OpenAI()
 

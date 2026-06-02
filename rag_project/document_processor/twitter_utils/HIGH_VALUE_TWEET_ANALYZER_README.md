@@ -258,7 +258,7 @@ config_overrides = {
 
 ### Common Issues
 1. **No high-value followers found**: Ensure previous steps completed successfully
-2. **Missing API keys**: Verify TWITTER_API_KEY and OPENAI_API_KEY environment variables
+2. **Missing API keys**: Verify TWITTER_API_KEY and OPENAI_API_KEY_SEC_FILING environment variables
 3. **Rate limiting**: Reduce worker count or increase delays
 4. **Database errors**: Check MongoDB connection and permissions
 

@@ -558,7 +558,7 @@ Output JSON format (ONLY this)
             full_prompt = ENTITY_RESOLUTION_PROMPT + "Input:\n\n" + input_block
 
             openai_client = openai.OpenAI(
-                api_key=os.environ.get("OPENAI_API_KEY"))
+                api_key=os.environ.get("OPENAI_API_KEY_SEC_FILING"))
             response = openai_client.responses.create(
                 model="gpt-5.2",
                 tools=[{"type": "web_search"}],
@@ -839,10 +839,10 @@ class EmbeddingService:
         print("Initializing EmbeddingService")
         # Initialize OpenAI client
         self.openai_client = openai.OpenAI(
-            api_key=os.environ.get("OPENAI_API_KEY"))
+            api_key=os.environ.get("OPENAI_API_KEY_SEC_FILING"))
         self.MAX_METADATA_SIZE = 40960
         print(
-            f"OpenAI API key set: {'Yes' if os.environ.get('OPENAI_API_KEY') else 'No'}"
+            f"OpenAI API key set: {'Yes' if os.environ.get('OPENAI_API_KEY_SEC_FILING') else 'No'}"
         )
 
         # Initialize Pinecone
@@ -1180,7 +1180,7 @@ class MetadataEnhancementService:
     def __init__(self):
         # Initialize OpenAI client
         self.openai_client = openai.OpenAI(
-            api_key=os.environ.get("OPENAI_API_KEY"))
+            api_key=os.environ.get("OPENAI_API_KEY_SEC_FILING"))
         # Schema URL
         self.schema_url = "https://mna-docs.s3.eu-north-1.amazonaws.com/clauses_category_template/Clauses_Category_Template.json"
         # Cache the categories
@@ -1898,7 +1898,7 @@ class ChatWithAIService:
     def __init__(self):
         # Initialize OpenAI client
         self.openai_client = openai.OpenAI(
-            api_key=os.environ.get("OPENAI_API_KEY"))
+            api_key=os.environ.get("OPENAI_API_KEY_SEC_FILING"))
         # Initialize embedding service for vector retrieval
         self.embedding_service = EmbeddingService()
         logger.info("ChatWithAIService initialized")
@@ -2037,7 +2037,7 @@ class SummaryGenerationService:
     def __init__(self):
         # Initialize OpenAI client
         self.openai_client = openai.OpenAI(
-            api_key=os.environ.get("OPENAI_API_KEY"))
+            api_key=os.environ.get("OPENAI_API_KEY_SEC_FILING"))
         # Initialize embedding service for vector retrieval
         self.embedding_service = EmbeddingService()
         logger.info("SummaryGenerationService initialized")
@@ -4715,7 +4715,7 @@ class SchemaCategorySearch:
         self.s3_service = S3Service()
         # OpenAI client for GPT queries
         self.openai_client = openai.OpenAI(
-            api_key=os.environ.get("OPENAI_API_KEY"))
+            api_key=os.environ.get("OPENAI_API_KEY_SEC_FILING"))
         # Schema URL
         self.schema_url = "https://rag-mna-doc.s3.eu-north-1.amazonaws.com/clauses_category_template/schema_by_summary_sections.json"
         # Cache for schema

@@ -70,7 +70,7 @@ logger.info("Testing logger functionality")
 
 # Load environment variables and set OpenAI API key
 load_dotenv()
-openai.api_key = os.getenv("OPENAI_API_KEY")
+openai.api_key = os.getenv("OPENAI_API_KEY_SEC_FILING")
 
 # Configure LlamaIndex settings
 Settings.llm = OpenAI(model="gpt-4.1-mini", temperature=0.1)
@@ -1517,10 +1517,11 @@ if __name__ == "__main__":
     logger.info("STARTING AGENTIC SEC PROCESSOR")
     logger.info("=" * 60)
 
-    # Check if OPENAI_API_KEY is set
-    if not os.getenv('OPENAI_API_KEY'):
-        logger.error("OPENAI_API_KEY environment variable is not set")
-        print("Please set your OPENAI_API_KEY environment variable")
+    # Check if OPENAI_API_KEY_SEC_FILING is set
+    if not os.getenv('OPENAI_API_KEY_SEC_FILING'):
+        logger.error(
+            "OPENAI_API_KEY_SEC_FILING environment variable is not set")
+        print("Please set your OPENAI_API_KEY_SEC_FILING environment variable")
         # Flush logs before exit
         for handler in logging.root.handlers:
             handler.flush()
