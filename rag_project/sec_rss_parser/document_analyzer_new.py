@@ -15,6 +15,25 @@ from .polygon_adv import get_adv
 logger = logging.getLogger(__name__)
 
 
+def _parse_target_market_cap_usd(value) -> Optional[float]:
+    """Normalize GPT market cap to a positive float (USD) or None."""
+    if value is None:
+        return None
+    if isinstance(value, str):
+        cleaned = value.strip().replace(",", "").replace("$", "")
+        if not cleaned:
+            return None
+        try:
+            value = float(cleaned)
+        except ValueError:
+            return None
+    try:
+        n = float(value)
+    except (TypeError, ValueError):
+        return None
+    return n if n > 0 else None
+
+
 class SECDocumentAnalyzer:
     """Service to download and analyze SEC documents using GPT"""
 
@@ -266,14 +285,16 @@ Respond with a JSON object containing:
 4. "acquirer_cik" (string): The SEC CIK of the acquirer. Output digits only; it will be normalized to 10 digits with leading zeros elsewhere.
 5. "is_target_us_listed" (boolean): USE WEB SEARCH to verify if the target is currently listed on a US stock exchange (NYSE, NASDAQ, etc.). Set to true if listed, false if not listed or delisted, null if cannot determine.
 6. "is_target_market_cap_greater_than_100m" (boolean): USE WEB SEARCH to find the current market capitalization of the target company. Set to true if market cap is greater than $100 million USD, false if less than $100M, null if cannot determine.
-7."target_ticker" (string): USE WEB SEARCH to find the current ticker symbol of the target company.
-8. "acquirer_ticker" (string): USE WEB SEARCH to find the current ticker symbol of the acquirer company.
+7. "target_market_cap_usd" (number or null): USE WEB SEARCH for the same target market cap. Return the numeric USD value only (e.g. 1250000000 for $1.25B). null if cannot determine.
+8. "target_ticker" (string): USE WEB SEARCH to find the current ticker symbol of the target company.
+9. "acquirer_ticker" (string): USE WEB SEARCH to find the current ticker symbol of the acquirer company.
 
 IMPORTANT:
 - Extract target_name and acquirer_name from the document excerpt above
-- For acquirer_cik, target_cik, is_target_us_listed and is_target_market_cap_greater_than_100m, you MUST perform web searches to get current, accurate information
+- For acquirer_cik, target_cik, is_target_us_listed, is_target_market_cap_greater_than_100m, and target_market_cap_usd, you MUST perform web searches to get current, accurate information
+- Use the same web search for market cap to set both is_target_market_cap_greater_than_100m and target_market_cap_usd when possible
 - Search for "[target company name] stock exchange listing" and "[target company name] market cap" and "[target company name] ticker symbol"
-- If information cannot be found in document, use empty string "" for strings and null for booleans
+- If information cannot be found in document, use empty string "" for strings and null for booleans and numbers
 
 Respond only with valid JSON.
 """
@@ -346,6 +367,8 @@ Respond only with valid JSON.
                 'acquirer_cik': self._normalize_cik(acquirer_cik),
                 'is_target_us_listed': result.get('is_target_us_listed'),
                 'is_target_market_cap_greater_than_100m': result.get('is_target_market_cap_greater_than_100m'),
+                'target_market_cap_usd': _parse_target_market_cap_usd(
+                    result.get('target_market_cap_usd')),
                 'target_ticker': result.get('target_ticker', ''),
                 'acquirer_ticker': result.get('acquirer_ticker', ''),
             }
@@ -363,6 +386,7 @@ Respond only with valid JSON.
                 'acquirer_cik': '',
                 'is_target_us_listed': None,
                 'is_target_market_cap_greater_than_100m': None,
+                'target_market_cap_usd': None,
                 'target_ticker': '',
                 'acquirer_ticker': '',
                 'error': str(e)
@@ -376,6 +400,7 @@ Respond only with valid JSON.
                 'acquirer_cik': '',
                 'is_target_us_listed': None,
                 'is_target_market_cap_greater_than_100m': None,
+                'target_market_cap_usd': None,
                 'target_ticker': '',
                 'acquirer_ticker': '',
                 'error': str(e)
@@ -545,12 +570,13 @@ Closing of prior deals
 Decision Rule:
 Return true ONLY if a newly signed agreement results in a merger, acquisition of equity control, or business combination between corporate entities.
 
-For is_target_us_listed and is_target_market_cap_greater_than_100m:
+For is_target_us_listed, is_target_market_cap_greater_than_100m, and target_market_cap_usd:
 - First identify the target company name from the document.
 - USE WEB SEARCH to verify if the target is currently listed on a US stock exchange (NYSE, NASDAQ, etc.). Set is_target_us_listed to true if listed, false if not listed or delisted, null if cannot determine.
 - USE WEB SEARCH to find the current market capitalization of the target company. Set is_target_market_cap_greater_than_100m to true if market cap is greater than $100 million USD, false if less than $100M, null if cannot determine.
+- Set target_market_cap_usd to the numeric USD market cap (e.g. 1250000000 for $1.25B), or null if cannot determine. Use the same search as for is_target_market_cap_greater_than_100m when possible.
 - Search for "[target company name] stock exchange listing" and "[target company name] market cap"
-- If the document is NOT merger-related, set both to null.
+- If the document is NOT merger-related, set is_target_us_listed, is_target_market_cap_greater_than_100m, and target_market_cap_usd to null.
 
 Respond ONLY with valid JSON:
 
@@ -560,7 +586,8 @@ Respond ONLY with valid JSON:
   "confidence": number (0-100),
   "reasoning": "concise explanation",
   "is_target_us_listed": boolean or null,
-  "is_target_market_cap_greater_than_100m": boolean or null
+  "is_target_market_cap_greater_than_100m": boolean or null,
+  "target_market_cap_usd": number or null
 }}
 ```
 
@@ -620,6 +647,8 @@ Respond ONLY with valid JSON.
                 'reasoning': result.get('reasoning', ''),
                 'is_target_us_listed': result.get('is_target_us_listed'),
                 'is_target_market_cap_greater_than_100m': result.get('is_target_market_cap_greater_than_100m'),
+                'target_market_cap_usd': _parse_target_market_cap_usd(
+                    result.get('target_market_cap_usd')),
                 'raw_response': result_text
             }
 
@@ -627,7 +656,8 @@ Respond ONLY with valid JSON.
                 f"GPT EX-99.1 Analysis Result: is_merger_related={result.get('is_merger_related')} "
                 f"(confidence: {result.get('confidence', 0)}%) "
                 f"is_target_us_listed={result.get('is_target_us_listed')} "
-                f"is_target_market_cap_greater_than_100m={result.get('is_target_market_cap_greater_than_100m')}")
+                f"is_target_market_cap_greater_than_100m={result.get('is_target_market_cap_greater_than_100m')} "
+                f"target_market_cap_usd={analysis_result.get('target_market_cap_usd')}")
             return analysis_result
 
         except json.JSONDecodeError as e:
@@ -638,6 +668,7 @@ Respond ONLY with valid JSON.
                 'reasoning': 'Failed to parse GPT response',
                 'is_target_us_listed': None,
                 'is_target_market_cap_greater_than_100m': None,
+                'target_market_cap_usd': None,
                 'error': str(e)
             }
         except Exception as e:
@@ -648,6 +679,7 @@ Respond ONLY with valid JSON.
                 'reasoning': 'GPT analysis failed',
                 'is_target_us_listed': None,
                 'is_target_market_cap_greater_than_100m': None,
+                'target_market_cap_usd': None,
                 'error': str(e)
             }
 
@@ -710,6 +742,8 @@ Respond ONLY with valid JSON.
                 'is_target_us_listed')
             filing_data['is_target_market_cap_greater_than_100m'] = analysis.get(
                 'is_target_market_cap_greater_than_100m')
+            filing_data['target_market_cap_usd'] = analysis.get(
+                'target_market_cap_usd')
 
             return filing_data
 

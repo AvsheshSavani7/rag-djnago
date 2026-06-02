@@ -22,6 +22,32 @@ def escape_html(text):
     return text
 
 
+def _fmt_market_cap_usd(val):
+    """Format target market cap (USD number) for email display."""
+    if val is None:
+        return None
+    try:
+        if isinstance(val, str):
+            cleaned = val.strip().replace(",", "").replace("$", "")
+            if not cleaned:
+                return None
+            n = float(cleaned)
+        else:
+            n = float(val)
+    except (TypeError, ValueError):
+        s = str(val).strip()
+        return s if s else None
+    if n <= 0:
+        return None
+    if n >= 1e12:
+        return f"${n / 1e12:.2f}T"
+    if n >= 1e9:
+        return f"${n / 1e9:.2f}B"
+    if n >= 1e6:
+        return f"${n / 1e6:.1f}M"
+    return f"${n:,.0f}"
+
+
 def _doc_display_name(file):
     """Display name for document: 'file' key, or description, or filename from URL."""
     name = file.get('file') or file.get('description')
@@ -156,6 +182,14 @@ def _build_company_details_rows(company_details):
       <tr>
         <td style="padding:8px; font-weight:bold; color:#555;">Market Cap > $100M:</td>
         <td style="padding:8px; color:{cap_color}; font-weight:bold;">{escape_html(cap_text)}</td>
+      </tr>
+"""
+    cap_display = _fmt_market_cap_usd(company_details.get('target_market_cap_usd'))
+    if cap_display:
+        html += f"""
+      <tr style="background-color:#f9f9f9;">
+        <td style="padding:8px; font-weight:bold; color:#555;">Target Market Cap:</td>
+        <td style="padding:8px; color:#333;">{escape_html(cap_display)}</td>
       </tr>
 """
     adv_fmt = company_details.get('adv_dollars_fmt', '')
@@ -566,11 +600,25 @@ def generate_8k_document_email_html(filing_data, doc_files):
     is_target_us_listed = filing_data.get('is_target_us_listed')
     is_target_market_cap_greater_than_100m = filing_data.get(
         'is_target_market_cap_greater_than_100m')
+    target_market_cap_usd = filing_data.get('target_market_cap_usd')
+    if target_market_cap_usd is None:
+        cd = filing_data.get('company_details') or {}
+        target_market_cap_usd = cd.get('target_market_cap_usd')
 
     def _fmt_bool(val):
         if val is None:
             return 'N/A'
         return 'Yes' if val else 'No'
+
+    target_market_cap_html = ""
+    cap_display = _fmt_market_cap_usd(target_market_cap_usd)
+    if cap_display:
+        target_market_cap_html = f"""
+      <tr>
+        <td style="padding:8px; font-weight:bold; color:#555;">Target Market Cap:</td>
+        <td style="padding:8px; color:#333;">{escape_html(cap_display)}</td>
+      </tr>
+"""
 
     # Subject: ticker (if from deal) else company_name : 8-K New Merger : filing_date
     ticker = (filing_data.get("ticker") or "").strip()
@@ -653,7 +701,7 @@ def generate_8k_document_email_html(filing_data, doc_files):
         <td style="padding:8px; font-weight:bold; color:#555;">Target Market Cap &gt; $100M:</td>
         <td style="padding:8px; color:#333;">{escape_html(_fmt_bool(is_target_market_cap_greater_than_100m))}</td>
       </tr>
-{reasoning_html}{filing_url_html}
+{target_market_cap_html}{reasoning_html}{filing_url_html}
     </table>
 
     <h3 style="color:#333; margin-top:20px; margin-bottom:10px;">Document Format Files</h3>
@@ -692,11 +740,25 @@ def generate_ex99_1_merger_email_html(filing_data, doc_files):
     is_target_us_listed = filing_data.get('is_target_us_listed')
     is_target_market_cap_greater_than_100m = filing_data.get(
         'is_target_market_cap_greater_than_100m')
+    target_market_cap_usd = filing_data.get('target_market_cap_usd')
+    if target_market_cap_usd is None:
+        cd = filing_data.get('company_details') or {}
+        target_market_cap_usd = cd.get('target_market_cap_usd')
 
     def _fmt_bool(val):
         if val is None:
             return 'N/A'
         return 'Yes' if val else 'No'
+
+    target_market_cap_html = ""
+    cap_display = _fmt_market_cap_usd(target_market_cap_usd)
+    if cap_display:
+        target_market_cap_html = f"""
+      <tr>
+        <td style="padding:8px; font-weight:bold; color:#555;">Target Market Cap:</td>
+        <td style="padding:8px; color:#333;">{escape_html(cap_display)}</td>
+      </tr>
+"""
 
     # Subject: ticker (if from deal) else company_name : EX-99.1 New Merger : filing_date
     ticker = (filing_data.get("ticker") or "").strip()
@@ -779,7 +841,7 @@ def generate_ex99_1_merger_email_html(filing_data, doc_files):
         <td style="padding:8px; font-weight:bold; color:#555;">Target Market Cap &gt; $100M:</td>
         <td style="padding:8px; color:#333;">{escape_html(_fmt_bool(is_target_market_cap_greater_than_100m))}</td>
       </tr>
-{reasoning_html}{filing_url_html}
+{target_market_cap_html}{reasoning_html}{filing_url_html}
     </table>
 
     <h3 style="color:#333; margin-top:20px; margin-bottom:10px;">Document Format Files</h3>

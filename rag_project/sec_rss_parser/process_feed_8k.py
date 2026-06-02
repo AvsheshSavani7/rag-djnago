@@ -406,6 +406,8 @@ class EightKFeedProcessor:
                 'is_target_us_listed')
             item_data['is_target_market_cap_greater_than_100m'] = result.get(
                 'is_target_market_cap_greater_than_100m')
+            item_data['target_market_cap_usd'] = result.get(
+                'target_market_cap_usd')
             logger.info(
                 f"{LOG_PREFIX} :_process_8k_document: accession=%s step=gpt_result is_merger=%s is_us_listed=%s cap_gt_100m=%s confidence=%s",
                 accession_number,
