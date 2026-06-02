@@ -10,7 +10,7 @@ from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.oxml.ns import qn
 from docx.oxml import OxmlElement
 
-from .config import _PRESERVE_UPPER
+from .report_format import parse_summary_sections, smart_title as _smart_title
 
 
 # =============================================================================
@@ -29,20 +29,6 @@ RED = RGBColor(0xCC, 0x00, 0x00)
 # =============================================================================
 # Helper functions
 # =============================================================================
-
-def _smart_title(text: str) -> str:
-    """Title-case text but preserve known acronyms (HSR, SH, etc.)."""
-    words = text.split()
-    result = []
-    for w in words:
-        if w.upper() in _PRESERVE_UPPER:
-            result.append(w.upper())
-        elif w == "&":
-            result.append("&")
-        else:
-            result.append(w.capitalize())
-    return " ".join(result)
-
 
 def _set_cell_shading(cell, hex_color: str):
     """Apply background shading to a table cell."""
@@ -110,55 +96,6 @@ def _add_title_page(doc: DocxDocument, ticker: str, target: str,
     doc.add_page_break()
 
 
-def _parse_summary_sections(text: str):
-    """Parse new-format summary text into (opening_paragraph, [(header, content), ...]).
-
-    The opening paragraph is all text before the first ALL-CAPS header line.
-    Section headers are lines that are entirely uppercase letters, spaces, &, /.
-    """
-    lines = text.split("\n")
-    opening_lines = []
-    sections = []
-    current_header = None
-    current_lines = []
-    found_first_header = False
-
-    SKIP_HEADERS = {"RULES"}
-
-    for line in lines:
-        stripped = line.strip()
-        # Detect ALL-CAPS section header (standalone line, no colon required)
-        is_header = (stripped and re.match(r'^[A-Z][A-Z &/]+$', stripped)
-                     and len(stripped) >= 3 and stripped not in SKIP_HEADERS)
-        if not is_header and stripped:
-            # Also match headers with trailing colon for robustness
-            colon_match = re.match(r'^([A-Z][A-Z &/]+):?$', stripped)
-            if colon_match and colon_match.group(1) not in SKIP_HEADERS:
-                candidate = colon_match.group(1)
-                if len(candidate) >= 3 and candidate == candidate.upper():
-                    is_header = True
-                    stripped = candidate
-
-        if is_header:
-            if not found_first_header:
-                found_first_header = True
-            if current_header is not None:
-                sections.append((current_header, "\n".join(current_lines).strip()))
-            current_header = stripped
-            current_lines = []
-        elif not found_first_header:
-            if stripped:
-                opening_lines.append(stripped)
-        else:
-            current_lines.append(line.rstrip())
-
-    if current_header is not None:
-        sections.append((current_header, "\n".join(current_lines).strip()))
-
-    opening = " ".join(opening_lines)
-    return opening, sections
-
-
 def _add_styled_run(paragraph, text: str):
     """Add a run to a paragraph with color coding for [NEW] and arrow markers."""
     if "[NEW]" in text:
@@ -205,7 +142,7 @@ def create_summary_docx(summary_text: str, output_path: str,
 
     _add_title_page(doc, ticker, target, acquirer, form_label, timestamp)
 
-    opening, sections = _parse_summary_sections(summary_text)
+    opening, sections = parse_summary_sections(summary_text)
 
     # Opening paragraph
     if opening:
@@ -251,7 +188,7 @@ def create_changes_docx(change_text: str, output_path: str,
     _add_title_page(doc, ticker, target, acquirer,
                      f"Changes: {old_label} -> {new_label}", timestamp)
 
-    opening, sections = _parse_summary_sections(change_text)
+    opening, sections = parse_summary_sections(change_text)
 
     # Opening paragraph
     if opening:

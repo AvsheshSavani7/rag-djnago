@@ -1738,16 +1738,17 @@ def generate_proxy_comparison_summary_email_html(
     cik_number: str = None,
     past_record_id: str = None,
     latest_record_id: str = None,
-    change_docx_url: str = None,
-    change_txt_url: str = None,
-    changes_json_url: str = None,
+    change_report_html: str = None,
     tier1_changes: int = None,
     tier2_changes: int = None,
     target_ticker: str = None,
     target_name: str = None,
     matched_cik_label: str = None,
+    change_docx_url: str = None,
+    change_txt_url: str = None,
+    changes_json_url: str = None,
 ):
-    """Generate email HTML for proxy comparison (DEFM14A, S-4/A, etc.) with change report links.
+    """Generate email HTML for proxy comparison (DEFM14A, S-4/A, etc.) with inline change report.
     Returns (subject, html). Used after proxy_comparision orchestrator run_comparison."""
     company_esc = escape_html(company_name or "Unknown Company")
     form_esc = escape_html(form_type or "PROXY")
@@ -1765,45 +1766,27 @@ def generate_proxy_comparison_summary_email_html(
         t2 = tier2_changes if tier2_changes is not None else 0
         changes_line = f"<p style='color:#555;'>Tier 1 changes: <strong>{t1}</strong> | Tier 2 changes: <strong>{t2}</strong></p>"
 
-    links = []
-    if change_docx_url:
-        links.append(("Change report (DOCX)", change_docx_url))
-    if change_txt_url:
-        links.append(("Change report (TXT)", change_txt_url))
-    if changes_json_url:
-        links.append(("Changes data (JSON)", changes_json_url))
-
-    rows_html = "".join(
-        f'<tr><td style="padding:8px; border:1px solid #ddd;"><a href="{escape_html(url)}" style="color:#4a90e2;" target="_blank">{escape_html(label)}</a></td></tr>'
-        for label, url in links
-    )
-    links_table = (
-        f"""
-    <table style="width:100%; border-collapse:collapse; margin-top:10px;">
-      <thead><tr style="background-color:#f5f5f5;"><th style="padding:8px; border:1px solid #ddd; text-align:left;">Document</th></tr></thead>
-      <tbody>{rows_html}</tbody>
-    </table>
-"""
-        if rows_html
-        else "<p><em>No links available.</em></p>"
+    report_block = change_report_html or (
+        "<p style='color:#555;'><em>Change report content is not available.</em></p>"
     )
 
     html_email = f"""
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head><meta charset="utf-8"><title>{escape_html(subject)}</title></head>
-<body style="font-family: Arial, sans-serif; margin: 20px;">
-  <div style="max-width:900px;">
-    <h2 style="color:#333;">Proxy Comparison Summary</h2>
-    <p style="color:#555;">Company: <strong>{company_esc}</strong></p>
-    <p style="color:#555;">Form type: <strong>{form_esc}</strong></p>
-    <p style="color:#555;">Deal ID: <strong>{escape_html(deal_id or "")}</strong></p>
-    <p style="color:#555;">CIK Number: <strong>{escape_html(cik_number or "")}</strong></p>
-    <p style="color:#555;">Latest record ID: <strong>{escape_html(latest_record_id or "")}</strong></p>
-    <p style="color:#555;">Past record ID: <strong>{escape_html(past_record_id or "")}</strong></p>
-    {changes_line}
-    <p style="color:#555;">Links to change report and comparison data:</p>
-    {links_table}
+<body style="margin:0; padding:0; font-family:Arial,sans-serif; background-color:#f4f4f4;">
+  <div style="max-width:900px; margin:20px auto; background-color:#ffffff; padding:30px; border-radius:8px; box-shadow:0 2px 4px rgba(0,0,0,0.1);">
+    <h2 style="color:#333; margin-top:0; padding-bottom:16px; border-bottom:3px solid #4a90e2;">
+      {escape_html(subject)}
+    </h2>
+    <div style="background-color:#f9f9f9; padding:15px; border-radius:5px; margin-bottom:20px;">
+      <p style="margin:6px 0; color:#555;">Company: <strong>{company_esc}</strong></p>
+      <p style="margin:6px 0; color:#555;">Form type: <strong>{form_esc}</strong></p>
+      <p style="margin:6px 0; color:#555;">Deal ID: <strong>{escape_html(deal_id or "")}</strong></p>
+      <p style="margin:6px 0; color:#555;">CIK Number: <strong>{escape_html(cik_number or "")}</strong></p>
+      {changes_line}
+    </div>
+    {report_block}
   </div>
 </body>
 </html>

@@ -28,6 +28,7 @@ from .extractor import extract_priority_facts
 from .differ import compute_pairwise_diff
 from .report_writer import generate_change_report, generate_full_summary, format_txt_header
 from .docx_builder import create_changes_docx
+from .html_builder import create_changes_html
 from .config import get_form_label, get_form_family
 
 
@@ -482,6 +483,16 @@ def run_comparison(
     docx_key_suffix = proxy_comp_key_suffix(deal_id, latest_id, "change_report.docx")
     _, change_docx_url = upload_docx_bytes(docx_bytes, docx_key_suffix)
 
+    change_report_html = create_changes_html(
+        change_text,
+        ticker,
+        target,
+        acquirer,
+        old_label,
+        new_label,
+        file_timestamp,
+    )
+
     # 15. Update MongoDB result status (S3 URLs)
     tier1_count = sum(1 for e in events if e.tier == 1)
     tier2_count = sum(1 for e in events if e.tier == 2)
@@ -510,5 +521,8 @@ def run_comparison(
         "changes_json_url": changes_json_url,
         "change_txt_url": change_txt_url,
         "change_docx_url": change_docx_url,
+        "change_report_html": change_report_html,
         "deal_id": deal_id,
+        "past_id": past_id,
+        "latest_id": latest_id,
     }
