@@ -397,6 +397,26 @@ class ProxySummaryServiceV2:
                 "error": str(e)
             }
 
+    @staticmethod
+    def _resolve_question_entry(question_data) -> Tuple[str, str]:
+        """
+        Resolve question JSON entry to (display_question, prompt_question).
+
+        Supports:
+        - dict with 'display' and 'prompt' (preferred)
+        - plain string (legacy)
+        """
+        if isinstance(question_data, dict):
+            display = (question_data.get("display") or "").strip()
+            prompt = (question_data.get("prompt") or "").strip()
+            if not display and prompt:
+                display = prompt
+            if not prompt and display:
+                prompt = display
+            return display, prompt
+        text = str(question_data).strip()
+        return text, text
+
     def _process_questions(self, sec_filing_summary_id: str, questions_file: str) -> str:
         """Process questions and generate Q&A content"""
         try:
@@ -430,11 +450,23 @@ class ProxySummaryServiceV2:
 
             all_summaries = []
 
-            for question_key, question in questions_data.items():
+            for question_key, question_data in questions_data.items():
+                display_question, prompt_question = self._resolve_question_entry(
+                    question_data
+                )
+                if not prompt_question:
+                    logger.warning(
+                        f"Skipping {question_key}: empty prompt/display")
+                    continue
+
                 try:
-                    # Search for similar chunks using sec_filing_summary_id
+                    logger.info(
+                        f"Processing {question_key}: display={display_question!r}"
+                    )
+
+                    # Search using detailed prompt for better retrieval
                     results = self._search_chunks_by_filing_id(
-                        processor, question, sec_filing_summary_id)
+                        processor, prompt_question, sec_filing_summary_id)
 
                     # Combine base context chunks with per-question results (deduplicated)
                     combined_results = self._deduplicate_chunks(
@@ -446,13 +478,13 @@ class ProxySummaryServiceV2:
                             f"No results found for question {question_key}")
                         continue
 
-                    # Get Claude response
+                    # Claude Q&A uses prompt (guardrails + retrieval-aligned question)
                     claude_answer = processor.get_claude_response(
-                        question, combined_results)
+                        prompt_question, combined_results)
 
-                    # Generate arbitrage summary
+                    # DOC header uses short display question
                     arb_summary = processor.generate_arb_summary(
-                        claude_answer, question)
+                        claude_answer, display_question)
                     all_summaries.append(arb_summary)
 
                 except Exception as e:
@@ -500,6 +532,11 @@ class ProxySummaryServiceV2:
                 processor, query_embedding, sec_filing_summary_id, top_k
             )
             all_results.extend(preamble_results)
+
+            logger.info("Step 1.3: Searching for regulatory section chunks")
+            regulatory_results = self._fetch_regulatory_chunks(
+                processor, sec_filing_summary_id)
+            all_results.extend(regulatory_results)
 
             # Search for general chunks
             general_results = self._search_general_chunks_by_filing_id(
@@ -617,10 +654,99 @@ class ProxySummaryServiceV2:
 
             logger.info(
                 f"After title filtering: {len(results)} chunks matched title filters")
+
+            if len(results) <= 0:
+                query_qa_embedding = processor.create_query_embedding(
+                    "QUESTIONS AND ANSWERS")
+                qa_results = self._search_general_chunks_by_filing_id(
+                    processor, query_qa_embedding, sec_filing_summary_id, 5)
+                logger.info(
+                    f"After Semantic QA Search : {len(qa_results)} chunks matched title filters")
+                return qa_results
             return results
         except Exception as e:
             logger.error(
                 f"Error fetching chunks by title filter: {str(e)}", exc_info=True)
+            return []
+
+    def _fetch_regulatory_chunks(self, processor, sec_filing_summary_id: str, top_k: int = 999) -> List[Dict]:
+        """Fetch chunks from regulatory-related sections by title filter"""
+        title_filters = [
+            # Broad regulatory matches (partial 'in' matching catches variants)
+            "REGULATORY",
+            "ANTITRUST",
+            "GOVERNMENT APPROVAL",
+            "GOVERNMENTAL APPROVAL",
+            "REQUIRED APPROVAL",
+            # Conditions sections (often contain full regulatory lists)
+            "CONDITIONS TO CLOSING",
+            "CONDITIONS TO THE CLOSING",
+            "CONDITIONS TO THE MERGER",
+            "CONDITIONS TO COMPLETION",
+            "CONDITIONS TO THE COMPLETION",
+            "CONDITIONS TO CONSUMMATION",
+            # US sector-specific regulators
+            "HSR ACT",
+            "HART-SCOTT-RODINO",
+            "FERC",
+            "FEDERAL ENERGY",
+            "CFIUS",
+            "FOREIGN INVESTMENT",
+            "NATIONAL SECURITY",
+            "FCC",
+            "FEDERAL COMMUNICATIONS",
+            "STB",
+            "SURFACE TRANSPORTATION",
+            "PUBLIC UTILITY",
+            "PUBLIC SERVICE COMMISSION",
+            "INSURANCE DEPARTMENT",
+            "INSURANCE COMMISSION",
+            "DEPARTMENT OF INSURANCE",
+            "BANKING",
+            "BANK REGULATORY",
+            "OCC",
+            "FDIC",
+            "FEDERAL RESERVE",
+            # International regulators
+            "EUROPEAN COMMISSION",
+            "COMPETITION AND MARKETS",
+            "ACCC",
+            "CADE",
+            "SAMR",
+            "MOFCOM",
+        ]
+        try:
+            dummy_vector = [0.0] * 3072
+            search_response = processor.index.query(
+                vector=dummy_vector,
+                top_k=top_k,
+                include_metadata=True,
+                filter={
+                    "sec_filing_summary_id": sec_filing_summary_id,
+                }
+            )
+
+            logger.info(
+                f"Fetched {len(search_response.matches)} total chunks for regulatory title filter (sec_filing_summary_id={sec_filing_summary_id})")
+
+            results = []
+            for match in search_response.matches:
+                chunk_title = match.metadata.get('title', '')
+                if any(tf.lower() in chunk_title.lower() for tf in title_filters):
+                    result = {
+                        'score': match.score,
+                        'text': match.metadata.get('original_text', ''),
+                        'title': chunk_title,
+                        'id': match.id
+                    }
+                    results.append(result)
+
+            logger.info(
+                f"After regulatory title filtering: {len(results)} chunks matched")
+            return results
+        except Exception as e:
+            logger.error(
+                f"Error fetching regulatory chunks: {str(e)}", exc_info=True)
             return []
 
     def _deduplicate_chunks(self, chunks: List[Dict]) -> List[Dict]:

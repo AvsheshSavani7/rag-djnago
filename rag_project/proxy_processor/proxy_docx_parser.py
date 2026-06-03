@@ -28,6 +28,13 @@ def _load_questions() -> dict:
         return json.load(f)
 
 
+def _question_display_text(entry) -> str:
+    """Canonical question label for DOCX/email (short display form)."""
+    if isinstance(entry, dict):
+        return (entry.get("display") or entry.get("prompt") or "").strip()
+    return str(entry).strip()
+
+
 def _strip_answer_bullet(text: str) -> str:
     """Remove leading + and whitespace from answer paragraphs."""
     return text.lstrip("+\t ").strip()
@@ -94,10 +101,17 @@ def parse_proxy_summary_docx(url: str) -> dict:
     # Map positionally to question keys and canonical question text from JSON
     qa_items = []
     for idx, pair in enumerate(qa_pairs[:5]):
-        key = question_keys[idx] if idx < len(question_keys) else f"question_{idx + 1}"
+        key = question_keys[idx] if idx < len(
+            question_keys) else f"question_{idx + 1}"
+        canonical = questions.get(key)
+        question_label = (
+            _question_display_text(canonical)
+            if canonical is not None
+            else pair["question_text"]
+        )
         qa_items.append({
             "question_key": key,
-            "question": questions.get(key, pair["question_text"]),
+            "question": question_label,
             "answer": pair["answer"],
         })
 

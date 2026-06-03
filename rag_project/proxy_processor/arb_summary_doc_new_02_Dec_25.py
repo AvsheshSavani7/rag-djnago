@@ -205,17 +205,22 @@ class QueryProcessor:
                                    for i, r in enumerate(results)])
 
             # Construct the prompt
-            prompt = f"""You are a merger arbitrage analyst at a hedge fund reviewing an SEC proxy filing. Answer questions with the specificity a risk arb analyst needs: exact dates, dollar amounts, bid trajectories, and factors material to deal completion risk and timeline.
-            
-            Based on the following content from an SEC filing document, please answer the question.
-If the answer cannot be fully determined from the provided content, please mention that.
+            prompt = f"""You are a merger arbitrage analyst extracting facts from an SEC proxy filing.
+
+RULES:
+1. ONLY state what is explicitly written in the document. Do not infer, speculate, or add context beyond what is stated.
+2. Quote the filing's exact language wherever possible, using quotation marks.
+3. If a field contains a placeholder like [•] or is left blank, report it as "not yet set" or "not yet specified" — do not describe it as "established," "fixed," or "determined."
+4. If the answer cannot be determined from the provided content, say "Not addressed in the provided text." Do not fill gaps with plausible-sounding language.
+5. Include specific dates, dollar amounts, and section/clause references where they appear in the document.
+6. Do not editorialize or characterize the significance of facts — report them as stated.
 
 Question: {query}
 
 Relevant content from the document:
 {context}
 
-Please provide a clear, concise answer based on the above content. If there are any uncertainties or if the information seems incomplete, please note that in your response."""
+Provide your answer based strictly on the above content, following the rules above."""
 
             logger.info(f"Sending request to Claude ({self.claude_model})")
             response = self.claude_client.messages.create(
@@ -247,11 +252,13 @@ Answer: {comprehensive_answer}
 
 TASK:
 Transform the input into a shortened DOC-style structured output with the following rules:
-1. Begin with a bold **Answer Header** (use the question as the header), don't add **Q**, **A** like formating only given question as the header.
+1. Begin with a bold **Answer Header** (use the question as the header), don't add **Q**, **A** like formatting only given question as the header.
 2. There should be one paragraph only with concise fact, obligation, or key item.
-3. Keep the total response brief.
-4. Maintain a professional, memo-like tone (neutral, factual).
-5. Remove redundant or minor details — focus on essentials.
+3. Preserve all direct quotes from the filing — do not paraphrase or reword quoted language.
+4. Keep the response concise but prioritize accuracy and quoted filing language over brevity.
+5. If the filing uses placeholder brackets [•] or blanks, state that the value is not yet specified.
+6. Maintain a professional, memo-like tone (neutral, factual).
+7. Do not add analysis, interpretation, or context that was not in the original answer.
 
 OUTPUT:
 Generate a **bullet-point Q&A format** that is DOC-ready and suitable for an executive summary.
@@ -261,7 +268,7 @@ Generate a **bullet-point Q&A format** that is DOC-ready and suitable for an exe
             logger.info(f"Sending arbitrage summary request to Claude")
             response = self.claude_client.messages.create(
                 model=self.claude_model,
-                max_tokens=512,
+                max_tokens=1024,
                 messages=[{"role": "user", "content": prompt}],
                 temperature=0,
                 timeout=120
@@ -688,7 +695,7 @@ def get_background_chunks(processor: QueryProcessor, deal_id: str) -> str:
 
         search_response = processor.index.query(
             vector=dummy_vector,
-            top_k=8,
+            top_k=10,
             include_metadata=True,
             filter={
                 "deal_id": deal_id,

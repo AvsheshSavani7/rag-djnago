@@ -1,7 +1,22 @@
 {
-  "question_1": "Are the shareholder vote or shareholder record dates set? [Provide answer even if no dates are set]",
-  "question_2": "Any additional details around consideration terms, such as averaging periods, proration mechanisms, spin-off shares?",
-  "question_3": "Were any updates provided on the regulatory reviews? Do they provide a more comprehensive list (than the DMA) of the required approvals? Do they provide filing dates? Have any approvals already been received?",
-  "question_4": "Any other key items, i.e. unions?",
-  "question_5": "What closing timeline or expected close date has management provided, and how does this compare to any prior closing guidance given?"
+  "question_1": {
+    "display": "Are the shareholder vote or shareholder record dates set?",
+    "prompt": "Are the shareholder vote date and shareholder record date set to specific calendar dates? If the filing uses placeholders like [•], blanks, or 'to be determined' language, state clearly that the dates are NOT yet set — do not describe them as 'established,' 'fixed,' or 'determined.' Quote the exact language from the filing regarding the record date and meeting date."
+  },
+  "question_2": {
+    "display": "Any additional details around consideration terms, such as averaging periods, proration mechanisms, spin-off shares?",
+    "prompt": "What are the specific consideration terms of the merger? Include: form of consideration (cash, stock, mixed), exact per-share amounts, any averaging periods, collars, proration mechanisms, election procedures, or spin-off components. Quote the exact language from the filing describing the consideration structure. Also describe the treatment of equity awards (RSUs, options, PSUs) with exact terms from the filing."
+  },
+  "question_3": {
+    "display": "Were any updates provided on the regulatory reviews? Do they provide a more comprehensive list (than the DMA) of the required approvals? Do they provide filing dates? Have any approvals already been received?",
+    "prompt": "What specific regulatory approvals are required for this transaction? Look comprehensively for ALL regulatory bodies, agencies, and jurisdictions mentioned anywhere in the document. Common examples include but are not limited to: HSR Act / DOJ / FTC (US antitrust), CFIUS (US foreign investment), FERC (energy), STB (railroads), FCC (telecom), state PUCs, European Commission / EC, UK CMA / FCA, Germany FCO, Australia ACCC, Brazil CADE, India CCI, China SAMR / MOFCOM, Japan JFTC, South Korea KFTC, Canada Competition Bureau, Mexico COFECE, and any sector-specific regulators. For EACH regulatory body or jurisdiction mentioned: (1) name the specific agency or jurisdiction, (2) state whether a filing has been made, (3) provide the exact filing date if disclosed, (4) state whether approval has been received or is pending. Quote the exact language from the filing. Do not generalize — if the filing names specific jurisdictions or agencies, list every one. If it uses generic language like 'Required Government Authorities' or 'certain foreign jurisdictions' without naming them, quote that language and note the lack of specificity."
+  },
+  "question_4": {
+    "display": "Any other key items, i.e. unions?",
+    "prompt": "Are there any other material items disclosed that could affect deal completion or timeline? This includes but is not limited to: union or collective bargaining obligations, WARN Act notices, employee consultation requirements, pending litigation, go-shop provisions, matching rights, or other unusual conditions. Quote the exact language from the filing. If no material items beyond standard conditions are mentioned, state that clearly."
+  },
+  "question_5": {
+    "display": "What closing timeline or expected close date has management provided, and how does this compare to any prior closing guidance given?",
+    "prompt": "What is management's stated expected closing timeline or expected close date? Quote the exact language used in the filing. Do NOT include or conflate the End Date, Outside Date, or termination date from the merger agreement — that is a contractual backstop, not closing guidance. If the End Date is mentioned, report it separately and label it as such. If prior closing guidance was referenced in this filing, quote it and note how the current guidance compares. If no prior guidance is referenced, state that."
+  }
 }
