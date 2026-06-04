@@ -70,10 +70,15 @@ logger.info("Testing logger functionality")
 
 # Load environment variables and set OpenAI API key
 load_dotenv()
-openai.api_key = os.getenv("OPENAI_API_KEY_SEC_FILING")
+_sec_filing_api_key = os.getenv("OPENAI_API_KEY_SEC_FILING")
+openai.api_key = _sec_filing_api_key
 
-# Configure LlamaIndex settings
-Settings.llm = OpenAI(model="gpt-4.1-mini", temperature=0.1)
+# Configure LlamaIndex settings (use SEC filing key, not OPENAI_API_KEY)
+Settings.llm = OpenAI(
+    model="gpt-4.1-mini",
+    temperature=0.1,
+    api_key=_sec_filing_api_key,
+)
 
 
 class S3Service:
