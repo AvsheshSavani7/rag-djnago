@@ -442,9 +442,9 @@ def _llm_form_affects_deal(target_name, acquirer_name, sec_url, form_type=None):
     Used only when the filing CIK is the acquirer.
     """
     try:
-        import openai
 
-        client = openai.OpenAI()
+        client = openai.OpenAI(
+            api_key=os.environ.get("OPENAI_API_KEY_SEC_FILING"))
         form_label = form_type or "this SEC form"
 
         prompt = f"""You are evaluating whether an SEC filing by the acquirer/parent is materially related to a specific M&A deal.
@@ -698,7 +698,8 @@ def _send_proxy_comparison_email(
             cik_number=cik_number,
             past_record_id=result_from_orchestrator.get("past_id"),
             latest_record_id=result_from_orchestrator.get("latest_id"),
-            change_report_html=result_from_orchestrator.get("change_report_html"),
+            change_report_html=result_from_orchestrator.get(
+                "change_report_html"),
             tier1_changes=result_from_orchestrator.get("tier1_changes"),
             tier2_changes=result_from_orchestrator.get("tier2_changes"),
             target_ticker=deal_tickers.get("target_ticker"),
