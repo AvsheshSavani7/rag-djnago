@@ -28,7 +28,7 @@ except ImportError:
 
 # summary_engine.py
 RUN_CONCISE_SUMMARIES = True
-RUN_FULSOME_SUMMARIES = True
+RUN_FULSOME_SUMMARIES = False  # True
 
 # =========================
 # LLM Setup

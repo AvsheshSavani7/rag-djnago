@@ -5321,21 +5321,23 @@ class SchemaCategorySearch:
                             futures[section_name] = []
 
                             for i, field in enumerate(section_value):
-                                field_name = field.get("field_name", "")
-                                # if field_name == "hsr_clearance_required":
-                                logger.info(
-                                    f"Submitting task for field: {field_name} ({i+1}/{len(section_value)})"
-                                )
+                                if field.get("priority") == 1:
 
-                                # Submit the task to the executor and store the future
-                                future = executor.submit(
-                                    self.process_schema_field1,
-                                    section_name,
-                                    field,
-                                    deal_id,
-                                )
-                                futures[section_name].append(
-                                    (field_name, future))
+                                    field_name = field.get("field_name", "")
+                                    # if field_name == "hsr_clearance_required":
+                                    logger.info(
+                                        f"Submitting task for field: {field_name} ({i+1}/{len(section_value)})"
+                                    )
+
+                                    # Submit the task to the executor and store the future
+                                    future = executor.submit(
+                                        self.process_schema_field1,
+                                        section_name,
+                                        field,
+                                        deal_id,
+                                    )
+                                    futures[section_name].append(
+                                        (field_name, future))
                                 # else:
                                 #     logger.info(
                                 # f"Skipping field: {field_name}")
@@ -5353,24 +5355,27 @@ class SchemaCategorySearch:
                                 futures[section_name][subsection_name] = []
 
                                 for i, field in enumerate(fields):
-                                    field_name = field.get("field_name", "")
-                                    # if field_name == "divestiture_clause_summary":
-                                    # continue
-                                    logger.info(
-                                        f"Submitting task for field: {field_name} ({i+1}/{len(fields)})"
-                                    )
+                                    if field.get("priority") == 1:
 
-                                    # Submit the task to the executor and store the future
-                                    future = executor.submit(
-                                        self.process_schema_field1,
-                                        section_name,
-                                        field,
-                                        deal_id,
-                                        subsection_name,
-                                    )
-                                    futures[section_name][subsection_name].append(
-                                        (field_name, future)
-                                    )
+                                        field_name = field.get(
+                                            "field_name", "")
+                                        # if field_name == "divestiture_clause_summary":
+                                        # continue
+                                        logger.info(
+                                            f"Submitting task for field: {field_name} ({i+1}/{len(fields)})"
+                                        )
+
+                                        # Submit the task to the executor and store the future
+                                        future = executor.submit(
+                                            self.process_schema_field1,
+                                            section_name,
+                                            field,
+                                            deal_id,
+                                            subsection_name,
+                                        )
+                                        futures[section_name][subsection_name].append(
+                                            (field_name, future)
+                                        )
                     # else:
                     #     logger.info(
                     #         f"Skipping field: {field_name}")
