@@ -1,13 +1,10 @@
-streamlit==1.27.2
+# Streamlit tools (Feed Builder + schema search UI).
+# Install main project deps first: pip install -r ../requirements.txt
+# Then: pip install -r requirements_streamlit.txt
+
+streamlit>=1.27.2,<2
 streamlit-ace==0.1.1
-openai==1.3.7
-python-dotenv==1.0.0
-mongoengine==0.27.0
-pymongo==4.5.0
-pinecone-client==2.2.4
-boto3==1.28.44
-PyPDF2==3.0.1
-pandas==2.0.3
-numpy==1.24.3
-Django==4.2.5
-djangorestframework==3.14.0
+feedparser==6.0.11
+beautifulsoup4>=4.13.4
+python-dateutil>=2.9.0
+requests>=2.31.0

@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8" />
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #0f1117; color: #e8e8e8; }
+  .wrap { display: flex; height: 720px; border: 1px solid #2b2f3a; border-radius: 8px; overflow: hidden; }
+  .left { width: 38%; min-width: 300px; background: #161a22; border-right: 1px solid #2b2f3a; display: flex; flex-direction: column; position: relative; z-index: 2; }
+  .right { flex: 1; background: #fff; color: #111; position: relative; overflow: hidden; display: flex; flex-direction: column; }
+  .left h4 { margin: 12px 14px 6px; font-size: 13px; color: #9aa4b2; text-transform: uppercase; letter-spacing: .04em; }
+  .mode { display: flex; gap: 8px; padding: 0 14px 10px; }
+  .mode button { flex: 1; padding: 8px; border: 1px solid #3a4252; background: #1d2330; color: #d5dbe5; border-radius: 6px; cursor: pointer; }
+  .mode button.active { background: #2563eb; border-color: #2563eb; color: #fff; }
+  .hint { padding: 0 14px 10px; font-size: 12px; color: #8b95a5; line-height: 1.4; }
+  .selector-section { padding-bottom: 4px; }
+  .wrap.mode-auto .selector-section { display: none; }
+  .wrap.mode-manual .auto-summary { display: none; }
+  .auto-summary { margin: 0 14px 10px; padding: 10px; background: #0f131b; border: 1px solid #2f3747; border-radius: 8px; font-size: 12px; color: #cbd5e1; line-height: 1.5; }
+  .auto-summary .lbl { color: #64748b; font-size: 11px; text-transform: uppercase; }
+  .field { padding: 0 14px 8px; }
+  .field label { display: block; font-size: 12px; color: #9aa4b2; margin-bottom: 4px; }
+  .field input { width: 100%; padding: 8px 10px; border-radius: 6px; border: 1px solid #3a4252; background: #0f131b; color: #f3f4f6; font-size: 12px; }
+  .field input.active-field { border-color: #f59e0b; box-shadow: 0 0 0 1px #f59e0b; }
+  .field-btns { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 14px 8px; }
+  .field-btns button { padding: 5px 8px; font-size: 11px; border-radius: 5px; border: 1px solid #3a4252; background: #1d2330; color: #cbd5e1; cursor: pointer; }
+  .field-btns button.active-field-btn { border-color: #f59e0b; color: #fbbf24; }
+  .matches { margin: 8px 14px 0; padding: 10px; background: #0f131b; border: 1px solid #2f3747; border-radius: 8px; flex: 1; overflow: auto; min-height: 120px; }
+  .matches .count { font-size: 13px; font-weight: 600; margin-bottom: 8px; color: #93c5fd; }
+  .match-item { font-size: 12px; border-bottom: 1px solid #243042; padding: 8px 0; display: flex; gap: 10px; }
+  .match-item img { width: 56px; height: 40px; object-fit: cover; border-radius: 4px; flex-shrink: 0; background: #1e293b; }
+  .match-item .body { flex: 1; min-width: 0; }
+  .match-item a { color: #60a5fa; text-decoration: none; word-break: break-all; font-size: 11px; }
+  .match-item .t { color: #e5e7eb; margin-bottom: 4px; font-weight: 500; }
+  .match-item .meta { color: #94a3b8; font-size: 11px; margin-bottom: 4px; }
+  .toolbar { display: flex; align-items: center; gap: 10px; padding: 8px 12px; background: #f3f4f6; border-bottom: 1px solid #d1d5db; font-size: 12px; color: #374151; }
+  #preview { flex: 1; overflow: auto; background: #fff; }
+  .fb-container-match { outline: 2px dashed #f97316 !important; outline-offset: 2px; background: rgba(249,115,22,.08) !important; }
+  .fb-pick-hover { outline: 2px solid #3b82f6 !important; outline-offset: 1px; cursor: crosshair; }
+  .fb-field-preview { outline: 2px solid #a855f7 !important; outline-offset: 1px; }
+  .apply-btn { margin: 10px 14px 14px; padding: 10px; background: #2563eb; color: #fff; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; }
+</style>
+</head>
+<body>
+<div class="wrap mode-auto" id="app-wrap">
+  <div class="left" id="left-panel">
+    <h4>Type of content</h4>
+    <div class="mode">
+      <button type="button" id="mode-auto" class="active">Auto</button>
+      <button type="button" id="mode-manual">Manual</button>
+    </div>
+    <div class="hint" id="mode-hint">Click any article card. We detect the container and infer all field selectors automatically.</div>
+
+    <div class="auto-summary" id="auto-summary">
+      <div><span class="lbl">Detected</span><br><span id="auto-summary-text">No article selected yet.</span></div>
+    </div>
+
+    <div class="selector-section">
+      <h4>CSS selectors (manual)</h4>
+      <div class="field-btns" id="field-btns">
+        <button type="button" data-field="container" class="active-field-btn">Container</button>
+        <button type="button" data-field="detail_url">Link</button>
+        <button type="button" data-field="title">Title</button>
+        <button type="button" data-field="published_at">Date</button>
+        <button type="button" data-field="description">Description</button>
+        <button type="button" data-field="image">Image</button>
+      </div>
+      <div class="field"><label>Article container</label><input data-key="container" /></div>
+      <div class="field"><label>Link</label><input data-key="detail_url" /></div>
+      <div class="field"><label>Title</label><input data-key="title" /></div>
+      <div class="field"><label>Date</label><input data-key="published_at" /></div>
+      <div class="field"><label>Description</label><input data-key="description" /></div>
+      <div class="field"><label>Image</label><input data-key="image" /></div>
+    </div>
+
+    <div class="matches">
+      <div class="count" id="match-count">0 elements</div>
+      <div id="match-list"></div>
+    </div>
+    <button type="button" class="apply-btn" id="apply-btn">Apply selectors to Feed Builder</button>
+  </div>
+
+  <div class="right">
+    <div class="toolbar"><span>Live page preview</span> <span id="domain-label"></span></div>
+    <div id="preview"><div id="preview-root"></div></div>
+  </div>
+</div>
+
+<script id="fb-config-data" type="application/json">__FB_CONFIG_JSON__</script>
+<script>
+(() => {
+  const CONFIG = JSON.parse(document.getElementById("fb-config-data").textContent || "{}");
+  const pageHtml = CONFIG.htmlB64 ? atob(CONFIG.htmlB64) : (CONFIG.html || "");
+  const baseUrl = CONFIG.baseUrl || "";
+  let mode = "auto";
+  let activeField = "container";
+  const selectors = Object.assign({ container:"", detail_url:"a", title:"", published_at:"", description:"", image:"" }, CONFIG.selectors || {});
+
+  function sanitizeSelector(sel) {
+    if (!sel) return sel;
+    return sel.replace(/\.fb-hover\b/g, "").replace(/\.fb-pick-hover\b/g, "").replace(/\s+/g, " ").trim();
+  }
+  Object.keys(selectors).forEach(k => { selectors[k] = sanitizeSelector(selectors[k]); });
+
+  const previewRoot = document.getElementById("preview-root");
+  const fieldInputs = {};
+  document.querySelectorAll(".field input").forEach(inp => {
+    fieldInputs[inp.dataset.key] = inp;
+    inp.addEventListener("input", () => { selectors[inp.dataset.key] = inp.value.trim(); refreshAll(); });
+  });
+
+  document.querySelectorAll("#field-btns button").forEach(btn => {
+    btn.addEventListener("click", () => setActiveField(btn.dataset.field));
+  });
+
+  if (!pageHtml || pageHtml.length < 50) {
+    previewRoot.innerHTML = '<p style="padding:40px;color:#666;">Fetch URL in Streamlit first.</p>';
+  } else {
+    previewRoot.innerHTML = pageHtml;
+    previewRoot.querySelectorAll("script,iframe,noscript").forEach(n => n.remove());
+    if (baseUrl) {
+      previewRoot.querySelectorAll("[src],[href]").forEach(el => {
+        ["src","href"].forEach(attr => {
+          const v = el.getAttribute(attr);
+          if (v && v.startsWith("/")) try { el.setAttribute(attr, new URL(v, baseUrl).href); } catch(e) {}
+        });
+      });
+    }
+  }
+
+  try { document.getElementById("domain-label").textContent = new URL(baseUrl).hostname; } catch(e) {}
+
+  function pageClasses(el) {
+    return (el.className || "").toString().trim().split(/\s+/).filter(c => {
+      return c && !c.startsWith("_") && !c.startsWith("fb-");
+    });
+  }
+
+  function simpleSelector(el) {
+    const cls = pageClasses(el).slice(0, 3);
+    if (cls.length) return el.tagName.toLowerCase() + "." + cls.join(".");
+    return el.tagName.toLowerCase();
+  }
+
+  function snapTarget(el, field) {
+    if (!(el instanceof Element)) return el;
+    if (field === "container") return findRepeatedContainer(el) || el;
+    if (field === "detail_url") {
+      const headline = el.closest(".headline,[class*='headline']");
+      if (headline) {
+        const a = headline.querySelector("a[href]");
+        if (a) return a;
+      }
+      const a = el.closest("a[href]");
+      if (a && !a.closest(".byline,[class*='byline']")) return a;
+    }
+    if (field === "title") {
+      const headline = el.closest(".headline,[class*='headline']");
+      if (headline) {
+        const a = headline.querySelector("a[href]");
+        if (a) return a;
+      }
+      const h = el.closest("h1,h2,h3,h4,h5");
+      if (h) return h;
+    }
+    if (field === "published_at") {
+      const d = el.closest("time,small,.item-date,.date,.search-index__header,[class*='date'],.timestamp");
+      if (d) {
+        if (d.tagName === "TIME") return d;
+        const time = d.querySelector("time");
+        if (time) return time;
+        return d;
+      }
+    }
+    if (field === "description") {
+      const underline = el.closest(".underline,[class*='underline']");
+      if (underline) {
+        const a = underline.querySelector("a[href]");
+        if (a) return a;
+        return underline;
+      }
+      const p = el.closest("p,.summary,.description,.excerpt,.item-sub-title,[class*='sub-title']");
+      if (p) return p;
+    }
+    if (field === "image") {
+      const img = el.closest("img");
+      if (img) return img;
+    }
+    return el;
+  }
+
+  function contextAnchorSelector(el) {
+    if (!(el instanceof Element) || el.tagName !== "A") return null;
+    const parent = el.parentElement;
+    if (!parent) return null;
+    const pcls = pageClasses(parent);
+    if (!pcls.length) return null;
+    return "." + pcls[0] + " a";
+  }
+
+  function findRepeatedContainer(el) {
+    let cur = el, best = null, bestScore = 0;
+    while (cur && cur !== previewRoot) {
+      const parent = cur.parentElement;
+      if (!parent) break;
+      const sig = simpleSelector(cur);
+      const count = Array.from(parent.children).filter(c => simpleSelector(c) === sig).length;
+      if (count >= 2 && count > bestScore) { best = cur; bestScore = count; }
+      cur = parent;
+    }
+    return best;
+  }
+
+  function getContainers() {
+    if (!selectors.container) return [];
+    try { return Array.from(previewRoot.querySelectorAll(selectors.container)); } catch(e) { return []; }
+  }
+
+  function candidatesFor(el) {
+    const out = new Set();
+    const tag = el.tagName.toLowerCase();
+    const cls = pageClasses(el);
+    if (cls.length) {
+      out.add(tag + "." + cls[0]);
+      out.add("." + cls[0]);
+      if (cls.length > 1) out.add(tag + "." + cls.slice(0,2).join("."));
+    }
+    out.add(tag);
+    if (tag === "a") {
+      const ctx = contextAnchorSelector(el);
+      if (ctx) out.add(ctx);
+      if (el.closest(".headline,[class*='headline']")) out.add(".headline a");
+      if (el.closest(".underline,[class*='underline']")) out.add(".underline a");
+      if (el.querySelector("h1,h2,h3,h4,h5")) {
+        out.add("a:has(h2)");
+        out.add("a:has(h3)");
+        out.add("a:has(.item-title)");
+      }
+      if (!(el.className||"").includes("item-image")) {
+        out.add("a:not(.item-image):not(.byline-link)");
+      }
+    }
+    return Array.from(out);
+  }
+
+  function bestSelectorInContainers(el, field) {
+    const containers = getContainers();
+    const scope = containers[0] || previewRoot;
+    const target = snapTarget(el, field);
+    if (!target) return simpleSelector(el);
+
+    if (field === "container") return simpleSelector(target);
+
+    const cands = candidatesFor(target);
+    let fallback = simpleSelector(target);
+    for (const cand of cands) {
+      const testContainers = containers.length ? containers : [scope];
+      let ok = true;
+      for (const c of testContainers) {
+        try {
+          const n = c.querySelectorAll(cand).length;
+          if (n !== 1) { ok = false; break; }
+        } catch(e) { ok = false; break; }
+      }
+      if (ok && testContainers.length) return cand;
+    }
+    if (field === "detail_url" && target.tagName === "A") {
+      const ctx = contextAnchorSelector(target);
+      if (ctx) return ctx;
+      const as = Array.from((containers[0] || scope).querySelectorAll("a[href]"));
+      if (as.length > 1) return "a:not(.item-image):not(.byline-link)";
+      return "a";
+    }
+    if ((field === "title" || field === "description") && target.tagName === "A") {
+      const ctx = contextAnchorSelector(target);
+      if (ctx) return ctx;
+    }
+    return fallback;
+  }
+
+  function isBylineLink(a) {
+    if ((a.className||"").includes("byline-link")) return true;
+    if (a.closest(".byline,[class*='byline']")) return true;
+    const href = a.getAttribute("href") || "";
+    return href.includes("/writers/") || href.includes("/author");
+  }
+
+  function bestArticleLink(container) {
+    const headline = container.querySelector(".headline a[href], [class*='headline'] a[href]");
+    if (headline && !isBylineLink(headline)) return headline;
+
+    const links = Array.from(container.querySelectorAll("a[href]"));
+    let best = null, bestScore = -999;
+    for (const a of links) {
+      if (isBylineLink(a)) continue;
+      let score = 0;
+      if (a.closest(".headline,[class*='headline']")) score += 35;
+      if (a.closest(".underline,[class*='underline']")) score += 5;
+      if (a.querySelector("h1,h2,h3,h4,h5")) score += 25;
+      const text = a.textContent.trim();
+      if (text.length >= 20) score += 15;
+      if (text.length <= 2) score -= 10;
+      if (a.querySelector("img") && text.length <= 3) score -= 12;
+      if ((a.className||"").includes("item-image")) score -= 15;
+      if (score > bestScore) { bestScore = score; best = a; }
+    }
+    return best;
+  }
+
+  function pickSemantic(container, sels) {
+    for (const sel of sels) {
+      try {
+        const el = container.querySelector(sel);
+        if (el && el.textContent.trim().length >= 5) return { el, sel };
+      } catch(e) {}
+    }
+    return { el: null, sel: "" };
+  }
+
+  function inferFields(container) {
+    selectors.container = simpleSelector(container);
+    const link = bestArticleLink(container);
+    const titlePick = pickSemantic(container, [".headline a", ".headline", "h1","h2","h3","h4","h5"]);
+    const img = container.querySelector("img[src]");
+    const date = container.querySelector("time, .search-index__header time, .item-date, .date, small");
+    const descPick = pickSemantic(container, [".underline a", ".underline", ".item-sub-title",".summary",".description",".excerpt","p"]);
+
+    if (link) selectors.detail_url = bestSelectorInContainers(link, "detail_url");
+    if (titlePick.el) {
+      selectors.title = titlePick.sel.startsWith(".") ? titlePick.sel : bestSelectorInContainers(titlePick.el, "title");
+    }
+    if (date) selectors.published_at = bestSelectorInContainers(date, "published_at");
+    else if (titlePick.el && titlePick.el.querySelector("small")) selectors.published_at = selectors.title + " small";
+    if (descPick.el && descPick.el.textContent.trim().length >= 15) {
+      selectors.description = descPick.sel.startsWith(".")
+        ? descPick.sel
+        : bestSelectorInContainers(descPick.el, "description");
+    }
+    if (img) selectors.image = bestSelectorInContainers(img, "image");
+    syncInputs();
+    updateAutoSummary();
+  }
+
+  function syncInputs() {
+    Object.keys(fieldInputs).forEach(k => { fieldInputs[k].value = selectors[k] || ""; });
+    refreshAll();
+  }
+
+  function updateAutoSummary() {
+    const parts = [];
+    if (selectors.container) parts.push("container: " + selectors.container);
+    if (selectors.detail_url) parts.push("link: " + selectors.detail_url);
+    if (selectors.title) parts.push("title: " + selectors.title);
+    if (selectors.published_at) parts.push("date: " + selectors.published_at);
+    if (selectors.description) parts.push("desc: " + selectors.description);
+    document.getElementById("auto-summary-text").textContent = parts.length
+      ? parts.join(" · ")
+      : "No article selected yet.";
+  }
+
+  function refreshHighlights() {
+    previewRoot.querySelectorAll(".fb-container-match,.fb-field-preview").forEach(el => {
+      el.classList.remove("fb-container-match","fb-field-preview");
+    });
+    if (selectors.container) {
+      try { previewRoot.querySelectorAll(selectors.container).forEach(el => el.classList.add("fb-container-match")); } catch(e) {}
+    }
+    if (mode === "manual" && selectors.container && selectors[activeField] && activeField !== "container") {
+      getContainers().forEach(c => {
+        try {
+          const el = c.querySelector(selectors[activeField]);
+          if (el) el.classList.add("fb-field-preview");
+        } catch(e) {}
+      });
+    }
+  }
+
+  function resolveLinkEl(container) {
+    let el = null;
+    try {
+      el = selectors.detail_url ? container.querySelector(selectors.detail_url) : null;
+    } catch(e) {}
+    if (!el) return bestArticleLink(container);
+    if (el.tagName === "A" && el.getAttribute("href")) return el;
+    const nested = el.querySelector("a[href]");
+    if (nested) return nested;
+    for (const attr of ["href", "data-href"]) {
+      const href = el.getAttribute(attr);
+      if (href) return el;
+    }
+    return bestArticleLink(container);
+  }
+
+  function extractItems() {
+    const containers = getContainers();
+    if (!containers.length) return [];
+    const items = [], seen = new Set();
+    for (const container of containers) {
+      const linkEl = resolveLinkEl(container);
+      let href = linkEl ? (linkEl.getAttribute("href") || linkEl.getAttribute("data-href") || "") : "";
+      if (!href || seen.has(href)) continue;
+      seen.add(href);
+      let title = "";
+      try {
+        const tEl = selectors.title
+          ? container.querySelector(selectors.title)
+          : container.querySelector(".headline a, .headline, h1,h2,h3,h4,h5");
+        if (tEl) {
+          const sm = tEl.querySelector("small,time");
+          title = tEl.textContent.trim();
+          if (sm) title = title.replace(sm.textContent.trim(),"").trim();
+        }
+      } catch(e) {}
+      let date = "";
+      try {
+        const dEl = selectors.published_at ? container.querySelector(selectors.published_at) : null;
+        if (dEl) {
+          const timeEl = dEl.tagName === "TIME" ? dEl : dEl.querySelector("time");
+          date = (timeEl ? timeEl.textContent : dEl.textContent).trim();
+        } else {
+          const timeEl = container.querySelector("time, .search-index__header time, .date");
+          if (timeEl) date = timeEl.textContent.trim();
+        }
+      } catch(e) {}
+      let description = "";
+      try {
+        const dEl = selectors.description
+          ? container.querySelector(selectors.description)
+          : container.querySelector(".underline a, .underline, .item-sub-title, .summary, p");
+        if (dEl) description = dEl.textContent.trim();
+      } catch(e) {}
+      let image = "";
+      try {
+        const iEl = selectors.image ? container.querySelector(selectors.image) : container.querySelector("img[src]");
+        if (iEl) image = iEl.getAttribute("src") || "";
+      } catch(e) {}
+      items.push({ title, detail_url: new URL(href, baseUrl).href, published_at: date, description, image });
+    }
+    return items;
+  }
+
+  function refreshMatches() {
+    const items = extractItems();
+    document.getElementById("match-count").textContent = items.length + " elements";
+    document.getElementById("match-list").innerHTML = items.slice(0,30).map(it => {
+      const img = it.image
+        ? `<img src="${esc(it.image)}" alt="" onerror="this.style.display='none'"/>`
+        : `<img style="visibility:hidden" alt=""/>`;
+      const date = it.published_at ? `<div class="meta">📅 ${esc(it.published_at)}</div>` : "";
+      const desc = it.description ? `<div class="meta">${esc(it.description.slice(0,120))}${it.description.length>120?"…":""}</div>` : "";
+      return `<div class="match-item">${img}<div class="body"><div class="t">${esc(it.title||"(no title)")}</div>${date}${desc}<a href="${esc(it.detail_url)}" target="_blank">${esc(it.detail_url)}</a></div></div>`;
+    }).join("");
+  }
+
+  function esc(s) { return (s||"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+
+  function refreshAll() { refreshHighlights(); refreshMatches(); updateAutoSummary(); }
+
+  function setActiveField(field) {
+    activeField = field;
+    document.querySelectorAll("#field-btns button").forEach(b => b.classList.toggle("active-field-btn", b.dataset.field === field));
+    Object.entries(fieldInputs).forEach(([k, inp]) => inp.classList.toggle("active-field", k === field));
+    refreshHighlights();
+  }
+
+  previewRoot.addEventListener("mouseover", e => {
+    let t = e.target;
+    if (!(t instanceof Element)) return;
+    previewRoot.querySelectorAll(".fb-pick-hover").forEach(el => el.classList.remove("fb-pick-hover"));
+    if (mode === "manual") t = snapTarget(t, activeField) || t;
+    t.classList.add("fb-pick-hover");
+  }, true);
+
+  previewRoot.addEventListener("click", e => {
+    let t = e.target;
+    if (!(t instanceof Element)) return;
+    e.preventDefault(); e.stopPropagation();
+    t.classList.remove("fb-pick-hover");
+
+    if (mode === "auto") {
+      const container = findRepeatedContainer(t);
+      if (container) inferFields(container);
+    } else {
+      if (activeField === "container") {
+        const container = findRepeatedContainer(t);
+        if (container) selectors.container = simpleSelector(container);
+      } else {
+        if (!selectors.container) {
+          alert("Pick Article container first (or use Auto once).");
+          return;
+        }
+        const target = snapTarget(t, activeField) || t;
+        selectors[activeField] = bestSelectorInContainers(target, activeField);
+      }
+      syncInputs();
+    }
+  }, true);
+
+  function setMode(m) {
+    mode = m;
+    document.getElementById("app-wrap").className = "wrap mode-" + m;
+    document.getElementById("mode-auto").classList.toggle("active", m === "auto");
+    document.getElementById("mode-manual").classList.toggle("active", m === "manual");
+    document.getElementById("mode-hint").textContent = m === "auto"
+      ? "Click any article card. We detect the container and infer all field selectors automatically."
+      : "1) Pick Container 2) Pick Link/Title/Date/Description/Image — each selector applies to ALL articles.";
+    refreshAll();
+  }
+
+  document.getElementById("mode-auto").onclick = e => { e.stopPropagation(); setMode("auto"); };
+  document.getElementById("mode-manual").onclick = e => { e.stopPropagation(); setMode("manual"); };
+  document.getElementById("apply-btn").onclick = e => {
+    e.stopPropagation();
+    const url = new URL(window.top.location.href);
+    url.searchParams.set("fb_sync", "1");
+    url.searchParams.set("selectors", JSON.stringify(selectors));
+    window.top.location.href = url.toString();
+  };
+
+  setActiveField("container");
+  syncInputs();
+})();
+</script>
+</body>
+</html>

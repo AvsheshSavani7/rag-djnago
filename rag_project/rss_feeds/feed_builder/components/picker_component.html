@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <style>
+    body { font-family: sans-serif; margin: 0; padding: 0; }
+    #toolbar {
+      position: sticky; top: 0; background: #111; color: #fff;
+      padding: 8px 12px; z-index: 1000; font-size: 13px;
+    }
+    #preview { padding: 12px; }
+    .pick-hover { outline: 2px solid #ff9800 !important; cursor: crosshair; }
+    .pick-selected-title { outline: 2px solid #4caf50 !important; }
+    .pick-selected-link { outline: 2px solid #2196f3 !important; }
+    .pick-selected-date { outline: 2px solid #9c27b0 !important; }
+    .pick-selected-author { outline: 2px solid #e91e63 !important; }
+    .pick-selected-image { outline: 2px solid #00bcd4 !important; }
+    .pick-selected-container { outline: 2px solid #ffc107 !important; }
+    button { margin-right: 6px; padding: 4px 8px; cursor: pointer; }
+    #output { white-space: pre-wrap; background: #f5f5f5; padding: 8px; margin: 8px 12px; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <div id="toolbar">
+  <span>Active field:</span>
+    <button data-field="container">Container</button>
+    <button data-field="title">Title</button>
+    <button data-field="detail_url">Detail URL</button>
+    <button data-field="published_at">Date</button>
+    <button data-field="author">Author</button>
+    <button data-field="image">Image</button>
+    <span id="active-field" style="margin-left:8px;">container</span>
+  </div>
+  <div id="output"></div>
+  <div id="preview"></div>
+
+  <script>
+    const htmlContent = window.PICKER_HTML || "<p>No HTML loaded</p>";
+    const selections = {};
+    let activeField = "container";
+
+    function cssPath(el, root) {
+      if (!el || el === root) return "";
+      const parts = [];
+      while (el && el !== root && el.nodeType === 1) {
+        let part = el.tagName.toLowerCase();
+        if (el.id) {
+          part += "#" + el.id;
+          parts.unshift(part);
+          break;
+        }
+        const cls = (el.className || "").toString().trim().split(/\s+/).filter(Boolean).slice(0, 2);
+        if (cls.length) part += "." + cls.join(".");
+        const parent = el.parentElement;
+        if (parent) {
+          const same = Array.from(parent.children).filter(c => c.tagName === el.tagName);
+          if (same.length > 1) part += `:nth-of-type(${same.indexOf(el) + 1})`;
+        }
+        parts.unshift(part);
+        el = el.parentElement;
+      }
+      return parts.join(" > ");
+    }
+
+    function render() {
+      const preview = document.getElementById("preview");
+      preview.innerHTML = htmlContent;
+      const root = preview;
+
+      preview.querySelectorAll("*").forEach(el => {
+        el.addEventListener("mouseenter", () => el.classList.add("pick-hover"));
+        el.addEventListener("mouseleave", () => el.classList.remove("pick-hover"));
+        el.addEventListener("click", (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          const path = cssPath(el, root);
+          selections[activeField] = path;
+          root.querySelectorAll("[class*='pick-selected-']").forEach(n => {
+            n.className = n.className.replace(/pick-selected-\w+/g, "").trim();
+          });
+          el.classList.add("pick-selected-" + activeField.replace("_", "-"));
+          document.getElementById("output").textContent = JSON.stringify(selections, null, 2);
+        });
+      });
+    }
+
+    document.querySelectorAll("#toolbar button[data-field]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        activeField = btn.getAttribute("data-field");
+        document.getElementById("active-field").textContent = activeField;
+      });
+    });
+
+    render();
+  </script>
+</body>
+</html>

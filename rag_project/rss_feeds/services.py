@@ -10,6 +10,8 @@ from .websocket_service import RSSWebSocketService
 from .email_templates import (
     generate_rss_feed_item_email_html,
     generate_rss_feed_item_email_html_flow2,
+    generate_feed_builder_newswire_email_html,
+    feed_builder_display_name,
     rss_subject_uses_client_webhook,
     FEED_TITLE_DISPLAY_NAMES,
     FEED_TITLE_DISPLAY_NAME_2,
@@ -59,6 +61,7 @@ def _is_skippable_non_ma_summary_error(exc: BaseException) -> bool:
         return any(marker in msg for marker in _NON_MA_SUMMARY_SKIP_MARKERS)
     return False
 
+
 # N8N webhook for RSS feed update emails (testing – same as sec_rss_parser)
 N8N_WEBHOOK_ONLY_ME = os.environ.get(
     "N8N_WEBHOOK_ONLY_ME",
@@ -73,6 +76,11 @@ N8N_WEBHOOK_SEND_TO_ALL = os.environ.get(
     "N8N_WEBHOOK_SEND_TO_ALL",
     "https://n8n.arbintel.cloud/webhook/3ff1b0ea-7114-4dda-940e-95ce81e08017",
 )
+
+# Temporary: email on feed_builder scan new articles (disable after testing).
+FEED_BUILDER_SCAN_TEST_EMAILS = os.environ.get(
+    "FEED_BUILDER_SCAN_TEST_EMAILS", "true"
+).lower() in ("1", "true", "yes")
 
 
 def _parse_date_published(value: Any) -> datetime:
@@ -138,6 +146,55 @@ def _send_rss_feed_email_via_webhook(
                 (e.response.text[:200] if getattr(
                     e.response, "text", None) else ""),
             )
+        return False
+
+
+def send_feed_builder_newswire_test_email(
+    *,
+    source_id: str,
+    source_name: Optional[str],
+    source_url: str,
+    new_items: List[Dict[str, Any]],
+) -> bool:
+    """
+    Testing-only: send one email per newswire when feed_builder scan finds new articles.
+
+    Uses N8N_WEBHOOK_ONLY_ME. Does not modify or replace RSS.app webhook email flow.
+    Set FEED_BUILDER_SCAN_TEST_EMAILS=false to disable without code changes.
+    """
+    if not FEED_BUILDER_SCAN_TEST_EMAILS:
+        logger.debug(
+            "Feed builder test emails disabled (FEED_BUILDER_SCAN_TEST_EMAILS=false)"
+        )
+        return False
+    if not new_items:
+        return False
+
+    try:
+        subject, html_email = generate_feed_builder_newswire_email_html(
+            source_id=source_id,
+            source_name=source_name,
+            source_url=source_url or "",
+            new_items=new_items,
+        )
+        display_name = feed_builder_display_name(source_name, source_id)
+        logger.info(
+            "Sending feed builder test email for %s (%s new item(s)) via N8N_WEBHOOK_ONLY_ME",
+            source_id,
+            len(new_items),
+        )
+        return _send_rss_feed_email_via_webhook(
+            N8N_WEBHOOK_ONLY_ME,
+            subject=subject,
+            html_email=html_email,
+            feed_title=display_name,
+            items_count=len(new_items),
+            feed_source_url=source_url or "",
+        )
+    except Exception as exc:
+        logger.warning(
+            "Feed builder test email failed for %s: %s", source_id, exc
+        )
         return False
 
 
@@ -446,7 +503,8 @@ class RSSFeedService:
                                     logger.info(
                                         "AI summary attached for %s (L1: %s)",
                                         url,
-                                        (summary.get("L1_headline") or "")[:60],
+                                        (summary.get("L1_headline") or "")[
+                                            :60],
                                     )
                                 else:
                                     logger.warning(

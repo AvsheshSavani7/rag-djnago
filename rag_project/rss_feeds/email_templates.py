@@ -588,3 +588,109 @@ def generate_rss_feed_item_email_html_flow2(
         deal_block=deal_block,
     )
     return subject, html_email
+
+
+def feed_builder_display_name(
+    source_name: Optional[str],
+    source_id: Optional[str] = None,
+) -> str:
+    """Resolve display label for feed_builder source_name / source_id."""
+    if source_name:
+        return (
+            FEED_TITLE_DISPLAY_NAMES.get(source_name)
+            or FEED_TITLE_DISPLAY_NAME_2.get(source_name)
+            or source_name
+        )
+    return source_id or "Feed Builder"
+
+
+def _format_feed_builder_date(value: Any) -> str:
+    if not value:
+        return ""
+    if hasattr(value, "isoformat"):
+        return value.isoformat()
+    return str(value)
+
+
+def generate_feed_builder_newswire_email_html(
+    *,
+    source_id: str,
+    source_name: Optional[str],
+    source_url: str,
+    new_items: List[Dict[str, Any]],
+) -> tuple:
+    """
+    One email per newswire listing all newly discovered articles from feed_builder scan.
+
+    Returns:
+        tuple: (subject, html_email)
+    """
+    display_name = feed_builder_display_name(source_name, source_id)
+    display_escaped = escape_html(display_name)
+    count = len(new_items)
+    noun = "article" if count == 1 else "articles"
+    subject = f"[Feed Builder Test] {display_name}: {count} new {noun}"
+
+    item_blocks = []
+    for item in new_items:
+        title = escape_html((item.get("title") or "Untitled").strip())
+        url = escape_html(item.get("detail_url") or "#")
+        desc_raw = (item.get("description") or "").strip()
+        desc = escape_html(desc_raw[:500]) if desc_raw else ""
+        date_str = escape_html(_format_feed_builder_date(item.get("published_at")))
+        author = escape_html((item.get("author") or "").strip())
+        desc_block = (
+            f'<p style="margin:8px 0 0 0; font-size:14px; color:#555; line-height:1.5;">{desc}</p>'
+            if desc
+            else ""
+        )
+        date_block = (
+            f'<p style="margin:6px 0 0 0; font-size:12px; color:#888;">{date_str}</p>'
+            if date_str
+            else ""
+        )
+        author_block = (
+            f'<p style="margin:4px 0 0 0; font-size:12px; color:#888;">{author}</p>'
+            if author
+            else ""
+        )
+        item_blocks.append(
+            f"""
+    <div style="margin:16px 0; padding:16px; background:#f8fafc; border-left:4px solid #4a90e2; border-radius:4px;">
+      <a href="{url}" style="color:#2563eb; font-weight:bold; font-size:16px; text-decoration:none;" target="_blank">{title}</a>
+      {desc_block}
+      {date_block}
+      {author_block}
+    </div>"""
+        )
+
+    source_link = (
+        f'<a href="{escape_html(source_url)}" style="color:#4a90e2;" target="_blank">Listing page</a>'
+        if source_url
+        else ""
+    )
+    html_email = f"""
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>{escape_html(subject)}</title>
+</head>
+<body style="margin:0; padding:0; font-family:Arial,sans-serif; background-color:#f4f4f4;">
+  <div style="max-width:700px; margin:20px auto; background-color:#ffffff; padding:30px; border-radius:8px; box-shadow:0 2px 4px rgba(0,0,0,0.1);">
+    <p style="margin:0 0 8px 0; font-size:11px; font-weight:bold; color:#b45309; text-transform:uppercase; letter-spacing:0.5px;">
+      Feed builder scan (testing)
+    </p>
+    <h2 style="color:#333; margin-top:0; padding-bottom:16px; border-bottom:3px solid #4a90e2;">
+      {display_escaped}
+    </h2>
+    <p style="margin:8px 0; font-size:13px; color:#666;">
+      <strong>{count}</strong> new {noun} from <code>{escape_html(source_id)}</code>
+      {f' · {source_link}' if source_link else ''}
+    </p>
+    {''.join(item_blocks)}
+  </div>
+</body>
+</html>
+"""
+    return subject, html_email

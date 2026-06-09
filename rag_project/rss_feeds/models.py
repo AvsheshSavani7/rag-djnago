@@ -9,6 +9,7 @@ from mongoengine import (
     EmbeddedDocument,
     IntField,
     DictField,
+    BooleanField,
 )
 from datetime import datetime
 import uuid
@@ -108,3 +109,110 @@ class Feed(Document):
     def get_feed_items(self, limit=50):
         """Get feed items for this feed"""
         return FeedItem.objects(rss_feed_id=str(self.id)).order_by('-date_published').limit(limit)
+
+
+class NewsSourceConfig(Document):
+    """Feed builder source config. HTML uses selectors; RSS uses element_map. Upsert by source_url."""
+
+    source_id = StringField(required=True, max_length=100, unique=True)
+    source_name = StringField(required=True, max_length=255)
+    source_type = StringField(required=True, max_length=20)  # rss | html
+    source_url = URLField(required=True, max_length=2000, unique=True)
+
+    fetch_mode = StringField(default="requests", max_length=20)
+    selectors = DictField(default=dict)  # HTML: CSS selectors
+    element_map = DictField(default=dict)  # RSS: feedparser field names
+    url_rules = DictField(default=dict)
+
+    is_active = BooleanField(default=True)
+    poll_interval_minutes = IntField(default=10)
+
+    last_checked_at = DateTimeField(null=True)
+    last_success_at = DateTimeField(null=True)
+    last_error = StringField(null=True)
+    consecutive_failures = IntField(default=0)
+
+    created_at = DateTimeField(default=datetime.utcnow)
+    updated_at = DateTimeField(default=datetime.utcnow)
+    v_version = IntField(default=0, db_field="__v")
+
+    meta = {
+        "collection": "news_source_configs",
+        "ordering": ["-updated_at"],
+        "indexes": [
+            "source_id",
+            "source_url",
+            "is_active",
+        ],
+    }
+
+    def save(self, *args, **kwargs):
+        self.updated_at = datetime.utcnow()
+        return super().save(*args, **kwargs)
+
+    def to_dict(self) -> dict:
+        return {
+            "source_id": self.source_id,
+            "source_name": self.source_name,
+            "source_type": self.source_type,
+            "source_url": self.source_url,
+            "fetch_mode": self.fetch_mode,
+            "selectors": self.selectors or {},
+            "element_map": self.element_map or {},
+            "url_rules": self.url_rules or {},
+            "is_active": self.is_active,
+            "poll_interval_minutes": self.poll_interval_minutes,
+            "last_checked_at": self.last_checked_at.isoformat() if self.last_checked_at else None,
+            "last_success_at": self.last_success_at.isoformat() if self.last_success_at else None,
+            "last_error": self.last_error,
+            "consecutive_failures": self.consecutive_failures or 0,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
+        }
+
+
+class NewsArticleLink(Document):
+    """Discovered article URLs from feed builder scanner (is_processed=False until pipeline runs)."""
+
+    source_id = StringField(required=True, max_length=100)
+    source_name = StringField(max_length=255)
+    source_type = StringField(max_length=20)
+    source_url = URLField(max_length=2000)
+
+    title = StringField(max_length=2000, null=True)
+    detail_url = URLField(required=True, max_length=2000)
+    published_at = DateTimeField(null=True)
+    description = StringField(max_length=4000, null=True)
+    author = StringField(max_length=500, null=True)
+    image = URLField(max_length=2000, null=True)
+    guid = StringField(max_length=500, null=True)
+
+    url_hash = StringField(required=True, max_length=64)
+    dedupe_key = StringField(required=True, max_length=255, unique=True)
+
+    is_processed = BooleanField(default=False)
+    processed_at = DateTimeField(null=True)
+
+    first_seen_at = DateTimeField(default=datetime.utcnow)
+    last_seen_at = DateTimeField(null=True)
+    raw_data = DictField(default=dict)
+
+    created_at = DateTimeField(default=datetime.utcnow)
+    updated_at = DateTimeField(default=datetime.utcnow)
+    v_version = IntField(default=0, db_field="__v")
+
+    meta = {
+        "collection": "news_article_links",
+        "ordering": ["-first_seen_at"],
+        "indexes": [
+            "source_id",
+            "url_hash",
+            "dedupe_key",
+            "is_processed",
+            ("source_id", "is_processed"),
+        ],
+    }
+
+    def save(self, *args, **kwargs):
+        self.updated_at = datetime.utcnow()
+        return super().save(*args, **kwargs)
