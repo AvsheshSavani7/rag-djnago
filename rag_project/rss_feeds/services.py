@@ -198,6 +198,47 @@ def send_feed_builder_newswire_test_email(
         return False
 
 
+def send_feed_builder_pipeline_error_email(errors: List[Dict[str, Any]]) -> bool:
+    """
+    Send a single digest email after scan_all_feeds completes with one or more errors.
+    `errors` is the summary["errors"] list: [{"source_id": ..., "error": ...}, ...]
+    """
+    if not errors:
+        return False
+
+    rows_html = "".join(
+        f"<tr>"
+        f"<td style='padding:6px 12px;border:1px solid #ddd'><b>{e['source_id']}</b></td>"
+        f"<td style='padding:6px 12px;border:1px solid #ddd;color:#c0392b'>{e['error']}</td>"
+        f"</tr>"
+        for e in errors
+    )
+    html_email = (
+        "<h2 style='color:#c0392b'>Feed Builder Pipeline — "
+        f"{len(errors)} Feed(s) Failed</h2>"
+        "<table style='border-collapse:collapse;width:100%'>"
+        "<tr style='background:#f2f2f2'>"
+        "<th style='padding:6px 12px;border:1px solid #ddd;text-align:left'>Source ID</th>"
+        "<th style='padding:6px 12px;border:1px solid #ddd;text-align:left'>Error</th>"
+        "</tr>"
+        f"{rows_html}"
+        "</table>"
+    )
+    subject = f"[Feed Builder] {len(errors)} feed(s) failed"
+
+    logger.warning(
+        "Feed builder pipeline finished with %d error(s) — sending digest email",
+        len(errors),
+    )
+    return _send_rss_feed_email_via_webhook(
+        N8N_WEBHOOK_ONLY_ME,
+        subject=subject,
+        html_email=html_email,
+        feed_title="Feed Builder Pipeline",
+        items_count=len(errors),
+    )
+
+
 def process_feed_builder_newswire_articles(
     *,
     feed_config: Dict[str, Any],

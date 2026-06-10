@@ -1,7 +1,7 @@
 import logging
 import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from typing import Dict, List, Optional
 
 from .fetcher import fetch_url
@@ -13,8 +13,28 @@ from .selector_engine import extract_html_items
 logger = logging.getLogger(__name__)
 
 
+_IST = timezone(timedelta(hours=5, minutes=30))
+
+
 def _utc_now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
+
+
+def _ist_now() -> str:
+    return datetime.now(_IST).strftime("%Y-%m-%d %I:%M:%S %p IST")
+
+
+def _published_ist(published_at: str) -> str:
+    """Convert an ISO published_at string to a readable IST label, or return as-is."""
+    if not published_at:
+        return "-"
+    try:
+        dt = datetime.fromisoformat(published_at)
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return dt.astimezone(_IST).strftime("%Y-%m-%d %I:%M:%S %p IST")
+    except Exception:
+        return published_at
 
 
 def validate_feed_config(feed: dict) -> Optional[str]:
@@ -103,12 +123,18 @@ def scan_feed(feed: dict, *, dry_run: bool = False) -> Dict:
             if dry_run:
                 if is_new_link(item):
                     result["new"] += 1
-                    result["new_items"].append(
-                        {
-                            "title": item.get("title"),
-                            "detail_url": item.get("detail_url"),
-                            "published_at": item.get("published_at"),
-                        }
+                    entry = {
+                        "title": item.get("title"),
+                        "detail_url": item.get("detail_url"),
+                        "published_at": item.get("published_at"),
+                    }
+                    result["new_items"].append(entry)
+                    logger.info(
+                        "[dry-run] NEW item | source=%s | url=%s | published=%s | scanned=%s",
+                        source_id,
+                        entry["detail_url"],
+                        _published_ist(entry["published_at"]),
+                        _ist_now(),
                     )
                 continue
 
@@ -129,6 +155,13 @@ def scan_feed(feed: dict, *, dry_run: bool = False) -> Dict:
             if is_new:
                 result["new"] += 1
                 result["new_items"].append(saved)
+                logger.info(
+                    "NEW item saved | source=%s | url=%s | published=%s | scanned=%s",
+                    source_id,
+                    (saved or item).get("detail_url"),
+                    _published_ist((saved or item).get("published_at")),
+                    _ist_now(),
+                )
 
         if not dry_run and result["new_items"]:
             # ===== ACTIVE (testing): N8N_WEBHOOK_ONLY_ME digest email per newswire =====
@@ -169,6 +202,15 @@ def scan_feed(feed: dict, *, dry_run: bool = False) -> Dict:
             #     result["pipeline_ok"] = False
             #     result["pipeline_error"] = str(exc)
             # ===== END GO LIVE =====
+
+        logger.info(
+            "Scan complete | source=%s | found=%d | new=%d | skipped=%d | at=%s",
+            source_id,
+            result["found"],
+            result["new"],
+            result.get("skipped", 0),
+            _ist_now(),
+        )
 
         if not dry_run:
             update_feed_runtime(
@@ -277,5 +319,12 @@ def scan_all_feeds(
                     summary["errors"].append(
                         {"source_id": result["source_id"], "error": result["error"]}
                     )
+
+    if not dry_run and summary["errors"]:
+        try:
+            from rss_feeds.services import send_feed_builder_pipeline_error_email
+            send_feed_builder_pipeline_error_email(summary["errors"])
+        except Exception as exc:
+            logger.warning("Pipeline error email failed: %s", exc)
 
     return summary
