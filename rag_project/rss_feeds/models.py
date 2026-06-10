@@ -24,9 +24,9 @@ class FeedItem(Document):
     """Model for RSS feed items"""
 
     # Feed item information
-    url = URLField(required=True, max_length=1000)
+    url = URLField(required=True, max_length=2000)
     title = StringField(required=True, max_length=500)
-    description_text = StringField(required=False, max_length=2000)
+    description_text = StringField(required=False, max_length=4000)
     thumbnail = URLField(required=False, max_length=1000)
     date_published = DateTimeField(required=True)
     authors = ListField(EmbeddedDocumentField(

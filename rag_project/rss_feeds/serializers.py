@@ -90,10 +90,10 @@ class WebhookPayloadSerializer(serializers.Serializer):
 
 class FeedItemCreateSerializer(serializers.Serializer):
     """Serializer for creating feed items from webhook data"""
-    url = serializers.URLField(max_length=1000)
+    url = serializers.URLField(max_length=2000)
     title = serializers.CharField(max_length=500)
     description_text = serializers.CharField(
-        max_length=2000, required=False, allow_blank=True, allow_null=True)
+        max_length=4000, required=False, allow_blank=True, allow_null=True)
     thumbnail = serializers.URLField(
         max_length=1000, required=False, allow_blank=True, allow_null=True)
     date_published = serializers.DateTimeField()

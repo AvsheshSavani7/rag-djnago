@@ -261,7 +261,8 @@ def process_feed_builder_newswire_articles(
     if result.get("success"):
         from rss_feeds.feed_builder.core.mongo_article_store import mark_articles_processed
 
-        dedupe_keys = [item["dedupe_key"] for item in new_items if item.get("dedupe_key")]
+        dedupe_keys = [item["dedupe_key"]
+                       for item in new_items if item.get("dedupe_key")]
         mark_articles_processed(dedupe_keys)
 
     return result
@@ -283,15 +284,15 @@ class RSSFeedService:
         """
         try:
             # ===== ACTIVE (RSS.app): upsert feeds by rss_feed_url =====
-            existing_feed = Feed.objects(
-                rss_feed_url=feed_data.get('rss_feed_url')).first()
+            # existing_feed = Feed.objects(
+            #     rss_feed_url=feed_data.get('rss_feed_url')).first()
             # ===== END ACTIVE =====
 
-            # ===== GO LIVE (feed builder): uncomment block below AND comment ACTIVE block above =====
-            # source_url = (feed_data.get("source_url") or "").strip()
-            # existing_feed = None
-            # if source_url:
-            #     existing_feed = Feed.objects(source_url=source_url).first()
+            # ===== GO LIVE (feed builder): upsert by source_url, fallback to rss_feed_url =====
+            source_url = (feed_data.get("source_url") or "").strip()
+            existing_feed = None
+            if source_url:
+                existing_feed = Feed.objects(source_url=source_url).first()
             # if not existing_feed and feed_data.get("rss_feed_url"):
             #     existing_feed = Feed.objects(
             #         rss_feed_url=feed_data.get("rss_feed_url")

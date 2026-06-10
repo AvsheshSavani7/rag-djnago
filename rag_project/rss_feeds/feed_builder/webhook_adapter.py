@@ -39,7 +39,7 @@ def article_link_to_webhook_item(row: Dict[str, Any]) -> Dict[str, Any]:
     return {
         "url": row["detail_url"],
         "title": ((row.get("title") or "Untitled").strip())[:500],
-        "description_text": ((row.get("description") or "")[:2000]),
+        "description_text": ((row.get("description") or "")[:4000]),
         "thumbnail": _normalize_thumbnail(row.get("image")),
         "date_published": _format_date_published(row.get("published_at")),
         "authors": [{"name": author}] if author else [],
