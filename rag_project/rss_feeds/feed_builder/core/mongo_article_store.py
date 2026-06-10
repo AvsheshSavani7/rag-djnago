@@ -68,13 +68,33 @@ def save_if_new(item: dict) -> Tuple[bool, Optional[dict]]:
     return True, _doc_to_dict(doc)
 
 
+def mark_articles_processed(dedupe_keys: List[str]) -> int:
+    """Mark news_article_links rows processed after production pipeline runs (GO LIVE flow)."""
+    if not dedupe_keys:
+        return 0
+    now = datetime.now(timezone.utc)
+    updated = 0
+    for key in dedupe_keys:
+        doc = NewsArticleLink.objects(dedupe_key=key).first()
+        if not doc:
+            continue
+        doc.is_processed = True
+        doc.processed_at = now
+        doc.save()
+        updated += 1
+    return updated
+
+
 def _doc_to_dict(doc: NewsArticleLink) -> dict:
     return {
         "source_id": doc.source_id,
         "source_name": doc.source_name,
         "title": doc.title,
         "detail_url": doc.detail_url,
-        "published_at": doc.published_at.isoformat() if doc.published_at else None,
+        "published_at": doc.published_at,
+        "description": doc.description,
+        "author": doc.author,
+        "image": doc.image,
         "is_processed": doc.is_processed,
         "dedupe_key": doc.dedupe_key,
         "first_seen_at": doc.first_seen_at.isoformat() if doc.first_seen_at else None,

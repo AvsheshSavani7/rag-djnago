@@ -44,7 +44,15 @@ def _get_pipeline_handler(log_root: str, pipeline: str) -> logging.Handler:
     key = (pipeline, today)
     if key not in _pipeline_handlers:
         folder = Path(log_root) / pipeline / "daily" / today
-        folder.mkdir(parents=True, exist_ok=True)
+        try:
+            folder.mkdir(parents=True, exist_ok=True)
+        except (PermissionError, OSError):
+            # Fall back to a local logs/ dir beside manage.py when the
+            # configured log_root is not writable (e.g. local dev without /var/log/rag).
+            import django.conf as _dc
+            fallback_root = getattr(_dc.settings, "BASE_DIR", Path(__file__).resolve().parents[1]) / "logs"
+            folder = Path(fallback_root) / pipeline / "daily" / today
+            folder.mkdir(parents=True, exist_ok=True)
         h = logging.handlers.RotatingFileHandler(
             folder / f"{pipeline}.log",
             maxBytes=MAX_BYTES,

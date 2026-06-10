@@ -139,7 +139,11 @@ def extract_html_items(
 ) -> List[Dict[str, Any]]:
     soup = BeautifulSoup(html, "html.parser")
     container_selector = selectors.get("container") or "body"
-    containers = soup.select(container_selector)
+    try:
+        containers = soup.select(container_selector)
+    except Exception:
+        # Selector contains unsupported pseudo-classes or syntax (e.g. Tailwind :flex).
+        containers = soup.select("body")
 
     items: List[Dict[str, Any]] = []
     seen_urls = set()

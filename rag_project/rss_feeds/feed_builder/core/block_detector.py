@@ -14,23 +14,35 @@ def _to_css_selector(el: Tag) -> str:
     if el.get("id"):
         return f"#{el['id']}"
 
-    classes = [c for c in (el.get("class") or []) if c and not c.startswith("_")]
+    # Exclude classes that are invalid in CSS selectors — Tailwind responsive/state
+    # prefixes use colons (sm:flex, lg:hidden) and arbitrary-value slashes (w-1/2).
+    classes = [
+        c for c in (el.get("class") or [])
+        if c and not c.startswith("_") and ":" not in c and "/" not in c
+    ]
     if classes:
         return f"{el.name}.{'.'.join(classes[:4])}"
     return el.name
+
+
+def _safe_select_one(el: Tag, selector: str) -> bool:
+    try:
+        return bool(el.select_one(selector))
+    except Exception:
+        return False
 
 
 def _score_container(el: Tag, count: int) -> int:
     score = count
     if el.get("class"):
         score += 5
-    if el.select_one("h1, h2, h3, h4, h5"):
+    if _safe_select_one(el, "h1, h2, h3, h4, h5"):
         score += 4
-    if el.select_one("a[href]"):
+    if _safe_select_one(el, "a[href]"):
         score += 3
-    if el.select_one("img[src]"):
+    if _safe_select_one(el, "img[src]"):
         score += 2
-    if el.select_one("time, small, .date"):
+    if _safe_select_one(el, "time, small, .date"):
         score += 2
     class_text = " ".join(el.get("class") or []).lower()
     for token in ("news", "article", "card", "story", "release", "item", "post"):

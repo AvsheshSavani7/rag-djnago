@@ -27,9 +27,10 @@ def validate_feed_config(feed: dict) -> Optional[str]:
 def extract_items_from_feed(feed: dict, limit: Optional[int] = None) -> List[dict]:
     source_type = feed.get("source_type", "html")
     source_url = feed.get("source_url", "")
+    fetch_mode = feed.get("fetch_mode") or "auto"
 
     if source_type == "rss":
-        body, _, _ = fetch_url(source_url)
+        body, _, _ = fetch_url(source_url, fetch_mode=fetch_mode)
         raw_items = parse_rss_content(
             body,
             source_url=source_url,
@@ -37,7 +38,7 @@ def extract_items_from_feed(feed: dict, limit: Optional[int] = None) -> List[dic
             element_map=feed.get("element_map") or {},
         )
     else:
-        body, _, _ = fetch_url(source_url)
+        body, _, _ = fetch_url(source_url, fetch_mode=fetch_mode)
         raw_items = extract_html_items(
             html=body,
             base_url=source_url,
@@ -62,6 +63,13 @@ def extract_items_from_feed(feed: dict, limit: Optional[int] = None) -> List[dic
 
 def scan_feed(feed: dict, *, dry_run: bool = False) -> Dict:
     source_id = feed["source_id"]
+
+    try:
+        from core.pipeline_logger import start_pipeline, RSS
+        start_pipeline(RSS, accession=source_id, doc_type="NEWSWIRE")
+    except Exception:
+        pass  # pipeline context is optional; don't let it block scanning
+
     result = {
         "source_id": source_id,
         "source_name": feed.get("source_name"),
@@ -121,6 +129,7 @@ def scan_feed(feed: dict, *, dry_run: bool = False) -> Dict:
                 result["new_items"].append(saved)
 
         if not dry_run and result["new_items"]:
+            # ===== ACTIVE (testing): N8N_WEBHOOK_ONLY_ME digest email per newswire =====
             try:
                 from rss_feeds.services import send_feed_builder_newswire_test_email
 
@@ -135,6 +144,29 @@ def scan_feed(feed: dict, *, dry_run: bool = False) -> Dict:
                     "Feed builder test email failed for %s: %s", source_id, exc
                 )
                 result["email_sent"] = False
+            # ===== END ACTIVE =====
+
+            # ===== GO LIVE (production): uncomment block below AND comment ACTIVE block above =====
+            # Replaces RSS.app webhook: merger classify, save feed_items, production emails.
+            # Also uncomment source_url upsert in RSSFeedService.create_or_update_feed (services.py).
+            # Set FEED_BUILDER_SCAN_TEST_EMAILS=false in .env when using this flow.
+            # try:
+            #     from rss_feeds.services import process_feed_builder_newswire_articles
+            #
+            #     result["pipeline_result"] = process_feed_builder_newswire_articles(
+            #         feed_config=feed,
+            #         new_items=result["new_items"],
+            #     )
+            #     result["pipeline_ok"] = bool(
+            #         (result.get("pipeline_result") or {}).get("success")
+            #     )
+            # except Exception as exc:
+            #     logger.exception(
+            #         "Feed builder production pipeline failed for %s", source_id
+            #     )
+            #     result["pipeline_ok"] = False
+            #     result["pipeline_error"] = str(exc)
+            # ===== END GO LIVE =====
 
         if not dry_run:
             update_feed_runtime(

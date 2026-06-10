@@ -6,23 +6,6 @@ Run from rag_project/:
 """
 
 from __future__ import annotations
-from rss_feeds.feed_builder.core.rss_parser import OUTPUT_FIELDS, parse_rss_content
-from rss_feeds.feed_builder.core.preview import (
-    analyze_html_body,
-    analyze_url,
-    preview_html_extraction,
-)
-from rss_feeds.feed_builder.core.mongo_config_store import (
-    delete_feed,
-    get_feed_by_url,
-    list_feeds,
-    save_feed,
-)
-from rss_feeds.feed_builder.core.fetcher import FetchBlockedError
-from rss_feeds.feed_builder.core.field_inferrer import infer_field_selectors
-from rss_feeds.feed_builder.core.dedupe import slugify_source_id
-import streamlit.components.v1 as components
-import streamlit as st
 
 import base64
 import html as html_module
@@ -41,6 +24,24 @@ os.environ.setdefault("DJANGO_SETTINGS_MODULE", "rag_project.settings")
 import django  # noqa: E402
 
 django.setup()
+
+from rss_feeds.feed_builder.core.rss_parser import OUTPUT_FIELDS, parse_rss_content  # noqa: E402
+from rss_feeds.feed_builder.core.preview import (  # noqa: E402
+    analyze_html_body,
+    analyze_url,
+    preview_html_extraction,
+)
+from rss_feeds.feed_builder.core.mongo_config_store import (  # noqa: E402
+    delete_feed,
+    get_feed_by_url,
+    list_feeds,
+    save_feed,
+)
+from rss_feeds.feed_builder.core.fetcher import FetchBlockedError  # noqa: E402
+from rss_feeds.feed_builder.core.field_inferrer import infer_field_selectors  # noqa: E402
+from rss_feeds.feed_builder.core.dedupe import slugify_source_id  # noqa: E402
+import streamlit.components.v1 as components  # noqa: E402
+import streamlit as st  # noqa: E402
 
 
 BUILDER_PANEL_PATH = Path(__file__).parent / \
