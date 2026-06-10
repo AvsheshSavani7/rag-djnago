@@ -305,9 +305,14 @@ class RSSFeedService:
                     'title', existing_feed.title)
                 existing_feed.source_url = feed_data.get(
                     'source_url', existing_feed.source_url)
-                existing_feed.description = feed_data.get(
-                    'description', existing_feed.description)
-                existing_feed.icon = feed_data.get('icon', existing_feed.icon)
+                if "description" in feed_data:
+                    existing_feed.description = feed_data.get(
+                        'description', existing_feed.description)
+                else:
+                    existing_feed.description = None
+                if "icon" in feed_data:
+                    existing_feed.icon = _normalize_thumbnail(
+                        feed_data.get("icon"))
                 existing_feed.source = feed_data.get(
                     'source', existing_feed.source)
                 existing_feed.save()
@@ -340,7 +345,7 @@ class RSSFeedService:
                     source_url=feed_data.get('source_url'),
                     rss_feed_url=feed_data.get('rss_feed_url'),
                     description=feed_data.get('description', ''),
-                    icon=feed_data.get('icon', ''),
+                    icon=_normalize_thumbnail(feed_data.get('icon')),
                     source=feed_data.get('source', '')
                 )
                 feed.save()

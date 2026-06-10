@@ -70,7 +70,7 @@ def build_feed_builder_webhook_payload(
             # No RSS.app — listing URL used for feed upsert when GO LIVE source_url flow is enabled.
             "rss_feed_url": source_url,
             "description": "",
-            "icon": "",
+            "icon": None,
         },
         "data": {
             "items_new": [article_link_to_webhook_item(row) for row in new_items],
