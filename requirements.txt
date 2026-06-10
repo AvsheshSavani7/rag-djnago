@@ -78,3 +78,4 @@ google-generativeai
 anthropic==0.104.1
 cohere>=5.0.0
 scipy>=1.11.0
+curl_cffi==0.15.0
