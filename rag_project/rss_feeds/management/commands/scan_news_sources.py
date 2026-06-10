@@ -52,6 +52,11 @@ class Command(BaseCommand):
                 f"  - {result['source_id']} ({result.get('source_type') or '?'}) "
                 f"found={result['found']} new={result['new']}"
             )
+            if result.get("filtered_new"):
+                line += (
+                    f" pipeline_new={result.get('pipeline_new', 0)}"
+                    f" filtered_new={result['filtered_new']}"
+                )
             if result.get("error"):
                 self.stdout.write(self.style.ERROR(
                     f"{line} error={result['error']}"))

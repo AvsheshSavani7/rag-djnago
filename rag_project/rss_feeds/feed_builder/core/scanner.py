@@ -45,6 +45,31 @@ def _published_ist(published_at: str) -> str:
         return published_at
 
 
+def _content_whitelist_terms(feed: dict) -> List[str]:
+    """Terms from url_rules.title_or_description_must_contain (empty = no filter)."""
+    raw = (feed.get("url_rules") or {}).get("title_or_description_must_contain") or []
+    return [str(t).strip() for t in raw if str(t).strip()]
+
+
+def _passes_content_whitelist(item: dict, terms: List[str]) -> bool:
+    """True when title or description contains any whitelist term (case-insensitive)."""
+    if not terms:
+        return True
+    haystack = f"{item.get('title') or ''} {item.get('description') or ''}".lower()
+    return any(term.lower() in haystack for term in terms)
+
+
+def _split_pipeline_items(new_items: List[dict], feed: dict) -> tuple[List[dict], List[dict]]:
+    """Return (pipeline_items, filtered_items) per feed content whitelist."""
+    terms = _content_whitelist_terms(feed)
+    if not terms:
+        return list(new_items), []
+    pipeline_items = [i for i in new_items if _passes_content_whitelist(i, terms)]
+    pipeline_urls = {i.get("detail_url") for i in pipeline_items}
+    filtered_items = [i for i in new_items if i.get("detail_url") not in pipeline_urls]
+    return pipeline_items, filtered_items
+
+
 def validate_feed_config(feed: dict) -> Optional[str]:
     """Return an error message when config is not ready to scan."""
     if not feed.get("source_url"):
@@ -106,6 +131,8 @@ def scan_feed(feed: dict, *, dry_run: bool = False) -> Dict:
         "source_type": feed.get("source_type"),
         "found": 0,
         "new": 0,
+        "pipeline_new": 0,
+        "filtered_new": 0,
         "skipped": 0,
         "new_items": [],
         "error": None,
@@ -192,7 +219,21 @@ def scan_feed(feed: dict, *, dry_run: bool = False) -> Dict:
                     _ist_now(),
                 )
 
-        if not dry_run and result["new_items"]:
+        pipeline_items, filtered_items = _split_pipeline_items(
+            result["new_items"], feed
+        )
+        result["pipeline_new"] = len(pipeline_items)
+        result["filtered_new"] = len(filtered_items)
+
+        for item in filtered_items:
+            logger.info(
+                "Pipeline skip (whitelist) | source=%s | title=%s | url=%s",
+                source_id,
+                item.get("title"),
+                item.get("detail_url"),
+            )
+
+        if not dry_run and pipeline_items:
             # ===== DEBUG: digest email (N8N_WEBHOOK_ONLY_ME) so you can see what was found =====
             try:
                 from rss_feeds.services import send_feed_builder_newswire_test_email
@@ -201,7 +242,7 @@ def scan_feed(feed: dict, *, dry_run: bool = False) -> Dict:
                     source_id=source_id,
                     source_name=feed.get("source_name"),
                     source_url=feed.get("source_url", ""),
-                    new_items=result["new_items"],
+                    new_items=pipeline_items,
                 )
             except Exception as exc:
                 logger.warning(
@@ -218,7 +259,7 @@ def scan_feed(feed: dict, *, dry_run: bool = False) -> Dict:
 
                 result["pipeline_result"] = process_feed_builder_newswire_articles(
                     feed_config=feed,
-                    new_items=result["new_items"],
+                    new_items=pipeline_items,
                 )
                 result["pipeline_ok"] = bool(
                     (result.get("pipeline_result") or {}).get("success")
@@ -232,10 +273,13 @@ def scan_feed(feed: dict, *, dry_run: bool = False) -> Dict:
             # ===== END GO LIVE =====
 
         logger.info(
-            "Scan complete | source=%s | found=%d | new=%d | skipped=%d | at=%s",
+            "Scan complete | source=%s | found=%d | new=%d | pipeline_new=%d | "
+            "filtered_new=%d | skipped=%d | at=%s",
             source_id,
             result["found"],
             result["new"],
+            result["pipeline_new"],
+            result["filtered_new"],
             result.get("skipped", 0),
             _ist_now(),
         )
