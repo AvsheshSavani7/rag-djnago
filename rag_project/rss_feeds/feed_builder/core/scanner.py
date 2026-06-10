@@ -1,4 +1,5 @@
 import logging
+import re
 import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone, timedelta
@@ -22,6 +23,13 @@ def _utc_now_iso() -> str:
 
 def _ist_now() -> str:
     return datetime.now(_IST).strftime("%Y-%m-%d %I:%M:%S %p IST")
+
+
+def _title_slug(title: str, max_chars: int = 20) -> str:
+    """Return a filesystem-safe slug of the first `max_chars` chars of a title."""
+    slug = re.sub(r"[^\w\s-]", "", (title or "").lower())
+    slug = re.sub(r"[\s_]+", "-", slug).strip("-")
+    return slug[:max_chars] or "untitled"
 
 
 def _published_ist(published_at: str) -> str:
@@ -129,9 +137,19 @@ def scan_feed(feed: dict, *, dry_run: bool = False) -> Dict:
                         "published_at": item.get("published_at"),
                     }
                     result["new_items"].append(entry)
+                    try:
+                        from core.pipeline_logger import start_pipeline, RSS
+                        start_pipeline(
+                            RSS,
+                            accession=_title_slug(entry["title"]),
+                            doc_type="NEWSWIRE",
+                        )
+                    except Exception:
+                        pass
                     logger.info(
-                        "[dry-run] NEW item | source=%s | url=%s | published=%s | scanned=%s",
+                        "[dry-run] NEW item | source=%s | title=%s | url=%s | published=%s | scanned=%s",
                         source_id,
+                        entry["title"],
                         entry["detail_url"],
                         _published_ist(entry["published_at"]),
                         _ist_now(),
@@ -155,11 +173,22 @@ def scan_feed(feed: dict, *, dry_run: bool = False) -> Dict:
             if is_new:
                 result["new"] += 1
                 result["new_items"].append(saved)
+                _item = saved or item
+                try:
+                    from core.pipeline_logger import start_pipeline, RSS
+                    start_pipeline(
+                        RSS,
+                        accession=_title_slug(_item.get("title")),
+                        doc_type="NEWSWIRE",
+                    )
+                except Exception:
+                    pass
                 logger.info(
-                    "NEW item saved | source=%s | url=%s | published=%s | scanned=%s",
+                    "NEW item saved | source=%s | title=%s | url=%s | published=%s | scanned=%s",
                     source_id,
-                    (saved or item).get("detail_url"),
-                    _published_ist((saved or item).get("published_at")),
+                    _item.get("title"),
+                    _item.get("detail_url"),
+                    _published_ist(_item.get("published_at")),
                     _ist_now(),
                 )
 
