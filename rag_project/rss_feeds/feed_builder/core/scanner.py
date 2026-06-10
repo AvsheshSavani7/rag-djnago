@@ -1,4 +1,6 @@
 import logging
+import threading
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
 from typing import Dict, List, Optional
 
@@ -206,6 +208,20 @@ def scan_feed_by_id(source_id: str, *, dry_run: bool = False) -> Dict:
     return scan_feed(feed, dry_run=dry_run)
 
 
+_SCAN_MAX_WORKERS = 5  # keep low to avoid overwhelming proxy / rate limits
+
+
+def _scan_feed_task(feed: dict, dry_run: bool) -> Dict:
+    """Wrapper run in each thread: log before delegating to scan_feed."""
+    logger.info(
+        "Scanning %s (%s) — %s",
+        feed.get("source_id"),
+        feed.get("source_type"),
+        feed.get("source_url"),
+    )
+    return scan_feed(feed, dry_run=dry_run)
+
+
 def scan_all_feeds(
     active_only: bool = True,
     *,
@@ -226,22 +242,40 @@ def scan_all_feeds(
         "results": [],
         "errors": [],
     }
+    _lock = threading.Lock()
 
-    for feed in feeds:
-        logger.info(
-            "Scanning %s (%s) — %s",
-            feed.get("source_id"),
-            feed.get("source_type"),
-            feed.get("source_url"),
-        )
-        result = scan_feed(feed, dry_run=dry_run)
-        summary["feeds_scanned"] += 1
-        summary["total_found"] += result["found"]
-        summary["total_new"] += result["new"]
-        summary["results"].append(result)
-        if result["error"]:
-            summary["errors"].append(
-                {"source_id": result["source_id"], "error": result["error"]}
-            )
+    with ThreadPoolExecutor(max_workers=_SCAN_MAX_WORKERS) as executor:
+        futures = {
+            executor.submit(_scan_feed_task, feed, dry_run): feed
+            for feed in feeds
+        }
+        for future in as_completed(futures):
+            try:
+                result = future.result()
+            except Exception as exc:
+                feed = futures[future]
+                result = {
+                    "source_id": feed.get("source_id"),
+                    "source_name": feed.get("source_name"),
+                    "source_type": feed.get("source_type"),
+                    "found": 0,
+                    "new": 0,
+                    "skipped": 0,
+                    "new_items": [],
+                    "error": str(exc),
+                }
+                logger.exception(
+                    "Unhandled error scanning %s", feed.get("source_id")
+                )
+
+            with _lock:
+                summary["feeds_scanned"] += 1
+                summary["total_found"] += result["found"]
+                summary["total_new"] += result["new"]
+                summary["results"].append(result)
+                if result["error"]:
+                    summary["errors"].append(
+                        {"source_id": result["source_id"], "error": result["error"]}
+                    )
 
     return summary
