@@ -300,7 +300,9 @@ def generate_rss_feed_item_email_html(
         match_details: Optional dict with matched_side and match_keywords from Prompt 1.
 
     Returns:
-        tuple: (subject, html_email)
+        tuple: (subject, html_email, report_type)
+            report_type is one of the REPORT_TYPES keys (e.g. "newswire_acquire"),
+            or None when the item does not match a known report category.
     """
     raw_item_title = (item.get("title") or "Untitled").strip()
     item_title = escape_html(raw_item_title)
@@ -330,6 +332,15 @@ def generate_rss_feed_item_email_html(
             deal_info.get("is_target_market_cap_gt_100m"))
         subject_prefix = "NWNDWT" if (
             is_us_listed and is_market_cap_gt_100m) else "NWNDW/OT"
+
+    _PREFIX_TO_REPORT_TYPE = {
+        "NWB":      "newswire_both",
+        "NWA":      "newswire_acquire",
+        "NWT":      "newswire_target",
+        "NWNDWT":   "newswire_new_deal_with_threshold",
+        "NWNDW/OT": "newswire_new_deal_without_threshold",
+    }
+    report_type = _PREFIX_TO_REPORT_TYPE.get(subject_prefix)
 
     if deal_info and email_note == "existing_deal" and subject_prefix:
         deal_label = _rss_deal_subject_label(deal_info)
@@ -450,7 +461,7 @@ def generate_rss_feed_item_email_html(
         extra_content=extra_content,
     )
 
-    return subject, html_email
+    return subject, html_email, report_type
 
 
 # ─── Flow 2: Title/description deal match (no article fetch, no save). Separate template to avoid confusion. ───
@@ -545,6 +556,7 @@ def generate_rss_feed_item_email_html_flow2(
 
     Use this only for use_merger_flow_2 feeds (Justice News, FTC, ACM, CNMC, etc.).
     Deal info is rendered in HTML. Subject uses FEED_TITLE_DISPLAY_NAME_2.
+    Subject is always suffixed with [RSSMD].
 
     Args:
         feed_data: Webhook feed object (title, source_url, description).
@@ -559,7 +571,7 @@ def generate_rss_feed_item_email_html_flow2(
     feed_display_name = FEED_TITLE_DISPLAY_NAME_2.get(
         raw_feed_title, raw_feed_title)
     feed_display_name_escaped = escape_html(feed_display_name)
-    subject = f"{feed_display_name} : {item_title}"
+    subject = f"{feed_display_name} : {item_title} [RSSMD]"
 
     url = item.get("url") or "#"
     desc = item.get("description_text") or ""
@@ -587,7 +599,7 @@ def generate_rss_feed_item_email_html_flow2(
         author_line=author_line,
         deal_block=deal_block,
     )
-    return subject, html_email
+    return subject, html_email, "newswire_rss_match"
 
 
 def feed_builder_display_name(
@@ -637,7 +649,8 @@ def generate_feed_builder_newswire_email_html(
         url = escape_html(item.get("detail_url") or "#")
         desc_raw = (item.get("description") or "").strip()
         desc = escape_html(desc_raw[:500]) if desc_raw else ""
-        date_str = escape_html(_format_feed_builder_date(item.get("published_at")))
+        date_str = escape_html(
+            _format_feed_builder_date(item.get("published_at")))
         author = escape_html((item.get("author") or "").strip())
         desc_block = (
             f'<p style="margin:8px 0 0 0; font-size:14px; color:#555; line-height:1.5;">{desc}</p>'

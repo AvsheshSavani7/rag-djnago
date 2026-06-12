@@ -27,7 +27,7 @@ from core.pipeline_logger import RSS
 from .rss_error_collector import RSSArticleErrorRegistry, record_rss_error
 from sec_rss_parser.sec_summarizers.filing_router import route_and_summarize
 from sec_rss_parser.utils_8k import get_deal_tickers
-from sec_rss_parser.email_service.email_dispatch_service import send_direct_email
+from sec_rss_parser.email_service.email_dispatch_service import send_direct_email, send_report_email
 
 logger = logging.getLogger(__name__)
 
@@ -659,7 +659,7 @@ class RSSFeedService:
                     if result.get("skip_email"):
                         continue
                     try:
-                        subject, html_email = generate_rss_feed_item_email_html(
+                        subject, html_email, report_type = generate_rss_feed_item_email_html(
                             feed_data,
                             item_with_deal,
                             deal_info=result.get("deal_info"),
@@ -684,6 +684,18 @@ class RSSFeedService:
                             items_count=1,
                             feed_source_url=feed_source_url_str
                         )
+                        if report_type:
+                            send_report_email(
+                                report_type=report_type,
+                                payload={
+                                    "subject": subject,
+                                    "html": html_email,
+                                    "feed_title": feed_title_str,
+                                    "items_count": 1,
+                                    "feed_source_url": feed_source_url_str,
+                                },
+                                org_id="6a031d87e4f1d72367bd2f92",
+                            )
                     except Exception as e:
                         logger.warning(
                             "Could not generate/send RSS feed item email: %s", e
@@ -751,7 +763,7 @@ class RSSFeedService:
                     item_with_deal = dict(item)
                     item_with_deal["deal_id"] = deal_id
                     try:
-                        subject, html_email = generate_rss_feed_item_email_html_flow2(
+                        subject, html_email, report_type = generate_rss_feed_item_email_html_flow2(
                             feed_data,
                             item_with_deal,
                             deal_info=deal_info,
@@ -764,6 +776,19 @@ class RSSFeedService:
                             items_count=1,
                             feed_source_url=feed_source_url_str
                         )
+
+                        if report_type:
+                            send_report_email(
+                                report_type=report_type,
+                                payload={
+                                    "subject": subject,
+                                    "html": html_email,
+                                    "feed_title": feed_title_str,
+                                    "items_count": 1,
+                                    "feed_source_url": feed_source_url_str,
+                                },
+                                org_id="6a031d87e4f1d72367bd2f92",
+                            )
                     except Exception as e:
                         logger.error(
                             "Could not generate/send RSS feed item email (flow 2): %s", e
@@ -845,7 +870,7 @@ class RSSFeedService:
 
                 for item in items_new:
                     try:
-                        subject, html_email = generate_rss_feed_item_email_html(
+                        subject, html_email, report_type = generate_rss_feed_item_email_html(
                             feed_data, item
                         )
                         _send_rss_feed_email_via_webhook(
@@ -855,6 +880,18 @@ class RSSFeedService:
                             feed_title=feed_title_str,
                             items_count=1,
                             feed_source_url=feed_source_url_str
+                        )
+
+                        send_report_email(
+                            report_type="other_newswire",
+                            payload={
+                                "subject": subject,
+                                "html": html_email,
+                                "feed_title": feed_title_str,
+                                "items_count": 1,
+                                "feed_source_url": feed_source_url_str,
+                            },
+                            org_id="6a031d87e4f1d72367bd2f92",
                         )
                     except Exception as e:
                         logger.error(
