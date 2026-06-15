@@ -157,6 +157,7 @@ def extract_from_dma_summary(
     from sec_rss_parser.models import FODmaExtraction
     from sec_rss_parser.email_templates import generate_dma_extraction_email_html
     from sec_rss_parser.utils_8k import send_webhook_notification
+    from sec_rss_parser.email_service.email_dispatch_service import send_report_email
 
     N8N_WEBHOOK_URL = os.environ.get("N8N_WEKHOOK_INTERNAL_WITH_JOSH",
                                      "https://n8n.arbintel.cloud/webhook/b3007d21-6845-47b5-aece-7b26583758bc")
@@ -308,9 +309,20 @@ DMA summary:
                 "inconsistencies_count": len(inconsistencies),
             }
             send_webhook_notification(
-                N8N_WEBHOOK_URL, payload, "DMA Extraction email")
+                N8N_WEBHOOK_URL, payload, "DMA Extraction email"
+            )  # TODO: comment out after org-aware send is stable
             logger.info(
                 "dma_summary_processor: sent extraction email for deal_id=%s", deal_id)
+
+            result_dispatch = send_report_email(
+                report_type="sec_dma_press_release_extraction",
+                payload=payload,
+                org_id="6a031d87e4f1d72367bd2f92",
+            )
+            logger.info(
+                "dma_summary_processor: org-aware email done deal_id=%s orgs_sent=%s/%s",
+                deal_id, result_dispatch["orgs_sent"], result_dispatch["orgs_processed"]
+            )
         except Exception as e:
             logger.exception(
                 "dma_summary_processor: failed to send email error=%s", str(e))

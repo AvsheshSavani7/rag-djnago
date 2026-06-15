@@ -58,7 +58,6 @@ from sec_rss_parser.utils_8k import (
 )
 from sec_rss_parser.services import (
     DEAL_STATUS_OPEN_OR_UNKNOWN,
-    N8N_WEBHOOK_URL_8K_SUMMARY,
     send_summary_email_via_webhook,
 )
 from sec_rss_parser.sec_Last_Year import print_filings as fetch_sec_filings
@@ -81,6 +80,7 @@ from sec_rss_parser.accession_lock import (
     mark_accession_processed,
     release_accession_lock,
 )
+from sec_rss_parser.email_service.email_dispatch_service import send_report_email
 
 logger = logging.getLogger(__name__)
 
@@ -722,9 +722,21 @@ def _send_proxy_comparison_email(
         }
         send_webhook_notification(
             N8N_WEBHOOK_URL_8K_SUMMARY, payload, "proxy comparison summary email"
-        )
+        )  # TODO: comment out after org-aware send is stable
         log_and_print(
             f"{LOG_PREFIX} :_send_proxy_comparison_email: ✅ Proxy comparison email sent for {form_type}"
+        )
+
+        log_and_print(
+            f"{LOG_PREFIX} :_send_proxy_comparison_email: 📤 Sending org-aware email (sec_comparison_summary_proxy)"
+        )
+        result = send_report_email(
+            report_type="sec_comparison_summary_proxy",
+            payload=payload,
+            org_id="6a031d87e4f1d72367bd2f92",
+        )
+        log_and_print(
+            f"{LOG_PREFIX} :_send_proxy_comparison_email: ✅ Org-aware email done — orgs_sent={result['orgs_sent']}/{result['orgs_processed']}"
         )
     except Exception as e:
         log_and_print(

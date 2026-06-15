@@ -22,6 +22,7 @@ from sec_rss_parser.utils_8k import (
     normalize_cik,
 )
 from sec_rss_parser.email_templates import _build_proxy_background_summary_email_subject
+from sec_rss_parser.email_service.email_dispatch_service import send_report_email
 import os
 import sys
 import logging
@@ -1008,6 +1009,18 @@ def send_summary_email_notification_v2(filing_summary):
             logger.info(
                 f"✅ Summary email sent successfully via n8n webhook! Status: {response.status_code}")
             logger.info(f"📧 Response: {response.text[:200]}")
+
+            # Org-aware send via email dispatch service
+            logger.info("📤 Sending org-aware email (sec_background_summary_proxy)")
+            result_dispatch = send_report_email(
+                report_type="sec_background_summary_proxy",
+                payload=payload,
+                org_id="6a031d87e4f1d72367bd2f92",
+            )
+            logger.info(
+                "✅ Org-aware email done — orgs_sent=%s/%s",
+                result_dispatch["orgs_sent"], result_dispatch["orgs_processed"]
+            )
 
         except requests.exceptions.RequestException as e:
             logger.error(f"❌ Error sending summary email via n8n webhook: {e}")

@@ -10,6 +10,7 @@ from typing import List, Optional
 
 from sec_rss_parser.utils_10k_10q import N8N_WEBHOOK_URL_10K_10Q
 from sec_rss_parser.utils_8k import send_webhook_notification
+from sec_rss_parser.email_service.email_dispatch_service import send_report_email
 from sec_rss_parser.email_templates import generate_10k_10q_comparison_summary_email_html
 from .s3_utils import upload_file, upload_json
 from .summary_db import SummaryDB
@@ -486,8 +487,16 @@ def run_pipeline(
                 "s3_change_report_docx_url": s3_change,
             }
             send_webhook_notification(
-                N8N_WEBHOOK_URL_10K_10Q, payload, "10-K/10-Q comparison summary email")
+                N8N_WEBHOOK_URL_10K_10Q, payload, "10-K/10-Q comparison summary email"
+            )  # TODO: comment out after org-aware send is stable
             print(f"  Email sent: final summary with JSON and DOCX links")
+
+            result_dispatch = send_report_email(
+                report_type="sec_comparison_summary_10k",
+                payload=payload,
+                org_id="6a031d87e4f1d72367bd2f92",
+            )
+            print(f"  Org-aware email done — orgs_sent={result_dispatch['orgs_sent']}/{result_dispatch['orgs_processed']}")
         except Exception as email_e:
             print(
                 f"  Warning: failed to send comparison summary email: {email_e}")

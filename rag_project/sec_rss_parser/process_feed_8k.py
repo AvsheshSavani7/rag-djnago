@@ -53,6 +53,8 @@ from .accession_lock import (
     mark_accession_processed,
     release_accession_lock,
 )
+from sec_rss_parser.email_service.email_dispatch_service import send_report_email
+
 logger = logging.getLogger(__name__)
 
 # Deal status constants
@@ -472,11 +474,22 @@ class EightKFeedProcessor:
                 'email_type': '8k_gpt',
             }
             send_webhook_notification(
-                N8N_WEBHOOK_URL_8K_SUMMARY, payload, "8-K GPT email")
+                N8N_WEBHOOK_URL_8K_SUMMARY, payload, "8-K GPT email"
+            )  # TODO: comment out after org-aware send is stable
             logger.info(f"{LOG_PREFIX} :_send_8k_gpt_email: accession=%s step=sent",
                         accession_number)
             log_and_print(
                 f"{LOG_PREFIX} :_send_8k_gpt_email: ✅ 8-K GPT email sent")
+
+            send_report_email(
+                report_type="sec_new_deal_probably_announced",
+                payload=payload,
+                org_id="6a031d87e4f1d72367bd2f92",
+            )
+            logger.info(f"{LOG_PREFIX} :_send_8k_gpt_email: accession=%s step=org_aware_sent",
+                        accession_number)
+            log_and_print(
+                f"{LOG_PREFIX} :_send_8k_gpt_email: ✅ Org-aware email sent (sec_new_deal_probably_announced)")
         except Exception as e:
             logger.exception(
                 f"{LOG_PREFIX} :_send_8k_gpt_email: accession=%s error=%s", accession_number, str(e))
@@ -902,7 +915,7 @@ class EightKFeedProcessor:
                 # Send historical 8-K filings email (last 1 year)
                 log_and_print(
                     f"{LOG_PREFIX} :_process_ex21_filing: ✅ Qualified for 8-K EX-2.1 document processing (US-listed + market cap > $100M)")
-                self._send_historical_8k_email(item_data)
+                # self._send_historical_8k_email(item_data)
                 logger.info(
                     f"{LOG_PREFIX} :_process_ex21_filing: accession=%s step=process_ex21_via_8k_helper", accession_number)
                 self._process_ex21_via_8k_helper(item_data, filing)
@@ -1218,11 +1231,23 @@ class EightKFeedProcessor:
             logger.info(f"{LOG_PREFIX} :_send_ex21_email: accession=%s step=send webhook=%s",
                         accession_number, 'filing' if use_filing_webhook else '8k_summary')
 
+            # TODO: comment out after org-aware send is stable
             send_webhook_notification(webhook_url, payload, "EX-2.1 email")
             logger.info(f"{LOG_PREFIX} :_send_ex21_email: accession=%s step=sent",
                         accession_number)
             log_and_print(
                 f"{LOG_PREFIX} :_send_ex21_email: ✅ EX-2.1 email sent successfully")
+
+            _report_type = "sec_new_deal_announcement" if use_filing_webhook else "sec_new_deal_announced_without_threshold"
+            send_report_email(
+                report_type=_report_type,
+                payload=payload,
+                org_id="6a031d87e4f1d72367bd2f92",
+            )
+            logger.info(f"{LOG_PREFIX} :_send_ex21_email: accession=%s step=org_aware_sent report_type=%s",
+                        accession_number, _report_type)
+            log_and_print(
+                f"{LOG_PREFIX} :_send_ex21_email: ✅ Org-aware email sent ({_report_type})")
 
         except Exception as e:
             logger.exception(
@@ -1245,88 +1270,88 @@ class EightKFeedProcessor:
             logger.info(f"{LOG_PREFIX} :_send_historical_8k_email: accession=%s step=start cik=%s company=%s",
                         accession_number, cik_number, company_name)
 
-            if not cik_number or not filing_date:
-                logger.warning(
-                    f"{LOG_PREFIX} :_send_historical_8k_email: accession=%s step=skip reason=missing_cik_or_date", accession_number)
-                log_and_print(
-                    f"{LOG_PREFIX} :_send_historical_8k_email: ⏭️ Skipping historical 8-K email: missing CIK or filing date",
-                    'warning'
-                )
-                return
+            # if not cik_number or not filing_date:
+            #     logger.warning(
+            #         f"{LOG_PREFIX} :_send_historical_8k_email: accession=%s step=skip reason=missing_cik_or_date", accession_number)
+            #     log_and_print(
+            #         f"{LOG_PREFIX} :_send_historical_8k_email: ⏭️ Skipping historical 8-K email: missing CIK or filing date",
+            #         'warning'
+            #     )
+            #     return
 
             # Parse filing date if it's a string
-            if not isinstance(filing_date, datetime):
-                filing_date = parse_filing_date(filing_date)
+            # if not isinstance(filing_date, datetime):
+            #     filing_date = parse_filing_date(filing_date)
 
-            if not filing_date:
-                logger.warning(
-                    f"{LOG_PREFIX} :_send_historical_8k_email: accession=%s step=skip reason=invalid_filing_date", accession_number)
-                log_and_print(
-                    f"{LOG_PREFIX} :_send_historical_8k_email: ⏭️ Skipping historical 8-K email: invalid filing date",
-                    'warning'
-                )
-                return
+            # if not filing_date:
+            #     logger.warning(
+            #         f"{LOG_PREFIX} :_send_historical_8k_email: accession=%s step=skip reason=invalid_filing_date", accession_number)
+            #     log_and_print(
+            #         f"{LOG_PREFIX} :_send_historical_8k_email: ⏭️ Skipping historical 8-K email: invalid filing date",
+            #         'warning'
+            #     )
+            #     return
 
             # Fetch 8-K filings from 1 year before filing date
-            start_date = (filing_date - timedelta(days=365)
-                          ).strftime('%Y-%m-%d')
-            logger.info(f"{LOG_PREFIX} :_send_historical_8k_email: accession=%s step=fetch cik=%s start_date=%s",
-                        accession_number, cik_number, start_date)
+            # start_date = (filing_date - timedelta(days=365)
+            #               ).strftime('%Y-%m-%d')
+            # logger.info(f"{LOG_PREFIX} :_send_historical_8k_email: accession=%s step=fetch cik=%s start_date=%s",
+            #             accession_number, cik_number, start_date)
 
-            log_and_print(
-                f"{LOG_PREFIX} :_send_historical_8k_email:  🔍 Fetching historical 8-K filings for CIK {cik_number} from {start_date}..."
-            )
+            # log_and_print(
+            #     f"{LOG_PREFIX} :_send_historical_8k_email:  🔍 Fetching historical 8-K filings for CIK {cik_number} from {start_date}..."
+            # )
 
-            filings = fetch_sec_filings(
-                str(cik_number),
-                start_date=start_date,
-                form_types=None
-            )
+            # filings = fetch_sec_filings(
+            #     str(cik_number),
+            #     start_date=start_date,
+            #     form_types=None
+            # )
 
-            if not filings:
-                logger.info(
-                    f"{LOG_PREFIX} :_send_historical_8k_email: accession=%s step=no_filings cik=%s", accession_number, cik_number)
-                log_and_print(
-                    f"{LOG_PREFIX} :_send_historical_8k_email: ⚠️ No historical 8-K filings found for CIK {cik_number}",
-                    'warning'
-                )
-                return
+            # if not filings:
+            #     logger.info(
+            #         f"{LOG_PREFIX} :_send_historical_8k_email: accession=%s step=no_filings cik=%s", accession_number, cik_number)
+            #     log_and_print(
+            #         f"{LOG_PREFIX} :_send_historical_8k_email: ⚠️ No historical 8-K filings found for CIK {cik_number}",
+            #         'warning'
+            #     )
+            #     return
 
-            logger.info(f"{LOG_PREFIX} :_send_historical_8k_email: accession=%s step=fetched filings_count=%s",
-                        accession_number, len(filings))
-            log_and_print(
-                f"{LOG_PREFIX} :_send_historical_8k_email: 📥 Found {len(filings)} historical 8-K filings")
+            # logger.info(f"{LOG_PREFIX} :_send_historical_8k_email: accession=%s step=fetched filings_count=%s",
+            #             accession_number, len(filings))
+            # log_and_print(
+            #     f"{LOG_PREFIX} :_send_historical_8k_email: 📥 Found {len(filings)} historical 8-K filings")
 
             # Generate email HTML
-            sec_subject, sec_html = generate_sec_filings_email_html(
-                company_name,
-                filings,
-                form_type="8-K(EX-2.1)"
-            )
+            # sec_subject, sec_html = generate_sec_filings_email_html(
+            #     company_name,
+            #     filings,
+            #     form_type="8-K(EX-2.1)"
+            # )
 
-            # Prepare payload
-            sec_payload = {
-                'subject': sec_subject,
-                'html': sec_html,
-                'company_name': company_name,
-                'email_type': 'sec_filings_last_year',
-            }
+            # # Prepare payload
+            # sec_payload = {
+            #     'subject': sec_subject,
+            #     'html': sec_html,
+            #     'company_name': company_name,
+            #     'email_type': 'sec_filings_last_year',
+            # }
 
             # Send email
-            send_webhook_notification(
-                N8N_WEBHOOK_URL_8K_SUMMARY,
-                sec_payload,
-                "Historical 8-K filings email"
-            )
-            logger.info(f"{LOG_PREFIX} :_send_historical_8k_email: accession=%s step=sent filings_count=%s company=%s",
-                        accession_number, len(filings), company_name)
-            log_and_print(
-                f"{LOG_PREFIX} :_send_historical_8k_email: 📤 Sent historical 8-K filings email: {len(filings)} filings for {company_name}"
-            )
+            # send_webhook_notification(
+            #     N8N_WEBHOOK_URL_8K_SUMMARY,
+            #     sec_payload,
+            #     "Historical 8-K filings email"
+            # )
+            # logger.info(f"{LOG_PREFIX} :_send_historical_8k_email: accession=%s step=sent filings_count=%s company=%s",
+            #             accession_number, len(filings), company_name)
+            # log_and_print(
+            #     f"{LOG_PREFIX} :_send_historical_8k_email: 📤 Sent historical 8-K filings email: {len(filings)} filings for {company_name}"
+            # )
 
         except Exception as e:
-            logger.exception(
-                f"{LOG_PREFIX} :_send_historical_8k_email: accession=%s error=%s", accession_number, str(e))
+            # logger.exception(
+            #     f"{LOG_PREFIX} :_send_historical_8k_email: accession=%s error=%s", accession_number, str(e))
             log_and_print(
                 f"{LOG_PREFIX} :_send_historical_8k_email: ❌ Error sending historical 8-K email: {e}",
                 'error'
@@ -1371,11 +1396,22 @@ class EightKFeedProcessor:
 
             # Always use 8K summary webhook for EX-99.1
             send_webhook_notification(
-                N8N_WEBHOOK_URL_8K_SUMMARY, payload, "EX-99.1 email")
+                N8N_WEBHOOK_URL_8K_SUMMARY, payload, "EX-99.1 email"
+            )  # TODO: comment out after org-aware send is stable
             logger.info(f"{LOG_PREFIX} :_send_ex99_email: accession=%s step=sent",
                         accession_number)
             log_and_print(
                 f"{LOG_PREFIX} :_send_ex99_email: ✅ EX-99.1 email sent successfully")
+
+            send_report_email(
+                report_type="sec_new_deal_probably_announced",
+                payload=payload,
+                org_id="6a031d87e4f1d72367bd2f92",
+            )
+            logger.info(f"{LOG_PREFIX} :_send_ex99_email: accession=%s step=org_aware_sent",
+                        accession_number)
+            log_and_print(
+                f"{LOG_PREFIX} :_send_ex99_email: ✅ Org-aware email sent (sec_new_deal_probably_announced)")
 
         except Exception as e:
             logger.exception(
@@ -1611,11 +1647,22 @@ class EightKFeedProcessor:
             }
 
             send_webhook_notification(
-                N8N_WEBHOOK_URL_8K_SUMMARY_L123, payload, "8-K summary email")
+                N8N_WEBHOOK_URL_8K_SUMMARY_L123, payload, "8-K summary email"
+            )  # TODO: comment out after org-aware send is stable
             logger.info(
                 f"{LOG_PREFIX} :_send_8k_summary_email: accession=%s step=sent", accession_number)
             log_and_print(
                 f"{LOG_PREFIX} :_send_8k_summary_email: ✅ 8-K summary email sent successfully")
+
+            send_report_email(
+                report_type="sec_form_type_proxy_10k_q_425",
+                payload=payload,
+                org_id="6a031d87e4f1d72367bd2f92",
+            )
+            logger.info(
+                f"{LOG_PREFIX} :_send_8k_summary_email: accession=%s step=org_aware_sent", accession_number)
+            log_and_print(
+                f"{LOG_PREFIX} :_send_8k_summary_email: ✅ Org-aware email sent (sec_form_type_proxy_10k_q_425)")
 
         except Exception as e:
             logger.exception(
@@ -1669,11 +1716,22 @@ class EightKFeedProcessor:
             }
 
             send_webhook_notification(
-                N8N_WEBHOOK_URL_8K_SUMMARY, payload, "EX-99.1 summary email")
+                N8N_WEBHOOK_URL_8K_SUMMARY, payload, "EX-99.1 summary email"
+            )  # TODO: comment out after org-aware send is stable
             logger.info(
                 f"{LOG_PREFIX} :_send_ex99_summary_email: accession=%s step=sent", accession_number)
             log_and_print(
                 f"{LOG_PREFIX} :_send_ex99_summary_email: ✅ EX-99.1 summary email sent successfully")
+
+            send_report_email(
+                report_type="sec_all_other_forms",
+                payload=payload,
+                org_id="6a031d87e4f1d72367bd2f92",
+            )
+            logger.info(
+                f"{LOG_PREFIX} :_send_ex99_summary_email: accession=%s step=org_aware_sent", accession_number)
+            log_and_print(
+                f"{LOG_PREFIX} :_send_ex99_summary_email: ✅ Org-aware email sent (sec_standard_summary)")
 
         except Exception as e:
             logger.exception(
