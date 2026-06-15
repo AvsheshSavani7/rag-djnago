@@ -11,6 +11,7 @@ import os
 import sys
 import threading
 from pathlib import Path
+import os
 
 COVENANT_PROJECT_DIR = Path(__file__).resolve().parent
 TERMINATION_EMBEDDINGS_DIR = COVENANT_PROJECT_DIR / "Termination_Embeddings_v1"
@@ -221,7 +222,8 @@ def _send_dashboard_email(dashboard_url: str, deal_id: str, deal_name: str,
     try:
         import requests
 
-        N8N_WEBHOOK_URL = "https://n8n.arbintel.cloud/webhook/80830c6d-ff5b-45e3-9ef3-a061db1fbf0c"
+        N8N_WEBHOOK_URL = os.environ.get("N8N_WEBHOOK_INTERNAL",
+                                         "https://n8n.arbintel.cloud/webhook/80830c6d-ff5b-45e3-9ef3-a061db1fbf0c")
 
         title = deal_name or deal_id or accession_number
         subject = f"Termination Analysis — {title}"

@@ -75,7 +75,8 @@ def send_8k_summary_email(deal_id, company_name, form_type, cik_number, sec_url,
         logger.info(f"Generated email subject: {subject}")
 
         # Send email via n8n webhook
-        webhook_url = "https://n8n.arbintel.cloud/webhook/b3007d21-6845-47b5-aece-7b26583758bc"
+        webhook_url = os.environ.get("N8N_WEKHOOK_INTERNAL_WITH_JOSH",
+                                     "https://n8n.arbintel.cloud/webhook/b3007d21-6845-47b5-aece-7b26583758bc")
         logger.info(
             f"📤 Sending 8-K summary email via n8n webhook: {webhook_url}")
 
@@ -1659,9 +1660,11 @@ class SECFeedProcessor:
 
                     # Send email via n8n webhook
                     if email_type == 'ex99_1_merger':
-                        webhook_url = "https://n8n.arbintel.cloud/webhook/b3007d21-6845-47b5-aece-7b26583758bc"
+                        webhook_url = os.environ.get("N8N_WEKHOOK_INTERNAL_WITH_JOSH",
+                                                     "https://n8n.arbintel.cloud/webhook/b3007d21-6845-47b5-aece-7b26583758bc")
                     else:
-                        webhook_url = "https://n8n.arbintel.cloud/webhook/3ff1b0ea-7114-4dda-940e-95ce81e08017"
+                        webhook_url = os.environ.get("N8N_WEBHOOK_SEND_TO_ALL",
+                                                     "https://n8n.arbintel.cloud/webhook/3ff1b0ea-7114-4dda-940e-95ce81e08017")
                     logger.info(
                         f"📤 Sending email via n8n webhook: {webhook_url}")
                     print(

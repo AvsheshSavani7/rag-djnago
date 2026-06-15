@@ -62,13 +62,18 @@ except ImportError:
 logger = logging.getLogger(__name__)
 
 # Constants
-N8N_WEBHOOK_URL_8K_SUMMARY = "https://n8n.arbintel.cloud/webhook/b3007d21-6845-47b5-aece-7b26583758bc"  # to avs/kd/josh
+N8N_WEBHOOK_URL_8K_SUMMARY = os.environ.get("N8N_WEKHOOK_INTERNAL_WITH_JOSH",
+                                            "https://n8n.arbintel.cloud/webhook/b3007d21-6845-47b5-aece-7b26583758bc")  # to avs/kd/josh
 N8N_WEBHOOK_URL_8K_SUMMARY_L123 = os.environ.get(
     "N8N_WEBHOOK_SEND_TO_ALL", "https://n8n.arbintel.cloud/webhook/3ff1b0ea-7114-4dda-940e-95ce81e08017")  # to all
-N8N_WEBHOOK_URL_FILING = "https://n8n.arbintel.cloud/webhook/3ff1b0ea-7114-4dda-940e-95ce81e08017"  # to all
-N8N_WEBHOOK_URL_FOR_TESTING = "https://n8n.arbintel.cloud/webhook/80830c6d-ff5b-45e3-9ef3-a061db1fbf0c"  # only avshesh
-N8N_WEBHOOK_URL_PARSING_ERROR = "https://n8n.arbintel.cloud/webhook/80830c6d-ff5b-45e3-9ef3-a061db1fbf0c"
-N8N_WEBHOOK_URL_PARSING_SUCCESS = "https://n8n.arbintel.cloud/webhook/80830c6d-ff5b-45e3-9ef3-a061db1fbf0c"
+N8N_WEBHOOK_URL_FILING = os.environ.get(
+    "N8N_WEBHOOK_SEND_TO_ALL", "https://n8n.arbintel.cloud/webhook/3ff1b0ea-7114-4dda-940e-95ce81e08017")  # to all
+N8N_WEBHOOK_URL_FOR_TESTING = os.environ.get(
+    "N8N_WEBHOOK_INTERNAL", "https://n8n.arbintel.cloud/webhook/80830c6d-ff5b-45e3-9ef3-a061db1fbf0c")  # only avshesh
+N8N_WEBHOOK_URL_PARSING_ERROR = os.environ.get(
+    "N8N_WEBHOOK_INTERNAL", "https://n8n.arbintel.cloud/webhook/80830c6d-ff5b-45e3-9ef3-a061db1fbf0c")
+N8N_WEBHOOK_URL_PARSING_SUCCESS = os.environ.get(
+    "N8N_WEBHOOK_INTERNAL", "https://n8n.arbintel.cloud/webhook/80830c6d-ff5b-45e3-9ef3-a061db1fbf0c")
 
 SEC_BASE_URL = "https://www.sec.gov"
 ATOM_NAMESPACE = "http://www.w3.org/2005/Atom"

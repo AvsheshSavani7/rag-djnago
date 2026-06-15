@@ -13,6 +13,7 @@ from __future__ import annotations
 import json
 import logging
 from datetime import datetime
+import os
 
 logger = logging.getLogger(__name__)
 
@@ -157,7 +158,8 @@ def extract_from_dma_summary(
     from sec_rss_parser.email_templates import generate_dma_extraction_email_html
     from sec_rss_parser.utils_8k import send_webhook_notification
 
-    N8N_WEBHOOK_URL = "https://n8n.arbintel.cloud/webhook/b3007d21-6845-47b5-aece-7b26583758bc"
+    N8N_WEBHOOK_URL = os.environ.get("N8N_WEKHOOK_INTERNAL_WITH_JOSH",
+                                     "https://n8n.arbintel.cloud/webhook/b3007d21-6845-47b5-aece-7b26583758bc")
 
     logger.info(
         "dma_summary_processor: extract_from_dma_summary deal_id=%s accession=%s",

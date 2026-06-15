@@ -158,8 +158,9 @@ One document per filing; only the nested object for that `form_type` is set (`pr
 ## Email Notification
 
 ### Webhook URL
+#### N8N_WEBHOOK_INTERNAL
 ```python
-N8N_WEBHOOK_URL_10K_10Q = "https://n8n.arbintel.cloud/webhook/80830c6d-ff5b-45e3-9ef3-a061db1fbf0c"
+N8N_WEBHOOK_URL_10K_10Q ="https://n8n.arbintel.cloud/webhook/80830c6d-ff5b-45e3-9ef3-a061db1fbf0c"
 ```
 
 ### Email Payload

@@ -66,7 +66,7 @@ def _is_skippable_non_ma_summary_error(exc: BaseException) -> bool:
 # N8N webhook for RSS feed update emails (testing – same as sec_rss_parser)
 N8N_WEBHOOK_ONLY_ME = os.environ.get(
     "N8N_WEBHOOK_ONLY_ME",
-    "https://n8n.arbintel.cloud/webhook/80830c6d-ff5b-45e3-9ef3-a061db1fbf0c"
+    "https://n8n.arbintel.cloud/webhook/d50502ea-6746-4d4b-8dfe-fb7bd71e0a1f"
 )
 N8N_WEKHOOK_INTERNAL_WITH_JOSH = os.environ.get(
     "N8N_WEKHOOK_INTERNAL_WITH_JOSH",

@@ -103,7 +103,7 @@ DEFAULT_HEADERS = {
     "Referer": "https://www.sec.gov/",
 }
 N8N_WEBHOOK_URL_8K_SUMMARY = os.environ.get(
-    "N8N_WEBHOOK_URL_8K_SUMMARY",
+    "N8N_WEKHOOK_INTERNAL_WITH_JOSH",
     "https://n8n.arbintel.cloud/webhook/b3007d21-6845-47b5-aece-7b26583758bc",
 )
 SEC_BASE_URL = "https://www.sec.gov"

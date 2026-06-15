@@ -44,6 +44,165 @@ N8N_WEBHOOK_SEND_TO_ALL = os.environ.get(
     "N8N_WEBHOOK_SEND_TO_ALL", "https://n8n.arbintel.cloud/webhook/3ff1b0ea-7114-4dda-940e-95ce81e08017")
 
 
+def initial_proxy_payload(company_name=None):
+    """Default proxy subdocument for a new or full pipeline rerun."""
+    return {
+        "proxy_parsing_status": "pending",
+        "empty_percentage": 100.0,
+        "processing_state": {
+            "pdf_created": False,
+            "toc_found": False,
+            "toc_extracted": False,
+            "sections_extracted": False,
+            "empty_percentage": 100.0,
+            "iteration_count": 0,
+        },
+        "s3_urls": {
+            "pdf_url": None,
+            "toc_pdf_url": None,
+            "toc_json_url": None,
+            "sections_json_url": None,
+        },
+        "pinecone_processing_status": "pending",
+        "pinecone_processed_at": None,
+        "pinecone_error_message": None,
+        "summary_generation_status": "pending",
+        "summary_docx_url": None,
+        "summary_generated_at": None,
+        "agent_response": None,
+        "error_message": None,
+        "completed_at": None,
+        "total_sections": 0,
+        "empty_sections": 0,
+        "iteration_count": 0,
+        "company_name": company_name,
+    }
+
+
+def reset_proxy_node_only(filing_summary, step="all"):
+    """
+    Reset only SECFilingSummary.proxy for pipeline rerun.
+    Does not modify L1/L2/L3, s3_docx_url, s3_json_url, or other top-level fields.
+    """
+    existing = filing_summary.proxy or {}
+    company_name = existing.get("company_name")
+
+    if step == "all":
+        filing_summary.proxy = initial_proxy_payload(company_name=company_name)
+    elif step == "pinecone":
+        proxy_data = dict(existing)
+        proxy_data["pinecone_processing_status"] = "pending"
+        proxy_data["pinecone_processed_at"] = None
+        proxy_data["pinecone_error_message"] = None
+        proxy_data["summary_generation_status"] = "pending"
+        proxy_data["summary_docx_url"] = None
+        proxy_data["summary_generated_at"] = None
+        filing_summary.proxy = proxy_data
+    elif step == "summary":
+        proxy_data = dict(existing)
+        proxy_data["summary_generation_status"] = "pending"
+        proxy_data["summary_docx_url"] = None
+        proxy_data["summary_generated_at"] = None
+        filing_summary.proxy = proxy_data
+    else:
+        raise ValueError(f"Unknown reset step: {step}")
+
+    filing_summary.save()
+    return filing_summary
+
+
+def rerun_proxy_pipeline(filing_summary_id, sync=False, step="all"):
+    """
+    Re-run proxy pipeline for an existing SECFilingSummary without touching L1/L2/L3.
+
+    step:
+      - all: reset proxy node, agentic scrape -> Pinecone -> background summary
+      - pinecone: re-embed sections (requires proxy.s3_urls.sections_json_url)
+      - summary: re-generate background summary DOCX only (requires Pinecone chunks)
+    """
+    filing_summary = SECFilingSummary.objects(_id=filing_summary_id).first()
+    if not filing_summary:
+        raise ValueError(f"SECFilingSummary not found: {filing_summary_id}")
+    if not filing_summary.sec_document_url:
+        raise ValueError(
+            f"sec_document_url missing on SECFilingSummary {filing_summary_id}")
+
+    fid = str(filing_summary.id)
+    proxy_sec_url = filing_summary.sec_document_url
+
+    if step == "all":
+        reset_proxy_node_only(filing_summary, step="all")
+        if sync:
+            process_proxy_async(
+                fid, proxy_sec_url, chain_sync=True)
+        else:
+            from core.logging_context import get_pipeline, get_run_id, get_accession, get_doc_type
+            _ctx = (get_pipeline(), get_run_id(), get_accession(), get_doc_type())
+            thread = threading.Thread(
+                target=process_proxy_async,
+                args=(fid, proxy_sec_url, *_ctx),
+                kwargs={"chain_sync": False},
+            )
+            thread.daemon = True
+            thread.start()
+        return {
+            "filing_summary_id": fid,
+            "step": step,
+            "mode": "sync" if sync else "async",
+            "sec_document_url": proxy_sec_url,
+        }
+
+    if step == "pinecone":
+        sections_json_url = (filing_summary.proxy or {}).get(
+            "s3_urls", {}
+        ).get("sections_json_url")
+        if not sections_json_url:
+            raise ValueError(
+                "sections_json_url missing on proxy.s3_urls; run with step=all first"
+            )
+        reset_proxy_node_only(filing_summary, step="pinecone")
+        if sync:
+            process_sections_with_pinecone_v2(
+                fid, sections_json_url, start_summary_thread=False)
+            generate_proxy_summary_v2(fid)
+        else:
+            from core.logging_context import get_pipeline, get_run_id, get_accession, get_doc_type
+            _ctx = (get_pipeline(), get_run_id(), get_accession(), get_doc_type())
+            thread = threading.Thread(
+                target=process_sections_with_pinecone_v2,
+                args=(fid, sections_json_url, *_ctx),
+            )
+            thread.daemon = True
+            thread.start()
+        return {
+            "filing_summary_id": fid,
+            "step": step,
+            "mode": "sync" if sync else "async",
+            "sections_json_url": sections_json_url,
+        }
+
+    if step == "summary":
+        reset_proxy_node_only(filing_summary, step="summary")
+        if sync:
+            generate_proxy_summary_v2(fid)
+        else:
+            from core.logging_context import get_pipeline, get_run_id, get_accession, get_doc_type
+            _ctx = (get_pipeline(), get_run_id(), get_accession(), get_doc_type())
+            thread = threading.Thread(
+                target=generate_proxy_summary_v2,
+                args=(fid, *_ctx),
+            )
+            thread.daemon = True
+            thread.start()
+        return {
+            "filing_summary_id": fid,
+            "step": step,
+            "mode": "sync" if sync else "async",
+        }
+
+    raise ValueError(f"Unknown step: {step}")
+
+
 def _parse_filing_date(value):
     """Parse filing_date string to datetime for SECFilingSummary.filing_date."""
     if not value or not isinstance(value, str):
@@ -109,38 +268,7 @@ def process_sec_document_for_filing_summary(
     try:
         filing_dt = _parse_filing_date(filing_date)
 
-        # Initial proxy payload (all statuses pending)
-        proxy_payload = {
-            "proxy_parsing_status": "pending",
-            "empty_percentage": 100.0,
-            "processing_state": {
-                "pdf_created": False,
-                "toc_found": False,
-                "toc_extracted": False,
-                "sections_extracted": False,
-                "empty_percentage": 100.0,
-                "iteration_count": 0,
-            },
-            "s3_urls": {
-                "pdf_url": None,
-                "toc_pdf_url": None,
-                "toc_json_url": None,
-                "sections_json_url": None,
-            },
-            "pinecone_processing_status": "pending",
-            "pinecone_processed_at": None,
-            "pinecone_error_message": None,
-            "summary_generation_status": "pending",
-            "summary_docx_url": None,
-            "summary_generated_at": None,
-            "agent_response": None,
-            "error_message": None,
-            "completed_at": None,
-            "total_sections": 0,
-            "empty_sections": 0,
-            "iteration_count": 0,
-            "company_name": company_name or None,
-        }
+        proxy_payload = initial_proxy_payload(company_name=company_name or None)
 
         # Check if filing summary already exists (by sec_document_url + form_type)
         existing = SECFilingSummary.objects(
@@ -237,6 +365,7 @@ def process_proxy_async(
     _log_run_id="-",
     _log_accession="-",
     _log_doc_type="PROXY",
+    chain_sync=False,
 ):
     """
     Process proxy document asynchronously.
@@ -341,18 +470,28 @@ def process_proxy_async(
                 logger.info(
                     f"Starting Pinecone processing for sections: {sections_json_url}")
 
-                # Start Pinecone processing in a separate thread (propagate logging context).
                 from core.logging_context import get_pipeline, get_run_id, get_accession, get_doc_type
                 _pctx = (get_pipeline(), get_run_id(), get_accession(), get_doc_type())
-                pinecone_thread = threading.Thread(
-                    target=process_sections_with_pinecone_v2,
-                    args=(filing_summary_id, sections_json_url, *_pctx)
-                )
-                pinecone_thread.daemon = True
-                pinecone_thread.start()
 
-                logger.info(
-                    f"Started Pinecone processing thread for {filing_summary_id}")
+                if chain_sync:
+                    process_sections_with_pinecone_v2(
+                        filing_summary_id,
+                        sections_json_url,
+                        *_pctx,
+                        start_summary_thread=False,
+                    )
+                    generate_proxy_summary_v2(filing_summary_id, *_pctx)
+                    logger.info(
+                        f"Completed sync Pinecone + summary for {filing_summary_id}")
+                else:
+                    pinecone_thread = threading.Thread(
+                        target=process_sections_with_pinecone_v2,
+                        args=(filing_summary_id, sections_json_url, *_pctx),
+                    )
+                    pinecone_thread.daemon = True
+                    pinecone_thread.start()
+                    logger.info(
+                        f"Started Pinecone processing thread for {filing_summary_id}")
             else:
                 logger.warning(
                     f"No sections JSON URL found in S3 URLs: {s3_urls}")
@@ -396,6 +535,7 @@ def process_sections_with_pinecone_v2(
     _log_run_id="-",
     _log_accession="-",
     _log_doc_type="PROXY",
+    start_summary_thread=True,
 ):
     """
     Process sections with Pinecone after SEC processing is complete.
@@ -437,28 +577,26 @@ def process_sections_with_pinecone_v2(
         logger.info(
             f"Successfully completed Pinecone processing for {filing_summary_id}")
 
-        # Start summary generation after Pinecone processing completes
-        try:
-            # Brief delay so Pinecone can make newly upserted vectors visible (eventual consistency)
-            time.sleep(2)
-            logger.info(
-                f"Starting summary generation for {filing_summary_id}")
+        if start_summary_thread:
+            try:
+                time.sleep(2)
+                logger.info(
+                    f"Starting summary generation for {filing_summary_id}")
 
-            # Start summary generation in a separate thread (propagate logging context).
-            from core.logging_context import get_pipeline, get_run_id, get_accession, get_doc_type
-            _sctx = (get_pipeline(), get_run_id(), get_accession(), get_doc_type())
-            summary_thread = threading.Thread(
-                target=generate_proxy_summary_v2,
-                args=(filing_summary_id, *_sctx)
-            )
-            summary_thread.daemon = True
-            summary_thread.start()
+                from core.logging_context import get_pipeline, get_run_id, get_accession, get_doc_type
+                _sctx = (get_pipeline(), get_run_id(), get_accession(), get_doc_type())
+                summary_thread = threading.Thread(
+                    target=generate_proxy_summary_v2,
+                    args=(filing_summary_id, *_sctx),
+                )
+                summary_thread.daemon = True
+                summary_thread.start()
 
-            logger.info(
-                f"Started summary generation thread for {filing_summary_id}")
-        except Exception as summary_error:
-            logger.error(
-                f"Error starting summary generation: {str(summary_error)}")
+                logger.info(
+                    f"Started summary generation thread for {filing_summary_id}")
+            except Exception as summary_error:
+                logger.error(
+                    f"Error starting summary generation: {str(summary_error)}")
 
     except Exception as e:
         # Update filing summary status to failed
