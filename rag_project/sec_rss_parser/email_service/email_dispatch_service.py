@@ -158,7 +158,8 @@ def send_direct_email(
         )
 
     if not recipients:
-        logger.warning("send_direct_email called with empty recipients list — skipping.")
+        logger.warning(
+            "send_direct_email called with empty recipients list — skipping.")
         return False
 
     webhook_payload = {
@@ -166,8 +167,10 @@ def send_direct_email(
         "recipients": recipients,
     }
 
-    logger.info("send_direct_email | recipients=%d | subject=%s", len(recipients), payload.get("subject", ""))
+    logger.info("send_direct_email | recipients=%d | subject=%s",
+                len(recipients), payload.get("subject", ""))
     return _send_to_webhook(hook, webhook_payload)
+
 
 def send_report_email(
     report_type: str,
@@ -275,6 +278,8 @@ def send_report_email(
                     }
                 )
                 continue
+            CC_EMAILS = ["kaushal@hyperiontechnologies.ai",
+                         "josh@hyperiontechnologies.ai"]
 
             # Step 4 – build webhook payload and send
             recipient_list = [r["email"] for r in recipients]
@@ -284,6 +289,7 @@ def send_report_email(
                 "org_id": org_id_str,
                 "org_name": org_name,
                 "recipients": recipient_list,
+                "cc": CC_EMAILS if org_id_str != "6a031d87e4f1d72367bd2f92" else [],
             }
 
             logger.info(
