@@ -30,12 +30,14 @@ def _sleep_after_429(response: Optional[requests.Response], attempt: int) -> flo
 def assess_with_claude(paragraphs: List[ParsedParagraph], deal: DealContext,
                        anthropic_api_key: str, threshold: int = 6,
                        max_workers: int = 4) -> List[ParsedParagraph]:
-    relevant = [p for p in paragraphs if p.relevance_score >= threshold and not p.is_header]
+    relevant = [p for p in paragraphs if p.relevance_score >=
+                threshold and not p.is_header]
     if not relevant:
         print("  No relevant paragraphs for Claude assessment.")
         return paragraphs
 
-    print(f"  Assessing {len(relevant)} paragraphs with Claude (sonnet, {max_workers} workers)...")
+    print(
+        f"  Assessing {len(relevant)} paragraphs with Claude (sonnet, {max_workers} workers)...")
     system_prompt = OPUS_ASSESSMENT_PROMPT.format(
         acquirer=deal.acquirer_company, target=deal.target_company,
         ticker=deal.ticker, deal_type=deal.deal_type,
@@ -62,7 +64,7 @@ def assess_with_claude(paragraphs: List[ParsedParagraph], deal: DealContext,
                         "Content-Type": "application/json",
                     },
                     json={
-                        "model": "claude-sonnet-4-20250514",
+                        "model": "claude-sonnet-4-5-20250929",
                         "max_tokens": 500,
                         "messages": [{"role": "user", "content": f"{system_prompt}\n\n{user_msg}"}],
                         "temperature": 0.1,
@@ -81,8 +83,10 @@ def assess_with_claude(paragraphs: List[ParsedParagraph], deal: DealContext,
                 para.regulatory_assessment = regulatory.get("assessment", "")
 
                 flags = []
-                if para.timing_flag: flags.append("TIMING")
-                if para.regulatory_flag: flags.append("REGULATORY")
+                if para.timing_flag:
+                    flags.append("TIMING")
+                if para.regulatory_flag:
+                    flags.append("REGULATORY")
                 suffix = f" -> {', '.join(flags)}" if flags else " -> done"
                 print(f"{prefix}{suffix}")
                 break
