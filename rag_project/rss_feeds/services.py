@@ -184,15 +184,13 @@ def send_feed_builder_newswire_test_email(
             source_id,
             len(new_items),
         )
-        return send_direct_email(
-            recipients=["avshesh.savani@teqnodux.com"],
-            payload={
-                "subject": subject,
-                "html": html_email,
-                "feed_title": display_name,
-                "items_count": len(new_items),
-                "feed_source_url": source_url or "",
-            },
+        return _send_rss_feed_email_via_webhook(
+            N8N_WEBHOOK_ONLY_ME,
+            subject=subject,
+            html_email=html_email,
+            feed_title=display_name,
+            items_count=len(new_items),
+            feed_source_url=source_url or "",
         )
     except Exception as exc:
         logger.warning(
@@ -233,14 +231,12 @@ def send_feed_builder_pipeline_error_email(errors: List[Dict[str, Any]]) -> bool
         "Feed builder pipeline finished with %d error(s) — sending digest email",
         len(errors),
     )
-    return send_direct_email(
-        recipients=["avshesh.savani@teqnodux.com"],
-        payload={
-            "subject": subject,
-            "html": html_email,
-            "feed_title": "Feed Builder Pipeline",
-            "items_count": len(errors),
-        },
+    return _send_rss_feed_email_via_webhook(
+        N8N_WEBHOOK_ONLY_ME,
+        subject=subject,
+        html_email=html_email,
+        feed_title="Feed Builder Pipeline",
+        items_count=len(errors),
     )
 
 
