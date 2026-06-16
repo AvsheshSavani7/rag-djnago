@@ -25,6 +25,7 @@ MongoDB collections (default DB)
 
 import logging
 import os
+from pathlib import Path
 from typing import Optional
 
 import requests
@@ -33,6 +34,60 @@ from bson import ObjectId
 from rag_project.db_utils import get_default_db
 
 logger = logging.getLogger(__name__)
+
+
+# ---------------------------------------------------------------------------
+# Dedicated email audit logger
+# Writes to email/daily/{IST-date}/email.log via the existing pipeline handler.
+# Uses propagate=False + its own handler so PipelineContextFilter on the root
+# logger does not overwrite pipeline="email" with the calling pipeline's name.
+# ---------------------------------------------------------------------------
+
+class _ForceEmailPipelineFilter(logging.Filter):
+    """Stamps every record with pipeline='email' so it routes to email/ log folder."""
+    def filter(self, record: logging.LogRecord) -> bool:
+        record.pipeline = "email"
+        if not hasattr(record, "run_id"):
+            record.run_id = "-"
+        if not hasattr(record, "accession"):
+            record.accession = "-"
+        if not hasattr(record, "doc_type"):
+            record.doc_type = "EMAIL"
+        return True
+
+
+def _build_email_audit_logger() -> logging.Logger:
+    log = logging.getLogger("email_audit")
+    if log.handlers:
+        return log
+    log.propagate = False
+    log.setLevel(logging.INFO)
+    log_root = os.environ.get(
+        "LOG_ROOT",
+        str(Path(__file__).resolve().parents[3] / "logs"),
+    )
+    try:
+        from core.dynamic_pipeline_handler import DynamicPipelineHandler
+        handler = DynamicPipelineHandler(log_root=log_root)
+        handler.addFilter(_ForceEmailPipelineFilter())
+        log.addHandler(handler)
+    except Exception:
+        # Fallback: plain stderr when running outside Django (tests, scripts)
+        log.addHandler(logging.StreamHandler())
+    return log
+
+
+_email_audit_logger = _build_email_audit_logger()
+
+# Static CC addresses appended to every outgoing org email (excluded for our
+# internal org to avoid duplicate notifications to the Hyperion team).
+CC_EMAILS = [
+    "kaushal@hyperiontechnologies.ai",
+    "josh@hyperiontechnologies.ai",
+]
+
+# org_id that should NOT receive the static CC (internal Hyperion org)
+_INTERNAL_ORG_ID = "6a031d87e4f1d72367bd2f92"
 
 
 # ---------------------------------------------------------------------------
@@ -278,8 +333,6 @@ def send_report_email(
                     }
                 )
                 continue
-            CC_EMAILS = ["kaushal@hyperiontechnologies.ai",
-                         "josh@hyperiontechnologies.ai"]
 
             # Step 4 – build webhook payload and send
             recipient_list = [r["email"] for r in recipients]
@@ -289,7 +342,7 @@ def send_report_email(
                 "org_id": org_id_str,
                 "org_name": org_name,
                 "recipients": recipient_list,
-                "cc": CC_EMAILS if org_id_str != "6a031d87e4f1d72367bd2f92" else [],
+                "cc": CC_EMAILS if org_id_str != _INTERNAL_ORG_ID else [],
             }
 
             logger.info(
@@ -299,6 +352,19 @@ def send_report_email(
                 len(recipient_list),
             )
             sent = _send_to_webhook(hook, webhook_payload)
+
+            # Audit log — goes to email/daily/{date}/email.log
+            _email_audit_logger.info(
+                "report_type=%s | org_id=%s | org_name=%s | "
+                "recipients=%s | cc=%s | sent=%s | subject=%s",
+                report_type,
+                org_id_str,
+                org_name,
+                recipient_list,
+                webhook_payload.get("cc", []),
+                sent,
+                payload.get("subject", ""),
+            )
 
             summary["results"].append(
                 {
