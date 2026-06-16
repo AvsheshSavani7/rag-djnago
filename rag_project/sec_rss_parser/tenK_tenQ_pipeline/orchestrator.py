@@ -455,7 +455,8 @@ def run_pipeline(
         print(f"\n  Comparison: {len(merged)} changes ({sig} significant)")
 
         filer_ticker = _resolve_filer_ticker(urls, deal_id)
-        target_ticker, target_name = _get_deal_target_for_email_subject(deal_id)
+        target_ticker, target_name = _get_deal_target_for_email_subject(
+            deal_id)
         matched_cik_label = _resolve_filer_matched_cik_label(urls, deal_id)
         filer_cik = _extract_filer_cik_from_urls(urls)
         comparison_form_type = newest_record.get("filing_type")
@@ -486,17 +487,17 @@ def run_pipeline(
                 "s3_exec_summary_docx_url": s3_exec,
                 "s3_change_report_docx_url": s3_change,
             }
-            send_webhook_notification(
-                N8N_WEBHOOK_URL_10K_10Q, payload, "10-K/10-Q comparison summary email"
-            )  # TODO: comment out after org-aware send is stable
+            # send_webhook_notification(
+            #     N8N_WEBHOOK_URL_10K_10Q, payload, "10-K/10-Q comparison summary email"
+            # )  # TODO: comment out after org-aware send is stable
             print(f"  Email sent: final summary with JSON and DOCX links")
 
             result_dispatch = send_report_email(
                 report_type="sec_comparison_summary_10k",
-                payload=payload,
-                org_id="6a031d87e4f1d72367bd2f92",
+                payload=payload
             )
-            print(f"  Org-aware email done — orgs_sent={result_dispatch['orgs_sent']}/{result_dispatch['orgs_processed']}")
+            print(
+                f"  Org-aware email done — orgs_sent={result_dispatch['orgs_sent']}/{result_dispatch['orgs_processed']}")
         except Exception as email_e:
             print(
                 f"  Warning: failed to send comparison summary email: {email_e}")

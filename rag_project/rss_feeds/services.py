@@ -671,19 +671,19 @@ class RSSFeedService:
                                 "Skipping email — subject contains 'Net Asset Value(s)': %s", subject
                             )
                             continue
-                        webhook_url = (
-                            N8N_WEBHOOK_SEND_TO_ALL
-                            if rss_subject_uses_client_webhook(subject)
-                            else N8N_WEKHOOK_INTERNAL_WITH_JOSH
-                        )
-                        _send_rss_feed_email_via_webhook(
-                            webhook_url,
-                            subject=subject,
-                            html_email=html_email,
-                            feed_title=feed_title_str,
-                            items_count=1,
-                            feed_source_url=feed_source_url_str
-                        )
+                        # webhook_url = (
+                        #     N8N_WEBHOOK_SEND_TO_ALL
+                        #     if rss_subject_uses_client_webhook(subject)
+                        #     else N8N_WEKHOOK_INTERNAL_WITH_JOSH
+                        # )
+                        # _send_rss_feed_email_via_webhook(
+                        #     webhook_url,
+                        #     subject=subject,
+                        #     html_email=html_email,
+                        #     feed_title=feed_title_str,
+                        #     items_count=1,
+                        #     feed_source_url=feed_source_url_str
+                        # )
                         if report_type:
                             send_report_email(
                                 report_type=report_type,
@@ -693,8 +693,7 @@ class RSSFeedService:
                                     "feed_title": feed_title_str,
                                     "items_count": 1,
                                     "feed_source_url": feed_source_url_str,
-                                },
-                                org_id="6a031d87e4f1d72367bd2f92",
+                                }
                             )
                     except Exception as e:
                         logger.warning(
@@ -768,14 +767,14 @@ class RSSFeedService:
                             item_with_deal,
                             deal_info=deal_info,
                         )
-                        _send_rss_feed_email_via_webhook(
-                            N8N_WEKHOOK_INTERNAL_WITH_JOSH,
-                            subject=subject,
-                            html_email=html_email,
-                            feed_title=feed_title_str,
-                            items_count=1,
-                            feed_source_url=feed_source_url_str
-                        )
+                        # _send_rss_feed_email_via_webhook(
+                        #     N8N_WEKHOOK_INTERNAL_WITH_JOSH,
+                        #     subject=subject,
+                        #     html_email=html_email,
+                        #     feed_title=feed_title_str,
+                        #     items_count=1,
+                        #     feed_source_url=feed_source_url_str
+                        # )
 
                         if report_type:
                             send_report_email(
@@ -786,8 +785,7 @@ class RSSFeedService:
                                     "feed_title": feed_title_str,
                                     "items_count": 1,
                                     "feed_source_url": feed_source_url_str,
-                                },
-                                org_id="6a031d87e4f1d72367bd2f92",
+                                }
                             )
                     except Exception as e:
                         logger.error(
@@ -873,14 +871,14 @@ class RSSFeedService:
                         subject, html_email, report_type = generate_rss_feed_item_email_html(
                             feed_data, item
                         )
-                        _send_rss_feed_email_via_webhook(
-                            N8N_WEKHOOK_INTERNAL_WITH_JOSH,
-                            subject=subject,
-                            html_email=html_email,
-                            feed_title=feed_title_str,
-                            items_count=1,
-                            feed_source_url=feed_source_url_str
-                        )
+                        # _send_rss_feed_email_via_webhook(
+                        #     N8N_WEKHOOK_INTERNAL_WITH_JOSH,
+                        #     subject=subject,
+                        #     html_email=html_email,
+                        #     feed_title=feed_title_str,
+                        #     items_count=1,
+                        #     feed_source_url=feed_source_url_str
+                        # )
 
                         send_report_email(
                             report_type="other_newswire",
@@ -890,8 +888,7 @@ class RSSFeedService:
                                 "feed_title": feed_title_str,
                                 "items_count": 1,
                                 "feed_source_url": feed_source_url_str,
-                            },
-                            org_id="6a031d87e4f1d72367bd2f92",
+                            }
                         )
                     except Exception as e:
                         logger.error(

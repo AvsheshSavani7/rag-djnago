@@ -720,9 +720,9 @@ def _send_proxy_comparison_email(
             "past_record_id": result_from_orchestrator.get("past_id"),
             "latest_record_id": result_from_orchestrator.get("deal_id"),
         }
-        send_webhook_notification(
-            N8N_WEBHOOK_URL_8K_SUMMARY, payload, "proxy comparison summary email"
-        )  # TODO: comment out after org-aware send is stable
+        # send_webhook_notification(
+        #     N8N_WEBHOOK_URL_8K_SUMMARY, payload, "proxy comparison summary email"
+        # )  # TODO: comment out after org-aware send is stable
         log_and_print(
             f"{LOG_PREFIX} :_send_proxy_comparison_email: ✅ Proxy comparison email sent for {form_type}"
         )
@@ -732,8 +732,7 @@ def _send_proxy_comparison_email(
         )
         result = send_report_email(
             report_type="sec_comparison_summary_proxy",
-            payload=payload,
-            org_id="6a031d87e4f1d72367bd2f92",
+            payload=payload
         )
         log_and_print(
             f"{LOG_PREFIX} :_send_proxy_comparison_email: ✅ Org-aware email done — orgs_sent={result['orgs_sent']}/{result['orgs_processed']}"

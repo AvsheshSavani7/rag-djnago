@@ -473,9 +473,9 @@ class EightKFeedProcessor:
                 'filing_url': item_data.get('link', ''),
                 'email_type': '8k_gpt',
             }
-            send_webhook_notification(
-                N8N_WEBHOOK_URL_8K_SUMMARY, payload, "8-K GPT email"
-            )  # TODO: comment out after org-aware send is stable
+            # send_webhook_notification(
+            #     N8N_WEBHOOK_URL_8K_SUMMARY, payload, "8-K GPT email"
+            # )  # TODO: comment out after org-aware send is stable
             logger.info(f"{LOG_PREFIX} :_send_8k_gpt_email: accession=%s step=sent",
                         accession_number)
             log_and_print(
@@ -483,8 +483,7 @@ class EightKFeedProcessor:
 
             send_report_email(
                 report_type="sec_new_deal_probably_announced",
-                payload=payload,
-                org_id="6a031d87e4f1d72367bd2f92",
+                payload=payload
             )
             logger.info(f"{LOG_PREFIX} :_send_8k_gpt_email: accession=%s step=org_aware_sent",
                         accession_number)
@@ -1232,7 +1231,7 @@ class EightKFeedProcessor:
                         accession_number, 'filing' if use_filing_webhook else '8k_summary')
 
             # TODO: comment out after org-aware send is stable
-            send_webhook_notification(webhook_url, payload, "EX-2.1 email")
+            # send_webhook_notification(webhook_url, payload, "EX-2.1 email")
             logger.info(f"{LOG_PREFIX} :_send_ex21_email: accession=%s step=sent",
                         accession_number)
             log_and_print(
@@ -1241,8 +1240,7 @@ class EightKFeedProcessor:
             _report_type = "sec_new_deal_announcement" if use_filing_webhook else "sec_new_deal_announced_without_threshold"
             send_report_email(
                 report_type=_report_type,
-                payload=payload,
-                org_id="6a031d87e4f1d72367bd2f92",
+                payload=payload
             )
             logger.info(f"{LOG_PREFIX} :_send_ex21_email: accession=%s step=org_aware_sent report_type=%s",
                         accession_number, _report_type)
@@ -1395,9 +1393,9 @@ class EightKFeedProcessor:
             }
 
             # Always use 8K summary webhook for EX-99.1
-            send_webhook_notification(
-                N8N_WEBHOOK_URL_8K_SUMMARY, payload, "EX-99.1 email"
-            )  # TODO: comment out after org-aware send is stable
+            # send_webhook_notification(
+            #     N8N_WEBHOOK_URL_8K_SUMMARY, payload, "EX-99.1 email"
+            # )  # TODO: comment out after org-aware send is stable
             logger.info(f"{LOG_PREFIX} :_send_ex99_email: accession=%s step=sent",
                         accession_number)
             log_and_print(
@@ -1405,8 +1403,7 @@ class EightKFeedProcessor:
 
             send_report_email(
                 report_type="sec_new_deal_probably_announced",
-                payload=payload,
-                org_id="6a031d87e4f1d72367bd2f92",
+                payload=payload
             )
             logger.info(f"{LOG_PREFIX} :_send_ex99_email: accession=%s step=org_aware_sent",
                         accession_number)
@@ -1646,9 +1643,9 @@ class EightKFeedProcessor:
                 'sec_url': doc_url,
             }
 
-            send_webhook_notification(
-                N8N_WEBHOOK_URL_8K_SUMMARY_L123, payload, "8-K summary email"
-            )  # TODO: comment out after org-aware send is stable
+            # send_webhook_notification(
+            #     N8N_WEBHOOK_URL_8K_SUMMARY_L123, payload, "8-K summary email"
+            # )  # TODO: comment out after org-aware send is stable
             logger.info(
                 f"{LOG_PREFIX} :_send_8k_summary_email: accession=%s step=sent", accession_number)
             log_and_print(
@@ -1656,8 +1653,7 @@ class EightKFeedProcessor:
 
             send_report_email(
                 report_type="sec_form_type_proxy_10k_q_425",
-                payload=payload,
-                org_id="6a031d87e4f1d72367bd2f92",
+                payload=payload
             )
             logger.info(
                 f"{LOG_PREFIX} :_send_8k_summary_email: accession=%s step=org_aware_sent", accession_number)
@@ -1715,9 +1711,9 @@ class EightKFeedProcessor:
                 'sec_url': doc_url,
             }
 
-            send_webhook_notification(
-                N8N_WEBHOOK_URL_8K_SUMMARY, payload, "EX-99.1 summary email"
-            )  # TODO: comment out after org-aware send is stable
+            # send_webhook_notification(
+            #     N8N_WEBHOOK_URL_8K_SUMMARY, payload, "EX-99.1 summary email"
+            # )  # TODO: comment out after org-aware send is stable
             logger.info(
                 f"{LOG_PREFIX} :_send_ex99_summary_email: accession=%s step=sent", accession_number)
             log_and_print(
@@ -1725,8 +1721,7 @@ class EightKFeedProcessor:
 
             send_report_email(
                 report_type="sec_all_other_forms",
-                payload=payload,
-                org_id="6a031d87e4f1d72367bd2f92",
+                payload=payload
             )
             logger.info(
                 f"{LOG_PREFIX} :_send_ex99_summary_email: accession=%s step=org_aware_sent", accession_number)

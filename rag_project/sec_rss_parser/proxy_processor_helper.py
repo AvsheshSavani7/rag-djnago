@@ -138,7 +138,8 @@ def rerun_proxy_pipeline(filing_summary_id, sync=False, step="all"):
                 fid, proxy_sec_url, chain_sync=True)
         else:
             from core.logging_context import get_pipeline, get_run_id, get_accession, get_doc_type
-            _ctx = (get_pipeline(), get_run_id(), get_accession(), get_doc_type())
+            _ctx = (get_pipeline(), get_run_id(),
+                    get_accession(), get_doc_type())
             thread = threading.Thread(
                 target=process_proxy_async,
                 args=(fid, proxy_sec_url, *_ctx),
@@ -168,7 +169,8 @@ def rerun_proxy_pipeline(filing_summary_id, sync=False, step="all"):
             generate_proxy_summary_v2(fid)
         else:
             from core.logging_context import get_pipeline, get_run_id, get_accession, get_doc_type
-            _ctx = (get_pipeline(), get_run_id(), get_accession(), get_doc_type())
+            _ctx = (get_pipeline(), get_run_id(),
+                    get_accession(), get_doc_type())
             thread = threading.Thread(
                 target=process_sections_with_pinecone_v2,
                 args=(fid, sections_json_url, *_ctx),
@@ -188,7 +190,8 @@ def rerun_proxy_pipeline(filing_summary_id, sync=False, step="all"):
             generate_proxy_summary_v2(fid)
         else:
             from core.logging_context import get_pipeline, get_run_id, get_accession, get_doc_type
-            _ctx = (get_pipeline(), get_run_id(), get_accession(), get_doc_type())
+            _ctx = (get_pipeline(), get_run_id(),
+                    get_accession(), get_doc_type())
             thread = threading.Thread(
                 target=generate_proxy_summary_v2,
                 args=(fid, *_ctx),
@@ -269,7 +272,8 @@ def process_sec_document_for_filing_summary(
     try:
         filing_dt = _parse_filing_date(filing_date)
 
-        proxy_payload = initial_proxy_payload(company_name=company_name or None)
+        proxy_payload = initial_proxy_payload(
+            company_name=company_name or None)
 
         # Check if filing summary already exists (by sec_document_url + form_type)
         existing = SECFilingSummary.objects(
@@ -472,7 +476,8 @@ def process_proxy_async(
                     f"Starting Pinecone processing for sections: {sections_json_url}")
 
                 from core.logging_context import get_pipeline, get_run_id, get_accession, get_doc_type
-                _pctx = (get_pipeline(), get_run_id(), get_accession(), get_doc_type())
+                _pctx = (get_pipeline(), get_run_id(),
+                         get_accession(), get_doc_type())
 
                 if chain_sync:
                     process_sections_with_pinecone_v2(
@@ -585,7 +590,8 @@ def process_sections_with_pinecone_v2(
                     f"Starting summary generation for {filing_summary_id}")
 
                 from core.logging_context import get_pipeline, get_run_id, get_accession, get_doc_type
-                _sctx = (get_pipeline(), get_run_id(), get_accession(), get_doc_type())
+                _sctx = (get_pipeline(), get_run_id(),
+                         get_accession(), get_doc_type())
                 summary_thread = threading.Thread(
                     target=generate_proxy_summary_v2,
                     args=(filing_summary_id, *_sctx),
@@ -998,24 +1004,24 @@ def send_summary_email_notification_v2(filing_summary):
 
         # Send POST request to n8n webhook
         try:
-            response = requests.post(
-                webhook_url,
-                json=payload,
-                headers={'Content-Type': 'application/json'},
-                timeout=30
-            )
-            response.raise_for_status()
+            # response = requests.post(
+            #     webhook_url,
+            #     json=payload,
+            #     headers={'Content-Type': 'application/json'},
+            #     timeout=30
+            # )
+            # response.raise_for_status()
 
-            logger.info(
-                f"✅ Summary email sent successfully via n8n webhook! Status: {response.status_code}")
-            logger.info(f"📧 Response: {response.text[:200]}")
+            # logger.info(
+            #     f"✅ Summary email sent successfully via n8n webhook! Status: {response.status_code}")
+            # logger.info(f"📧 Response: {response.text[:200]}")
 
             # Org-aware send via email dispatch service
-            logger.info("📤 Sending org-aware email (sec_background_summary_proxy)")
+            logger.info(
+                "📤 Sending org-aware email (sec_background_summary_proxy)")
             result_dispatch = send_report_email(
                 report_type="sec_background_summary_proxy",
-                payload=payload,
-                org_id="6a031d87e4f1d72367bd2f92",
+                payload=payload
             )
             logger.info(
                 "✅ Org-aware email done — orgs_sent=%s/%s",

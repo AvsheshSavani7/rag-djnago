@@ -230,16 +230,15 @@ Press release summary:
                 "accession_number": accession_number,
                 "email_type": "press_release_extraction",
             }
-            send_webhook_notification(
-                N8N_WEBHOOK_URL, payload, "Press Release Extraction email"
-            )  # TODO: comment out after org-aware send is stable
+            # send_webhook_notification(
+            #     N8N_WEBHOOK_URL, payload, "Press Release Extraction email"
+            # )  # TODO: comment out after org-aware send is stable
             logger.info(
                 "press_release_processor: sent extraction email for deal_id=%s", deal_id)
 
             result_dispatch = send_report_email(
                 report_type="sec_dma_press_release_extraction",
-                payload=payload,
-                org_id="6a031d87e4f1d72367bd2f92",
+                payload=payload
             )
             logger.info(
                 "press_release_processor: org-aware email done deal_id=%s orgs_sent=%s/%s",

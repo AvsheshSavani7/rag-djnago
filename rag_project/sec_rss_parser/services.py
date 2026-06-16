@@ -314,9 +314,9 @@ def send_summary_email_via_webhook(summary_doc_url, company_name, form_type, cik
             if summary_kind in ALLOW_EMAIL_TO_CLIENT_FORM
             else N8N_WEBHOOK_URL_8K_SUMMARY
         )
-        send_webhook_notification(
-            webhook_url, payload, f"{summary_kind} summary email"
-        )  # TODO: comment out after org-aware send is stable
+        # send_webhook_notification(
+        #     webhook_url, payload, f"{summary_kind} summary email"
+        # )  # TODO: comment out after org-aware send is stable
 
         _report_type = (
             "sec_form_type_proxy_10k_q_425"
@@ -326,8 +326,7 @@ def send_summary_email_via_webhook(summary_doc_url, company_name, form_type, cik
         log_and_print(f"📤 Sending org-aware email ({_report_type})")
         result_dispatch = send_report_email(
             report_type=_report_type,
-            payload=payload,
-            org_id="6a031d87e4f1d72367bd2f92",
+            payload=payload
         )
         log_and_print(
             f"✅ Org-aware email done — orgs_sent={result_dispatch['orgs_sent']}/{result_dispatch['orgs_processed']}"
@@ -412,15 +411,14 @@ def send_8k_summary_email(deal_id, company_name, form_type, cik_number, sec_url,
         }
 
         # Send via webhook
-        send_webhook_notification(
-            N8N_WEBHOOK_URL_8K_SUMMARY, payload, "8-K summary email"
-        )  # TODO: comment out after org-aware send is stable
+        # send_webhook_notification(
+        #     N8N_WEBHOOK_URL_8K_SUMMARY, payload, "8-K summary email"
+        # )  # TODO: comment out after org-aware send is stable
 
         log_and_print("📤 Sending org-aware email (sec_dma_summary)")
         result = send_report_email(
             report_type="sec_dma_summary",
-            payload=payload,
-            org_id="6a031d87e4f1d72367bd2f92",
+            payload=payload
         )
         log_and_print(
             f"✅ Org-aware email done — orgs_sent={result['orgs_sent']}/{result['orgs_processed']}"
