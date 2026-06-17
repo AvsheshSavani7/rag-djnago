@@ -876,6 +876,7 @@ class EightKFeedProcessor:
             if document_kind == "Definitive Merger Agreement" and is_us_listed and market_cap_gt_100m:
                 # Fetch deal details when CIK matches an existing deal
                 deal_details = None
+                skip_processing = False  # True when deal already has a real sec_url (already processed)
                 if item_data.get('cik_matches_deal') and item_data.get('deal_id'):
                     try:
                         from bson import ObjectId
@@ -883,7 +884,8 @@ class EightKFeedProcessor:
                             id=ObjectId(item_data['deal_id'])
                         ).only(
                             "target_name", "acquire_name", "cik", "acquirer_cik",
-                            "deal_status", "announce_date", "target_ticker", "acquirer_ticker"
+                            "deal_status", "announce_date", "target_ticker", "acquirer_ticker",
+                            "sec_url",
                         ).first()
                         if matched_deal:
                             deal_details = {
@@ -897,10 +899,13 @@ class EightKFeedProcessor:
                                 'acquirer_ticker': getattr(matched_deal, 'acquirer_ticker', '') or '',
                                 'matched_cik_label': item_data.get('matched_cik_label', ''),
                             }
+                            existing_sec_url = getattr(matched_deal, 'sec_url', None) or ''
+                            skip_processing = bool(existing_sec_url)
                             logger.info(
-                                f"{LOG_PREFIX} :_process_ex21_filing: accession=%s step=deal_details_fetched deal_id=%s target=%s acquirer=%s",
+                                f"{LOG_PREFIX} :_process_ex21_filing: accession=%s step=deal_details_fetched deal_id=%s target=%s acquirer=%s sec_url=%s skip_processing=%s",
                                 accession_number, item_data['deal_id'],
-                                deal_details.get('target_name'), deal_details.get('acquire_name'))
+                                deal_details.get('target_name'), deal_details.get('acquire_name'),
+                                existing_sec_url[:60] if existing_sec_url else None, skip_processing)
                     except Exception as deal_e:
                         logger.warning(
                             f"{LOG_PREFIX} :_process_ex21_filing: accession=%s step=deal_details_failed error=%s",
@@ -911,13 +916,23 @@ class EightKFeedProcessor:
                     item_data, company_details, filing_entry=filing_entry, deal_details=deal_details)
                 logger.info(
                     f"{LOG_PREFIX} :_process_ex21_filing: accession=%s step=qualified sending_historical_and_helper", accession_number)
-                # Send historical 8-K filings email (last 1 year)
                 log_and_print(
                     f"{LOG_PREFIX} :_process_ex21_filing: ✅ Qualified for 8-K EX-2.1 document processing (US-listed + market cap > $100M)")
-                # self._send_historical_8k_email(item_data)
-                logger.info(
-                    f"{LOG_PREFIX} :_process_ex21_filing: accession=%s step=process_ex21_via_8k_helper", accession_number)
-                self._process_ex21_via_8k_helper(item_data, filing)
+
+                if skip_processing:
+                    # Deal already has a real sec_url — it was previously processed from a
+                    # 2.1 filing (e.g. target company). Skip parsing/embedding for this
+                    # filing (e.g. parent company filing the same 2.1). Email already sent above.
+                    logger.info(
+                        f"{LOG_PREFIX} :_process_ex21_filing: accession=%s step=skip_processing reason=deal_already_has_sec_url",
+                        accession_number)
+                    log_and_print(
+                        f"{LOG_PREFIX} :_process_ex21_filing: ⏭️ Skipping parse/embed — deal already processed (sec_url exists)")
+                else:
+                    # self._send_historical_8k_email(item_data)
+                    logger.info(
+                        f"{LOG_PREFIX} :_process_ex21_filing: accession=%s step=process_ex21_via_8k_helper", accession_number)
+                    self._process_ex21_via_8k_helper(item_data, filing)
                 # Definitive Merger Agreement + other_filings: run 8-K and EX-99.1 summary generation and send email (same as cik_matches_deal path)
                 if other_filings:
                     log_and_print(

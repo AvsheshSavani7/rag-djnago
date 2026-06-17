@@ -895,6 +895,23 @@ class EmbeddingService:
             print(f"Error creating embedding: {str(e)}")
             raise
 
+    def create_embeddings_batch(self, texts):
+        """Create embeddings for a batch of texts in a single OpenAI API call.
+
+        OpenAI guarantees embeddings are returned in the same order as input texts.
+        """
+        try:
+            print(f"Creating embeddings for batch of {len(texts)} texts")
+            response = self.openai_client.embeddings.create(
+                input=texts, model="text-embedding-3-large"
+            )
+            embeddings = [item.embedding for item in sorted(response.data, key=lambda x: x.index)]
+            print(f"Batch embeddings created successfully: {len(embeddings)} vectors")
+            return embeddings
+        except Exception as e:
+            print(f"Error creating batch embeddings: {str(e)}")
+            raise
+
     def trim_metadata(self, metadata):
         # Try serializing first
         meta_bytes = json.dumps(metadata).encode("utf-8")
@@ -1004,101 +1021,99 @@ class EmbeddingService:
         return label
 
     def process_chunks(self, chunks, deal_id):
-        """Process a list of text chunks and store embeddings in Pinecone one by one"""
+        """Process a list of text chunks and store embeddings in Pinecone using batching.
+
+        Chunks are processed in batches: a single OpenAI API call embeds the whole
+        batch, then a single Pinecone upsert stores all resulting vectors.  This is
+        dramatically faster than the previous one-by-one approach while preserving
+        all existing behaviour (chunk IDs, metadata, skip logic, return shape).
+        """
+        BATCH_SIZE = 50
         total_chunks = len(chunks)
         processed_chunks = 0
 
         print(f"Processing {total_chunks} chunks for deal ID: {deal_id}")
 
         try:
-            for i, chunk in enumerate(tqdm(chunks)):
-
-                print(f"Processing chunk {i+1}/{total_chunks}")
-                # Create a unique ID for each chunk
-                chunk_id = f"{deal_id}_{i}"
-
-                # Extract text from chunk
+            # First pass: collect valid chunks with their original indices so that
+            # chunk IDs (deal_id_<i>) remain stable even when some chunks are skipped.
+            valid_chunks = []
+            for i, chunk in enumerate(chunks):
                 text = chunk.get("combined_text", "")
                 if not text:
                     print(f"Skipping chunk {i+1} - no text content")
                     continue
+                valid_chunks.append((i, chunk, text))
 
-                # Enhance chunk metadata with category information
-                # try:
-                #     print(f"Enhancing metadata for chunk {i+1}")
-                #     enhanced_chunk = self.metadata_service.enhance_chunk_metadata(
-                #         chunk)
-                # category_name = enhanced_chunk.get("categories", "")
-                # print(
-                #     f"Category determined for chunk {i+1}: {category_name}")
-                # except Exception as e:
-                #     print(
-                #         f"Error enhancing metadata for chunk {i+1}: {str(e)}")
-                # Continue with original chunk if enhancement fails
-                # enhanced_chunk = chunk
-                # enhanced_chunk["categories"] = []
+            print(
+                f"Found {len(valid_chunks)} valid chunks to embed (out of {total_chunks})"
+            )
 
-                # Below is the chunk without metadata enhancement (categories, clause_summary)
-                enhanced_chunk = chunk
+            # Second pass: embed and upsert in batches
+            for batch_start in tqdm(range(0, len(valid_chunks), BATCH_SIZE)):
+                batch = valid_chunks[batch_start: batch_start + BATCH_SIZE]
+                batch_texts = [item[2] for item in batch]
 
-                # Create embedding
+                first_idx = batch[0][0] + 1
+                last_idx = batch[-1][0] + 1
+                print(
+                    f"Processing batch of {len(batch)} chunks "
+                    f"(original indices {first_idx}–{last_idx})"
+                )
+
+                # One OpenAI call for the entire batch
                 try:
-                    embedding = self.create_embedding(text)
-                    print(
-                        f"Created embedding for chunk {i+1} - vector size: {len(embedding)}"
-                    )
+                    embeddings = self.create_embeddings_batch(batch_texts)
                 except Exception as e:
-                    print(
-                        f"Error creating embedding for chunk {i+1}: {str(e)}")
                     raise Exception(
-                        f"Failed to create embedding for chunk {i+1}: {str(e)}"
+                        f"Failed to create embeddings for batch starting at "
+                        f"chunk {first_idx}: {str(e)}"
                     )
 
-                # Start with required metadata fields
-                label = enhanced_chunk.get("label", "") or ""
-                section_text = self.extract_section_from_label(label)
+                # Build Pinecone vectors for the batch
+                vectors = []
+                for j, (i, chunk, _text) in enumerate(batch):
+                    chunk_id = f"{deal_id}_{i}"
+                    label = chunk.get("label", "") or ""
+                    section_text = self.extract_section_from_label(label)
 
-                metadata = {
-                    "deal_id": str(deal_id),
-                    "deal_name": enhanced_chunk.get("deal_name", "") or "",
-                    "label": label,
-                    "definition_terms": (
-                        ""
-                        if enhanced_chunk.get("definition_terms") is None
-                        else str(enhanced_chunk.get("definition_terms", ""))
-                    ),
-                    "original_text": enhanced_chunk.get("original_text", "") or "",
-                    "combined_text": enhanced_chunk.get("combined_text", "") or "",
-                    # "categories": enhanced_chunk.get("categories", "") or "",
-                    "chunk_index": i,
-                    # "reference_section": self.extract_section_references(enhanced_chunk.get("combined_text", "")),
-                    # "clause_summary": enhanced_chunk.get("clause_summary", "") or "",
-                    "Section": [section_text] if section_text else [],
-                }
-                logger.info(f"Metadata: {metadata}")
+                    metadata = {
+                        "deal_id": str(deal_id),
+                        "deal_name": chunk.get("deal_name", "") or "",
+                        "label": label,
+                        "definition_terms": (
+                            ""
+                            if chunk.get("definition_terms") is None
+                            else str(chunk.get("definition_terms", ""))
+                        ),
+                        "original_text": chunk.get("original_text", "") or "",
+                        "combined_text": chunk.get("combined_text", "") or "",
+                        # "categories": chunk.get("categories", "") or "",
+                        "chunk_index": i,
+                        # "reference_section": self.extract_section_references(chunk.get("combined_text", "")),
+                        # "clause_summary": chunk.get("clause_summary", "") or "",
+                        "Section": [section_text] if section_text else [],
+                    }
+                    logger.info(f"Metadata for chunk {i+1}: {metadata}")
+                    metadata = self.trim_metadata(metadata)
+                    vectors.append(
+                        {"id": chunk_id, "values": embeddings[j], "metadata": metadata}
+                    )
 
-                # Upsert single vector to Pinecone
-                metadata = self.trim_metadata(metadata)
+                # One Pinecone upsert for the entire batch
                 try:
-                    self.index.upsert(
-                        vectors=[
-                            {"id": chunk_id, "values": embedding,
-                                "metadata": metadata}
-                        ]
-                    )
+                    self.index.upsert(vectors=vectors)
                     print(
-                        f"Uploaded chunk {i+1} to Pinecone with ID: {chunk_id}")
-                except Exception as e:
-                    print(f"Error uploading chunk {i+1} to Pinecone: {str(e)}")
-                    print(f"Problematic metadata: {metadata}")
-                    raise Exception(
-                        f"Failed to upload chunk {i+1} to Pinecone: {str(e)}"
+                        f"Uploaded batch of {len(vectors)} chunks to Pinecone "
+                        f"(indices {first_idx}–{last_idx})"
                     )
-
-                processed_chunks += 1
-
-                # Add a small delay to avoid rate limits
-                # time.sleep(0.2)
+                    processed_chunks += len(vectors)
+                except Exception as e:
+                    print(f"Error uploading batch to Pinecone: {str(e)}")
+                    raise Exception(
+                        f"Failed to upload batch to Pinecone "
+                        f"(indices {first_idx}–{last_idx}): {str(e)}"
+                    )
 
             print(
                 f"Successfully processed {processed_chunks} out of {total_chunks} chunks"
