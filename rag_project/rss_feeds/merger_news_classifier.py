@@ -825,8 +825,7 @@ def _extracted_to_create_payload(p2: Dict[str, Any]) -> Dict[str, Any]:
         "acquirer_ticker": p2.get("acquirer_ticker"),
         "cik": p2.get("cik"),
         "acquirer_cik": p2.get("acquirer_cik"),
-        "announce_date": p2.get("announce_date"),
-        "sec_url": p2.get("sec_ex_2_1_url"),
+        "announce_date": p2.get("announce_date")
     }
 
 
