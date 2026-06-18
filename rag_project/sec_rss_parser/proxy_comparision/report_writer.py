@@ -21,18 +21,20 @@ from .extractor import _get_section_text_for_extraction
 
 
 def _generate_section(client: Anthropic, config: dict, doc: CanonicalDocument,
-                       ticker: str, target: str, acquirer: str, facts_json: str) -> Tuple[str, str, str]:
+                      ticker: str, target: str, acquirer: str, facts_json: str) -> Tuple[str, str, str]:
     """Generate one output section using focused topic-tagged content.
 
     Returns (key, llm_output, source_text).
     """
     # Gather text: topic-tagged blocks for this section's topics
-    section_text = _get_blocks_by_topic(doc, config["topics"], max_chars=config["max_chars"])
+    section_text = _get_blocks_by_topic(
+        doc, config["topics"], max_chars=config["max_chars"])
 
     # Also add section-based fallback text if topic text is thin
     fallback_ids = _TOPIC_TO_SECTION_IDS.get(config["key"], [])
     if fallback_ids and len(section_text) < 2000:
-        fallback = _get_section_text_for_extraction(doc, fallback_ids, max_chars=config["max_chars"])
+        fallback = _get_section_text_for_extraction(
+            doc, fallback_ids, max_chars=config["max_chars"])
         section_text = section_text + "\n\n---\n\n" + fallback
 
     # Termination fee-amount supplement: if no dollar amounts captured,
@@ -41,9 +43,11 @@ def _generate_section(client: Anthropic, config: dict, doc: CanonicalDocument,
         _HAS_DOLLAR_AMT = re.compile(r'\$[\d,]{4,}')
         _has_amt = _HAS_DOLLAR_AMT.search(section_text)
         if _has_amt:
-            print(f"      termination fee scan: already has '{_has_amt.group()}' — skipped")
+            print(
+                f"      termination fee scan: already has '{_has_amt.group()}' — skipped")
         if not _has_amt:
-            _TERM_FEE_PHRASE = re.compile(r'(?:Company|Parent|Reverse)\s+Termination\s+Fee', re.IGNORECASE)
+            _TERM_FEE_PHRASE = re.compile(
+                r'(?:Company|Parent|Reverse)\s+Termination\s+Fee', re.IGNORECASE)
             _LARGE_AMT = re.compile(r'\$[\d,]{7,}')
             candidates = []
             for b in doc.blocks:
@@ -61,11 +65,52 @@ def _generate_section(client: Anthropic, config: dict, doc: CanonicalDocument,
                 extra_parts.append(t)
                 extra_total += len(t)
             if extra_parts:
-                print(f"      termination fee scan: added {extra_total:,} chars from {len(extra_parts)} blocks")
-                section_text = section_text + "\n\n---\n\n" + "\n\n".join(extra_parts)
+                print(
+                    f"      termination fee scan: added {extra_total:,} chars from {len(extra_parts)} blocks")
+                section_text = section_text + \
+                    "\n\n---\n\n" + "\n\n".join(extra_parts)
+
+     # Closing supplement: ensure outside/termination date is in the text
+    if config["key"] == "closing":
+        _OUTSIDE_DATE_DEF_RE = re.compile(
+            r'(?:outside\s+date|["\u201c]\s*(?:Termination|End)\s+Date\s*["\u201d])',
+            re.IGNORECASE
+        )
+        _DATE_VALUE_RE = re.compile(
+            r'(?:January|February|March|April|May|June|July|August|September|October|November|December)'
+            r'\s+\d{1,2},?\s+\d{4}')
+        # Check if we already have the outside date with an actual date value
+        has_date_with_value = False
+        for m in _OUTSIDE_DATE_DEF_RE.finditer(section_text):
+            context = section_text[max(0, m.start()-100):m.end()+300]
+            if _DATE_VALUE_RE.search(context):
+                has_date_with_value = True
+                break
+        if not has_date_with_value:
+            candidates = []
+            for b in doc.blocks:
+                t = b.text.strip()
+                if not t or b.type == "heading":
+                    continue
+                if _OUTSIDE_DATE_DEF_RE.search(t) and _DATE_VALUE_RE.search(t):
+                    candidates.append(t)
+            candidates.sort(key=len)
+            extra = []
+            extra_total = 0
+            for t in candidates[:3]:
+                if extra_total + len(t) > 5000:
+                    continue
+                extra.append(t)
+                extra_total += len(t)
+            if extra:
+                print(
+                    f"      closing outside-date scan: added {extra_total:,} chars from {len(extra)} blocks")
+                section_text = section_text + \
+                    "\n\n---\n\n" + "\n\n".join(extra)
 
     # Clean source text for reference output (strip topic/section tags)
-    source_clean = re.sub(r'^\[(?:Topic|Section): [^\]]+\]\n?', '', section_text, flags=re.MULTILINE)
+    source_clean = re.sub(
+        r'^\[(?:Topic|Section): [^\]]+\]\n?', '', section_text, flags=re.MULTILINE)
     source_clean = re.sub(r'\n---\n', '\n', source_clean)
     source_clean = source_clean.strip()
 
@@ -84,7 +129,8 @@ def _generate_section(client: Anthropic, config: dict, doc: CanonicalDocument,
     if config.get("thinking"):
         kwargs["max_tokens"] = 8000
         kwargs["thinking"] = {"type": "enabled", "budget_tokens": 5000}
-        del kwargs["temperature"]  # temperature not supported with extended thinking
+        # temperature not supported with extended thinking
+        del kwargs["temperature"]
 
     response = client.messages.create(**kwargs)
     text_parts = [b.text for b in response.content if b.type == "text"]
@@ -97,9 +143,10 @@ def _generate_section(client: Anthropic, config: dict, doc: CanonicalDocument,
 
 
 def _generate_opening(client: Anthropic, section_results: dict,
-                       ticker: str, target: str, acquirer: str) -> str:
+                      ticker: str, target: str, acquirer: str) -> str:
     """Generate a 2-4 sentence opening paragraph from extracted section results."""
-    context = "\n\n".join(f"{k.upper()}:\n{v}" for k, v in section_results.items())
+    context = "\n\n".join(f"{k.upper()}:\n{v}" for k,
+                          v in section_results.items())
     prompt = f"""Write 2-4 sentences stating the key facts for {ticker} ({target}) being acquired by {acquirer}.
 Cover: SH vote date (or that it has not been announced), HSR status, other regulatory status, expected closing.
 Concise and direct. Reference specific dates. No bullet points. Plain text, no markdown.
@@ -127,7 +174,8 @@ def _assemble_summary(opening: str, section_results: dict, source_texts: dict = 
         header = SECTION_HEADERS[key]
         body = section_results.get(key, "Not disclosed.")
         # Clean up any echoed headers from LLM output
-        body = re.sub(rf'^{re.escape(header)}\s*\n?', '', body, flags=re.IGNORECASE)
+        body = re.sub(rf'^{re.escape(header)}\s*\n?',
+                      '', body, flags=re.IGNORECASE)
         # Strip echoed COMPANY: / ACQUIRER: lines
         body = re.sub(r'(?m)^COMPANY:.*\n?', '', body)
         body = re.sub(r'(?m)^ACQUIRER:.*\n?', '', body)
@@ -139,7 +187,7 @@ def _assemble_summary(opening: str, section_results: dict, source_texts: dict = 
 
 
 def generate_full_summary(client: Anthropic, doc: CanonicalDocument,
-                           ticker: str, target: str, acquirer: str) -> str:
+                          ticker: str, target: str, acquirer: str) -> str:
     """Generate a full summary using parallel per-section LLM calls."""
     facts_json = json.dumps(asdict(doc.priority_facts), indent=2, default=str)
 
@@ -162,7 +210,8 @@ def generate_full_summary(client: Anthropic, doc: CanonicalDocument,
             print(f"      {key}: done ({len(text)} chars)")
 
     # Generate opening paragraph last -- using section results as context
-    opening = _generate_opening(client, section_results, ticker, target, acquirer)
+    opening = _generate_opening(
+        client, section_results, ticker, target, acquirer)
     print(f"      opening: done ({len(opening)} chars)")
 
     # Assemble final output
@@ -200,7 +249,8 @@ def _parse_summary_sections(text: str) -> tuple:
             if not found_first_header:
                 found_first_header = True
             if current_header is not None:
-                sections.append((current_header, "\n".join(current_lines).strip()))
+                sections.append(
+                    (current_header, "\n".join(current_lines).strip()))
             current_header = stripped
             current_lines = []
         elif not found_first_header:
@@ -231,7 +281,7 @@ _SUMMARY_HEADER_TO_CATEGORY = {
 }
 
 _CATEGORY_TO_SUMMARY_HEADER = {v: k for k, v in _SUMMARY_HEADER_TO_CATEGORY.items()
-                                if k not in ("CONDITIONS TO CLOSING", "TERMINATION")}
+                               if k not in ("CONDITIONS TO CLOSING", "TERMINATION")}
 
 
 def _summary_text_to_category_dict(summary_text: str) -> dict:
@@ -284,7 +334,8 @@ def _merge_changes_into_summary(base_summary: str, events: List[ChangeEvent]) ->
                     new_line = f"- {val}"
                 else:
                     continue
-                section_text = (section_text + "\n" + new_line) if section_text else new_line
+                section_text = (section_text + "\n" +
+                                new_line) if section_text else new_line
             elif event.change_type in ("updated", "changed"):
                 old_val = event.old_value or ""
                 new_val = event.new_value or ""
@@ -292,7 +343,8 @@ def _merge_changes_into_summary(base_summary: str, events: List[ChangeEvent]) ->
                     section_text = section_text.replace(old_val, new_val, 1)
                 elif event.field and new_val:
                     new_line = f"- {event.field}: {new_val}"
-                    section_text = (section_text + "\n" + new_line) if section_text else new_line
+                    section_text = (section_text + "\n" +
+                                    new_line) if section_text else new_line
         cat_dict[cat] = section_text
 
     parts = []
@@ -312,7 +364,7 @@ def _merge_changes_into_summary(base_summary: str, events: List[ChangeEvent]) ->
 
 
 def _generate_change_opening(client: Anthropic, events: List[ChangeEvent],
-                              ticker: str, old_label: str, new_label: str) -> str:
+                             ticker: str, old_label: str, new_label: str) -> str:
     """Generate a 2-4 sentence opening paragraph for a change report."""
     # Build a concise summary of changes for the LLM
     summary_parts = []
@@ -325,13 +377,16 @@ def _generate_change_opening(client: Anthropic, events: List[ChangeEvent],
             continue
         if e.field:
             if e.change_type == "newly_disclosed":
-                summary_parts.append(f"{e.category}/{e.field}: {e.new_value} [NEW]")
+                summary_parts.append(
+                    f"{e.category}/{e.field}: {e.new_value} [NEW]")
             elif e.old_value and e.new_value:
-                summary_parts.append(f"{e.category}/{e.field}: {e.old_value} -> {e.new_value}")
+                summary_parts.append(
+                    f"{e.category}/{e.field}: {e.old_value} -> {e.new_value}")
         elif e.summary:
             summary_parts.append(f"{e.category}: {e.summary[:200]}")
 
-    changes_summary = "\n".join(summary_parts) if summary_parts else "No significant changes detected."
+    changes_summary = "\n".join(
+        summary_parts) if summary_parts else "No significant changes detected."
 
     response = client.messages.create(
         model=MODEL_STANDARD,
@@ -358,8 +413,8 @@ def _is_hsr_event(event: ChangeEvent) -> bool:  # noqa: F841
 
 
 def generate_change_report(client: Anthropic, events: List[ChangeEvent],
-                            ticker: str, old_label: str, new_label: str,
-                            base_summary_text: str = "") -> str:
+                           ticker: str, old_label: str, new_label: str,
+                           base_summary_text: str = "") -> str:
     """Generate a change report with opening paragraph + clean section format.
 
     If base_summary_text is provided, each section shows the base summary first
@@ -368,10 +423,12 @@ def generate_change_report(client: Anthropic, events: List[ChangeEvent],
     lines = []
 
     # Parse base summary into category dict for merged output
-    base_dict = _summary_text_to_category_dict(base_summary_text) if base_summary_text else {}
+    base_dict = _summary_text_to_category_dict(
+        base_summary_text) if base_summary_text else {}
 
     # Opening paragraph (LLM-generated)
-    opening = _generate_change_opening(client, events, ticker, old_label, new_label)
+    opening = _generate_change_opening(
+        client, events, ticker, old_label, new_label)
     for para_line in opening.split("\n"):
         para_line = para_line.strip()
         if para_line:
@@ -410,7 +467,8 @@ def generate_change_report(client: Anthropic, events: List[ChangeEvent],
                 for sl in event.summary.split("\n"):
                     sl = sl.strip()
                     if sl:
-                        result.append(sl if sl.startswith("- ") or sl.startswith("\u2022") else f"- {sl}")
+                        result.append(sl if sl.startswith(
+                            "- ") or sl.startswith("\u2022") else f"- {sl}")
         return result if result else ["No changes."]
 
     # Helper: add a section with base summary + changes (merged format)
@@ -493,7 +551,7 @@ def generate_change_report(client: Anthropic, events: List[ChangeEvent],
 
 
 def format_txt_header(ticker: str, target: str, doc_label: str,
-                       report_type: str, timestamp: str) -> str:
+                      report_type: str, timestamp: str) -> str:
     """Create a formatted TXT header."""
     lines = [
         "=" * 72,

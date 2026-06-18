@@ -512,7 +512,7 @@ SECTION_CONFIGS = [
     {"key": "other_regulatory", "topics": [
         "regulatory", "hsr", "closing"], "model": "standard", "max_chars": 30000, "thinking": False},
     {"key": "closing",         "topics": [
-        "closing"],                   "model": "standard", "max_chars": 15000, "thinking": False},
+        "closing", "termination"],                   "model": "standard", "max_chars": 20000, "thinking": False},
     {"key": "conditions",      "topics": [
         "closing", "regulatory"],     "model": "standard", "max_chars": 20000, "thinking": False},
     {"key": "termination",     "topics": [
@@ -828,7 +828,19 @@ _CATEGORY_KEYWORD_PATTERNS = {
     "financing": _TOPIC_KEYWORD_PATTERNS["financing"],
     "sh_votes": _TOPIC_KEYWORD_PATTERNS["sh_approval"],
     "conditions": _TOPIC_KEYWORD_PATTERNS["conditions"],
-    "closing": _TOPIC_KEYWORD_PATTERNS["closing"],
+    "closing": [
+        re.compile(
+            r"(?:expected|anticipated).*(?:clos|complet|consummat)", re.IGNORECASE),
+        re.compile(r"outside\s+date", re.IGNORECASE),
+        re.compile(
+            r'(?:the|an?)\s+["\u201c]\s*(?:Outside|Termination|End)\s+Date\s*["\u201d]', re.IGNORECASE),
+        re.compile(
+            r"on\s+or\s+before.*\d{4}.*(?:Termination|Outside|End)\s+Date", re.IGNORECASE),
+        re.compile(
+            r"(?:second|first)\s+(?:half|quarter)\s+of\s+\d{4}", re.IGNORECASE),
+        re.compile(
+            r"(?:target|expect).*(?:clos|complet).*\d{4}", re.IGNORECASE),
+    ],
     "dates": _TOPIC_KEYWORD_PATTERNS["dates"],
 }
 

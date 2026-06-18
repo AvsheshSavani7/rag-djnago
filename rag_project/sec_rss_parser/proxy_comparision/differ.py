@@ -15,9 +15,9 @@ from .models import PriorityFacts, CanonicalSection, CanonicalDocument, ChangeEv
 from .config import (
     MODEL_STANDARD, OUTPUT_FOLDER,
     TIER1_SECTION_IDS, TIER1_CATEGORIES,
-    FACT_CATEGORY_MAP, _COMPARISON_PROMPTS,_COMPARISON_RULES,
+    FACT_CATEGORY_MAP, _COMPARISON_PROMPTS, _COMPARISON_RULES,
     _CATEGORY_TO_SECTIONS, _CATEGORY_TO_TOPICS,
-    BACKGROUND_DIFF_INTERPRET_PROMPT,_CATEGORY_KEYWORD_PATTERNS,
+    BACKGROUND_DIFF_INTERPRET_PROMPT, _CATEGORY_KEYWORD_PATTERNS,
     get_form_label,
 )
 from .classifier import _get_blocks_by_topic
@@ -61,19 +61,21 @@ def _values_are_semantically_same(old_val, new_val) -> bool:
             return True
         # Word-overlap similarity (catches reordering -- LLM extraction phrasing varies)
         STOP_WORDS = {"the", "a", "an", "of", "to", "and", "in", "for", "by", "at",
-                       "or", "is", "are", "was", "were", "be", "been", "its", "that",
-                       "with", "from", "on", "as", "not", "must", "shall", "may",
-                       "which", "have", "has", "had", "into", "upon", "certain",
-                       "subject", "terms", "conditions", "pursuant", "set", "forth",
-                       "such", "any", "all", "each", "other", "their", "this",
-                       "will", "would", "could", "should", "under", "including",
-                       "respect", "entered", "also", "than"}
+                      "or", "is", "are", "was", "were", "be", "been", "its", "that",
+                      "with", "from", "on", "as", "not", "must", "shall", "may",
+                      "which", "have", "has", "had", "into", "upon", "certain",
+                      "subject", "terms", "conditions", "pursuant", "set", "forth",
+                      "such", "any", "all", "each", "other", "their", "this",
+                      "will", "would", "could", "should", "under", "including",
+                      "respect", "entered", "also", "than"}
         old_words = set(n_old.split()) - STOP_WORDS
         new_words = set(n_new.split()) - STOP_WORDS
         if old_words and new_words:
-            overlap = len(old_words & new_words) / max(len(old_words), len(new_words))
+            overlap = len(old_words & new_words) / \
+                max(len(old_words), len(new_words))
             # Lower threshold for long descriptions -- LLM extraction adds/omits details
-            overlap_threshold = 0.60 if len(n_old) > 80 or len(n_new) > 80 else 0.70
+            overlap_threshold = 0.60 if len(
+                n_old) > 80 or len(n_new) > 80 else 0.70
             if overlap > overlap_threshold:
                 return True
         return False
@@ -127,7 +129,8 @@ def _diff_list_values(key: str, old_list: list, new_list: list, category: str) -
                 break
 
     added = [new_strs[j] for j in range(len(new_strs)) if j not in matched_new]
-    removed = [old_strs[i] for i in range(len(old_strs)) if i not in matched_old]
+    removed = [old_strs[i]
+               for i in range(len(old_strs)) if i not in matched_old]
 
     for item in added:
         events.append(ChangeEvent(
@@ -153,7 +156,8 @@ def diff_facts(old: PriorityFacts, new: PriorityFacts) -> List[ChangeEvent]:
         category = FACT_CATEGORY_MAP[attr]
 
         # Skip fields that duplicate other fact categories or are too noisy
-        SKIP_FIELDS = {"gating_items"}  # duplicates regulatory + closing_conditions
+        # duplicates regulatory + closing_conditions
+        SKIP_FIELDS = {"gating_items"}
 
         all_keys = set(list(old_dict.keys()) + list(new_dict.keys()))
         for key in all_keys:
@@ -172,7 +176,8 @@ def diff_facts(old: PriorityFacts, new: PriorityFacts) -> List[ChangeEvent]:
 
             # List-valued fields: diff item by item instead of dumping two arrays
             if isinstance(old_val, list) and isinstance(new_val, list):
-                events.extend(_diff_list_values(key, old_val, new_val, category))
+                events.extend(_diff_list_values(
+                    key, old_val, new_val, category))
                 continue
 
             if old_val is None and new_val is not None:
@@ -238,7 +243,8 @@ def diff_facts(old: PriorityFacts, new: PriorityFacts) -> List[ChangeEvent]:
 def _clean_filing_artifacts(text: str) -> str:
     """Remove SEC filing artifacts (page numbers, TOC markers, running headers)."""
     # Remove page number + TABLE OF CONTENTS artifacts
-    text = re.sub(r'\d+\s*\n?\s*TABLE OF CONTENTS\s*\n?', ' ', text, flags=re.I)
+    text = re.sub(r'\d+\s*\n?\s*TABLE OF CONTENTS\s*\n?',
+                  ' ', text, flags=re.I)
     # Remove standalone page numbers on their own line
     text = re.sub(r'\n\s*\d{1,3}\s*\n', ' ', text)
     # Collapse whitespace
@@ -272,7 +278,8 @@ def sentence_hash(s: str) -> str:
 
 def _normalize_for_bg_diff(text: str) -> str:
     """Normalize background text so only substantive differences survive diffing."""
-    text = re.sub(r'\d+\s*\n?\s*TABLE OF CONTENTS\s*\n?', ' ', text, flags=re.I)
+    text = re.sub(r'\d+\s*\n?\s*TABLE OF CONTENTS\s*\n?',
+                  ' ', text, flags=re.I)
     text = re.sub(r'TABLE OF CONTENTS\s*', '', text, flags=re.I)
     text = re.sub(r'\n\s*\d{1,3}\s*\n', ' ', text)
     # Normalize ALL list numbering to (X)
@@ -353,8 +360,8 @@ def _is_ignorable_bg_change(old_text: str, new_text: str) -> bool:
 
 
 def diff_background_structural(old_section: Optional[CanonicalSection],
-                                new_section: Optional[CanonicalSection],
-                                old_label: str, new_label: str) -> Dict[str, Any]:
+                               new_section: Optional[CanonicalSection],
+                               old_label: str, new_label: str) -> Dict[str, Any]:
     """Deterministic normalized diff of Background sections. No LLM needed."""
     if old_section is None and new_section is not None:
         return {"has_changes": True, "summary": "Background section is entirely new in the later filing."}
@@ -364,12 +371,14 @@ def diff_background_structural(old_section: Optional[CanonicalSection],
     diag = []
     old_paras = _bg_paragraphs_from_section(old_section)
     new_paras = _bg_paragraphs_from_section(new_section)
-    diag.append(f"Background structural diff: old={len(old_paras)} paragraphs, new={len(new_paras)} paragraphs")
+    diag.append(
+        f"Background structural diff: old={len(old_paras)} paragraphs, new={len(new_paras)} paragraphs")
 
     old_normalized = [_normalize_for_bg_diff(p) for p in old_paras]
     new_normalized = [_normalize_for_bg_diff(p) for p in new_paras]
 
-    matcher = difflib.SequenceMatcher(None, old_normalized, new_normalized, autojunk=False)
+    matcher = difflib.SequenceMatcher(
+        None, old_normalized, new_normalized, autojunk=False)
     changes = []
 
     for tag, i1, i2, j1, j2 in matcher.get_opcodes():
@@ -377,10 +386,12 @@ def diff_background_structural(old_section: Optional[CanonicalSection],
             continue
         elif tag == "insert":
             for j in range(j1, j2):
-                changes.append({"type": "added", "text": new_paras[j], "detail": f"New paragraph in {new_label}"})
+                changes.append(
+                    {"type": "added", "text": new_paras[j], "detail": f"New paragraph in {new_label}"})
         elif tag == "delete":
             for i in range(i1, i2):
-                changes.append({"type": "removed", "text": old_paras[i], "detail": f"Removed from {new_label}"})
+                changes.append(
+                    {"type": "removed", "text": old_paras[i], "detail": f"Removed from {new_label}"})
         elif tag == "replace":
             old_chunk = old_paras[i1:i2]
             new_chunk = new_paras[j1:j2]
@@ -400,7 +411,8 @@ def diff_background_structural(old_section: Optional[CanonicalSection],
                         paired.add(best_nj)
                         continue
                     paired.add(best_nj)
-                    diff_markup = word_level_diff(old_chunk[oi], new_chunk[best_nj])
+                    diff_markup = word_level_diff(
+                        old_chunk[oi], new_chunk[best_nj])
                     changes.append({"type": "modified", "old_text": old_chunk[oi],
                                     "new_text": new_chunk[best_nj], "diff": diff_markup,
                                     "detail": "Modified paragraph"})
@@ -445,7 +457,8 @@ def diff_background_structural(old_section: Optional[CanonicalSection],
         print(f"    Background structural diff: no changes detected")
         return {"has_changes": False, "summary": "No material changes.", "_diag": diag}
 
-    _IGNORABLE_DIFF_RE = re.compile(r'^\((?:[ivxlc]{1,4}|[a-h]|\d{1,2})\),?$', re.I)
+    _IGNORABLE_DIFF_RE = re.compile(
+        r'^\((?:[ivxlc]{1,4}|[a-h]|\d{1,2})\),?$', re.I)
     summary_parts = []
     seen_change_pairs = set()
 
@@ -487,9 +500,12 @@ def diff_background_structural(old_section: Optional[CanonicalSection],
                             return i + 1
                     return limit
 
-                old_sentence = " ".join(old_words[_sent_start(old_words, a1):_sent_end(old_words, a2)])
-                new_sentence = " ".join(new_words[_sent_start(new_words, b1):_sent_end(new_words, b2)])
-                real_changes.append((old_span, new_span, old_sentence, new_sentence))
+                old_sentence = " ".join(old_words[_sent_start(
+                    old_words, a1):_sent_end(old_words, a2)])
+                new_sentence = " ".join(new_words[_sent_start(
+                    new_words, b1):_sent_end(new_words, b2)])
+                real_changes.append(
+                    (old_span, new_span, old_sentence, new_sentence))
 
             for old_span, new_span, old_sentence, new_sentence in real_changes:
                 pair_key = (old_span.lower(), new_span.lower())
@@ -539,18 +555,21 @@ def word_level_diff(old_text: str, new_text: str) -> str:
 
 
 def interpret_background_diff(client: Anthropic, diff_result: Dict[str, Any],
-                               doc1_label: str, doc2_label: str) -> str:
+                              doc1_label: str, doc2_label: str) -> str:
     """Send background diff to LLM for interpretation."""
     if not diff_result["inserted"] and not diff_result["deleted"] and not diff_result["modified"]:
         return "Background sections are substantially identical. No material changes."
 
-    inserted_text = "\n".join(f"- {s}" for s in diff_result["inserted"]) or "None"
-    deleted_text = "\n".join(f"- {s}" for s in diff_result["deleted"]) or "None"
+    inserted_text = "\n".join(
+        f"- {s}" for s in diff_result["inserted"]) or "None"
+    deleted_text = "\n".join(
+        f"- {s}" for s in diff_result["deleted"]) or "None"
 
     modified_parts = []
     for old_s, new_s in diff_result["modified"]:
         diff_markup = word_level_diff(old_s, new_s)
-        modified_parts.append(f"- OLD: {old_s}\n  NEW: {new_s}\n  DIFF: {diff_markup}")
+        modified_parts.append(
+            f"- OLD: {old_s}\n  NEW: {new_s}\n  DIFF: {diff_markup}")
     modified_text = "\n".join(modified_parts) or "None"
 
     response = client.messages.create(
@@ -576,8 +595,8 @@ def interpret_background_diff(client: Anthropic, diff_result: Dict[str, Any],
 # =============================================================================
 
 def _get_keyword_matched_blocks(doc: CanonicalDocument, category: str,
-                                 exclude_indices: set,
-                                 max_chars: int = 5000) -> str:
+                                exclude_indices: set,
+                                max_chars: int = 5000) -> str:
     """Scan ALL blocks for category-specific keywords, excluding already-included blocks.
 
     This is the belt-and-suspenders layer: catches blocks that both Haiku classification
@@ -605,6 +624,7 @@ def _get_keyword_matched_blocks(doc: CanonicalDocument, category: str,
                 break
 
     return "\n\n".join(matched_texts) if matched_texts else ""
+
 
 _SECTION_TITLE_FILTERS = {
     "dates": [
@@ -680,9 +700,11 @@ def _gather_category_text(doc: CanonicalDocument, category: str, max_chars: int 
     PER_SECTION_CAP = _CATEGORY_SECTION_CAPS.get(category, 10000)
 
     # === LAYER 1: Section-bounded text (deterministic) ===
-    primary_ids = [sid for sid in section_ids if sid not in ("merger_agreement_summary", "summary")]
+    primary_ids = [sid for sid in section_ids if sid not in (
+        "merger_agreement_summary", "summary")]
     sections = get_sections_by_ids(doc, primary_ids)
-    relevant_sections = [s for s in sections if _section_title_relevant(s, category)]
+    relevant_sections = [
+        s for s in sections if _section_title_relevant(s, category)]
 
     for s in relevant_sections:
         remaining = max_chars - total
@@ -709,10 +731,12 @@ def _gather_category_text(doc: CanonicalDocument, category: str, max_chars: int 
             total += section_total
 
     # === LAYER 2: Keyword-matched blocks (deterministic) ===
-    kw_budget = min(max_chars - total, 15000) if total < max_chars - 2000 else 0
+    kw_budget = min(max_chars - total,
+                    15000) if total < max_chars - 2000 else 0
     if kw_budget > 2000:
         exclude_indices = set(used_block_indices)
-        kw_text = _get_keyword_matched_blocks(doc, category, exclude_indices, max_chars=kw_budget)
+        kw_text = _get_keyword_matched_blocks(
+            doc, category, exclude_indices, max_chars=kw_budget)
         if kw_text.strip():
             parts.append(kw_text)
             total += len(kw_text)
@@ -723,7 +747,8 @@ def _gather_category_text(doc: CanonicalDocument, category: str, max_chars: int 
         gathered_so_far = "\n".join(parts)
         _HAS_LARGE_AMT = re.compile(r'\$[\d,]{7,}')
         if not _HAS_LARGE_AMT.search(gathered_so_far):
-            _TERM_FEE_PHRASE = re.compile(r'(?:Company|Parent|Reverse)\s+Termination\s+Fee', re.IGNORECASE)
+            _TERM_FEE_PHRASE = re.compile(
+                r'(?:Company|Parent|Reverse)\s+Termination\s+Fee', re.IGNORECASE)
             candidates = []
             for b in doc.blocks:
                 if b.index in used_block_indices:
@@ -744,16 +769,106 @@ def _gather_category_text(doc: CanonicalDocument, category: str, max_chars: int 
                 total += len(t)
                 used_block_indices.add(idx)
             if amt_total:
-                print(f"    Layer 2.5: added {amt_total:,} chars of fee-amount blocks for {category}")
+                print(
+                    f"    Layer 2.5: added {amt_total:,} chars of fee-amount blocks for {category}")
+
+     # === LAYER 2.6: Targeted outside/termination date scan for closing ===
+    # The outside date (or "Termination Date") is often defined in the termination
+    # article of the merger agreement, which gets tagged as closing but may be too
+    # deep in the text for Layers 1+2 to capture within budget.
+    if category == "closing" and total < max_chars - 2000:
+        gathered_so_far = "\n".join(parts)
+        _OUTSIDE_DATE_BLOCK_RE = re.compile(
+            r'(?:outside\s+date|["\u201c]\s*(?:Termination|End)\s+Date\s*["\u201d])',
+            re.IGNORECASE
+        )
+        # Check if we already have the outside date WITH an actual date value
+        _DATE_VALUE_RE = re.compile(
+            r'(?:January|February|March|April|May|June|July|August|September|October|November|December)'
+            r'\s+\d{1,2},?\s+\d{4}')
+        # Find all outside-date mentions in gathered text and check if any have a date nearby
+        has_date_with_value = False
+        for m in _OUTSIDE_DATE_BLOCK_RE.finditer(gathered_so_far):
+            # Check 300 chars around the match for an actual date
+            context = gathered_so_far[max(0, m.start()-100):m.end()+300]
+            if _DATE_VALUE_RE.search(context):
+                has_date_with_value = True
+                break
+        if not has_date_with_value:
+            candidates = []
+            for b in doc.blocks:
+                if b.index in used_block_indices:
+                    continue
+                t = b.text.strip()
+                if not t or b.type == "heading":
+                    continue
+                # Block must mention the date concept AND contain an actual date
+                if _OUTSIDE_DATE_BLOCK_RE.search(t) and _DATE_VALUE_RE.search(t):
+                    candidates.append((b.index, t))
+            candidates.sort(key=lambda x: len(x[1]))
+            od_budget = min(max_chars - total, 5000)
+            od_total = 0
+            for idx, t in candidates[:3]:  # max 3 blocks
+                if od_total + len(t) > od_budget:
+                    continue
+                parts.append(t)
+                od_total += len(t)
+                total += len(t)
+                used_block_indices.add(idx)
+            if od_total:
+                print(
+                    f"    Layer 2.6: added {od_total:,} chars of outside-date blocks for {category}")
+
+    # === LAYER 2.7: Targeted regulatory approval status scan ===
+    # Regulatory status updates (approvals received/pending/denied) are the most
+    # critical change type. This layer ensures status blocks are always captured,
+    # even if earlier layers filled the budget with boilerplate.
+    if category in ("regulatory", "hsr") and total < max_chars - 2000:
+        _REG_STATUS_RE = re.compile(
+            r'(?:received|obtained|granted|pending|awaiting|cleared|approved|denied)'
+            r'.{0,60}'
+            r'(?:Required\s+Regulatory|regulatory\s+approv|antitrust|clearance)',
+            re.IGNORECASE
+        )
+        _REG_STATUS_RE2 = re.compile(
+            r'(?:Required\s+Regulatory|regulatory\s+approv|antitrust|clearance)'
+            r'.{0,60}'
+            r'(?:received|obtained|granted|pending|awaiting|cleared|approved|other\s+than)',
+            re.IGNORECASE
+        )
+        candidates = []
+        for b in doc.blocks:
+            if b.index in used_block_indices:
+                continue
+            t = b.text.strip()
+            if not t or b.type == "heading":
+                continue
+            if _REG_STATUS_RE.search(t) or _REG_STATUS_RE2.search(t):
+                candidates.append((b.index, t))
+        candidates.sort(key=lambda x: len(x[1]))
+        reg_budget = min(max_chars - total, 8000)
+        reg_total = 0
+        for idx, t in candidates[:5]:
+            if reg_total + len(t) > reg_budget:
+                continue
+            parts.append(t)
+            reg_total += len(t)
+            total += len(t)
+            used_block_indices.add(idx)
+        if reg_total:
+            print(
+                f"    Layer 2.7: added {reg_total:,} chars of regulatory-status blocks for {category}")
 
     # === LAYER 3: Topic-tagged blocks (NON-DETERMINISTIC safety net) ===
-    # Only used when deterministic layers produced < 3K chars
+    # Only used when deterministic layers produced < 3K chars,
+     # OR for regulatory/hsr categories where it always runs.
+    _ALWAYS_LAYER3 = {"regulatory", "hsr"}
     SAFETY_NET_THRESHOLD = 3000
-    if total < SAFETY_NET_THRESHOLD and topics_needed:
+    if (total < SAFETY_NET_THRESHOLD or category in _ALWAYS_LAYER3) and topics_needed:
         haiku_budget = min(max_chars - total, 15000)
         haiku_text = _get_blocks_by_topic(doc, topics_needed,
-                                           max_chars=haiku_budget,
-                                           exclude_indices=used_block_indices)
+                                          max_chars=haiku_budget,
+                                          exclude_indices=used_block_indices)
         if haiku_text.strip():
             parts.append(haiku_text)
             total += len(haiku_text)
@@ -767,7 +882,8 @@ def _parse_comparison_response(raw: str, category: str) -> List[ChangeEvent]:
 
     # Strategy 1: Extract JSON from markdown fences -- use LAST block (LLM sometimes
     # self-corrects mid-response, so the final block is the most accurate)
-    fence_matches = list(re.finditer(r'```(?:json)?\s*(\[.*?\])\s*```', text, re.DOTALL))
+    fence_matches = list(re.finditer(
+        r'```(?:json)?\s*(\[.*?\])\s*```', text, re.DOTALL))
     if fence_matches:
         for fm in reversed(fence_matches):
             try:
@@ -879,12 +995,13 @@ Reply with ONLY "yes" or "no"."""
         answer = response.content[0].text.strip().lower()
         return "yes" in answer
     except Exception as e:
-        print(f"    Haiku pre-check ({category}): failed ({e}) — assuming changes exist")
+        print(
+            f"    Haiku pre-check ({category}): failed ({e}) — assuming changes exist")
         return True  # fail open
 
 
 def _suppress_false_new_events(events: List[ChangeEvent],
-                                base_summary_dict: dict) -> List[ChangeEvent]:
+                               base_summary_dict: dict) -> List[ChangeEvent]:
     """Post-validation: suppress [NEW] events whose key values already appear in the base summary."""
     if not base_summary_dict:
         return events
@@ -892,7 +1009,7 @@ def _suppress_false_new_events(events: List[ChangeEvent],
     full_summary = " ".join(v for v in base_summary_dict.values() if v)
 
     _DATE_PAT = re.compile(r'(?:January|February|March|April|May|June|July|August|'
-                            r'September|October|November|December)\s+\d{1,2},?\s+\d{4}')
+                           r'September|October|November|December)\s+\d{1,2},?\s+\d{4}')
     _DOLLAR_PAT = re.compile(r'\$[\d,.]+(?:\s*(?:billion|million))?')
     _PCT_PAT = re.compile(r'\d+(?:\.\d+)?%')
     _BIG_NUM_PAT = re.compile(r'(?<!\$)\b\d{1,3}(?:,\d{3})+\b')
@@ -910,14 +1027,16 @@ def _suppress_false_new_events(events: List[ChangeEvent],
             kept.append(event)
             continue
 
-        event_text = " ".join(filter(None, [event.field, event.new_value, event.summary]))
+        event_text = " ".join(
+            filter(None, [event.field, event.new_value, event.summary]))
         event_vals = _extract_values(event_text)
 
         if not event_vals:
             kept.append(event)
             continue
 
-        date_vals = {d.strip().rstrip(",") for d in _DATE_PAT.findall(event_text)}
+        date_vals = {d.strip().rstrip(",")
+                     for d in _DATE_PAT.findall(event_text)}
         non_date_vals = event_vals - date_vals
 
         found_specific = False
@@ -948,10 +1067,10 @@ def _suppress_false_new_events(events: List[ChangeEvent],
 
 
 def _compare_category_direct(client: Anthropic, category: str,
-                              old_doc: CanonicalDocument, new_doc: CanonicalDocument,
-                              old_label: str, new_label: str,
-                              diag_path: str = None,
-                              base_summary_section: str = "") -> List[ChangeEvent]:
+                             old_doc: CanonicalDocument, new_doc: CanonicalDocument,
+                             old_label: str, new_label: str,
+                             diag_path: str = None,
+                             base_summary_section: str = "") -> List[ChangeEvent]:
     """Compare both filings' sections for a category in one LLM call.
 
     This is the 10K/10Q approach: send both texts to one call, ask what changed.
@@ -966,7 +1085,8 @@ def _compare_category_direct(client: Anthropic, category: str,
     new_text = _gather_category_text(new_doc, category)
 
     if not old_text.strip() and not new_text.strip():
-        print(f"    Compare ({category}): no text in either filing -- skipping")
+        print(
+            f"    Compare ({category}): no text in either filing -- skipping")
         return []
 
     if not old_text.strip():
@@ -974,7 +1094,8 @@ def _compare_category_direct(client: Anthropic, category: str,
     if not new_text.strip():
         new_text = "[Section not found in this filing]"
 
-    print(f"    Compare ({category}): old={len(old_text):,} chars, new={len(new_text):,} chars")
+    print(
+        f"    Compare ({category}): old={len(old_text):,} chars, new={len(new_text):,} chars")
 
     # Haiku pre-check: skip expensive Sonnet call if no material differences.
     # Skip when one side is missing (guaranteed new/removed content).
@@ -986,10 +1107,12 @@ def _compare_category_direct(client: Anthropic, category: str,
     if (same_form_family and old_text.strip() and new_text.strip()
             and "[Section not found" not in old_text and "[Section not found" not in new_text):
         if not _haiku_has_changes(client, category, old_text, new_text, old_label, new_label):
-            print(f"    Compare ({category}): Haiku says no changes — skipping Sonnet call")
+            print(
+                f"    Compare ({category}): Haiku says no changes — skipping Sonnet call")
             return []
     elif not same_form_family:
-        print(f"    Compare ({category}): cross-form ({old_doc.form_type}→{new_doc.form_type}) — skipping Haiku pre-check")
+        print(
+            f"    Compare ({category}): cross-form ({old_doc.form_type}→{new_doc.form_type}) — skipping Haiku pre-check")
 
     prompt = prompt_template.format(
         old_label=old_label,
@@ -1025,7 +1148,8 @@ def _compare_category_direct(client: Anthropic, category: str,
         if diag_path:
             with open(diag_path, "a") as df:
                 df.write(f"\n{'='*60}\n")
-                df.write(f"CATEGORY: {category} | old={len(old_text):,} chars, new={len(new_text):,} chars\n")
+                df.write(
+                    f"CATEGORY: {category} | old={len(old_text):,} chars, new={len(new_text):,} chars\n")
                 df.write(f"RAW RESPONSE:\n{answer}\n")
 
         events = _parse_comparison_response(answer, category)
@@ -1033,8 +1157,10 @@ def _compare_category_direct(client: Anthropic, category: str,
         if events:
             for i, e in enumerate(events[:3]):
                 field_preview = (e.field or "")[:50]
-                val_preview = (e.new_value or e.old_value or e.summary or "")[:60]
-                print(f"      [{i}] {e.change_type}: {field_preview} = {val_preview}")
+                val_preview = (
+                    e.new_value or e.old_value or e.summary or "")[:60]
+                print(
+                    f"      [{i}] {e.change_type}: {field_preview} = {val_preview}")
             if len(events) > 3:
                 print(f"      ... and {len(events) - 3} more")
         return events
@@ -1042,10 +1168,11 @@ def _compare_category_direct(client: Anthropic, category: str,
         print(f"    Compare ({category}): LLM call failed: {e}")
         return []
 
+
 def _compare_other_material(client: Anthropic,
-                             old_doc: CanonicalDocument,
-                             new_doc: CanonicalDocument,
-                             old_label: str, new_label: str) -> List[ChangeEvent]:
+                            old_doc: CanonicalDocument,
+                            new_doc: CanonicalDocument,
+                            old_label: str, new_label: str) -> List[ChangeEvent]:
     """Side-by-side comparison of 'general' blocks for material new disclosures.
 
     Same approach as structured categories: send old and new text to the LLM
@@ -1062,8 +1189,10 @@ def _compare_other_material(client: Anthropic,
             return False
         return b.topic == "general" or b.topic not in _STRUCTURED_TOPICS
 
-    old_general = [b.text.strip() for b in old_doc.blocks if _is_other_block(b)]
-    new_general = [b.text.strip() for b in new_doc.blocks if _is_other_block(b)]
+    old_general = [b.text.strip()
+                   for b in old_doc.blocks if _is_other_block(b)]
+    new_general = [b.text.strip()
+                   for b in new_doc.blocks if _is_other_block(b)]
 
     if not new_general:
         print(f"    Compare (other_material): no general blocks in new filing — skipping")
@@ -1134,17 +1263,21 @@ Return a JSON array. If nothing meets ALL THREE criteria, return: []"""
         )
         answer = response.content[0].text.strip()
 
-        diag_path = os.path.join(OUTPUT_FOLDER, "compare_diagnostic_latest.txt")
+        diag_path = os.path.join(
+            OUTPUT_FOLDER, "compare_diagnostic_latest.txt")
         with open(diag_path, "a") as df:
             df.write(f"\n{'='*60}\n")
-            df.write(f"CATEGORY: other_material | old={old_chars:,}, new={new_chars:,} chars\n")
+            df.write(
+                f"CATEGORY: other_material | old={old_chars:,}, new={new_chars:,} chars\n")
             df.write(f"RAW RESPONSE:\n{answer}\n")
 
         events = _parse_comparison_response(answer, "other_material")
-        print(f"    Compare (other_material): {len(events)} material items flagged")
+        print(
+            f"    Compare (other_material): {len(events)} material items flagged")
         if events:
             for i, e in enumerate(events[:3]):
-                print(f"      [{i}] {e.change_type}: {(e.field or '')[:50]} = {(e.new_value or e.summary or '')[:60]}")
+                print(
+                    f"      [{i}] {e.change_type}: {(e.field or '')[:50]} = {(e.new_value or e.summary or '')[:60]}")
             if len(events) > 3:
                 print(f"      ... and {len(events) - 3} more")
         return events
@@ -1153,12 +1286,9 @@ Return a JSON array. If nothing meets ALL THREE criteria, return: []"""
         return []
 
 
-
-
 # =============================================================================
 # 4.6: Full Pairwise Diff
 # =============================================================================
-
 # Background section detection patterns (promoted to module level)
 _BG_START_PATTERNS = [
     re.compile(r"^Background of the Mergers?$", re.IGNORECASE),
@@ -1170,10 +1300,13 @@ _BG_START_PATTERNS = [
 ]
 
 _BG_INLINE_PATTERNS = [
-    re.compile(r"(?:^|\n)\s*Background of the Mergers?\s*(?:\n|$)", re.IGNORECASE),
-    re.compile(r"(?:^|\n)\s*Background of the Transactions?\s*(?:\n|$)", re.IGNORECASE),
+    re.compile(r"(?:^|\n)\s*Background of the Mergers?\s*(?:\n|$)",
+               re.IGNORECASE),
+    re.compile(
+        r"(?:^|\n)\s*Background of the Transactions?\s*(?:\n|$)", re.IGNORECASE),
     re.compile(r"(?:^|\n)\s*Background of the Offers?\s*(?:\n|$)", re.IGNORECASE),
-    re.compile(r"(?:^|\n)\s*Background of the Acquisitions?\s*(?:\n|$)", re.IGNORECASE),
+    re.compile(
+        r"(?:^|\n)\s*Background of the Acquisitions?\s*(?:\n|$)", re.IGNORECASE),
 ]
 
 _BG_END_PATTERNS = [
@@ -1196,7 +1329,7 @@ _BG_END_PATTERNS = [
 
 
 def _extract_bg_deterministic(doc: CanonicalDocument, label: str,
-                               bg_log=None) -> Optional[CanonicalSection]:
+                              bg_log=None) -> Optional[CanonicalSection]:
     """Find the Background section using deterministic text matching.
 
     No LLM calls -- uses regex patterns to identify start and end
@@ -1250,7 +1383,8 @@ def _extract_bg_deterministic(doc: CanonicalDocument, label: str,
                 bg_start = i
                 method = f"anchor: \"{text}\""
                 break
-            m = re.match(r"^(?:Anchor\s+)?Background of the Mergers?\s+(?:The |In |On |During )", text, re.IGNORECASE)
+            m = re.match(
+                r"^(?:Anchor\s+)?Background of the Mergers?\s+(?:The |In |On |During )", text, re.IGNORECASE)
             if m:
                 bg_start = i
                 method = f"anchor_with_text: \"{text[:80]}\""
@@ -1303,7 +1437,8 @@ def _extract_bg_deterministic(doc: CanonicalDocument, label: str,
     )
 
     log(f"    Background ({label}): blocks [{bg_start}:{bg_end}] = {len(content_blocks)} content blocks, {len(bg_text):,} chars")
-    first_text = content_blocks[0].text.strip()[:100] if content_blocks else "N/A"
+    first_text = content_blocks[0].text.strip(
+    )[:100] if content_blocks else "N/A"
     last_text = content_blocks[-1].text.strip()[:100] if content_blocks else "N/A"
     log(f"    Background ({label}): FIRST: \"{first_text}...\"")
     log(f"    Background ({label}): LAST:  \"{last_text}...\"")
@@ -1324,12 +1459,12 @@ def route_tier(event: ChangeEvent) -> int:
 
 
 def compute_pairwise_diff(client: Anthropic,
-                           old_doc: CanonicalDocument,
-                           new_doc: CanonicalDocument,
-                           deal_output_dir: str = None,
-                           filing_id: str = None,
-                           base_summary_text: str = "",
-                           category_filter: List[str] = None) -> List[ChangeEvent]:
+                          old_doc: CanonicalDocument,
+                          new_doc: CanonicalDocument,
+                          deal_output_dir: str = None,
+                          filing_id: str = None,
+                          base_summary_text: str = "",
+                          category_filter: List[str] = None) -> List[ChangeEvent]:
     """Compute all change events between two filings.
 
     Uses direct comparison (10K/10Q approach): send both filings' relevant
@@ -1359,10 +1494,13 @@ def compute_pairwise_diff(client: Anthropic,
 
     # Determine diagnostic file paths
     if deal_output_dir and filing_id:
-        diag_path = os.path.join(deal_output_dir, f"{filing_id}_compare_diagnostic.txt")
-        bg_diag_path = os.path.join(deal_output_dir, f"{filing_id}_bg_diagnostic.txt")
+        diag_path = os.path.join(
+            deal_output_dir, f"{filing_id}_compare_diagnostic.txt")
+        bg_diag_path = os.path.join(
+            deal_output_dir, f"{filing_id}_bg_diagnostic.txt")
     else:
-        diag_path = os.path.join(OUTPUT_FOLDER, "compare_diagnostic_latest.txt")
+        diag_path = os.path.join(
+            OUTPUT_FOLDER, "compare_diagnostic_latest.txt")
         bg_diag_path = os.path.join(OUTPUT_FOLDER, "bg_diagnostic_latest.txt")
 
     # Clear comparison diagnostic file for this run
@@ -1374,25 +1512,29 @@ def compute_pairwise_diff(client: Anthropic,
         "dates", "consideration", "financing", "sh_votes",
         "hsr", "regulatory", "conditions", "closing", "termination",
     ]
-    comparison_categories = [c for c in all_categories if c in category_filter] if category_filter else all_categories
+    comparison_categories = [
+        c for c in all_categories if c in category_filter] if category_filter else all_categories
     if category_filter:
         print(f"    Category filter: {comparison_categories}")
 
     for cat in comparison_categories:
         cat_summary = base_summary_dict.get(cat, "")
         cat_events = _compare_category_direct(client, cat, old_doc, new_doc,
-                                               old_label, new_label,
-                                               diag_path=diag_path,
-                                               base_summary_section=cat_summary)
+                                              old_label, new_label,
+                                              diag_path=diag_path,
+                                              base_summary_section=cat_summary)
         events.extend(cat_events)
 
     # Post-validate: suppress false [NEW] events using base summary
     if base_summary_dict:
-        pre_count = len([e for e in events if e.change_type == "newly_disclosed"])
+        pre_count = len(
+            [e for e in events if e.change_type == "newly_disclosed"])
         events = _suppress_false_new_events(events, base_summary_dict)
-        post_count = len([e for e in events if e.change_type == "newly_disclosed"])
+        post_count = len(
+            [e for e in events if e.change_type == "newly_disclosed"])
         if pre_count != post_count:
-            print(f"    Post-validation: {pre_count - post_count} false [NEW] suppressed")
+            print(
+                f"    Post-validation: {pre_count - post_count} false [NEW] suppressed")
 
     # Cross-category dedup: remove events with identical (old_value, new_value) across categories
     _CATEGORY_PRIORITY = {
@@ -1420,14 +1562,17 @@ def compute_pairwise_diff(client: Anthropic,
     if dedup_remove:
         removed_cats = [events[i].category for i in dedup_remove]
         events = [e for i, e in enumerate(events) if i not in dedup_remove]
-        print(f"    Cross-category dedup: removed {len(dedup_remove)} duplicate(s) from {removed_cats}")
+        print(
+            f"    Cross-category dedup: removed {len(dedup_remove)} duplicate(s) from {removed_cats}")
 
-    print(f"    Direct comparison: {len(events)} changes across {len(comparison_categories)} categories")
+    print(
+        f"    Direct comparison: {len(events)} changes across {len(comparison_categories)} categories")
     print(f"    Raw LLM responses saved to: {diag_path}")
 
     # 4.1b: Other material changes (catch-all for deal-specific material items in general blocks)
     if not category_filter or "other_material" in category_filter:
-        other_events = _compare_other_material(client, old_doc, new_doc, old_label, new_label)
+        other_events = _compare_other_material(
+            client, old_doc, new_doc, old_label, new_label)
         events.extend(other_events)
 
     # 4.2: Background diff (deterministic — no LLM cost)
@@ -1445,7 +1590,8 @@ def compute_pairwise_diff(client: Anthropic,
     old_bg = _extract_bg_deterministic(old_doc, "old", bg_log=_bg_log)
     new_bg = _extract_bg_deterministic(new_doc, "new", bg_log=_bg_log)
     if old_bg or new_bg:
-        bg_result = diff_background_structural(old_bg, new_bg, old_label, new_label)
+        bg_result = diff_background_structural(
+            old_bg, new_bg, old_label, new_label)
 
         # Capture comparison diagnostics
         if "_diag" in bg_result:
