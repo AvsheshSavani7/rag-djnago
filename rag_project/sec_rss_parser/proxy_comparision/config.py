@@ -426,11 +426,17 @@ EARLIER FILING ({old_label}):
 LATER FILING ({new_label}):
 {new_text}
 
-SCOPE: expected closing timeline (e.g., "second half of 2026"), outside date (initial and any extensions), and any changes to the expected timing or gating items. Do NOT report: record dates or meeting dates (belongs in Dates section), HSR/antitrust waiting period status, expiration, or early termination (belongs in HSR section), specific closing conditions being satisfied or outstanding (belongs in Conditions section), termination fees (belongs in Termination), or regulatory approval status (belongs in OTHER REGULATORY).
+SCOPE: Management's expected closing timeline — language like "expect to complete," "expect to close,"
+"anticipated to close," "closing is expected in [timeframe]." This is closing GUIDANCE, not the
+contractual outside date. Also flag changes to gating items or reasons for updated timing.
+Do NOT report: the contractual outside/termination date (that is a backstop, not guidance),
+record dates or meeting dates (belongs in Dates section), HSR/antitrust status (belongs in HSR section),
+specific closing conditions (belongs in Conditions section), termination fees (belongs in Termination),
+or regulatory approval status (belongs in OTHER REGULATORY).
 """ + _COMPARISON_RULES + """
 Format:
 - New: {{"field": "short name", "type": "new", "value": "concise description"}}
-- Changed: {{"field": "short name", "type": "changed", "was": "old timing", "now": "new timing"}}""",
+- Changed: {{"field": "short name", "type": "changed", "was": "old guidance", "now": "new guidance"}}""",
 
     "termination": """\
 Compare these two SEC merger filing sections for TERMINATION PROVISIONS only.
@@ -512,7 +518,7 @@ SECTION_CONFIGS = [
     {"key": "other_regulatory", "topics": [
         "regulatory", "hsr", "closing"], "model": "standard", "max_chars": 30000, "thinking": False},
     {"key": "closing",         "topics": [
-        "closing", "termination"],                   "model": "standard", "max_chars": 20000, "thinking": False},
+        "closing", "termination", "dates"],                   "model": "standard", "max_chars": 20000, "thinking": False},
     {"key": "conditions",      "topics": [
         "closing", "regulatory"],     "model": "standard", "max_chars": 20000, "thinking": False},
     {"key": "termination",     "topics": [
@@ -607,11 +613,20 @@ Output as bullets, one per agency or approval category:
 
 Include ALL: state regulators, CFIUS, foreign antitrust, money transmitter/financial licensing (state licenses, Bank of Spain, UK FCA, etc.).
 Do NOT include HSR/Hart-Scott-Rodino -- covered separately.
-Use near-verbatim filing language. If no other regulatory approvals are required, write "N/A".""",
+Use near-verbatim filing language.
+
+IMPORTANT: If the filing explicitly states that no regulatory approvals are required or that the merger
+is not conditioned on regulatory approvals, state that clearly (e.g., "The merger is not conditioned on
+any regulatory approvals" or "No non-HSR regulatory approvals are required"). This is meaningful
+information — do not simply write "N/A".""",
 
     "closing": """\
-Extract closing timeline information from this merger filing text.
+Extract MANAGEMENT CLOSING GUIDANCE  from this merger filing text.
 Write in plain text, no markdown. Be concise -- 2-3 sentences.
+
+PRIORITY: The most important item is management's expected closing timeline — language like
+"expect to complete," "expect to close," "anticipated to close," "expected to be consummated,"
+"closing is expected in [timeframe]." This is the closing GUIDANCE, not the contractual outside date.
 
 EXTRACTED FACTS (structural context only):
 {facts_json}
@@ -619,8 +634,11 @@ EXTRACTED FACTS (structural context only):
 FILING TEXT:
 {section_text}
 
-Output: expected closing timing, outside date if known, and brief caveat.
-Use exact dates and filing language.""",
+Output format:
+1. Management closing guidance (e.g., "The company expects to complete the merger in Q3 2026") — use exact filing language
+2. Key gating items if mentioned (e.g., "subject to stockholder approval and regulatory clearance")
+Do NOT lead with or emphasize the contractual outside date — that is a backstop, not guidance.
+If no management closing guidance is found, state "No management closing guidance provided." """,
 
     "conditions": """\
 Extract conditions to closing from this merger filing text.
@@ -656,7 +674,7 @@ SECTION_ORDER = ["dates", "consideration", "financing", "sh_approval",
 SECTION_HEADERS = {
     "dates": "DATES", "consideration": "CONSIDERATION", "financing": "FINANCING",
     "sh_approval": "SH APPROVAL", "hsr": "HSR", "other_regulatory": "OTHER REGULATORY",
-    "closing": "CLOSING", "conditions": "CONDITIONS",
+    "closing": "CLOSING GUIDANCE", "conditions": "CONDITIONS",
     "termination": "TERMINATION & FEES",
 }
 

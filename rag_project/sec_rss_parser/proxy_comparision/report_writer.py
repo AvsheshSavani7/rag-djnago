@@ -108,6 +108,38 @@ def _generate_section(client: Anthropic, config: dict, doc: CanonicalDocument,
                 section_text = section_text + \
                     "\n\n---\n\n" + "\n\n".join(extra)
 
+    # Closing guidance supplement: scan all blocks for management timing language
+    # (often in Q&A or summary sections tagged vote_info/general, not closing)
+    if config["key"] == "closing":
+        _GUIDANCE_RE = re.compile(
+            r'(?:expect(?:s|ed)?\s+to\s+(?:complete|close|consummate)'
+            r'|anticipate[ds]?\s+(?:closing|to\s+close|to\s+complete)'
+            r'|closing\s+is\s+(?:expected|anticipated))',
+            re.IGNORECASE
+        )
+        if not _GUIDANCE_RE.search(section_text):
+            guidance_blocks = []
+            for b in doc.blocks:
+                t = b.text.strip()
+                if not t or b.type == "heading":
+                    continue
+                if _GUIDANCE_RE.search(t):
+                    guidance_blocks.append(t)
+            if guidance_blocks:
+                guidance_blocks.sort(key=len)
+                extra = []
+                extra_total = 0
+                for t in guidance_blocks[:3]:
+                    if extra_total + len(t) > 5000:
+                        continue
+                    extra.append(t)
+                    extra_total += len(t)
+                if extra:
+                    print(
+                        f"      closing guidance scan: added {extra_total:,} chars from {len(extra)} blocks")
+                    section_text = section_text + \
+                        "\n\n---\n\n" + "\n\n".join(extra)
+
     # Clean source text for reference output (strip topic/section tags)
     source_clean = re.sub(
         r'^\[(?:Topic|Section): [^\]]+\]\n?', '', section_text, flags=re.MULTILINE)
@@ -275,7 +307,7 @@ _SUMMARY_HEADER_TO_CATEGORY = {
     "OTHER REGULATORY": "regulatory",
     "CONDITIONS": "conditions",
     "CONDITIONS TO CLOSING": "conditions",
-    "CLOSING": "closing",
+    "CLOSING GUIDANCE": "closing",
     "TERMINATION & FEES": "termination",
     "TERMINATION": "termination",
 }
@@ -521,7 +553,7 @@ def generate_change_report(client: Anthropic, events: List[ChangeEvent],
     _add_section("CONDITIONS", "conditions",
                  [e for e in events if e.category == "conditions"])
 
-    _add_section("CLOSING", "closing",
+    _add_section("CLOSING GUIDANCE", "closing",
                  [e for e in events if e.category == "closing"])
 
     _add_section("TERMINATION & FEES", "termination",
