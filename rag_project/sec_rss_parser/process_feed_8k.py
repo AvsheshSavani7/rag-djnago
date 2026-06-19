@@ -1644,6 +1644,8 @@ class EightKFeedProcessor:
                 matched_cik_label=matched_cik_label,
                 target_ticker=deal_tickers.get('target_ticker'),
                 target_name=deal_tickers.get('target_name'),
+                acquirer_ticker=deal_tickers.get('acquirer_ticker'),
+                acquirer_name=deal_tickers.get('acquirer_name'),
 
             )
 
@@ -1713,6 +1715,8 @@ class EightKFeedProcessor:
                 matched_cik_label=matched_cik_label,
                 target_ticker=deal_tickers.get('target_ticker'),
                 target_name=deal_tickers.get('target_name'),
+                acquirer_ticker=deal_tickers.get('acquirer_ticker'),
+                acquirer_name=deal_tickers.get('acquirer_name'),
             )
 
             payload = {

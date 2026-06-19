@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import List, Optional
 
 from sec_rss_parser.utils_10k_10q import N8N_WEBHOOK_URL_10K_10Q
-from sec_rss_parser.utils_8k import send_webhook_notification
+from sec_rss_parser.utils_8k import send_webhook_notification, get_deal_tickers
 from sec_rss_parser.email_service.email_dispatch_service import send_report_email
 from sec_rss_parser.email_templates import generate_10k_10q_comparison_summary_email_html
 from .s3_utils import upload_file, upload_json
@@ -455,10 +455,9 @@ def run_pipeline(
         print(f"\n  Comparison: {len(merged)} changes ({sig} significant)")
 
         filer_ticker = _resolve_filer_ticker(urls, deal_id)
-        target_ticker, target_name = _get_deal_target_for_email_subject(
-            deal_id)
-        matched_cik_label = _resolve_filer_matched_cik_label(urls, deal_id)
         filer_cik = _extract_filer_cik_from_urls(urls)
+        deal_tickers = get_deal_tickers(deal_id, filer_cik)
+        matched_cik_label = _resolve_filer_matched_cik_label(urls, deal_id)
         comparison_form_type = newest_record.get("filing_type")
 
         try:
@@ -472,8 +471,10 @@ def run_pipeline(
                 exec_summary_bullets=exec_bullets,
                 filings=filings,
                 filer_ticker=filer_ticker,
-                target_ticker=target_ticker,
-                target_name=target_name,
+                target_ticker=deal_tickers.get("target_ticker"),
+                target_name=deal_tickers.get("target_name"),
+                acquirer_ticker=deal_tickers.get("acquirer_ticker"),
+                acquirer_name=deal_tickers.get("acquirer_name"),
                 matched_cik_label=matched_cik_label,
                 cik_number=filer_cik,
                 comparison_form_type=comparison_form_type,

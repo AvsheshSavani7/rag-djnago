@@ -273,8 +273,8 @@ def send_webhook_notification(webhook_url, payload, notification_type="notificat
 # Below fucntion is still use in new fetch form by cik flow
 
 
-def send_summary_email_via_webhook(summary_doc_url, company_name, form_type, cik_number, sec_url, accession_number, summary_kind: str, l1_headline: str = None, l2_brief: str = None, l3_detailed: str = None, ticker: str = None, filing_date=None, matched_cik_label: str = None, form_affects_deal: bool = None, target_ticker: str = None, target_name: str = None):
-    """Generate 8-K/EX-99.1 summary email HTML and send via N8N webhook. Subject uses deal target_ticker/target_name; matched_cik_label is '(target)' or '(acquirer)' for Parent/Target Form in subject."""
+def send_summary_email_via_webhook(summary_doc_url, company_name, form_type, cik_number, sec_url, accession_number, summary_kind: str, l1_headline: str = None, l2_brief: str = None, l3_detailed: str = None, ticker: str = None, filing_date=None, matched_cik_label: str = None, form_affects_deal: bool = None, target_ticker: str = None, target_name: str = None, acquirer_ticker: str = None, acquirer_name: str = None):
+    """Generate 8-K/EX-99.1 summary email HTML and send via N8N webhook. Subject uses deal target[/acquirer]; matched_cik_label is '(target)' or '(acquirer)' for Parent/Target Form in subject."""
     try:
         subject, html_email = generate_8k_99_1_summary_email_html(
             company_name=company_name,
@@ -293,6 +293,8 @@ def send_summary_email_via_webhook(summary_doc_url, company_name, form_type, cik
             form_affects_deal=form_affects_deal,
             target_ticker=target_ticker,
             target_name=target_name,
+            acquirer_ticker=acquirer_ticker,
+            acquirer_name=acquirer_name,
         )
         payload = {
             "subject": subject,
@@ -396,6 +398,8 @@ def send_8k_summary_email(deal_id, company_name, form_type, cik_number, sec_url,
             concise_sections=concise_sections,
             target_ticker=deal_tickers.get("target_ticker"),
             target_name=deal_tickers.get("target_name"),
+            acquirer_ticker=deal_tickers.get("acquirer_ticker"),
+            acquirer_name=deal_tickers.get("acquirer_name"),
             matched_cik_label=matched_cik_label,
         )
         log_and_print(f"Generated email subject: {subject}")
@@ -2690,6 +2694,23 @@ class SECFeedProcessor:
                     deal_id_str = str(
                         matched_deal.id) if matched_deal else None
 
+                    cik_number = item_data.get('cik_number') or ''
+                    deal_tickers = get_deal_tickers(deal_id_str, cik_number)
+                    matched_cik_label = None
+                    email_company_name = item_data.get('company_name') or ''
+                    if matched_deal and cik_number:
+                        cik_n = normalize_cik(cik_number)
+                        if normalize_cik(matched_deal.acquirer_cik) == cik_n:
+                            matched_cik_label = "(acquirer)"
+                            email_company_name = (
+                                matched_deal.acquire_name or email_company_name
+                            )
+                        elif normalize_cik(matched_deal.cik) == cik_n:
+                            matched_cik_label = "(target)"
+                            email_company_name = (
+                                matched_deal.target_name or email_company_name
+                            )
+
                     xbrl_files = item_data.get('xbrl_files', [])
                     output_dir = tempfile.mkdtemp()
 
@@ -2741,17 +2762,24 @@ class SECFeedProcessor:
                                         try:
                                             send_summary_email_via_webhook(
                                                 summary_doc_url=doc_8k.s3_docx_url,
-                                                company_name=item_data.get(
-                                                    'company_name') or '',
+                                                company_name=email_company_name,
                                                 form_type='8-K',
-                                                cik_number=item_data.get(
-                                                    'cik_number') or '',
+                                                cik_number=cik_number,
                                                 sec_url=item_data.get(
                                                     'link') or url_8k,
                                                 accession_number=accession_number,
                                                 summary_kind='8-K',
                                                 l1_headline=result_8k.get(
                                                     'L1_headline'),
+                                                matched_cik_label=matched_cik_label,
+                                                target_ticker=deal_tickers.get(
+                                                    "target_ticker"),
+                                                target_name=deal_tickers.get(
+                                                    "target_name"),
+                                                acquirer_ticker=deal_tickers.get(
+                                                    "acquirer_ticker"),
+                                                acquirer_name=deal_tickers.get(
+                                                    "acquirer_name"),
                                             )
                                             log_and_print(
                                                 f"📧 8-K summary email sent via webhook (docx link included)")
@@ -2808,17 +2836,24 @@ class SECFeedProcessor:
                                         try:
                                             send_summary_email_via_webhook(
                                                 summary_doc_url=doc_99.s3_docx_url,
-                                                company_name=item_data.get(
-                                                    'company_name') or '',
+                                                company_name=email_company_name,
                                                 form_type='8-K (EX-99.1)',
-                                                cik_number=item_data.get(
-                                                    'cik_number') or '',
+                                                cik_number=cik_number,
                                                 sec_url=item_data.get(
                                                     'link') or url_ex99,
                                                 accession_number=accession_number,
                                                 summary_kind='EX-99.1',
                                                 l1_headline=result_99.get(
                                                     'L1_headline'),
+                                                matched_cik_label=matched_cik_label,
+                                                target_ticker=deal_tickers.get(
+                                                    "target_ticker"),
+                                                target_name=deal_tickers.get(
+                                                    "target_name"),
+                                                acquirer_ticker=deal_tickers.get(
+                                                    "acquirer_ticker"),
+                                                acquirer_name=deal_tickers.get(
+                                                    "acquirer_name"),
                                             )
                                             log_and_print(
                                                 f"📧 EX-99.1 summary email sent via webhook (docx link included)")

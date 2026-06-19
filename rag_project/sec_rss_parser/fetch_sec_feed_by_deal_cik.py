@@ -704,6 +704,8 @@ def _send_proxy_comparison_email(
             tier2_changes=result_from_orchestrator.get("tier2_changes"),
             target_ticker=deal_tickers.get("target_ticker"),
             target_name=deal_tickers.get("target_name"),
+            acquirer_ticker=deal_tickers.get("acquirer_ticker"),
+            acquirer_name=deal_tickers.get("acquirer_name"),
             matched_cik_label=matched_cik_label,
         )
         payload = {
@@ -1363,6 +1365,8 @@ def _route_summarize_and_save(item_data, html_data):
                     form_affects_deal=form_affects_deal,
                     target_ticker=deal_tickers.get("target_ticker"),
                     target_name=deal_tickers.get("target_name"),
+                    acquirer_ticker=deal_tickers.get("acquirer_ticker"),
+                    acquirer_name=deal_tickers.get("acquirer_name"),
                 )
                 log_and_print(
                     f"{LOG_PREFIX} :_route_summarize_and_save: ✅ Summary email sent for {summary_kind}")

@@ -797,6 +797,8 @@ def generate_summary_email_html(
     chronological_summary_only: bool = False,
     target_ticker: str = None,
     target_name: str = None,
+    acquirer_ticker: str = None,
+    acquirer_name: str = None,
     matched_cik_label: str = None,
 ) -> tuple:
     """
@@ -822,6 +824,8 @@ def generate_summary_email_html(
     subject = _build_proxy_background_summary_email_subject(
         target_ticker=target_ticker,
         target_name=target_name,
+        acquirer_ticker=acquirer_ticker,
+        acquirer_name=acquirer_name,
         matched_cik_label=matched_cik_label,
         cik_number=cik_number,
         form_type=form_type,
@@ -984,6 +988,8 @@ def send_summary_email_notification_v2(filing_summary):
             chronological_summary_only=chronological_summary_only,
             target_ticker=deal_tickers.get("target_ticker"),
             target_name=deal_tickers.get("target_name"),
+            acquirer_ticker=deal_tickers.get("acquirer_ticker"),
+            acquirer_name=deal_tickers.get("acquirer_name"),
             matched_cik_label=matched_cik_label,
         )
         logger.info(f"Generated email subject: {subject}")

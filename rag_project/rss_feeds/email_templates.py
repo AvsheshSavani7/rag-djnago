@@ -28,20 +28,26 @@ FEED_TITLE_DISPLAY_NAME_2 = {
 
 def _rss_deal_subject_label(deal_info: Optional[Dict[str, Any]]) -> str:
     """Deal label for RSS subject prefix: target/acquirer when acquirer known, else target only."""
+    _placeholders = frozenset({"—", "N/A", "n/a"})
+
+    def _clean(value) -> str:
+        if value is None:
+            return ""
+        s = str(value).strip()
+        return "" if not s or s in _placeholders else s
+
     if not deal_info:
         return "Unknown"
 
-    target = (deal_info.get("target_ticker") or "").strip()
+    target = _clean(deal_info.get("target_ticker"))
     if not target:
-        target = (deal_info.get("target_name") or "").strip()
+        target = _clean(deal_info.get("target_name"))
     if not target:
         target = "Unknown"
 
-    acquirer = (deal_info.get("acquirer_ticker") or "").strip()
+    acquirer = _clean(deal_info.get("acquirer_ticker"))
     if not acquirer:
-        name = (deal_info.get("acquire_name") or "").strip()
-        if name and name != "—":
-            acquirer = name
+        acquirer = _clean(deal_info.get("acquire_name"))
 
     return f"{target}/{acquirer}" if acquirer else target
 
