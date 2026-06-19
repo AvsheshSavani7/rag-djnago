@@ -27,14 +27,23 @@ FEED_TITLE_DISPLAY_NAME_2 = {
 
 
 def _rss_deal_subject_label(deal_info: Optional[Dict[str, Any]]) -> str:
-    """Deal target ticker for RSS subject prefix; fallback to target_name or Unknown."""
+    """Deal label for RSS subject prefix: target/acquirer when acquirer known, else target only."""
     if not deal_info:
         return "Unknown"
-    ticker = (deal_info.get("target_ticker") or "").strip()
-    if ticker:
-        return ticker
-    name = (deal_info.get("target_name") or "").strip()
-    return name or "Unknown"
+
+    target = (deal_info.get("target_ticker") or "").strip()
+    if not target:
+        target = (deal_info.get("target_name") or "").strip()
+    if not target:
+        target = "Unknown"
+
+    acquirer = (deal_info.get("acquirer_ticker") or "").strip()
+    if not acquirer:
+        name = (deal_info.get("acquire_name") or "").strip()
+        if name and name != "—":
+            acquirer = name
+
+    return f"{target}/{acquirer}" if acquirer else target
 
 
 def rss_subject_uses_client_webhook(subject: str) -> bool:
