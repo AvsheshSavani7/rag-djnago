@@ -1142,6 +1142,8 @@ def _route_summarize_and_save(item_data, html_data):
     link = item_data.get("link") or ""
     xbrl_files = html_data.get(
         "xbrl_files") or item_data.get("xbrl_files") or []
+    discovery_note = item_data.get("discovery_note") or None
+    email_dry_run = bool(item_data.get("email_dry_run"))
 
     # Build list of (url, is_ex99). Only 8-K has 99.1 (EX-99.1 exhibit); other form types = parent-level only.
     urls_to_summarize = []
@@ -1367,6 +1369,8 @@ def _route_summarize_and_save(item_data, html_data):
                     target_name=deal_tickers.get("target_name"),
                     acquirer_ticker=deal_tickers.get("acquirer_ticker"),
                     acquirer_name=deal_tickers.get("acquirer_name"),
+                    discovery_note=discovery_note,
+                    dry_run=email_dry_run,
                 )
                 log_and_print(
                     f"{LOG_PREFIX} :_route_summarize_and_save: ✅ Summary email sent for {summary_kind}")

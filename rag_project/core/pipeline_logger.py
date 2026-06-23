@@ -17,9 +17,10 @@ TERMINATION  = "termination"
 DMA          = "dma"
 DMA_SUMMARY  = "dma_summary"
 MAE          = "mae"
-REGENERATION = "regeneration"
-RSS          = "rss"
-EMAIL        = "email"
+REGENERATION      = "regeneration"
+RSS               = "rss"
+EMAIL             = "email"
+GLOBAL_FORM_FEED  = "global_form_feed"
 
 
 def start_pipeline(

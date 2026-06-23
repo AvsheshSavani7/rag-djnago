@@ -1277,7 +1277,7 @@ def _build_proxy_background_summary_email_subject(
     return f"{deal_label}: {middle} [SBM]"
 
 
-def generate_8k_99_1_summary_email_html(company_name: str, form_type: str, summary_doc_url: str, cik_number: str, sec_url: str, accession_number: str, summary_kind: str = "8-K", l1_headline: str = None, l2_brief: str = None, l3_detailed=None, ticker: str = None, filing_date=None, matched_cik_label: str = None, form_affects_deal: bool = None, target_ticker: str = None, target_name: str = None, acquirer_ticker: str = None, acquirer_name: str = None) -> tuple:
+def generate_8k_99_1_summary_email_html(company_name: str, form_type: str, summary_doc_url: str, cik_number: str, sec_url: str, accession_number: str, summary_kind: str = "8-K", l1_headline: str = None, l2_brief: str = None, l3_detailed=None, ticker: str = None, filing_date=None, matched_cik_label: str = None, form_affects_deal: bool = None, target_ticker: str = None, target_name: str = None, acquirer_ticker: str = None, acquirer_name: str = None, discovery_note: str = None) -> tuple:
     """
     Generate HTML email for 8-K summary document notification.
 
@@ -1359,6 +1359,13 @@ def generate_8k_99_1_summary_email_html(company_name: str, form_type: str, summa
           <strong style="color:#333;">Affects deal:</strong> {escape_html(affects_text)}
         </p>
 """
+    discovery_note_block = ""
+    if discovery_note and discovery_note.strip():
+        discovery_note_block = f"""
+    <div style="margin-bottom:16px; padding:10px 14px; background-color:#fff8e1; border-left:4px solid #f5a623; border-radius:4px;">
+      <p style="margin:0; font-size:12px; color:#7a5c00;">{escape_html(discovery_note.strip())}</p>
+    </div>
+"""
     html_email = f"""
 <!DOCTYPE html>
 <html lang="en">
@@ -1377,6 +1384,7 @@ def generate_8k_99_1_summary_email_html(company_name: str, form_type: str, summa
         The {form_type_subject} summary document has been successfully generated for:
       </p>
 
+      {discovery_note_block}
       <div style="background-color:#f9f9f9; padding:15px; border-radius:5px; margin:20px 0;">
         <p style="margin:8px 0; color:#555;">
           <strong style="color:#333;">Company:</strong> {escape_html(company_name)}{escape_html((matched_cik_label or "").strip())}

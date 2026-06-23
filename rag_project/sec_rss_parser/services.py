@@ -75,6 +75,10 @@ N8N_WEBHOOK_URL_PARSING_ERROR = os.environ.get(
     "N8N_WEBHOOK_INTERNAL", "https://n8n.arbintel.cloud/webhook/80830c6d-ff5b-45e3-9ef3-a061db1fbf0c")
 N8N_WEBHOOK_URL_PARSING_SUCCESS = os.environ.get(
     "N8N_WEBHOOK_INTERNAL", "https://n8n.arbintel.cloud/webhook/80830c6d-ff5b-45e3-9ef3-a061db1fbf0c")
+N8N_WEBHOOK_ONLY_ME = os.environ.get(
+    "N8N_WEBHOOK_ONLY_ME",
+    "https://n8n.arbintel.cloud/webhook/d50502ea-6746-4d4b-8dfe-fb7bd71e0a1f",
+)
 
 SEC_BASE_URL = "https://www.sec.gov"
 ATOM_NAMESPACE = "http://www.w3.org/2005/Atom"
@@ -273,7 +277,7 @@ def send_webhook_notification(webhook_url, payload, notification_type="notificat
 # Below fucntion is still use in new fetch form by cik flow
 
 
-def send_summary_email_via_webhook(summary_doc_url, company_name, form_type, cik_number, sec_url, accession_number, summary_kind: str, l1_headline: str = None, l2_brief: str = None, l3_detailed: str = None, ticker: str = None, filing_date=None, matched_cik_label: str = None, form_affects_deal: bool = None, target_ticker: str = None, target_name: str = None, acquirer_ticker: str = None, acquirer_name: str = None):
+def send_summary_email_via_webhook(summary_doc_url, company_name, form_type, cik_number, sec_url, accession_number, summary_kind: str, l1_headline: str = None, l2_brief: str = None, l3_detailed: str = None, ticker: str = None, filing_date=None, matched_cik_label: str = None, form_affects_deal: bool = None, target_ticker: str = None, target_name: str = None, acquirer_ticker: str = None, acquirer_name: str = None, discovery_note: str = None, dry_run: bool = False):
     """Generate 8-K/EX-99.1 summary email HTML and send via N8N webhook. Subject uses deal target[/acquirer]; matched_cik_label is '(target)' or '(acquirer)' for Parent/Target Form in subject."""
     try:
         subject, html_email = generate_8k_99_1_summary_email_html(
@@ -295,6 +299,7 @@ def send_summary_email_via_webhook(summary_doc_url, company_name, form_type, cik
             target_name=target_name,
             acquirer_ticker=acquirer_ticker,
             acquirer_name=acquirer_name,
+            discovery_note=discovery_note,
         )
         payload = {
             "subject": subject,
@@ -310,6 +315,19 @@ def send_summary_email_via_webhook(summary_doc_url, company_name, form_type, cik
             payload["matched_cik_label"] = matched_cik_label
         if form_affects_deal is not None:
             payload["form_affects_deal"] = form_affects_deal
+
+        if dry_run:
+            payload["subject"] = f"[TEST] {subject}"
+            log_and_print(
+                f"📤 dry_run=True — sending {summary_kind} summary email via "
+                f"N8N_WEBHOOK_ONLY_ME (not org dispatch)"
+            )
+            send_webhook_notification(
+                N8N_WEBHOOK_ONLY_ME,
+                payload,
+                f"{summary_kind} summary email (dry_run)",
+            )
+            return
 
         webhook_url = (
             N8N_WEBHOOK_URL_8K_SUMMARY_L123

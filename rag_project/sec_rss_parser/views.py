@@ -11,6 +11,7 @@ from datetime import datetime
 from .services import SECFeedProcessor
 from .process_feed_8k import run_8k_processor
 from .fetch_sec_feed_by_deal_cik import run_fetch_sec_feed_by_deal_cik
+from .fetch_sec_global_form_type_feed import run_fetch_global_form_type_feed
 from .models import SECFiling, SECFeedStatus
 from .serializers import (
     SECFilingSerializer,
@@ -478,6 +479,69 @@ class FetchSECFeedByDealCIKView(APIView):
         except Exception as e:
             logger.error(
                 f"Error starting SEC feed by deal CIK processing: {e}")
+            return Response(
+                {'error': 'Failed to start processing'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+
+class FetchSECGlobalFormTypeFeedView(APIView):
+    """API endpoint to fetch and process global S-4 / F-4 SEC feeds"""
+    permission_classes = [AllowAny]
+
+    def get(self, request, format=None):
+        """Handle GET requests (for cron jobs)"""
+        return self.process_global_form_type_feed()
+
+    def post(self, request, format=None):
+        """Handle POST requests"""
+        return self.process_global_form_type_feed()
+
+    def process_global_form_type_feed(self):
+        """Process global S-4 / F-4 feed in background"""
+        try:
+            dry_run = False
+            if hasattr(self.request, 'query_params'):
+                dry_run = self.request.query_params.get(
+                    'dry_run', ''
+                ).lower() in ('1', 'true', 'yes')
+            if hasattr(self.request, 'data') and not dry_run:
+                dry_run = self.request.data.get(
+                    'dry_run', ''
+                )
+                if isinstance(dry_run, bool):
+                    pass
+                else:
+                    dry_run = str(dry_run).lower() in ('1', 'true', 'yes')
+
+            def process_in_background():
+                try:
+                    result = run_fetch_global_form_type_feed(dry_run=dry_run)
+                    logger.info(
+                        "Global S-4/F-4 feed processing completed: %s", result
+                    )
+                except Exception as e:
+                    logger.error(
+                        "Error in background global S-4/F-4 feed processing: %s",
+                        e,
+                    )
+
+            thread = threading.Thread(target=process_in_background)
+            thread.daemon = True
+            thread.start()
+
+            return Response({
+                'success': True,
+                'message': 'Global S-4/F-4 feed processing started in background',
+                'status': 'processing',
+                'form_types': ['S-4', 'F-4', 'S-4/A', 'F-4/A'],
+                'dry_run': dry_run,
+            }, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            logger.error(
+                "Error starting global S-4/F-4 feed processing: %s", e
+            )
             return Response(
                 {'error': 'Failed to start processing'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR

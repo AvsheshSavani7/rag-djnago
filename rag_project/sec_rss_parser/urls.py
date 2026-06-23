@@ -7,6 +7,7 @@ from .views import (
     SECFeedStatusView,
     SECFilingStatsView,
     FetchSECFeedByDealCIKView,
+    FetchSECGlobalFormTypeFeedView,
 )
 
 app_name = 'sec_rss_parser'
@@ -21,6 +22,12 @@ urlpatterns = [
     # demo RSS file curl "http://localhost:8000/sec-rss-parser/fetch-feed-by-deal-cik/?use_demo=true&limit_deals=5"
     # live SEC feeds curl "http://localhost:8000/sec-rss-parser/fetch-feed-by-deal-cik/?limit_deals=10"
     # custom output path:curl "http://localhost:8000/sec-rss-parser/fetch-feed-by-deal-cik/?use_demo=true&limit_deals=5&output_path=/path/to/output.json"
+
+    # Fetch global S-4 / F-4 feed (subsidiary / name-match flow)
+    path('fetch-global-form-type-feed/', FetchSECGlobalFormTypeFeedView.as_view(),
+         name='fetch_global_form_type_feed'),
+    # curl "http://localhost:8000/api/sec/fetch-global-form-type-feed/"
+    # curl "http://localhost:8000/api/sec/fetch-global-form-type-feed/?dry_run=true"
 
     # List SEC filings
     path('filings/', SECFilingListView.as_view(), name='filings_list'),
