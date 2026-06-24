@@ -3,9 +3,11 @@ Re-run the proxy background pipeline for an existing SECFilingSummary.
 
 Only resets/updates the `proxy` subdocument. Does NOT modify L1_headline, L2_brief,
 L3_detailed, s3_docx_url, s3_json_url, or other top-level filing summary fields.
+Does NOT send the proxy background summary email (unlike the normal feed pipeline).
 
 Usage:
   # Full pipeline: agentic scrape -> Pinecone -> background summary (async, returns immediately)
+  # Email is NOT sent on rerun.
   python manage.py rerun_proxy_pipeline --filing_summary_id=bee3e70c-045d-46bc-93e5-22364b7c1110
 
   # Same pipeline, blocking until finished (local debugging; can take a long time)
@@ -65,7 +67,8 @@ class Command(BaseCommand):
         if not filing_summary_id:
             raise CommandError("--filing_summary_id is required")
 
-        filing_summary = SECFilingSummary.objects(_id=filing_summary_id).first()
+        filing_summary = SECFilingSummary.objects(
+            _id=filing_summary_id).first()
         if not filing_summary:
             raise CommandError(
                 f"No SECFilingSummary found with _id={filing_summary_id}")
@@ -84,6 +87,9 @@ class Command(BaseCommand):
         )
         self.stdout.write(
             "Note: L1/L2/L3 and top-level s3_docx_url/s3_json_url are NOT modified."
+        )
+        self.stdout.write(
+            "Note: proxy background summary email is NOT sent on rerun."
         )
 
         proxy_before = filing_summary.proxy or {}
@@ -128,12 +134,15 @@ class Command(BaseCommand):
         p = filing_summary.proxy or {}
         s3 = p.get("s3_urls") or {}
         self.stdout.write(self.style.SUCCESS("Proxy subdocument status:"))
-        self.stdout.write(f"  proxy_parsing_status: {p.get('proxy_parsing_status')}")
+        self.stdout.write(
+            f"  proxy_parsing_status: {p.get('proxy_parsing_status')}")
         self.stdout.write(f"  empty_percentage: {p.get('empty_percentage')}")
         err = p.get("error_message") or ""
         if err:
-            self.stdout.write(f"  error_message: {err[:300]}{'...' if len(err) > 300 else ''}")
-        self.stdout.write(f"  sections_json_url: {s3.get('sections_json_url')}")
+            self.stdout.write(
+                f"  error_message: {err[:300]}{'...' if len(err) > 300 else ''}")
+        self.stdout.write(
+            f"  sections_json_url: {s3.get('sections_json_url')}")
         self.stdout.write(
             f"  pinecone_processing_status: {p.get('pinecone_processing_status')}"
         )

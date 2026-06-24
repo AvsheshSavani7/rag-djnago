@@ -20,6 +20,7 @@ from sec_rss_parser.utils_8k import (
     get_ticker_for_deal_and_cik,
     get_deal_tickers,
     normalize_cik,
+    normalize_sec_url,
 )
 from sec_rss_parser.email_templates import _build_proxy_background_summary_email_subject
 from sec_rss_parser.email_service.email_dispatch_service import send_report_email
@@ -112,7 +113,7 @@ def reset_proxy_node_only(filing_summary, step="all"):
     return filing_summary
 
 
-def rerun_proxy_pipeline(filing_summary_id, sync=False, step="all"):
+def rerun_proxy_pipeline(filing_summary_id, sync=False, step="all", skip_email=True):
     """
     Re-run proxy pipeline for an existing SECFilingSummary without touching L1/L2/L3.
 
@@ -120,6 +121,8 @@ def rerun_proxy_pipeline(filing_summary_id, sync=False, step="all"):
       - all: reset proxy node, agentic scrape -> Pinecone -> background summary
       - pinecone: re-embed sections (requires proxy.s3_urls.sections_json_url)
       - summary: re-generate background summary DOCX only (requires Pinecone chunks)
+
+    skip_email: when True (default for reruns), do not send summary notification email.
     """
     filing_summary = SECFilingSummary.objects(_id=filing_summary_id).first()
     if not filing_summary:
@@ -135,7 +138,7 @@ def rerun_proxy_pipeline(filing_summary_id, sync=False, step="all"):
         reset_proxy_node_only(filing_summary, step="all")
         if sync:
             process_proxy_async(
-                fid, proxy_sec_url, chain_sync=True)
+                fid, proxy_sec_url, chain_sync=True, skip_email=skip_email)
         else:
             from core.logging_context import get_pipeline, get_run_id, get_accession, get_doc_type
             _ctx = (get_pipeline(), get_run_id(),
@@ -143,7 +146,7 @@ def rerun_proxy_pipeline(filing_summary_id, sync=False, step="all"):
             thread = threading.Thread(
                 target=process_proxy_async,
                 args=(fid, proxy_sec_url, *_ctx),
-                kwargs={"chain_sync": False},
+                kwargs={"chain_sync": False, "skip_email": skip_email},
             )
             thread.daemon = True
             thread.start()
@@ -152,6 +155,7 @@ def rerun_proxy_pipeline(filing_summary_id, sync=False, step="all"):
             "step": step,
             "mode": "sync" if sync else "async",
             "sec_document_url": proxy_sec_url,
+            "skip_email": skip_email,
         }
 
     if step == "pinecone":
@@ -165,8 +169,8 @@ def rerun_proxy_pipeline(filing_summary_id, sync=False, step="all"):
         reset_proxy_node_only(filing_summary, step="pinecone")
         if sync:
             process_sections_with_pinecone_v2(
-                fid, sections_json_url, start_summary_thread=False)
-            generate_proxy_summary_v2(fid)
+                fid, sections_json_url, start_summary_thread=False, skip_email=skip_email)
+            generate_proxy_summary_v2(fid, skip_email=skip_email)
         else:
             from core.logging_context import get_pipeline, get_run_id, get_accession, get_doc_type
             _ctx = (get_pipeline(), get_run_id(),
@@ -174,6 +178,7 @@ def rerun_proxy_pipeline(filing_summary_id, sync=False, step="all"):
             thread = threading.Thread(
                 target=process_sections_with_pinecone_v2,
                 args=(fid, sections_json_url, *_ctx),
+                kwargs={"skip_email": skip_email},
             )
             thread.daemon = True
             thread.start()
@@ -182,12 +187,13 @@ def rerun_proxy_pipeline(filing_summary_id, sync=False, step="all"):
             "step": step,
             "mode": "sync" if sync else "async",
             "sections_json_url": sections_json_url,
+            "skip_email": skip_email,
         }
 
     if step == "summary":
         reset_proxy_node_only(filing_summary, step="summary")
         if sync:
-            generate_proxy_summary_v2(fid)
+            generate_proxy_summary_v2(fid, skip_email=skip_email)
         else:
             from core.logging_context import get_pipeline, get_run_id, get_accession, get_doc_type
             _ctx = (get_pipeline(), get_run_id(),
@@ -195,6 +201,7 @@ def rerun_proxy_pipeline(filing_summary_id, sync=False, step="all"):
             thread = threading.Thread(
                 target=generate_proxy_summary_v2,
                 args=(fid, *_ctx),
+                kwargs={"skip_email": skip_email},
             )
             thread.daemon = True
             thread.start()
@@ -202,6 +209,7 @@ def rerun_proxy_pipeline(filing_summary_id, sync=False, step="all"):
             "filing_summary_id": fid,
             "step": step,
             "mode": "sync" if sync else "async",
+            "skip_email": skip_email,
         }
 
     raise ValueError(f"Unknown step: {step}")
@@ -270,6 +278,11 @@ def process_sec_document_for_filing_summary(
     )
 
     try:
+        proxy_sec_url = normalize_sec_url(proxy_sec_url)
+        if not proxy_sec_url:
+            logger.error("Invalid or empty proxy_sec_url after normalization")
+            return None
+
         filing_dt = _parse_filing_date(filing_date)
 
         proxy_payload = initial_proxy_payload(
@@ -371,6 +384,7 @@ def process_proxy_async(
     _log_accession="-",
     _log_doc_type="PROXY",
     chain_sync=False,
+    skip_email=False,
 ):
     """
     Process proxy document asynchronously.
@@ -485,14 +499,17 @@ def process_proxy_async(
                         sections_json_url,
                         *_pctx,
                         start_summary_thread=False,
+                        skip_email=skip_email,
                     )
-                    generate_proxy_summary_v2(filing_summary_id, *_pctx)
+                    generate_proxy_summary_v2(
+                        filing_summary_id, *_pctx, skip_email=skip_email)
                     logger.info(
                         f"Completed sync Pinecone + summary for {filing_summary_id}")
                 else:
                     pinecone_thread = threading.Thread(
                         target=process_sections_with_pinecone_v2,
                         args=(filing_summary_id, sections_json_url, *_pctx),
+                        kwargs={"skip_email": skip_email},
                     )
                     pinecone_thread.daemon = True
                     pinecone_thread.start()
@@ -542,6 +559,7 @@ def process_sections_with_pinecone_v2(
     _log_accession="-",
     _log_doc_type="PROXY",
     start_summary_thread=True,
+    skip_email=False,
 ):
     """
     Process sections with Pinecone after SEC processing is complete.
@@ -595,6 +613,7 @@ def process_sections_with_pinecone_v2(
                 summary_thread = threading.Thread(
                     target=generate_proxy_summary_v2,
                     args=(filing_summary_id, *_sctx),
+                    kwargs={"skip_email": skip_email},
                 )
                 summary_thread.daemon = True
                 summary_thread.start()
@@ -629,6 +648,7 @@ def generate_proxy_summary_v2(
     _log_run_id="-",
     _log_accession="-",
     _log_doc_type="PROXY",
+    skip_email=False,
 ):
     """
     Generate summary document for proxy after Pinecone processing completes.
@@ -691,15 +711,19 @@ def generate_proxy_summary_v2(
             logger.info(
                 f"Successfully generated summary document for {filing_summary_id}: {result.get('docx_url')}")
 
-            # Send email notification with summary document URL
-            try:
+            if skip_email:
                 logger.info(
-                    f"📧 Sending summary document email notification")
-                send_summary_email_notification_v2(filing_summary)
-                logger.info(f"✅ Summary email notification sent successfully")
-            except Exception as email_error:
-                logger.error(
-                    f"❌ Error sending summary email notification: {str(email_error)}")
+                    "Skipping summary email notification (skip_email=True)")
+            else:
+                try:
+                    logger.info(
+                        f"📧 Sending summary document email notification")
+                    send_summary_email_notification_v2(filing_summary)
+                    logger.info(
+                        f"✅ Summary email notification sent successfully")
+                except Exception as email_error:
+                    logger.error(
+                        f"❌ Error sending summary email notification: {str(email_error)}")
 
         else:
             # Mark summary generation as failed

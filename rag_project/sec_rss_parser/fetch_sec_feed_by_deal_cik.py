@@ -51,6 +51,7 @@ from sec_rss_parser.utils_8k import (
     normalize_cik,
     extract_accession_from_guid,
     build_full_sec_url,
+    normalize_sec_url,
     find_file_by_type,
     parse_filing_date,
     log_and_print,
@@ -823,8 +824,9 @@ def _handle_proxy_form_by_type(item_data, html_data, filing):
             "xbrl_files") or item_data.get("xbrl_files") or []
         proxy_file_stub = find_file_by_type(xbrl_files_stub, PROXY_FORM_TYPES)
         proxy_sec_url_stub = (
-            build_full_sec_url(proxy_file_stub.get(
-                "url")) if proxy_file_stub else None
+            normalize_sec_url(proxy_file_stub.get("url"))
+            if proxy_file_stub
+            else None
         )
 
         if not proxy_sec_url_stub:
@@ -952,7 +954,7 @@ def _process_proxy_item(item_data, html_data, filing):
         log_and_print(
             f"{LOG_PREFIX} :_process_proxy_item: ⚠️ No proxy HTM file for {item_data.get('company_name')}", "warning")
         return
-    proxy_sec_url = build_full_sec_url(proxy_file.get("url"))
+    proxy_sec_url = normalize_sec_url(proxy_file.get("url"))
     logger.info(
         f"{LOG_PREFIX} :_process_proxy_item: proxy_sec_url={proxy_sec_url}")
     if not proxy_sec_url:
@@ -1074,12 +1076,7 @@ def _process_ten_k_ten_q_item(item_data, html_data, filing):
 
 def _normalize_sec_url(url):
     """Build full SEC URL and strip ix?doc=/ prefix if present."""
-    if not url:
-        return None
-    u = build_full_sec_url(url) or url
-    if "ix?doc=/" in u:
-        u = u.replace("ix?doc=/", "", 1)
-    return u
+    return normalize_sec_url(url)
 
 
 def _pick_single_doc_url_for_form(xbrl_files, form_type, link):

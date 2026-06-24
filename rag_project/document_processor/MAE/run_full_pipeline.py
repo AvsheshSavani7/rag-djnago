@@ -14,6 +14,19 @@ Steps:
   Step 2: 6_classify (reads benchmark only).process_clauses(clauses) → classification
   Step 3: 7_risk.analyze_new_deal_from_data(classification) → risk_assessment
   Step 4: 8_compliance.analyze_deal_from_data(classification) → compliance
+
+
+
+  flowchart TD
+    A[services.py / run_mae_pipeline / regeneration] --> B[run_full_pipeline.py]
+    B --> C[Step 0: fetch_mae_text_from_pinecone]
+    C --> D[6_prep_new_MAE.py - extract clauses]
+    D --> E[6_classify_new_clauses.py - classify]
+    E --> F[7_new_MAE_risk.py - risk assessment]
+    E --> G[8_LLM_Check_against_risks.py - compliance]
+    F --> H[Save JSON + MAEAnalysis MongoDB]
+    G --> H
+
 """
 
 import json

@@ -136,6 +136,16 @@ def build_full_sec_url(url):
     return f"{SEC_BASE_URL}{url}"
 
 
+def normalize_sec_url(url):
+    """Build full SEC URL and strip ix?doc=/ iXBRL wrapper for consistent dedup/storage."""
+    if not url:
+        return None
+    u = build_full_sec_url(url) or url
+    if "ix?doc=/" in u:
+        u = u.replace("ix?doc=/", "", 1)
+    return u
+
+
 def find_file_by_type(xbrl_files, file_types, extension=(".htm", ".html", ".xml")):
     """Find file in xbrl_files by type and extension. extension can be a str or iterable of str."""
     exts = (extension,) if isinstance(extension, str) else tuple(extension)
