@@ -16,6 +16,7 @@ API contract:
 """
 
 import logging
+import os
 import sys
 import time
 import threading
@@ -158,19 +159,60 @@ def validate_steps(steps: list) -> list:
 def _step_parsing(deal_id: str, job: ProcessingJob) -> str:
     """
     Re-parse the SEC document into flattened JSON chunks and upload to S3.
+
+    Flow:
+        sec_url → extraction worker → S3 (parsed_json_url)
+                → FlattenProcessor  → S3 (flattened_json_url)
+
     Returns the new flattened_json_url.
     """
     from document_processor.services import FlattenProcessor
+    from sec_rss_parser.services import _get_extraction_worker
+    from sec_rss_parser.s3_upload_utils import build_parsed_jsons_s3_key, upload_json_file_to_s3
 
     sec_url = job.sec_url
     if not sec_url:
         raise ValueError(
             f"Deal {deal_id} has no sec_url — cannot re-parse. "
-            "Upload the document first via /api/files/process/."
+            "Set the SEC document URL first."
         )
 
-    logger.info("[regenerate] parsing: deal_id=%s url=%s", deal_id, sec_url)
-    processor = FlattenProcessor(file_url=sec_url)
+    # Step 1: Extract the SEC document into structured JSON
+    logger.info("[regenerate] parsing step 1/2 — extraction: deal_id=%s sec_url=%s",
+                deal_id, sec_url)
+    worker = _get_extraction_worker()
+    extraction_result = worker(sec_url)
+
+    if not extraction_result or extraction_result.get("status") != "success":
+        reason = (extraction_result or {}).get("reason", "unknown error")
+        raise RuntimeError(
+            f"Extraction failed for {sec_url}: {reason}")
+
+    output = extraction_result.get("output")
+    output_file = extraction_result.get("output_file")
+
+    if not (isinstance(output, list) and len(output) > 0
+            and output_file and os.path.exists(output_file)):
+        raise RuntimeError(
+            f"Extraction returned empty or invalid JSON for {sec_url}")
+
+    # Step 2: Upload extracted JSON to S3
+    accession_raw = next(
+        (seg for seg in sec_url.split("/") if len(seg) == 18 and seg.isdigit()), "")
+    s3_key = build_parsed_jsons_s3_key(sec_url, accession_raw)
+    parsed_json_url = upload_json_file_to_s3(output_file, s3_key)
+
+    if not parsed_json_url:
+        raise RuntimeError(
+            f"Failed to upload extracted JSON to S3 for {sec_url}")
+
+    job.parsed_json_url = parsed_json_url
+    job.save()
+    logger.info("[regenerate] parsing step 1/2 done — parsed_json_url=%s", parsed_json_url)
+
+    # Step 3: Flatten the parsed JSON
+    logger.info("[regenerate] parsing step 2/2 — flatten: %s", parsed_json_url)
+    processor = FlattenProcessor(file_url=parsed_json_url)
     result = processor.process()
 
     flattened_url = result.get("flattened_json_url")
@@ -179,7 +221,7 @@ def _step_parsing(deal_id: str, job: ProcessingJob) -> str:
 
     job.flattened_json_url = flattened_url
     job.save()
-    logger.info("[regenerate] parsing complete: %s", flattened_url)
+    logger.info("[regenerate] parsing complete — flattened_json_url=%s", flattened_url)
     return flattened_url
 
 
@@ -252,7 +294,8 @@ def _step_summary(deal_id: str, job: ProcessingJob, send_email: bool = False):
     from document_processor.services import SummaryGenerationService
     from sec_rss_parser.models import DealDmaSummary
 
-    logger.info("[regenerate] summary: deal_id=%s send_email=%s", deal_id, send_email)
+    logger.info("[regenerate] summary: deal_id=%s send_email=%s",
+                deal_id, send_email)
 
     object_id = ObjectId(deal_id)
 
@@ -301,7 +344,8 @@ def _step_summary(deal_id: str, job: ProcessingJob, send_email: bool = False):
 
         sec_url = job.sec_url or ""
         accession = _extract_accession_from_url(sec_url)
-        company_name = _build_deal_name(job) or getattr(job, "target_name", "") or ""
+        company_name = _build_deal_name(job) or getattr(
+            job, "target_name", "") or ""
 
         try:
             send_8k_summary_email(
@@ -315,7 +359,8 @@ def _step_summary(deal_id: str, job: ProcessingJob, send_email: bool = False):
             )
             logger.info("[regenerate] summary email sent for deal %s", deal_id)
         except Exception as e:
-            logger.error("[regenerate] summary email failed (non-fatal): %s", e)
+            logger.error(
+                "[regenerate] summary email failed (non-fatal): %s", e)
     else:
         logger.info("[regenerate] summary email skipped (not requested)")
 
