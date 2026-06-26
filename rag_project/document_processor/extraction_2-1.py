@@ -45,14 +45,19 @@ SOFT_STOP_SCHEDULE_PATTERNS = [
     r"\bSchedule\b",
 ]
 
-agreement_pattern = r"AGREEMENT\s+AND\s+PLAN\s+OF\s+MERGER"
+agreement_pattern = r"AGREEMENT\s+AND\s+PLAN\s+OF\s+(?:MERGER|REORGANIZATION)"
 TOC_HEADER_PATTERN = r"TABLE\s+OF\s+CONTENTS|Contents"
 TOC_COMBINED_PATTERN = re.compile(
     r"^ARTICLE\s+\d+|^Section\s+\d+\.\d+|^Table\s+of\s+Contents", re.IGNORECASE)
 
 # START_PATTERN = r"(THIS\s+)?AGREEMENT\s+AND\s+PLAN\s+OF\s+MERGER"
 # START_PATTERN =r"(?:THIS\s+AGREEMENT\s+AND\s+PLAN\s+OF\s+MERGER|THIS\s+MERGER\s+AGREEMENT)"
-START_PATTERN = r"(?:THIS\s+)?(?:AGREEMENT\s+AND\s+PLAN\s+OF\s+MERGER|THIS\s+MERGER\s+AGREEMENT|This\s+Agreement\s+is)"
+START_PATTERN = (
+    r"(?:THIS\s+)?(?:AGREEMENT\s+AND\s+PLAN\s+OF\s+"
+    r"(?:MERGER|REORGANIZATION)"
+    r"|THIS\s+(?:MERGER|REORGANIZATION)\s+AGREEMENT"
+    r"|This\s+Agreement\s+is)"
+)
 
 # END_PATTERN = r"agree\s+as\s+follows[:.]?"
 END_PATTERN = r"agrees?\s*,?\s*as\s+follows[:.]?"
