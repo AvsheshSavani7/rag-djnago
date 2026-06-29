@@ -45,7 +45,7 @@ SOFT_STOP_SCHEDULE_PATTERNS = [
     r"\bSchedule\b",
 ]
 
-agreement_pattern = r"AGREEMENT\s+AND\s+PLAN\s+OF\s+(?:MERGER|REORGANIZATION)"
+agreement_pattern = r"(?:AGREEMENT\s+AND\s+PLAN\s+OF\s+(?:MERGER|REORGANIZATION)|TRANSACTION\s+AGREEMENT)"
 TOC_HEADER_PATTERN = r"TABLE\s+OF\s+CONTENTS|Contents"
 TOC_COMBINED_PATTERN = re.compile(
     r"^ARTICLE\s+\d+|^Section\s+\d+\.\d+|^Table\s+of\s+Contents", re.IGNORECASE)
@@ -56,6 +56,8 @@ START_PATTERN = (
     r"(?:THIS\s+)?(?:AGREEMENT\s+AND\s+PLAN\s+OF\s+"
     r"(?:MERGER|REORGANIZATION)"
     r"|THIS\s+(?:MERGER|REORGANIZATION)\s+AGREEMENT"
+    r"|TRANSACTION\s+AGREEMENT"
+    r"|THIS\s+TRANSACTION\s+AGREEMENT"
     r"|This\s+Agreement\s+is)"
 )
 
