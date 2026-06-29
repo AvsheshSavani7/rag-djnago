@@ -480,7 +480,7 @@ Focus on identifying what makes this clause unusual or concerning compared to st
         try:
             response = self.client.messages.create(
                 model="claude-sonnet-4-5-20250929",
-                max_tokens=1000,
+                max_tokens=1500,
                 messages=[{"role": "user", "content": prompt}],
                 temperature=0.1
             )

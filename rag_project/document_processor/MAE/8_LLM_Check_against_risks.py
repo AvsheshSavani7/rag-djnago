@@ -11,64 +11,69 @@ Time: ~1 minute for 11 clauses
 """
 
 import json
+import logging
 import os
+import traceback
 from typing import Dict, List, Optional
 from datetime import datetime
 from pathlib import Path
 from anthropic import Anthropic
 from tqdm import tqdm
 
+logger = logging.getLogger(__name__)
+
 
 class ComplianceChecker:
     """Run compliance checks on all MAE clauses"""
-    
+
     def __init__(self, anthropic_key: str):
         """
         Initialize compliance checker
-        
+
         Args:
             anthropic_key: Anthropic API key for Claude Opus
         """
         self.client = Anthropic(api_key=anthropic_key)
-        
+
     def analyze_deal(self, classification_file: str, output_dir: str) -> Dict:
         """
         Run compliance checks on all clauses
-        
+
         Args:
             classification_file: Output from Stage 6
             output_dir: Directory to save results
-        
+
         Returns:
             Comprehensive compliance analysis
         """
-        
+
         # Load classification results
         print(f"📂 Loading classification from: {classification_file}")
         with open(classification_file, 'r') as f:
             classification = json.load(f)
-        
+
         deal_name = classification['deal_name']
-        clauses = classification['results']  # NEW: 'results' instead of old format
-        
+        # NEW: 'results' instead of old format
+        clauses = classification['results']
+
         print(f"\n📄 Running compliance checks: {deal_name}")
         print(f"   Total clauses: {len(clauses)}")
-        
+
         estimated_cost = len(clauses) * 0.03  # Opus cost per clause
         print(f"   Estimated cost: ${estimated_cost:.2f}")
-        
+
         # Run compliance checks on all clauses
         compliance_results = []
-        
+
         print(f"\n🔍 Analyzing all clauses with Claude Opus...")
         for i, clause in enumerate(tqdm(clauses, desc="Compliance checks"), 1):
-            
+
             # Run single compliance check with all questions
             compliance = self._check_compliance(
                 clause['text'],
                 clause.get('label', f"clause_{i}")
             )
-            
+
             # Build result
             result = {
                 'clause_id': clause.get('label', f"clause_{i}"),
@@ -79,12 +84,12 @@ class ComplianceChecker:
                 'category': clause['best_match']['category'],
                 'compliance': compliance
             }
-            
+
             compliance_results.append(result)
-        
+
         # Generate summary
         summary = self._generate_summary(compliance_results)
-        
+
         # Prepare comprehensive results
         results = {
             'deal_name': deal_name,
@@ -94,23 +99,23 @@ class ComplianceChecker:
             'detailed_results': compliance_results,
             'classification_file': os.path.basename(classification_file)
         }
-        
+
         # Create output directory if it doesn't exist
         Path(output_dir).mkdir(parents=True, exist_ok=True)
-        
+
         # Save results
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        
+
         # Save main compliance file
         output_file = f"{output_dir}/compliance_{deal_name}_{timestamp}.json"
         with open(output_file, 'w') as f:
             json.dump(results, f, indent=2)
-        
+
         print(f"\n✅ Compliance analysis saved: {output_file}")
-        
+
         # Print summary
         self._print_summary(results)
-        
+
         return results
 
     def analyze_deal_from_data(self, classification: dict) -> Dict:
@@ -160,10 +165,10 @@ class ComplianceChecker:
     def _check_compliance(self, text: str, clause_id: str) -> Dict:
         """
         Run all compliance checks on a single clause using ONE Opus call
-        
+
         This is the CRITICAL optimization: all 7 questions in one call instead of 7 separate calls
         """
-        
+
         prompt = f"""Analyze this Material Adverse Effect (MAE) exclusion clause for specific compliance risks.
 
 CLAUSE ID: {clause_id}
@@ -234,36 +239,67 @@ IMPORTANT GUIDANCE:
 
 Be literal and precise. Only answer "Yes" if the specific item is clearly present in the text."""
 
+        logger.debug(
+            "[compliance] _check_compliance START clause_id=%s", clause_id)
+        logger.debug("[compliance] prompt length=%d chars", len(prompt))
+        print(
+            f"\n[DEBUG] _check_compliance: clause_id={clause_id!r}, prompt_len={len(prompt)}")
+
+        raw_response_text = None  # track for debug output on error
+
         try:
+            logger.debug(
+                "[compliance] Sending request to Claude Opus (clause_id=%s)", clause_id)
             response = self.client.messages.create(
-                model="claude-opus-4-20250514",  # Using Opus for accuracy
+                model="claude-opus-4-8",  # Using Opus for accuracy
                 max_tokens=1000,
                 messages=[{"role": "user", "content": prompt}],
-                temperature=0
+
             )
-            
+            logger.debug(
+                "[compliance] Received response from Claude Opus (clause_id=%s)", clause_id)
+
             # Parse JSON response
-            response_text = response.content[0].text
-            
+            raw_response_text = response.content[0].text
+            print(
+                f"\n[DEBUG] LLM raw response for clause_id={clause_id!r}:\n{raw_response_text}\n{'─'*60}")
+            logger.debug(
+                "[compliance] raw response (clause_id=%s):\n%s", clause_id, raw_response_text)
+
             # Clean up response to extract JSON
-            if "```json" in response_text:
-                json_start = response_text.find("```json") + 7
-                json_end = response_text.find("```", json_start)
-                response_text = response_text[json_start:json_end]
-            elif "{" in response_text:
-                json_start = response_text.find("{")
-                json_end = response_text.rfind("}") + 1
-                response_text = response_text[json_start:json_end]
-            
+            if "```json" in raw_response_text:
+                json_start = raw_response_text.find("```json") + 7
+                json_end = raw_response_text.find("```", json_start)
+                response_text = raw_response_text[json_start:json_end]
+                logger.debug(
+                    "[compliance] Extracted JSON from ```json block (clause_id=%s)", clause_id)
+            elif "{" in raw_response_text:
+                json_start = raw_response_text.find("{")
+                json_end = raw_response_text.rfind("}") + 1
+                response_text = raw_response_text[json_start:json_end]
+                logger.debug(
+                    "[compliance] Extracted JSON from raw braces (clause_id=%s)", clause_id)
+            else:
+                response_text = raw_response_text
+                logger.warning(
+                    "[compliance] No JSON braces found in response (clause_id=%s)", clause_id)
+
             # Clean control characters
             response_text = response_text.strip()
             import string
             printable = set(string.printable)
-            response_text = ''.join(filter(lambda x: x in printable, response_text))
-            response_text = response_text.replace('\\n', ' ').replace('\\r', ' ').replace('\\t', ' ')
-            
+            response_text = ''.join(
+                filter(lambda x: x in printable, response_text))
+            response_text = response_text.replace(
+                '\\n', ' ').replace('\\r', ' ').replace('\\t', ' ')
+
+            logger.debug(
+                "[compliance] cleaned response_text (clause_id=%s):\n%s", clause_id, response_text)
+
             result = json.loads(response_text)
-            
+            logger.debug("[compliance] JSON parsed successfully (clause_id=%s), keys=%s",
+                         clause_id, list(result.keys()))
+
             # Ensure all required fields exist
             required_fields = {
                 'cybersecurity_mentioned': 'No',
@@ -282,18 +318,39 @@ Be literal and precise. Only answer "Yes" if the specific item is clearly presen
                 'regulatory_products_mentioned': 'No',
                 'regulatory_products_details': None
             }
-            
+
+            missing = [f for f in required_fields if f not in result]
+            if missing:
+                logger.warning(
+                    "[compliance] Missing fields filled with defaults (clause_id=%s): %s", clause_id, missing)
+
             for field, default in required_fields.items():
                 if field not in result:
                     result[field] = default
-            
+
+            logger.debug(
+                "[compliance] _check_compliance SUCCESS clause_id=%s", clause_id)
             return result
-            
+
         except Exception as e:
-            print(f"\n❌ Error checking compliance for {clause_id}: {e}")
+            error_msg = f"{type(e).__name__}: {e}"
+            print(
+                f"\n[DEBUG] ❌ _check_compliance FAILED clause_id={clause_id!r}")
+            print(f"[DEBUG]    exception: {error_msg}")
+            if raw_response_text is not None:
+                print(
+                    f"[DEBUG]    raw LLM response was:\n{raw_response_text}\n{'─'*60}")
+            else:
+                print(
+                    f"[DEBUG]    (no LLM response received — error occurred before/during API call)")
+            print(f"[DEBUG]    traceback:\n{traceback.format_exc()}")
+            logger.error(
+                "[compliance] _check_compliance FAILED clause_id=%s exception=%s",
+                clause_id, error_msg, exc_info=True
+            )
             return {
                 'cybersecurity_mentioned': 'Error',
-                'cybersecurity_details': f'Analysis failed: {str(e)[:100]}',
+                'cybersecurity_details': f'Analysis failed: {error_msg[:200]}',
                 'tariffs_trade_mentioned': 'Error',
                 'tariffs_trade_details': None,
                 'countries_regions_mentioned': 'Error',
@@ -308,10 +365,10 @@ Be literal and precise. Only answer "Yes" if the specific item is clearly presen
                 'regulatory_products_mentioned': 'Error',
                 'regulatory_products_details': None
             }
-    
+
     def _generate_summary(self, compliance_results: List[Dict]) -> Dict:
         """Generate summary statistics from compliance results"""
-        
+
         summary = {
             'cybersecurity': {
                 'count': 0,
@@ -343,11 +400,11 @@ Be literal and precise. Only answer "Yes" if the specific item is clearly presen
                 'clauses': []
             }
         }
-        
+
         for result in compliance_results:
             comp = result['compliance']
             clause_id = result['clause_id']
-            
+
             # Cybersecurity
             if comp.get('cybersecurity_mentioned', '').lower() == 'yes':
                 summary['cybersecurity']['count'] += 1
@@ -355,7 +412,7 @@ Be literal and precise. Only answer "Yes" if the specific item is clearly presen
                     'clause_id': clause_id,
                     'details': comp.get('cybersecurity_details')
                 })
-            
+
             # Tariffs/Trade
             if comp.get('tariffs_trade_mentioned', '').lower() == 'yes':
                 summary['tariffs_trade']['count'] += 1
@@ -363,7 +420,7 @@ Be literal and precise. Only answer "Yes" if the specific item is clearly presen
                     'clause_id': clause_id,
                     'details': comp.get('tariffs_trade_details')
                 })
-            
+
             # Countries/Regions
             if comp.get('countries_regions_mentioned', '').lower() == 'yes':
                 summary['countries_regions']['count'] += 1
@@ -373,8 +430,9 @@ Be literal and precise. Only answer "Yes" if the specific item is clearly presen
                     'details': comp.get('countries_details')
                 })
                 if comp.get('countries_list'):
-                    summary['countries_regions']['countries_found'].extend(comp['countries_list'])
-            
+                    summary['countries_regions']['countries_found'].extend(
+                        comp['countries_list'])
+
             # Geographic Changes
             if comp.get('geographic_changes_mentioned', '').lower() == 'yes':
                 summary['geographic_changes']['count'] += 1
@@ -382,7 +440,7 @@ Be literal and precise. Only answer "Yes" if the specific item is clearly presen
                     'clause_id': clause_id,
                     'details': comp.get('geographic_changes_details')
                 })
-            
+
             # Disclosure Schedules
             if comp.get('disclosure_schedules_referenced', '').lower() == 'yes':
                 summary['disclosure_schedules']['count'] += 1
@@ -390,7 +448,7 @@ Be literal and precise. Only answer "Yes" if the specific item is clearly presen
                     'clause_id': clause_id,
                     'details': comp.get('disclosure_schedules_details')
                 })
-            
+
             # Financing
             if comp.get('financing_mentioned', '').lower() == 'yes':
                 summary['financing']['count'] += 1
@@ -398,7 +456,7 @@ Be literal and precise. Only answer "Yes" if the specific item is clearly presen
                     'clause_id': clause_id,
                     'details': comp.get('financing_details')
                 })
-            
+
             # Regulatory Products
             if comp.get('regulatory_products_mentioned', '').lower() == 'yes':
                 summary['regulatory_products']['count'] += 1
@@ -406,26 +464,26 @@ Be literal and precise. Only answer "Yes" if the specific item is clearly presen
                     'clause_id': clause_id,
                     'details': comp.get('regulatory_products_details')
                 })
-        
+
         # Deduplicate countries list
         if summary['countries_regions']['countries_found']:
             summary['countries_regions']['countries_found'] = list(set(
                 summary['countries_regions']['countries_found']
             ))
-        
+
         return summary
-    
+
     def _print_summary(self, results: Dict):
         """Print compliance summary to console"""
-        
+
         summary = results['compliance_summary']
-        
+
         print("\n" + "="*80)
         print(f"📋 COMPLIANCE CHECKLIST SUMMARY: {results['deal_name']}")
         print("="*80)
-        
+
         print(f"\n📊 Total clauses analyzed: {results['total_clauses']}")
-        
+
         # Cybersecurity
         cyber = summary['cybersecurity']
         if cyber['count'] > 0:
@@ -434,7 +492,7 @@ Be literal and precise. Only answer "Yes" if the specific item is clearly presen
                 print(f"   • {clause['clause_id']}: {clause['details']}")
         else:
             print(f"\n🔐 Cybersecurity: None found ✓")
-        
+
         # Tariffs/Trade
         tariffs = summary['tariffs_trade']
         if tariffs['count'] > 0:
@@ -443,27 +501,30 @@ Be literal and precise. Only answer "Yes" if the specific item is clearly presen
                 print(f"   • {clause['clause_id']}: {clause['details']}")
         else:
             print(f"\n📦 Tariffs/Trade: None found ✓")
-        
+
         # Countries
         countries = summary['countries_regions']
         if countries['count'] > 0:
             print(f"\n🌍 Countries/Regions Mentioned: {countries['count']}")
             if countries['countries_found']:
-                print(f"   Countries: {', '.join(countries['countries_found'])}")
+                print(
+                    f"   Countries: {', '.join(countries['countries_found'])}")
             for clause in countries['clauses']:
-                print(f"   • {clause['clause_id']}: {', '.join(clause.get('countries', []))}")
+                print(
+                    f"   • {clause['clause_id']}: {', '.join(clause.get('countries', []))}")
         else:
             print(f"\n🌍 Countries/Regions: None found ✓")
-        
+
         # Disclosure Schedules (CRITICAL)
         disclosure = summary['disclosure_schedules']
         if disclosure['count'] > 0:
-            print(f"\n⚠️  DISCLOSURE SCHEDULES REFERENCED: {disclosure['count']} ⚠️")
+            print(
+                f"\n⚠️  DISCLOSURE SCHEDULES REFERENCED: {disclosure['count']} ⚠️")
             for clause in disclosure['clauses']:
                 print(f"   • {clause['clause_id']}: {clause['details']}")
         else:
             print(f"\n📄 Disclosure Schedules: None found ✓")
-        
+
         # Geographic Changes
         geo = summary['geographic_changes']
         if geo['count'] > 0:
@@ -472,7 +533,7 @@ Be literal and precise. Only answer "Yes" if the specific item is clearly presen
                 print(f"   • {clause['clause_id']}: {clause['details']}")
         else:
             print(f"\n🗺️  Geographic Changes: None found ✓")
-        
+
         # Financing
         fin = summary['financing']
         if fin['count'] > 0:
@@ -481,7 +542,7 @@ Be literal and precise. Only answer "Yes" if the specific item is clearly presen
                 print(f"   • {clause['clause_id']}: {clause['details']}")
         else:
             print(f"\n💰 Financing: None found ✓")
-        
+
         # Regulatory Products
         reg = summary['regulatory_products']
         if reg['count'] > 0:
@@ -490,7 +551,7 @@ Be literal and precise. Only answer "Yes" if the specific item is clearly presen
                 print(f"   • {clause['clause_id']}: {clause['details']}")
         else:
             print(f"\n⚖️  Regulatory Products: None found ✓")
-        
+
         print("="*80)
 
 
@@ -498,19 +559,21 @@ def main():
     """Main execution"""
     from dotenv import load_dotenv
     load_dotenv()
-    
+
     # Configuration
     ANTHROPIC_KEY = os.getenv('ANTHROPIC_API_KEY')
     if not ANTHROPIC_KEY:
         print("❌ ERROR: ANTHROPIC_API_KEY not set in .env")
         return
-    
+
     # Paths - relative to script (project root = parent of MAE v2)
     _script_dir = Path(__file__).resolve().parent
     _base_dir = _script_dir.parent
     _classification_dir = _base_dir / "classification_output"
-    _classification_files = sorted(_classification_dir.glob("classification_*.json"), key=lambda p: p.stat().st_mtime, reverse=True)
-    CLASSIFICATION_FILE = str(_classification_files[0]) if _classification_files else ""
+    _classification_files = sorted(_classification_dir.glob(
+        "classification_*.json"), key=lambda p: p.stat().st_mtime, reverse=True)
+    CLASSIFICATION_FILE = str(
+        _classification_files[0]) if _classification_files else ""
     OUTPUT_DIR = str(_base_dir / "compliance_output")
 
     # Check files exist
@@ -519,21 +582,21 @@ def main():
         print(f"   Looked in: {_classification_dir}")
         print("\n💡 Run Stage 6 first to generate classification")
         return
-    
+
     # Initialize checker
     checker = ComplianceChecker(ANTHROPIC_KEY)
-    
+
     # Run compliance checks
     print("\n🚀 Starting Stage 9: Compliance Checklist")
     print("="*80)
     print("⚠️  CRITICAL: This checks ALL clauses for client-specific risks")
     print("="*80)
-    
+
     results = checker.analyze_deal(
         classification_file=CLASSIFICATION_FILE,
         output_dir=OUTPUT_DIR
     )
-    
+
     if results:
         print(f"\n✅ Stage 9 complete!")
         print(f"\n💡 Next: Run Stage 10 to generate complete analysis package")
