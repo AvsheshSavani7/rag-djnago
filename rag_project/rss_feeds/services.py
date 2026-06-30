@@ -681,6 +681,7 @@ class RSSFeedService:
                         #     feed_source_url=feed_source_url_str
                         # )
                         if report_type:
+                            _newswire_deal_types = {"newswire_both", "newswire_acquire", "newswire_target"}
                             send_report_email(
                                 report_type=report_type,
                                 payload={
@@ -689,7 +690,8 @@ class RSSFeedService:
                                     "feed_title": feed_title_str,
                                     "items_count": 1,
                                     "feed_source_url": feed_source_url_str,
-                                }
+                                },
+                                deal_id=item_with_deal.get("deal_id") if report_type in _newswire_deal_types else None,
                             )
                     except Exception as e:
                         logger.warning(
@@ -773,6 +775,7 @@ class RSSFeedService:
                         # )
 
                         if report_type:
+                            _newswire_deal_types = {"newswire_both", "newswire_acquire", "newswire_target"}
                             send_report_email(
                                 report_type=report_type,
                                 payload={
@@ -781,7 +784,8 @@ class RSSFeedService:
                                     "feed_title": feed_title_str,
                                     "items_count": 1,
                                     "feed_source_url": feed_source_url_str,
-                                }
+                                },
+                                deal_id=deal_id if report_type in _newswire_deal_types else None,
                             )
                     except Exception as e:
                         logger.error(

@@ -495,7 +495,8 @@ def run_pipeline(
 
             result_dispatch = send_report_email(
                 report_type="sec_comparison_summary_10k",
-                payload=payload
+                payload=payload,
+                deal_id=deal_id
             )
             print(
                 f"  Org-aware email done — orgs_sent={result_dispatch['orgs_sent']}/{result_dispatch['orgs_processed']}")

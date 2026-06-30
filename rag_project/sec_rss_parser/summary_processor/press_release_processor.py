@@ -238,7 +238,8 @@ Press release summary:
 
             result_dispatch = send_report_email(
                 report_type="sec_dma_press_release_extraction",
-                payload=payload
+                payload=payload,
+                deal_id=deal_id
             )
             logger.info(
                 "press_release_processor: org-aware email done deal_id=%s orgs_sent=%s/%s",

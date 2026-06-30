@@ -735,7 +735,8 @@ def _send_proxy_comparison_email(
         )
         result = send_report_email(
             report_type="sec_comparison_summary_proxy",
-            payload=payload
+            payload=payload,
+            deal_id=deal_id
         )
         log_and_print(
             f"{LOG_PREFIX} :_send_proxy_comparison_email: ✅ Org-aware email done — orgs_sent={result['orgs_sent']}/{result['orgs_processed']}"
@@ -1368,6 +1369,7 @@ def _route_summarize_and_save(item_data, html_data):
                     acquirer_name=deal_tickers.get("acquirer_name"),
                     discovery_note=discovery_note,
                     dry_run=email_dry_run,
+                    deal_id=deal_id,
                 )
                 log_and_print(
                     f"{LOG_PREFIX} :_route_summarize_and_save: ✅ Summary email sent for {summary_kind}")

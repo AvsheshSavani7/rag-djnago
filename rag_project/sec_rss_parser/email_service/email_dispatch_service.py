@@ -5,12 +5,14 @@ Organisation-aware email sending via the n8n webhook.
 
 Flow
 ----
-send_report_email(report_type, payload, org_id=None)
+send_report_email(report_type, payload, org_id=None, deal_id=None)
   1. Find active organization(s).
   2. Check organization_notification_settings — keep only those where
      enabled_report_types contains the given report_type.
   3. Find active organization_email_recipients for each qualifying org
      — keep only those whose report_types list contains the report_type.
+     If deal_id is provided, further filter to recipients whose
+     allowed_deal_ids list contains the deal_id.
   4. POST one webhook request per org (with its recipients list).
 
 MongoDB collections (default DB)
@@ -20,7 +22,8 @@ MongoDB collections (default DB)
                             : organization_id (str), enabled_report_types (list)
 - organization_email_recipients
                             : organization_id (str), email, name,
-                              is_active (bool), report_types (list, may be absent)
+                              is_active (bool), report_types (list, may be absent),
+                              allowed_deal_ids (list, may be absent)
 """
 
 import logging
@@ -121,22 +124,28 @@ def _is_report_type_enabled(db, organization_id: str, report_type: str) -> bool:
     return report_type in settings.get("enabled_report_types", [])
 
 
-def _get_recipients(db, organization_id: str, report_type: str) -> list:
+def _get_recipients(
+    db,
+    organization_id: str,
+    report_type: str,
+    deal_id: Optional[str] = None,
+) -> list:
     """
     Return active recipients for this org that have subscribed to report_type.
 
     A recipient is included only when:
     - is_active is True
     - report_types field exists and contains report_type
+    - If deal_id is provided: allowed_deal_ids field exists and contains deal_id
     """
-    cursor = db["organization_email_recipients"].find(
-        {
-            "organization_id": organization_id,
-            "is_active": True,
-            "report_types": report_type,
-        }
-    )
-    return list(cursor)
+    query = {
+        "organization_id": organization_id,
+        "is_active": True,
+        "report_types": report_type,
+    }
+    if deal_id:
+        query["allowed_deal_ids"] = deal_id
+    return list(db["organization_email_recipients"].find(query))
 
 
 def _send_to_webhook(webhook_url: str, payload: dict) -> bool:
@@ -232,6 +241,7 @@ def send_report_email(
     payload: dict,
     org_id: Optional[str] = None,
     webhook_url: Optional[str] = None,
+    deal_id: Optional[str] = None,
 ) -> dict:
     """
     Send an email for the given report_type to all eligible recipients.
@@ -250,6 +260,11 @@ def send_report_email(
     webhook_url : str, optional
         Override the default TESTING_N8N_HOOK (useful for per-report-type routing
         in future; for now the service always falls back to TESTING_N8N_HOOK).
+    deal_id : str, optional
+        When provided, only recipients whose ``allowed_deal_ids`` list contains
+        this deal_id will receive the email. Recipients without the deal_id are
+        excluded at the query level. If omitted, no deal-level filtering is
+        applied (existing behaviour).
 
     Returns
     -------
@@ -315,8 +330,8 @@ def send_report_email(
                 )
                 continue
 
-            # Step 3 – get subscribed recipients
-            recipients = _get_recipients(db, org_id_str, report_type)
+            # Step 3 – get subscribed recipients (filtered by deal_id if provided)
+            recipients = _get_recipients(db, org_id_str, report_type, deal_id=deal_id)
             if not recipients:
                 logger.info(
                     "Org '%s' has no active recipients for '%s' — skipping.",

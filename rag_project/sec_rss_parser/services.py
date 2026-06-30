@@ -277,7 +277,7 @@ def send_webhook_notification(webhook_url, payload, notification_type="notificat
 # Below fucntion is still use in new fetch form by cik flow
 
 
-def send_summary_email_via_webhook(summary_doc_url, company_name, form_type, cik_number, sec_url, accession_number, summary_kind: str, l1_headline: str = None, l2_brief: str = None, l3_detailed: str = None, ticker: str = None, filing_date=None, matched_cik_label: str = None, form_affects_deal: bool = None, target_ticker: str = None, target_name: str = None, acquirer_ticker: str = None, acquirer_name: str = None, discovery_note: str = None, dry_run: bool = False):
+def send_summary_email_via_webhook(summary_doc_url, company_name, form_type, cik_number, sec_url, accession_number, summary_kind: str, l1_headline: str = None, l2_brief: str = None, l3_detailed: str = None, ticker: str = None, filing_date=None, matched_cik_label: str = None, form_affects_deal: bool = None, target_ticker: str = None, target_name: str = None, acquirer_ticker: str = None, acquirer_name: str = None, discovery_note: str = None, dry_run: bool = False, deal_id: str = None):
     """Generate 8-K/EX-99.1 summary email HTML and send via N8N webhook. Subject uses deal target[/acquirer]; matched_cik_label is '(target)' or '(acquirer)' for Parent/Target Form in subject."""
     try:
         subject, html_email = generate_8k_99_1_summary_email_html(
@@ -346,7 +346,8 @@ def send_summary_email_via_webhook(summary_doc_url, company_name, form_type, cik
         log_and_print(f"📤 Sending org-aware email ({_report_type})")
         result_dispatch = send_report_email(
             report_type=_report_type,
-            payload=payload
+            payload=payload,
+            deal_id=deal_id,
         )
         log_and_print(
             f"✅ Org-aware email done — orgs_sent={result_dispatch['orgs_sent']}/{result_dispatch['orgs_processed']}"
@@ -2798,6 +2799,7 @@ class SECFeedProcessor:
                                                     "acquirer_ticker"),
                                                 acquirer_name=deal_tickers.get(
                                                     "acquirer_name"),
+                                                deal_id=deal_id_str,
                                             )
                                             log_and_print(
                                                 f"📧 8-K summary email sent via webhook (docx link included)")
@@ -2872,6 +2874,7 @@ class SECFeedProcessor:
                                                     "acquirer_ticker"),
                                                 acquirer_name=deal_tickers.get(
                                                     "acquirer_name"),
+                                                deal_id=deal_id_str,
                                             )
                                             log_and_print(
                                                 f"📧 EX-99.1 summary email sent via webhook (docx link included)")

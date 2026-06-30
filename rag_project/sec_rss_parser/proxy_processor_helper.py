@@ -1051,7 +1051,8 @@ def send_summary_email_notification_v2(filing_summary):
                 "📤 Sending org-aware email (sec_background_summary_proxy)")
             result_dispatch = send_report_email(
                 report_type="sec_background_summary_proxy",
-                payload=payload
+                payload=payload,
+                deal_id=deal_id
             )
             logger.info(
                 "✅ Org-aware email done — orgs_sent=%s/%s",

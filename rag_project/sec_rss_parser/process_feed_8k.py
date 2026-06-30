@@ -876,7 +876,8 @@ class EightKFeedProcessor:
             if document_kind == "Definitive Merger Agreement" and is_us_listed and market_cap_gt_100m:
                 # Fetch deal details when CIK matches an existing deal
                 deal_details = None
-                skip_processing = False  # True when deal already has a real sec_url (already processed)
+                # True when deal already has a real sec_url (already processed)
+                skip_processing = False
                 if item_data.get('cik_matches_deal') and item_data.get('deal_id'):
                     try:
                         from bson import ObjectId
@@ -899,12 +900,14 @@ class EightKFeedProcessor:
                                 'acquirer_ticker': getattr(matched_deal, 'acquirer_ticker', '') or '',
                                 'matched_cik_label': item_data.get('matched_cik_label', ''),
                             }
-                            existing_sec_url = getattr(matched_deal, 'sec_url', None) or ''
+                            existing_sec_url = getattr(
+                                matched_deal, 'sec_url', None) or ''
                             skip_processing = bool(existing_sec_url)
                             logger.info(
                                 f"{LOG_PREFIX} :_process_ex21_filing: accession=%s step=deal_details_fetched deal_id=%s target=%s acquirer=%s sec_url=%s skip_processing=%s",
                                 accession_number, item_data['deal_id'],
-                                deal_details.get('target_name'), deal_details.get('acquire_name'),
+                                deal_details.get('target_name'), deal_details.get(
+                                    'acquire_name'),
                                 existing_sec_url[:60] if existing_sec_url else None, skip_processing)
                     except Exception as deal_e:
                         logger.warning(
@@ -1670,7 +1673,8 @@ class EightKFeedProcessor:
 
             send_report_email(
                 report_type="sec_form_type_proxy_10k_q_425",
-                payload=payload
+                payload=payload,
+                deal_id=item_data.get('deal_id')
             )
             logger.info(
                 f"{LOG_PREFIX} :_send_8k_summary_email: accession=%s step=org_aware_sent", accession_number)
@@ -1740,7 +1744,8 @@ class EightKFeedProcessor:
 
             send_report_email(
                 report_type="sec_all_other_forms",
-                payload=payload
+                payload=payload,
+                deal_id=item_data.get('deal_id')
             )
             logger.info(
                 f"{LOG_PREFIX} :_send_ex99_summary_email: accession=%s step=org_aware_sent", accession_number)
