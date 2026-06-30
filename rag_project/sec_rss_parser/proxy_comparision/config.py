@@ -797,6 +797,132 @@ _TOPIC_COMPATIBLE = {
     "dates": {"dates", "sh_approval"},
 }
 
+_CLOSING_WORD_RE = re.compile(
+    r'\b(?:clos(?:e[ds]?|ing)|complet(?:e[ds]?|ion)|consummat(?:e[ds]?|ion))\b', re.I)
+_TIMEFRAME_RE = re.compile(
+    r'(?:Q[1-4]\b|first\s+half|second\s+half|year[\-\s]end|\bmid[\-\s]20'
+    r'|early\s+20|late\s+20|\b20\d{2}\b|(?:first|second|third|fourth)\s+quarter)', re.I)
+_GUIDANCE_INTENT_RE = re.compile(
+    r'\b(?:expect(?:s|ed)?|anticipat(?:e[ds]?|ion)|believ(?:e[ds]?)|intend[ds]?'
+    r'|target(?:ed|ing)?|plan(?:s|ned|ning)?|project(?:ed|s)?|on\s+track'
+    r'|working\s+to)\b', re.I)
+
+
+_TIMING_HEADING_RE = re.compile(
+    # "Timing of the Merger"
+    r'(?:timing\s+of\s+(?:the\s+)?(?:merg|clos|transact|acqui)'
+    # "Expected Completion"
+    r'|(?:expected|anticipated|estimated)\s+(?:timing|completion|closing)'
+    # Q&A: "When do...expect"
+    r'|when\s+(?:do|will|is).{0,30}(?:expect|complete|close|consummat)'
+    r')', re.I)
+
+# Sections most likely to contain closing guidance, even when heading doesn't say "timing".
+# Matched by section_id (canonical) or raw_title regex (for rejected/other sections).
+_GUIDANCE_LIKELY_SECTION_IDS = {"summary", "merger_agreement_summary", "regulatory",
+                                "closing_conditions"}
+_GUIDANCE_LIKELY_HEADING_RE = re.compile(
+    r'(?:the\s+mergers?\b|questions\s+and\s+answers|letter\s+to\s+(?:the\s+)?stockholders'
+    r'|summary\s+term\s+sheet|overview\s+of\s+the)', re.I)
+
+
+def _find_closing_guidance_candidates(doc: CanonicalDocument,
+                                      exclude_text: str = "",
+                                      max_chars: int = 5000) -> List[str]:
+    """Scan ALL blocks for closing guidance using three independent strategies:
+
+    Strategy 1 (word-level): closing word + timeframe + intent signal co-occurrence.
+        Candidates with intent words (expect, anticipate, etc.) are prioritized.
+        For blocks > 2000 chars, extracts a ~500-char window around the match.
+
+    Strategy 2 (section-heading): find sections whose heading mentions timing/completion
+        (e.g., "Expected Timing of the Mergers") and pull their content blocks.
+        This catches guidance even when word-level regex fails.
+
+    Strategy 3 (likely-section): scan blocks in known high-value sections (Q&A, Summary,
+        The Merger, Regulatory, Letter to Stockholders) with a relaxed two-signal test
+        (closing word + timeframe, no intent word required). The section context itself
+        provides the "this is probably guidance" signal.
+    """
+    scored: List[tuple] = [
+    ]  # (priority, length, text) — lower priority = better
+    seen_texts: set = set()
+
+    # --- Strategy 1: Word-level co-occurrence scan (all blocks) ---
+    for b in doc.blocks:
+        t = b.text.strip()
+        if not t or b.type == "heading":
+            continue
+        if not (_CLOSING_WORD_RE.search(t) and _TIMEFRAME_RE.search(t)):
+            continue
+        if len(t) <= 2000:
+            if t in exclude_text:
+                continue
+            text = t
+        else:
+            # Long block: extract a window around the closing-word match
+            text = None
+            for m in _CLOSING_WORD_RE.finditer(t):
+                start = max(0, m.start() - 250)
+                end = min(len(t), m.end() + 250)
+                snippet = t[start:end].strip()
+                if _TIMEFRAME_RE.search(snippet) and snippet not in exclude_text:
+                    text = snippet
+                    break
+            if text is None:
+                continue
+        # Score: blocks with intent words are much more likely to be actual guidance
+        has_intent = bool(_GUIDANCE_INTENT_RE.search(text))
+        priority = 0 if has_intent else 1
+        scored.append((priority, len(text), text))
+        seen_texts.add(text)
+
+    # --- Strategy 2: Section-heading scan (timing-specific headings) ---
+    # Sections titled "Expected Timing of the Mergers" etc. almost certainly
+    # contain guidance. Pull their content blocks as top-priority candidates.
+    for section in doc.sections:
+        if not _TIMING_HEADING_RE.search(section.raw_title):
+            continue
+        for b in section.blocks:
+            t = b.text.strip()
+            if not t or b.type == "heading" or t in seen_texts:
+                continue
+            if len(t) > 2000 or t in exclude_text:
+                continue
+            # Highest priority — the section heading is the signal
+            scored.append((-1, len(t), t))
+            seen_texts.add(t)
+
+    # --- Strategy 3: Likely-section scan (relaxed two-signal test) ---
+    # Q&A, Summary, The Merger, Letter to Stockholders, Regulatory sections
+    # often contain guidance. Use relaxed matching (closing + timeframe, no intent).
+    for section in doc.sections:
+        is_likely = (section.section_id in _GUIDANCE_LIKELY_SECTION_IDS
+                     or _GUIDANCE_LIKELY_HEADING_RE.search(section.raw_title))
+        if not is_likely:
+            continue
+        for b in section.blocks:
+            t = b.text.strip()
+            if not t or b.type == "heading" or t in seen_texts:
+                continue
+            if len(t) > 2000 or t in exclude_text:
+                continue
+            if _CLOSING_WORD_RE.search(t) and _TIMEFRAME_RE.search(t):
+                # Same priority as intent-matched
+                scored.append((0, len(t), t))
+                seen_texts.add(t)
+
+    # Best priority first, then shortest
+    scored.sort(key=lambda x: (x[0], x[1]))
+    result = []
+    total = 0
+    for priority, length, text in scored[:5]:
+        if total + length > max_chars:
+            continue
+        result.append(text)
+        total += length
+    return result
+
 
 # Map section IDs to their relevant topics for extraction
 _SECTION_ID_TO_TOPICS = {

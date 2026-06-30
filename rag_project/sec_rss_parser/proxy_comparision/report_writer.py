@@ -15,6 +15,7 @@ from .config import (
     MODEL_STANDARD, MODEL_OPUS,
     SECTION_CONFIGS, SECTION_PROMPTS, SECTION_ORDER, SECTION_HEADERS,
     _TOPIC_TO_SECTION_IDS, CHANGE_OPENING_PROMPT, _PRESERVE_UPPER,
+    _find_closing_guidance_candidates
 )
 from .classifier import _get_blocks_by_topic
 from .extractor import _get_section_text_for_extraction
@@ -108,37 +109,19 @@ def _generate_section(client: Anthropic, config: dict, doc: CanonicalDocument,
                 section_text = section_text + \
                     "\n\n---\n\n" + "\n\n".join(extra)
 
-    # Closing guidance supplement: scan all blocks for management timing language
-    # (often in Q&A or summary sections tagged vote_info/general, not closing)
+     # Closing guidance supplement: co-occurrence scan for closing word + timeframe.
+    # Scans ALL blocks regardless of topic classification. Over-inclusivity is OK —
+    # the LLM prompt filters false positives (e.g., contractual outside dates).
     if config["key"] == "closing":
-        _GUIDANCE_RE = re.compile(
-            r'(?:expect(?:s|ed)?\s+to\s+(?:complete|close|consummate)'
-            r'|anticipate[ds]?\s+(?:closing|to\s+close|to\s+complete)'
-            r'|closing\s+is\s+(?:expected|anticipated))',
-            re.IGNORECASE
-        )
-        if not _GUIDANCE_RE.search(section_text):
-            guidance_blocks = []
-            for b in doc.blocks:
-                t = b.text.strip()
-                if not t or b.type == "heading":
-                    continue
-                if _GUIDANCE_RE.search(t):
-                    guidance_blocks.append(t)
-            if guidance_blocks:
-                guidance_blocks.sort(key=len)
-                extra = []
-                extra_total = 0
-                for t in guidance_blocks[:3]:
-                    if extra_total + len(t) > 5000:
-                        continue
-                    extra.append(t)
-                    extra_total += len(t)
-                if extra:
-                    print(
-                        f"      closing guidance scan: added {extra_total:,} chars from {len(extra)} blocks")
-                    section_text = section_text + \
-                        "\n\n---\n\n" + "\n\n".join(extra)
+        guidance = _find_closing_guidance_candidates(
+            doc, exclude_text=section_text)
+        if guidance:
+            total_chars = sum(len(t) for t in guidance)
+            print(
+                f"      closing guidance scan: added {total_chars:,} chars from {len(guidance)} blocks")
+            section_text = section_text + \
+                "\n\n---\n\n[CLOSING GUIDANCE CANDIDATES]\n\n" + \
+                "\n\n".join(guidance)
 
     # Clean source text for reference output (strip topic/section tags)
     source_clean = re.sub(

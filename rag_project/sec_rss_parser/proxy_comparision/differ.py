@@ -18,7 +18,7 @@ from .config import (
     FACT_CATEGORY_MAP, _COMPARISON_PROMPTS, _COMPARISON_RULES,
     _CATEGORY_TO_SECTIONS, _CATEGORY_TO_TOPICS,
     BACKGROUND_DIFF_INTERPRET_PROMPT, _CATEGORY_KEYWORD_PATTERNS,
-    get_form_label,
+    get_form_label, _find_closing_guidance_candidates
 )
 from .classifier import _get_blocks_by_topic
 from .section_mapper import get_section_by_id, get_sections_by_ids
@@ -859,40 +859,21 @@ def _gather_category_text(doc: CanonicalDocument, category: str, max_chars: int 
             print(
                 f"    Layer 2.7: added {reg_total:,} chars of regulatory-status blocks for {category}")
 
-    # === LAYER 2.8: Closing guidance scan ===
-    # Management closing guidance ("expect to complete", "anticipated to close") often
-    # lives in Q&A or summary sections, not in the closing/termination section.
+     # === LAYER 2.8: Closing guidance co-occurrence scan ===
+    # Scan ALL blocks for closing word + timeframe co-occurrence. Always runs
+    # (no "if not found" gate) — over-inclusivity is fine, LLM filters.
     if category == "closing" and total < max_chars - 2000:
         gathered_so_far = "\n".join(parts)
-        _GUIDANCE_RE = re.compile(
-            r'(?:expect(?:s|ed)?\s+to\s+(?:complete|close|consummate)'
-            r'|anticipate[ds]?\s+(?:closing|to\s+close|to\s+complete)'
-            r'|closing\s+is\s+(?:expected|anticipated))',
-            re.IGNORECASE
-        )
-        if not _GUIDANCE_RE.search(gathered_so_far):
-            candidates = []
-            for b in doc.blocks:
-                if b.index in used_block_indices:
-                    continue
-                t = b.text.strip()
-                if not t or b.type == "heading":
-                    continue
-                if _GUIDANCE_RE.search(t):
-                    candidates.append((b.index, t))
-            candidates.sort(key=lambda x: len(x[1]))
-            cg_budget = min(max_chars - total, 5000)
-            cg_total = 0
-            for idx, t in candidates[:3]:
-                if cg_total + len(t) > cg_budget:
-                    continue
-                parts.append(t)
-                cg_total += len(t)
-                total += len(t)
-                used_block_indices.add(idx)
-            if cg_total:
-                print(
-                    f"    Layer 2.8: added {cg_total:,} chars of closing-guidance blocks for {category}")
+        guidance = _find_closing_guidance_candidates(
+            doc, exclude_text=gathered_so_far)
+        cg_total = 0
+        for t in guidance:
+            parts.append(t)
+            cg_total += len(t)
+            total += len(t)
+        if cg_total:
+            print(
+                f"    Layer 2.8: added {cg_total:,} chars of closing-guidance blocks for {category}")
 
     # === LAYER 3: Topic-tagged blocks (NON-DETERMINISTIC safety net) ===
     # Only used when deterministic layers produced < 3K chars,
