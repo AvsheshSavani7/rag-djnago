@@ -4,6 +4,9 @@ config.py — All constants, prompts, and configuration for the Proxy Comp Pipel
 
 import os
 import re
+from .models import CanonicalDocument
+from typing import List
+
 
 # =============================================================================
 # PATH CONFIGURATION
