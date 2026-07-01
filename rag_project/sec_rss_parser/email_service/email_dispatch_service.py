@@ -17,7 +17,8 @@ send_report_email(report_type, payload, org_id=None, deal_id=None)
 
 MongoDB collections (default DB)
 ---------------------------------
-- organizations             : _id (ObjectId), status ("active"|...), name
+- organizations             : _id (ObjectId), status ("active"|...), name,
+                              add_cc (bool, optional — defaults to False if absent)
 - organization_notification_settings
                             : organization_id (str), enabled_report_types (list)
 - organization_email_recipients
@@ -82,15 +83,12 @@ def _build_email_audit_logger() -> logging.Logger:
 
 _email_audit_logger = _build_email_audit_logger()
 
-# Static CC addresses appended to every outgoing org email (excluded for our
-# internal org to avoid duplicate notifications to the Hyperion team).
+# Static CC addresses appended to outgoing org emails when the org's
+# add_cc flag is True. If add_cc is False or absent, CC is empty.
 CC_EMAILS = [
     "kaushal@hyperiontechnologies.ai",
     "josh@hyperiontechnologies.ai",
 ]
-
-# org_id that should NOT receive the static CC (internal Hyperion org)
-_INTERNAL_ORG_ID = "6a031d87e4f1d72367bd2f92"
 
 
 # ---------------------------------------------------------------------------
@@ -357,7 +355,7 @@ def send_report_email(
                 "org_id": org_id_str,
                 "org_name": org_name,
                 "recipients": recipient_list,
-                "cc": CC_EMAILS if org_id_str != _INTERNAL_ORG_ID else [],
+                "cc": CC_EMAILS if org.get("add_cc") else [],
             }
 
             logger.info(
