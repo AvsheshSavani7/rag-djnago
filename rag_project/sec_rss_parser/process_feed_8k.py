@@ -1627,6 +1627,16 @@ class EightKFeedProcessor:
 
             deal_tickers = get_deal_tickers(
                 item_data.get('deal_id'), item_data.get('cik_number'))
+            # Fallback: when no deal_id, use company_details populated by EX-2.1 GPT analysis
+            if not any(deal_tickers.values()):
+                cd = item_data.get('company_details') or {}
+                deal_tickers = {
+                    'ticker': cd.get('target_ticker'),
+                    'target_ticker': cd.get('target_ticker'),
+                    'target_name': cd.get('target_name'),
+                    'acquirer_ticker': cd.get('acquirer_ticker'),
+                    'acquirer_name': cd.get('acquirer_name'),
+                }
             email_company_name = item_data.get(
                 'email_company_name') or item_data.get('company_name') or ''
             matched_cik_label = item_data.get('matched_cik_label')
@@ -1702,6 +1712,16 @@ class EightKFeedProcessor:
 
             deal_tickers = get_deal_tickers(
                 item_data.get('deal_id'), item_data.get('cik_number'))
+            # Fallback: when no deal_id, use company_details populated by EX-2.1 GPT analysis
+            if not any(deal_tickers.values()):
+                cd = item_data.get('company_details') or {}
+                deal_tickers = {
+                    'ticker': cd.get('target_ticker'),
+                    'target_ticker': cd.get('target_ticker'),
+                    'target_name': cd.get('target_name'),
+                    'acquirer_ticker': cd.get('acquirer_ticker'),
+                    'acquirer_name': cd.get('acquirer_name'),
+                }
             email_company_name = item_data.get(
                 'email_company_name') or item_data.get('company_name') or ''
             matched_cik_label = item_data.get('matched_cik_label')
