@@ -546,6 +546,7 @@ Do not reply with anything except true or false."""},
 
             response = openai.chat.completions.create(
                 model="gpt-5.2",
+                reasoning_effort="high",
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": [{
