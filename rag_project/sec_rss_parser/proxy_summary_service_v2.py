@@ -17,7 +17,7 @@ from dotenv import load_dotenv
 from docx import Document
 from proxy_processor.merger_background_8_cleaned_format import ProxyBackgroundAnalyzer, DOCXFormatter
 from sec_rss_parser.agentic_sec_processor_v2 import S3Service
-from proxy_processor.arb_summary_doc_new_02_Dec_25 import QueryProcessor
+from proxy_processor.arb_summary_doc_new_02_Dec_25 import QueryProcessor, _QUESTION_SECTION_FILTERS
 from sec_rss_parser.models import SECFilingSummary
 import re
 # Helper functions (copied from arb_summary_doc_new_02_Dec_25.py to avoid circular imports)
@@ -384,10 +384,21 @@ class ProxySummaryServiceV2:
                 extraction_result['extraction_text']
             )
 
+            # Extract party legend for DOCX rendering
+            party_legend = ""
+            try:
+                party_legend = self.analyzer.extract_party_legend(
+                    extraction_result['extraction_text']
+                )
+            except Exception as legend_err:
+                logger.warning(
+                    f"Party legend extraction failed (non-fatal): {legend_err}")
+
             return {
                 "success": True,
                 "extraction_result": extraction_result,
-                "strict_summary_result": strict_summary_result
+                "strict_summary_result": strict_summary_result,
+                "party_legend": party_legend,
             }
 
         except Exception as e:
@@ -467,6 +478,18 @@ class ProxySummaryServiceV2:
                     # Search using detailed prompt for better retrieval
                     results = self._search_chunks_by_filing_id(
                         processor, prompt_question, sec_filing_summary_id)
+
+                    # Per-question section-specific chunks (filtered by sec_filing_summary_id)
+
+                    if question_key in _QUESTION_SECTION_FILTERS:
+                        q_section_chunks = self._fetch_chunks_by_title_filter(
+                            processor, sec_filing_summary_id,
+                            _QUESTION_SECTION_FILTERS[question_key]
+                        )
+                        logger.info(
+                            f"{question_key}: fetched {len(q_section_chunks)} section-specific chunks"
+                        )
+                        results = results + q_section_chunks
 
                     # Combine base context chunks with per-question results (deduplicated)
                     combined_results = self._deduplicate_chunks(
@@ -801,6 +824,12 @@ class ProxySummaryServiceV2:
                     'extraction_result', {})
                 strict_summary_result = merger_background_results.get(
                     'strict_summary_result', {})
+                party_legend = merger_background_results.get(
+                    'party_legend', '')
+
+                # Party Identification Key (full proxy only, not SC 14D chronological)
+                if party_legend and not chronological_summary_only:
+                    formatter.add_party_legend(party_legend)
 
                 # Chronological Summary (SC 14D path skips prior client-deliverables banner)
                 doc.add_heading('Chronological Summary', 1)

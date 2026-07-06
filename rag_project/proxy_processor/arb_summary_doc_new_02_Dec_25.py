@@ -33,6 +33,36 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# Per-question section title filters for targeted chunk retrieval
+_QUESTION_SECTION_FILTERS = {
+    "question_1": [
+        "SPECIAL MEETING", "MEETING OF STOCKHOLDERS", "MEETING OF SHAREHOLDERS",
+        "RECORD DATE", "VOTING", "PROXY STATEMENT",
+    ],
+    "question_2": [
+        "THE MERGER AGREEMENT", "MERGER AGREEMENT", "TERMS OF THE MERGER",
+        "CONSIDERATION", "TREATMENT OF EQUITY", "EQUITY AWARDS",
+        "THE MERGER", "THE MERGERS", "SUMMARY",
+    ],
+    "question_3": [
+        "THE MERGER", "THE MERGERS", "SUMMARY", "SUMMARY TERM SHEET",
+        "LETTER TO STOCKHOLDERS", "LETTER TO SHAREHOLDERS",
+    ],
+    "question_4": [
+        "EMPLOYEE MATTERS", "EMPLOYEE", "LABOR", "UNION",
+        "LITIGATION", "LEGAL PROCEEDINGS", "GO-SHOP", "NO-SHOP",
+        "THE MERGER AGREEMENT", "MERGER AGREEMENT",
+        "INTERESTS OF", "INTERESTS IN THE MERGER",
+    ],
+    "question_5": [
+        "THE MERGER", "THE MERGERS", "SUMMARY", "SUMMARY TERM SHEET",
+        "LETTER TO STOCKHOLDERS", "LETTER TO SHAREHOLDERS",
+        "CLOSING", "CONDITIONS TO CLOSING", "CONDITIONS TO THE CLOSING",
+        "CONDITIONS TO COMPLETION", "CONDITIONS TO CONSUMMATION",
+        "REGULATORY", "TIMING",
+    ],
+}
+
 
 class QueryProcessor:
     """Service to process questions and search for relevant content in Pinecone"""
@@ -148,7 +178,63 @@ class QueryProcessor:
             logger.error(f"Error searching general chunks: {str(e)}")
             return []
 
-    def search_similar_chunks(self, query: str, deal_id: str, top_k: int = 8) -> List[Dict]:
+    _QA_TITLE_FILTERS = [
+        "QUESTIONS AND ANSWERS",
+        "QUESTIONS & ANSWERS",
+        "QUESTIONS AND ANSWERS ABOUT THE SPECIAL MEETING AND THE MERGER",
+        "QUESTIONS AND ANSWERS ABOUT THE SPECIAL MEETING",
+        "QUESTIONS AND ANSWERS ABOUT THE PROPOSALS AND THE SPECIAL MEETING",
+        "QUESTIONS AND ANSWERS ABOUT THE MERGER",
+        "QUESTIONS AND ANSWERS ABOUT THE MEETINGS",
+    ]
+
+    _REGULATORY_TITLE_FILTERS = [
+        "REGULATORY", "ANTITRUST", "GOVERNMENT APPROVAL", "GOVERNMENTAL APPROVAL",
+        "REQUIRED APPROVAL", "CONDITIONS TO CLOSING", "CONDITIONS TO THE CLOSING",
+        "CONDITIONS TO THE MERGER", "CONDITIONS TO COMPLETION",
+        "CONDITIONS TO THE COMPLETION", "CONDITIONS TO CONSUMMATION",
+        "HSR ACT", "HART-SCOTT-RODINO", "FERC", "FEDERAL ENERGY", "CFIUS",
+        "FOREIGN INVESTMENT", "NATIONAL SECURITY", "FCC", "FEDERAL COMMUNICATIONS",
+        "STB", "SURFACE TRANSPORTATION", "PUBLIC UTILITY", "PUBLIC SERVICE COMMISSION",
+        "INSURANCE DEPARTMENT", "INSURANCE COMMISSION", "DEPARTMENT OF INSURANCE",
+        "BANKING", "BANK REGULATORY", "OCC", "FDIC", "FEDERAL RESERVE",
+        "EUROPEAN COMMISSION", "COMPETITION AND MARKETS", "ACCC", "CADE",
+        "SAMR", "MOFCOM",
+    ]
+
+    def _fetch_chunks_by_section_titles(self, deal_id: str, title_filters: List[str], top_k: int = 999) -> List[Dict]:
+        """Fetch chunks whose section title contains any of the given filter strings."""
+        try:
+            dummy_vector = [0.0] * 3072
+            search_response = self.index.query(
+                vector=dummy_vector, top_k=top_k,
+                include_metadata=True, filter={"deal_id": deal_id}
+            )
+            results = []
+            for match in search_response.matches:
+                chunk_title = match.metadata.get('title', '')
+                if any(tf.lower() in chunk_title.lower() for tf in title_filters):
+                    results.append({
+                        'score': match.score,
+                        'text': match.metadata.get('original_text', ''),
+                        'title': chunk_title,
+                        'id': match.id
+                    })
+            logger.info(f"Section title filter: {len(results)} chunks matched from {len(title_filters)} filters")
+            return results
+        except Exception as e:
+            logger.error(f"Error fetching chunks by section titles: {str(e)}")
+            return []
+
+    def _fetch_chunks_by_title_filter(self, deal_id: str, top_k: int = 999) -> List[Dict]:
+        """Fetch Q&A section chunks by title filter."""
+        return self._fetch_chunks_by_section_titles(deal_id, self._QA_TITLE_FILTERS, top_k)
+
+    def _fetch_regulatory_chunks(self, deal_id: str, top_k: int = 999) -> List[Dict]:
+        """Fetch chunks from regulatory-related sections by title filter."""
+        return self._fetch_chunks_by_section_titles(deal_id, self._REGULATORY_TITLE_FILTERS, top_k)
+
+    def search_similar_chunks(self, query: str, deal_id: str, top_k: int = 8, question_key: str = "") -> List[Dict]:
         """Search for similar chunks using multiple search strategies"""
         try:
             # Create query embedding
@@ -160,6 +246,23 @@ class QueryProcessor:
             preamble_results = self.search_preamble_chunks(
                 query_embedding, deal_id, top_k)
             all_results.extend(preamble_results)
+
+            # 1.2. Search for Q&A section chunks by title
+            logger.info("Step 1.2: Searching for Q&A chunks")
+            qa_results = self._fetch_chunks_by_title_filter(deal_id)
+            all_results.extend(qa_results)
+
+            # 1.3. Search for regulatory-related chunks by title
+            logger.info("Step 1.3: Searching for regulatory section chunks")
+            regulatory_results = self._fetch_regulatory_chunks(deal_id)
+            all_results.extend(regulatory_results)
+
+            # 1.4. Per-question section-specific chunks
+            if question_key and question_key in _QUESTION_SECTION_FILTERS:
+                logger.info(f"Step 1.4: Searching for {question_key}-specific section chunks")
+                q_section_results = self._fetch_chunks_by_section_titles(
+                    deal_id, _QUESTION_SECTION_FILTERS[question_key])
+                all_results.extend(q_section_results)
 
             # 2. Always search for general chunks with deal_id filter
             logger.info("Step 2: Searching for general chunks")
@@ -176,9 +279,10 @@ class QueryProcessor:
                     seen_ids.add(result['id'])
                     deduplicated_results.append(result)
 
-            logger.info(
-                f"Total results before deduplication: {len(all_results)}")
+            logger.info(f"Total results before deduplication: {len(all_results)}")
             logger.info(f"Final unique results: {len(deduplicated_results)}")
+            logger.info(f"Question: {query}")
+            logger.info(f"Chunks for That: {deduplicated_results}")
             return deduplicated_results
 
         except Exception as e:
