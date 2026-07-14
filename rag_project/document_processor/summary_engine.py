@@ -844,6 +844,10 @@ def process_clause_config(clause_config, clause_name, schema_data, provider="ope
                 prompt += f"\n\nLimit the response to {clause_config['max_words']} words."
             if clause_config.get("format_style"):
                 prompt += f"\n\nFormat the response in a {clause_config['format_style']} style."
+             # Appended DEAD LAST (after excerpts, preamble, and the generic entity-resolution
+            # block) so a clause can override those with a final, highest-recency instruction.
+            if clause_config.get("final_instruction"):
+                prompt += f"\n\n{clause_config['final_instruction']}"
         except KeyError as e:
             if "fallback_prompt" in clause_config:
                 prompt = clause_config["fallback_prompt"]
