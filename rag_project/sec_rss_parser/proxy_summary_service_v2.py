@@ -75,7 +75,6 @@ def _parse_extraction_for_document_a(extraction_text: str) -> List[Tuple[str, st
                     current_content = []
                 else:
                     current_section = None
-                current_section = None
         elif current_section:
             current_content.append(line)
 
@@ -83,6 +82,142 @@ def _parse_extraction_for_document_a(extraction_text: str) -> List[Tuple[str, st
         required_sections[current_section] = '\n'.join(current_content)
 
     return [(k, v) for k, v in required_sections.items() if v]
+
+
+_CLIENT_DELIVERABLE_SECTION_KEYS = [
+    '2. Starting Point',
+    '3. Process Structure',
+    '4. Bidder Universe',
+    '5. Complete Bid Timeline',
+    '6. Sales Process Metrics',
+    '7. Final Round Analysis',
+    '8. Board Selection Rationale',
+    '9. Risk Analysis - Regulatory',
+    '10. Risk Analysis - Financing',
+    '13. Key Dates Summary',
+]
+
+
+def _debug_log_client_deliverable_extraction(
+    extraction_text: str,
+    sections: List[Tuple[str, str]],
+) -> None:
+    """Log diagnostics when client-deliverable extraction sections are empty."""
+    if not extraction_text:
+        logger.warning(
+            "client_deliverable_extraction: extraction_text is empty or None"
+        )
+        return
+
+    lines = extraction_text.split('\n')
+    h2_headers = [line.strip() for line in lines if line.startswith('## ')]
+    h1_headers = [
+        line.strip()
+        for line in lines
+        if line.startswith('# ') and not line.startswith('## ')
+    ]
+    numbered_headers = [
+        line.strip()
+        for line in lines
+        if re.match(r'^\d+\.\s', line.strip()) and not line.startswith('## ')
+    ]
+
+    matched_titles = {title for title, _ in sections}
+    missing_titles = [
+        key for key in _CLIENT_DELIVERABLE_SECTION_KEYS
+        if key not in matched_titles
+    ]
+
+    logger.info(
+        "client_deliverable_extraction: extraction_text length=%s chars, "
+        "parsed_sections=%s",
+        len(extraction_text),
+        len(sections),
+    )
+
+    if sections:
+        for title, content in sections:
+            logger.info(
+                "client_deliverable_extraction: matched section %r (%s chars)",
+                title,
+                len(content),
+            )
+    else:
+        logger.warning(
+            "client_deliverable_extraction: no sections parsed — "
+            "heading will render with no body content"
+        )
+
+    logger.info(
+        "client_deliverable_extraction: headers found — "
+        "## count=%s, # count=%s, bare numbered=%s",
+        len(h2_headers),
+        len(h1_headers),
+        len(numbered_headers),
+    )
+
+    if h2_headers:
+        preview = h2_headers[:15]
+        logger.info(
+            "client_deliverable_extraction: ## headers (up to 15): %s",
+            preview,
+        )
+    else:
+        logger.warning(
+            "client_deliverable_extraction: no '## ' headers in extraction_text; "
+            "parser only recognizes lines starting with '## '"
+        )
+        if h1_headers:
+            logger.info(
+                "client_deliverable_extraction: '# ' headers (up to 10): %s",
+                h1_headers[:10],
+            )
+        if numbered_headers:
+            logger.info(
+                "client_deliverable_extraction: bare numbered lines (up to 10): %s",
+                numbered_headers[:10],
+            )
+
+    if missing_titles:
+        logger.info(
+            "client_deliverable_extraction: required sections not matched: %s",
+            missing_titles,
+        )
+
+    # Detect variant ## headers that should match via number prefix but may not
+    # (e.g. "## 4. Bidder Universe (Complete Census)").
+    section_num_map = {}
+    for key in _CLIENT_DELIVERABLE_SECTION_KEYS:
+        m = re.match(r'^(\d+)\.', key)
+        if m:
+            section_num_map[m.group(1)] = key
+
+    variant_h2_unmatched = []
+    for header in h2_headers:
+        section_name = header.replace('##', '').strip()
+        if section_name in _CLIENT_DELIVERABLE_SECTION_KEYS:
+            continue
+        m = re.match(r'^(\d+)\.', section_name)
+        if m and m.group(1) in section_num_map:
+            canonical = section_num_map[m.group(1)]
+            if canonical not in matched_titles:
+                variant_h2_unmatched.append(
+                    {"raw": section_name, "expected": canonical}
+                )
+
+    if variant_h2_unmatched:
+        logger.warning(
+            "client_deliverable_extraction: variant ## headers present but "
+            "not parsed (check _parse_extraction_for_document_a fallback): %s",
+            variant_h2_unmatched[:10],
+        )
+
+    if not sections:
+        logger.info(
+            "client_deliverable_extraction: extraction_text preview (first 800 chars): "
+            "%s",
+            extraction_text[:800],
+        )
 
 
 # Add parent directory to path for imports
@@ -168,7 +303,11 @@ class ProxySummaryServiceV2:
 
                 filters = [
                     {"title": {"$eq": "The Merger"}},
-                    {"title": {"$eq": "THE MERGER"}}
+                    {"title": {"$eq": "THE MERGER"}},
+                    {"title": {"$eq": "THE TRANSACTION"}},
+                    {"title": {"$eq": "The Transaction"}},
+                    {"title": {"$eq": "THE TRANSACTIONS"}},
+                    {"title": {"$eq": "The Transactions"}},
                 ]
 
                 # Use a dummy vector for filter-only search
@@ -872,6 +1011,8 @@ class ProxySummaryServiceV2:
                     extraction_text = extraction_result['extraction_text']
                     sections = _parse_extraction_for_document_a(
                         extraction_text)
+                    _debug_log_client_deliverable_extraction(
+                        extraction_text, sections)
 
                     for section_title, section_content in sections:
                         doc.add_page_break()
