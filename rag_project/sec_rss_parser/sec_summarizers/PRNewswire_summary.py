@@ -68,6 +68,114 @@ if not ANTHROPIC_API_KEY and __name__ == "__main__":
 PERPLEXITY_API_URL = "https://api.perplexity.ai/chat/completions"
 PERPLEXITY_MODEL = "sonar-pro"
 
+# Phrases in Claude prose refusals that indicate a non-M&A press release.
+_NON_MA_REFUSAL_MARKERS = (
+    "not a merger",
+    "not an m&a",
+    "not an m&a announcement",
+    "not about a merger",
+    "not about an acquisition",
+    "not about a merger or acquisition",
+    "no m&a transaction",
+    "no deal terms",
+    "no merger, acquisition, or deal",
+    "cannot produce the requested",
+    "cannot produce a factual m&a summary",
+    "product launch",
+    "market research",
+    "does not relate to any provided deal context",
+    "no mention of",
+)
+
+
+class NotMergerPressReleaseError(ValueError):
+    """Raised when the article is not an M&A press release and cannot be summarized."""
+
+
+class ArticleContentUnavailableError(ValueError):
+    """Raised when article text could not be retrieved or is an error page."""
+
+
+def _normalize_for_marker_match(text: str) -> str:
+    """Lowercase and strip markdown emphasis for marker matching."""
+    normalized = (text or "").lower()
+    return re.sub(r"\*+", "", normalized)
+
+
+# Phrases indicating fetch failure or error-page content (from HTML or Claude refusal).
+_CONTENT_UNAVAILABLE_MARKERS = (
+    "page unavailable",
+    "page not found",
+    "content is unavailable",
+    "content not accessible",
+    "cannot produce a factual summary",
+    "not successfully retrieved",
+    "no substantive content",
+    "press release text was not available",
+    "error page",
+    "this page is no longer available",
+)
+
+_HTML_ERROR_MARKERS = (
+    "page unavailable",
+    "page not found",
+    "content is unavailable",
+    "this page is no longer available",
+    "the request could not be satisfied",
+    "access denied",
+    "error 404",
+    "404 not found",
+)
+
+
+def _looks_like_content_unavailable(raw: str) -> bool:
+    """True when text or Claude output indicates missing/unavailable article content."""
+    stripped = (raw or "").strip()
+    if not stripped:
+        return True
+    if stripped.startswith("{") or stripped.startswith("["):
+        return False
+    lower = _normalize_for_marker_match(stripped)
+    return any(marker in lower for marker in _CONTENT_UNAVAILABLE_MARKERS)
+
+
+def _looks_like_non_ma_refusal(raw: str) -> bool:
+    """True when Claude returned prose refusing to summarize a non-M&A article."""
+    stripped = (raw or "").strip()
+    if not stripped:
+        return False
+    if stripped.startswith("{") or stripped.startswith("["):
+        return False
+    lower = _normalize_for_marker_match(stripped)
+    return any(marker in lower for marker in _NON_MA_REFUSAL_MARKERS)
+
+
+def _html_looks_like_error_page(html: str, url: str = "") -> bool:
+    """True when raw HTML appears to be an error/unavailable page rather than article content."""
+    if not html or not html.strip():
+        return True
+    lower = html.lower()
+    if any(marker in lower for marker in _HTML_ERROR_MARKERS):
+        return True
+    url_lower = (url or "").lower()
+    if "businesswire.com" in url_lower:
+        if "bw-release-story" not in lower and "bw-release-body" not in lower:
+            if "unavailable" in lower or len(html) < 8000:
+                return True
+    return False
+
+
+def _text_looks_like_fetch_error(text: str) -> bool:
+    """True when extracted article text looks like an error page, not a press release."""
+    if not text or not text.strip():
+        return True
+    lower = _normalize_for_marker_match(text)
+    if any(marker in lower for marker in _HTML_ERROR_MARKERS):
+        return True
+    if len(text.split()) < 40:
+        return any(marker in lower for marker in _CONTENT_UNAVAILABLE_MARKERS)
+    return False
+
 
 SUMMARY_PROMPT = """You are an expert M&A analyst summarizing merger and acquisition press releases from PRNewswire for a merger arbitrage desk.
 
@@ -206,6 +314,47 @@ def _fetch_with_playwright(url: str) -> str:
     return html
 
 
+def _run_fetch_fallbacks(source: str, headers: dict) -> str | None:
+    """Try cloudscraper → Jina → Playwright. Return HTML or None."""
+    html = None
+
+    if _cloudscraper_mod is not None:
+        try:
+            print("  ⚠️  Retrying with cloudscraper...")
+            scraper = _cloudscraper_mod.create_scraper()
+            cs_resp = scraper.get(source, headers=headers, timeout=30)
+            if cs_resp.status_code == 200 and not _html_looks_like_error_page(cs_resp.text, source):
+                html = cs_resp.text
+            elif cs_resp.status_code == 200:
+                print("  ⚠️  cloudscraper returned error-page HTML")
+            else:
+                print(f"  ⚠️  cloudscraper returned HTTP {cs_resp.status_code}")
+        except Exception as e:
+            print(f"  ⚠️  cloudscraper failed: {e}")
+
+    if html is None:
+        try:
+            candidate = _fetch_with_jina(source)
+            if not _html_looks_like_error_page(candidate, source):
+                html = candidate
+            else:
+                print("  ⚠️  Jina Reader returned error-page HTML")
+        except Exception as e:
+            print(f"  ⚠️  Jina Reader failed: {e}")
+
+    if html is None and _playwright_available:
+        try:
+            candidate = _fetch_with_playwright(source)
+            if not _html_looks_like_error_page(candidate, source):
+                html = candidate
+            else:
+                print("  ⚠️  Playwright returned error-page HTML")
+        except Exception as e:
+            print(f"  ⚠️  Playwright failed: {e}")
+
+    return html
+
+
 def fetch_article_text(source: str) -> str:
     """Fetch and extract article text from a press release URL or local file.
 
@@ -224,45 +373,26 @@ def fetch_article_text(source: str) -> str:
         resp = requests.get(source, headers=headers, timeout=30)
 
         html = None
-        if resp.status_code == 200:
+        if resp.status_code == 200 and not _html_looks_like_error_page(resp.text, source):
             html = resp.text
+        elif resp.status_code == 200:
+            print("  ⚠️  HTTP 200 but page looks like error — trying fallbacks...")
+            html = _run_fetch_fallbacks(source, headers)
+            if html is None:
+                raise ArticleContentUnavailableError(
+                    f"Press release content unavailable or error page returned for {source}"
+                )
         elif resp.status_code in (403, 429, 503):
-            # Tier 2: cloudscraper (handles older Cloudflare JS challenges)
-            if _cloudscraper_mod is not None:
-                try:
-                    print(
-                        f"  ⚠️  HTTP {resp.status_code} — retrying with cloudscraper...")
-                    scraper = _cloudscraper_mod.create_scraper()
-                    cs_resp = scraper.get(source, headers=headers, timeout=30)
-                    if cs_resp.status_code == 200:
-                        html = cs_resp.text
-                    else:
-                        print(
-                            f"  ⚠️  cloudscraper returned HTTP {cs_resp.status_code}")
-                except Exception as e:
-                    print(f"  ⚠️  cloudscraper failed: {e}")
-
-            # Tier 3: Jina Reader — routes through trusted infrastructure,
-            # bypassing Cloudflare bot protection that blocks headless browsers.
+            print(f"  ⚠️  HTTP {resp.status_code} — trying fallbacks...")
+            html = _run_fetch_fallbacks(source, headers)
             if html is None:
-                try:
-                    html = _fetch_with_jina(source)
-                except Exception as e:
-                    print(f"  ⚠️  Jina Reader failed: {e}")
-
-            # Tier 4: Playwright headless browser (last resort)
-            if html is None:
-                if _playwright_available:
-                    try:
-                        html = _fetch_with_playwright(source)
-                    except Exception as e:
-                        print(f"  ⚠️  Playwright failed: {e}")
-                if html is None:
-                    print(
-                        f"  ❌  All fetch methods failed for {source}\n"
-                        "  Save the page as HTML from your browser and pass the file path instead."
-                    )
-                    resp.raise_for_status()
+                print(
+                    f"  ❌  All fetch methods failed for {source}\n"
+                    "  Save the page as HTML from your browser and pass the file path instead."
+                )
+                raise ArticleContentUnavailableError(
+                    f"Press release content unavailable or error page returned for {source}"
+                )
         else:
             resp.raise_for_status()
     else:
@@ -306,6 +436,11 @@ def fetch_article_text(source: str) -> str:
     if len(words) > 10000:
         text = " ".join(words[:10000])
 
+    if _text_looks_like_fetch_error(text):
+        raise ArticleContentUnavailableError(
+            f"Press release content unavailable or error page returned for {source}"
+        )
+
     return text
 
 
@@ -333,9 +468,17 @@ def _parse_json_response(raw: str, *, context: str = "Claude response") -> dict:
     raw = re.sub(r"\s*```$", "", raw)
     if not raw:
         raise ValueError(f"{context}: empty response")
+    if _looks_like_content_unavailable(raw):
+        raise ArticleContentUnavailableError(raw[:500])
+    if _looks_like_non_ma_refusal(raw):
+        raise NotMergerPressReleaseError(raw[:500])
     try:
         return json.loads(raw)
     except json.JSONDecodeError as e:
+        if _looks_like_content_unavailable(raw):
+            raise ArticleContentUnavailableError(raw[:500]) from e
+        if _looks_like_non_ma_refusal(raw):
+            raise NotMergerPressReleaseError(raw[:500]) from e
         raise ValueError(f"{context}: invalid JSON: {raw[:500]!r}") from e
 
 
@@ -743,11 +886,23 @@ def main():
 
     print(f"Fetching PRNewswire press release from: {source}")
 
-    text = fetch_article_text(source)
+    try:
+        text = fetch_article_text(source)
+    except ArticleContentUnavailableError as e:
+        print(f"Skipped: article content unavailable — {e}")
+        return {"skipped": True, "skip_reason": str(e), "skip_type": "fetch_error"}
+
     print(f"Extracted {len(text.split())} words of text")
 
     print("Generating summary via Claude Opus 4.5...")
-    result = summarize(text)
+    try:
+        result = summarize(text)
+    except NotMergerPressReleaseError as e:
+        print(f"Skipped: not an M&A press release — {e}")
+        return {"skipped": True, "skip_reason": str(e), "skip_type": "not_ma"}
+    except ArticleContentUnavailableError as e:
+        print(f"Skipped: article content unavailable — {e}")
+        return {"skipped": True, "skip_reason": str(e), "skip_type": "fetch_error"}
 
     # ── Intelligence Check: target company ──
     company_check = check_target_company(

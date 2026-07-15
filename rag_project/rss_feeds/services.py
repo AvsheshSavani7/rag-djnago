@@ -35,12 +35,38 @@ logger = logging.getLogger(__name__)
 _NON_MA_SUMMARY_SKIP_MARKERS = (
     "not a merger",
     "not an m&a",
+    "not an m&a announcement",
+    "not about a merger",
+    "not about an acquisition",
+    "not about a merger or acquisition",
     "no m&a transaction",
+    "no deal terms",
+    "no merger, acquisition, or deal",
+    "cannot produce the requested",
+    "cannot produce a factual summary",
+    "cannot produce a factual m&a summary",
+    "product launch",
+    "market research",
     "financing round",
     "series b extension",
     "does not match the content",
     "does not relate to any provided deal context",
     "this press release describes",
+    "no mention of",
+    "page unavailable",
+    "content not accessible",
+    "error page",
+    "not successfully retrieved",
+    "no substantive content",
+)
+
+_FETCH_UNAVAILABLE_SKIP_MARKERS = (
+    "press release content unavailable",
+    "article content unavailable",
+    "page unavailable",
+    "content not accessible",
+    "cannot produce a factual summary",
+    "not successfully retrieved",
 )
 
 
@@ -48,9 +74,10 @@ def _is_skippable_non_ma_summary_error(exc: BaseException) -> bool:
     """True when summarizer refused or skipped a non-M&A / deal-mismatch article."""
     try:
         from sec_rss_parser.sec_summarizers.PRNewswire_summary import (
+            ArticleContentUnavailableError,
             NotMergerPressReleaseError,
         )
-        if isinstance(exc, NotMergerPressReleaseError):
+        if isinstance(exc, (NotMergerPressReleaseError, ArticleContentUnavailableError)):
             return True
     except ImportError:
         pass
@@ -59,7 +86,11 @@ def _is_skippable_non_ma_summary_error(exc: BaseException) -> bool:
     if "summarize: empty response" in msg:
         return True
     if "summarize: invalid json:" in msg:
-        return any(marker in msg for marker in _NON_MA_SUMMARY_SKIP_MARKERS)
+        if any(marker in msg for marker in _NON_MA_SUMMARY_SKIP_MARKERS):
+            return True
+        return any(marker in msg for marker in _FETCH_UNAVAILABLE_SKIP_MARKERS)
+    if any(marker in msg for marker in _FETCH_UNAVAILABLE_SKIP_MARKERS):
+        return True
     return False
 
 
@@ -570,11 +601,19 @@ class RSSFeedService:
                             summary = route_and_summarize(
                                 url, deal_context=_deal_context)
                             if isinstance(summary, dict) and summary.get("skipped"):
-                                logger.info(
-                                    "Skipped AI summary (not M&A press release) for %s: %s",
-                                    url,
-                                    (summary.get("skip_reason") or "")[:300],
-                                )
+                                skip_type = summary.get("skip_type") or "not_ma"
+                                if skip_type == "fetch_error":
+                                    logger.warning(
+                                        "Skipped AI summary (content unavailable) for %s: %s",
+                                        url,
+                                        (summary.get("skip_reason") or "")[:300],
+                                    )
+                                else:
+                                    logger.info(
+                                        "Skipped AI summary (not M&A press release) for %s: %s",
+                                        url,
+                                        (summary.get("skip_reason") or "")[:300],
+                                    )
                             else:
                                 s3_docx_url = summary.get(
                                     "s3_docx_url") or summary.get("s3_url")

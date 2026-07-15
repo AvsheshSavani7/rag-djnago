@@ -156,34 +156,51 @@ def get_deals_record_string() -> str:
     return "\n".join(records)
 
 
-# --- Prompt 1: Does this article say anything about a deal we follow? Return true+deal_id or false. ---
+# --- Prompt 1: Does this article contain substantive news about a deal we follow? ---
 PROMPT_1_DEAL_WE_FOLLOW = """We have a list of deals we follow.
 
- Use web search to open and read the article at this URL. 
- 
- DEAL RECORDS WE FOLLOW (one per line, 
- format: deal_id|target_name|acquirer_name|target_aliases|parent_aliases):
- 
-  {deals_record} 
-  
-  ARTICLE URL: {article_url} 
-  
-  Does this article say anything about any of these deals (e.g. news, update, or mention of one of these target/acquirer names or aliases)? 
-  
-  If YES, return the matching deal_id and provide additional details about the match.
-  
-  If NO, return match false. 
-  
-  Return ONLY a JSON object with these exact keys:
-  - "match": true or false
-  - "deal_id": the matching deal_id string or null
-  - "matched_side": one of "target", "acquirer", or "both" (which company names/aliases were mentioned: target company, acquirer/parent company, or both). Return null if no match.
-  - "match_keywords": an array of strings—the specific names, terms, or phrases from the deal record that appeared in the article and triggered the match (e.g. company names, tickers, aliases). Return null or empty array if no match.
-  
-  Example response format:
-  {{"match": true, "deal_id": "abc123", "matched_side": "target", "match_keywords": ["XYZ Corp", "XYZ Corporation"]}}
-  
-  Use deal_id, matched_side, and match_keywords only when match is true.
+Use web search to open and read the article at this URL.
+
+DEAL RECORDS WE FOLLOW (one per line,
+format: deal_id|target_name|acquirer_name|target_aliases|parent_aliases):
+
+{deals_record}
+
+ARTICLE URL: {article_url}
+
+Does this article contain substantive news or updates ABOUT one of these M&A transactions?
+
+Return match true ONLY if the article's primary subject is news directly related to a listed deal, such as:
+• Deal announcement, amendment, or termination
+• Regulatory approval, shareholder vote, or closing update for the transaction
+• Financing, litigation, or advisor news specifically about the transaction
+• Material developments affecting the deal timeline or terms
+
+Return match false if the article is primarily about:
+• Product launches, partnerships, or collaborations
+• Market research reports or industry sizing/forecast publications
+• Earnings, guidance, or general corporate news (even if from acquirer/target)
+• Industry commentary or unrelated business news
+• A company name or alias appearing only in passing or unrelated context
+• Same-industry or keyword overlap without deal-specific content
+
+Do NOT match based solely on company name similarity, industry overlap, or generic terms
+(e.g. "dealership", "acquisition" used in a non-M&A sense).
+
+If YES (substantive deal news), return the matching deal_id and provide additional details about the match.
+
+If NO, return match false.
+
+Return ONLY a JSON object with these exact keys:
+- "match": true or false
+- "deal_id": the matching deal_id string or null
+- "matched_side": one of "target", "acquirer", or "both" (which company names/aliases were mentioned: target company, acquirer/parent company, or both). Return null if no match.
+- "match_keywords": an array of strings—the specific names, terms, or phrases from the deal record that appeared in the article and triggered the match (e.g. company names, tickers, aliases). Return null or empty array if no match.
+
+Example response format:
+{{"match": true, "deal_id": "abc123", "matched_side": "target", "match_keywords": ["XYZ Corp", "XYZ Corporation"]}}
+
+Use deal_id, matched_side, and match_keywords only when match is true.
 """
 
 # --- Prompt 2: Is this article a self-announce of a new merger? Extract deal fields. ---
@@ -205,6 +222,7 @@ Return false if the article is only about:
 • Financing or debt transactions,
 • Executive hires,
 • Product launches,
+• Market research reports or industry sizing/forecast publications,
 • Growth strategy commentary,
 • Retrospective discussion of past deals,
 • Industry trend commentary,
