@@ -61,8 +61,8 @@ if not ANTHROPIC_API_KEY and __name__ == "__main__":
     sys.exit(1)
 
 # ──── MODEL CONFIGURATION ────
-CHUNK_MODEL = "claude-sonnet-4-20250514"
-SYNTHESIS_MODEL = "claude-sonnet-4-20250514"
+CHUNK_MODEL = "claude-sonnet-4-5-20250929"
+SYNTHESIS_MODEL = "claude-sonnet-4-5-20250929"
 CHUNK_MAX_TOKENS = 1500
 SYNTHESIS_MAX_TOKENS = 3000
 # ──────────────────────────────
