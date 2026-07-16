@@ -91,7 +91,7 @@ PROXY_FORM_TYPES = ["DEFM14A", "DEFM14C", "PREM14A", "PREM14C", "S-4", "F-4"]
 PERIODIC_FORM_TYPES = ["8-K", "8-K/A", "10-Q", "10-K"]
 
 ALLOW_EMAIL_TO_CLIENT_FORM = ["DEFM14A", "DEFM14C", "PREM14A",
-                              "PREM14C", "S-4", "F-4", "S-4/A", "F-4/A", "10-K", "10-Q", "10-K/A", "425"]
+                              "PREM14C", "S-4", "F-4", "S-4/A", "F-4/A", "10-K", "10-Q", "10-K/A", "425", "SC 14D9", "SC 14D9/A"]
 
 # Only consider deals with status Open or Unknown (or null/not set) when matching by CIK
 DEAL_STATUS_OPEN_OR_UNKNOWN = ["Open", "Unknown"]
@@ -452,7 +452,7 @@ def send_8k_summary_email(deal_id, company_name, form_type, cik_number, sec_url,
             f"❌ Error sending 8-K summary email notification: {e}", 'error')
 
 
-def generate_8k_summary_async(deal_id, company_name, form_type, cik_number, sec_url, accession_number, max_attempts=60, delay_seconds=10):
+def generate_8k_summary_async(deal_id, company_name, form_type, cik_number, sec_url, accession_number, max_attempts=90, delay_seconds=10):
     """Async function to generate summary for 8-K after processing completes."""
     # Inherit run_id from parent thread; switch to dma_summary pipeline
     from core.logging_context import set_pipeline_context, get_run_id
