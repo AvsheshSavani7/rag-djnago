@@ -118,7 +118,7 @@ def fetch_filing_text(source: str) -> str:
     return fetch_text_with_extraction(source, extraction_guidance=EXTRACTION_GUIDANCE)
 
 
-def summarize(text: str, model: str = "claude-opus-4-6") -> dict:
+def summarize(text: str, model: str = "claude-opus-4-8") -> dict:
     """Call Claude API to produce multi-level summary."""
     if not ANTHROPIC_API_KEY:
         raise ValueError(
@@ -230,12 +230,14 @@ def export_docx(s: dict, s3_key_suffix: str):
     add_field(sale_p, "Estimated Value: ", ps.get("estimated_value"))
     add_field(sale_p, "Securities Type: ", ps.get("securities_type"))
     add_field(sale_p, "Acquisition Date: ", ps.get("acquisition_date"))
-    add_field(sale_p, "Acquisition Method: ", ps.get("acquisition_method"), newline=False)
+    add_field(sale_p, "Acquisition Method: ", ps.get(
+        "acquisition_method"), newline=False)
 
     details = doc.add_paragraph()
     add_field(details, "Broker: ", d.get("broker_info"))
     add_field(details, "Total Holdings: ", d.get("seller_total_holdings"))
-    add_field(details, "% of Holdings: ", d.get("percentage_of_holdings"), newline=False)
+    add_field(details, "% of Holdings: ", d.get(
+        "percentage_of_holdings"), newline=False)
 
     if not is_empty_value(d.get("deal_signal")):
         doc.add_heading("Deal Signal", level=2)

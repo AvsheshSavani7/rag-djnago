@@ -65,7 +65,7 @@ Given the SEC filing text below, produce summaries at 3 levels. Respond ONLY in 
   "filing_type": "<detected filing type — e.g., 10-K, DEF 14A, S-4, SC TO-T, etc.>",
   "filing_date": "<MM/DD/YY>",
 
-  "L1_headline": "+ <TICKER> – <key takeaway in ≤8 words>. | <date>",
+  "L1_headline": "+ <TICKER> – <key takeaway in ≤8 words>. | <date>  (omit the ticker prefix if ticker is null)",
 
 "L2_brief": "<2-3 sentence summary covering: what this filing is, the most important information it contains, and stated purpose>",
 
@@ -124,7 +124,7 @@ def fetch_filing_text(source: str) -> str:
     return fetch_text_with_extraction(source, EXTRACTION_GUIDANCE)
 
 
-def summarize(text: str, model: str = "claude-opus-4-6") -> dict:
+def summarize(text: str, model: str = "claude-opus-4-8") -> dict:
     """Call Claude API to produce multi-level summary."""
     if not ANTHROPIC_API_KEY:
         raise ValueError(

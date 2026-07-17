@@ -13,7 +13,7 @@ from pathlib import Path
 from io import BytesIO
 
 import anthropic
-import PyPDF2
+import pypdf
 import requests
 from bs4 import BeautifulSoup
 
@@ -71,17 +71,17 @@ def _extract_html(html: str, word_limit: int) -> str:
 
 def _extract_pdf_bytes(data: bytes, word_limit: int) -> str:
     """Extract text from PDF bytes (downloaded from URL)."""
-    reader = PyPDF2.PdfReader(BytesIO(data))
+    reader = pypdf.PdfReader(BytesIO(data))
     return _read_pdf_pages(reader, word_limit)
 
 
 def _extract_pdf_file(path: Path, word_limit: int) -> str:
     """Extract text from a local PDF file."""
-    reader = PyPDF2.PdfReader(str(path))
+    reader = pypdf.PdfReader(str(path))
     return _read_pdf_pages(reader, word_limit)
 
 
-def _read_pdf_pages(reader: PyPDF2.PdfReader, word_limit: int) -> str:
+def _read_pdf_pages(reader: pypdf.PdfReader, word_limit: int) -> str:
     """Read pages from a PdfReader and return cleaned text."""
     pages = []
     for page in reader.pages:
@@ -149,7 +149,81 @@ def _get_anthropic_client() -> anthropic.Anthropic:
     return anthropic.Anthropic(api_key=api_key)
 
 
-MAX_CHUNK_WORDS = 100_000  # safe limit per Haiku call (~130K tokens)
+MAX_CHUNK_WORDS = 50_000  # target chunk size (~65K tokens)
+
+
+# Section boundary patterns for smart chunking — split at natural breaks
+_SECTION_BREAK_RE = re.compile(
+    r'\n(?='
+    r'(?:ITEM\s+\d|PART\s+[IVX]|ARTICLE\s+[IVXLC\d]'
+    r'|SECTION\s+\d|EXHIBIT\s+[A-Z\d]'
+    r'|RISK\s+FACTORS|FORWARD.LOOKING\s+STATEMENTS'
+    r'|BACKGROUND\s+OF\s+THE|CONDITIONS\s+TO'
+    r'|INTERESTS\s+OF|REGULATORY\s+APPROVALS'
+    r'|OPINION\s+OF|MATERIAL\s+U\.?S\.?\s+FEDERAL'
+    r'|UNAUDITED\s+PRO\s+FORMA|COMPARATIVE\s+PER\s+SHARE'
+    r'|={3,}|_{3,}|\*{3,}|-{5,}'
+    r'))',
+    re.IGNORECASE
+)
+
+
+def _smart_chunk(text: str, target_words: int) -> list[str]:
+    """Split text into chunks at section boundaries, respecting target size.
+
+    Prefers splitting at SEC filing section headers (ITEM, PART, ARTICLE,
+    RISK FACTORS, etc.) rather than mid-paragraph. Falls back to word-count
+    splitting if no section breaks are found within range.
+    """
+    # Find all section boundary positions
+    breaks = [m.start() for m in _SECTION_BREAK_RE.finditer(text)]
+
+    if not breaks:
+        # No section headers found — fall back to word-count splitting
+        words = text.split()
+        chunks = []
+        for start in range(0, len(words), target_words):
+            chunks.append(" ".join(words[start:start + target_words]))
+        return chunks
+
+    chunks = []
+    pos = 0
+
+    while pos < len(text):
+        remaining_words = len(text[pos:].split())
+        if remaining_words <= target_words:
+            chunks.append(text[pos:])
+            break
+
+        # Find the word-count boundary
+        words_so_far = text[pos:].split()
+        if len(words_so_far) <= target_words:
+            chunks.append(text[pos:])
+            break
+        approx_char_limit = len(" ".join(words_so_far[:target_words]))
+        char_boundary = pos + approx_char_limit
+
+        # Find the nearest section break before the word-count boundary
+        best_break = None
+        # Look for breaks between 60% and 100% of target to avoid tiny chunks
+        min_pos = pos + int(approx_char_limit * 0.6)
+        for b in breaks:
+            if b <= pos:
+                continue
+            if b > char_boundary:
+                break
+            if b >= min_pos:
+                best_break = b
+
+        if best_break:
+            chunks.append(text[pos:best_break])
+            pos = best_break
+        else:
+            # No section break in range — split at word boundary
+            chunks.append(" ".join(words_so_far[:target_words]))
+            pos += approx_char_limit
+
+    return [c for c in chunks if c.strip()]
 
 
 def extract_relevant_sections(full_text: str, extraction_guidance: str) -> str:
@@ -157,9 +231,11 @@ def extract_relevant_sections(full_text: str, extraction_guidance: str) -> str:
 
     Pass 1 of two-pass approach: Haiku reads the full document and returns
     only the sections relevant to the specific filing type.
-     For very large filings (>150K words), splits into chunks and extracts
-    from each chunk separately, then combines the results.
+    For large filings, splits into chunks at section boundaries and extracts
+    from all chunks in parallel, then combines the results.
     """
+    from concurrent.futures import ThreadPoolExecutor, as_completed
+
     client = _get_anthropic_client()
 
     prompt = EXTRACTION_PROMPT_TEMPLATE.format(
@@ -179,25 +255,38 @@ def extract_relevant_sections(full_text: str, extraction_guidance: str) -> str:
         )
         extracted = msg.content[0].text.strip()
     else:
-        # Chunk the text and extract from each chunk
-        words = full_text.split()
-        chunks = []
-        for start in range(0, len(words), MAX_CHUNK_WORDS):
-            chunks.append(" ".join(words[start:start + MAX_CHUNK_WORDS]))
+        # Smart-chunk at section boundaries and extract in parallel
+        chunks = _smart_chunk(full_text, MAX_CHUNK_WORDS)
+        n = len(chunks)
         print(
-            f"   Document exceeds {MAX_CHUNK_WORDS:,} words — splitting into {len(chunks)} chunks")
+            f"   Document exceeds {MAX_CHUNK_WORDS:,} words "
+            f"— split into {n} chunks at section boundaries")
 
-        extracts = []
-        for i, chunk in enumerate(chunks, 1):
-            print(
-                f"   Extracting chunk {i}/{len(chunks)} ({len(chunk.split()):,} words)...")
+        def _extract_chunk(i_chunk):
+            i, chunk = i_chunk
+            chunk_words = len(chunk.split())
+            print(f"   Extracting chunk {i}/{n} ({chunk_words:,} words)...")
             msg = client.messages.create(
                 model=EXTRACTION_MODEL,
                 max_tokens=EXTRACTION_MAX_TOKENS,
                 messages=[{"role": "user", "content": prompt + chunk}],
             )
-            extracts.append(msg.content[0].text.strip())
+            return i, msg.content[0].text.strip()
+
+        results = {}
+        with ThreadPoolExecutor(max_workers=n) as executor:
+            futures = {
+                executor.submit(_extract_chunk, (i, chunk)): i
+                for i, chunk in enumerate(chunks, 1)
+            }
+            for future in as_completed(futures):
+                idx, text = future.result()
+                results[idx] = text
+                print(f"   Chunk {idx}/{n} complete")
+
+        extracts = [results[i] for i in sorted(results)]
         extracted = ("\n\n" + "=" * 40 + "\n\n").join(extracts)
+
     extract_words = len(extracted.split())
     print(f"   Extraction complete: {extract_words:,} words extracted "
           f"({extract_words / word_count * 100:.0f}% of original)")

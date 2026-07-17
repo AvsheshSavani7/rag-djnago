@@ -169,7 +169,7 @@ def fetch_filing_text(source: str) -> str:
     return fetch_text_with_extraction(source, EXTRACTION_GUIDANCE)
 
 
-def summarize(text: str, model: str = "claude-opus-4-6") -> dict:
+def summarize(text: str, model: str = "claude-opus-4-8") -> dict:
     """Call Claude API to produce multi-level summary."""
     if not ANTHROPIC_API_KEY:
         raise ValueError(
@@ -312,7 +312,8 @@ def export_docx(s: dict, s3_key_suffix: str):
     style.font.name = "Arial"
     style.font.size = Pt(11)
 
-    title = doc.add_heading(f"{filing_type} Summary: {s.get('target', 'N/A')}", level=0)
+    title = doc.add_heading(
+        f"{filing_type} Summary: {s.get('target', 'N/A')}", level=0)
     title.runs[0].font.size = Pt(20)
 
     # Deal parties
@@ -365,7 +366,8 @@ def export_docx(s: dict, s3_key_suffix: str):
         time_p = doc.add_paragraph()
         add_field(time_p, "Offer Commenced: ", tm.get("offer_commenced"))
         add_field(time_p, "Expiration Date: ", tm.get("expiration_date"))
-        add_field(time_p, "Withdrawal Deadline: ", tm.get("withdrawal_deadline"))
+        add_field(time_p, "Withdrawal Deadline: ",
+                  tm.get("withdrawal_deadline"))
         add_field(time_p, "Expected Closing: ", tm.get("expected_closing"))
         add_field(time_p, "Extensions: ", tm.get("extensions"))
 
@@ -406,7 +408,8 @@ def export_docx(s: dict, s3_key_suffix: str):
         doc.add_heading("Financing", level=2)
         fin_p = doc.add_paragraph()
         add_field(fin_p, "Source: ", fin.get("source"))
-        add_field(fin_p, "Committed Financing: ", fin.get("committed_financing"))
+        add_field(fin_p, "Committed Financing: ",
+                  fin.get("committed_financing"))
         fin_cond = fin.get("financing_condition")
         if not is_empty_value(fin_cond):
             fin_p.add_run("Financing Condition: ").bold = True

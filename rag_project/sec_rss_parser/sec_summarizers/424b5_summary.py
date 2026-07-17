@@ -97,7 +97,7 @@ Rules:
 - Identify the lead underwriters/bookrunners
 - For M&A-related offerings: explain how proceeds relate to the deal (acquisition financing, etc.)
 - Calculate dilution percentage if pre/post share counts are available
-PRIORITY_ITEMS_10Q = ["1", "1A", "2", "3", "4", "5"]  
+- Flag any lock-up agreements mentioned
 
 424(B)(5) TEXT:
 """
@@ -123,7 +123,7 @@ def fetch_filing_text(source: str) -> str:
     return fetch_text_with_extraction(source, extraction_guidance=EXTRACTION_GUIDANCE)
 
 
-def summarize(text: str, model: str = "claude-opus-4-6") -> dict:
+def summarize(text: str, model: str = "claude-opus-4-8") -> dict:
     """Call Claude API to produce multi-level summary."""
     if not ANTHROPIC_API_KEY:
         raise ValueError(

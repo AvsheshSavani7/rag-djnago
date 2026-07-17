@@ -47,6 +47,8 @@ FILING_MAP = {
     "F-4":       "f4_summary",
     "F-4/A":     "f4_summary",
     "FORM 25":   "form25_summary",
+    # ── International regulatory filings ──
+    "INTL_REGULATORY": "intl_regulatory_summary",
     # ── Press releases ──
     "PRESS_RELEASE": "PRNewswire_summary",
     # ── Additional types from email filings ──
@@ -58,17 +60,17 @@ FILING_MAP = {
     "DEF 14A":   "sec_filing_summary",
     "DEFA14A":   "sec_filing_summary",
     "DEFM14A":   "s4_summary",
-    "S-3":       "sec_filing_summary_sonnet",
-    "S-3/A":     "sec_filing_summary_sonnet",
-    "S-1":       "sec_filing_summary_sonnet",
-    "S-1/A":     "sec_filing_summary_sonnet",
-    "FORM 3":    "sec_filing_summary_sonnet",
+    "S-3":       "sec_filing_summary",
+    "S-3/A":     "sec_filing_summary",
+    "S-1":       "sec_filing_summary",
+    "S-1/A":     "sec_filing_summary",
+    "FORM 3":    "sec_filing_summary",
     "NT 10-Q":   "sec_filing_summary",
     "NT 10-K":   "sec_filing_summary",
-    "ARS":       "sec_filing_summary_sonnet",
-    "EFFECT":    "sec_filing_summary_sonnet",
-    "CORRESP":   "sec_filing_summary_sonnet",
-    "UPLOAD":    "sec_filing_summary_sonnet",
+    "ARS":       "sec_filing_summary",
+    "EFFECT":    "sec_filing_summary",
+    "CORRESP":   "sec_filing_summary",
+    "UPLOAD":    "sec_filing_summary",
 }
 
 # ──── URL patterns for fast detection ────
@@ -150,11 +152,13 @@ DEF 14A
 DEFA14A
 S-3
 FORM 3
+INTL_REGULATORY
 OTHER
 
 If the filing is an amendment (e.g., SC 13D/A, 8-K/A), use the base type (e.g., SC 13D, 8-K).
 If you see "Exhibit 99" or "EX-99" in the header, classify as 99.1.
-If the document is NOT an SEC filing (e.g., a foreign government document, court filing, regulatory dispatch, news article, or any non-SEC source), respond with OTHER.
+If the document is from a foreign competition or antitrust authority (e.g., CADE, EU Commission, CMA, ACCC, SAMR, COFECE, KFTC, JFTC, or any non-US regulatory body issuing merger/competition decisions), respond with INTL_REGULATORY.
+If the document is NOT an SEC filing and NOT a foreign regulatory filing (e.g., a court filing, news article, or other non-regulatory source), respond with OTHER.
 If you are not confident the document matches a specific SEC filing type, respond with OTHER rather than guessing.
 
 FILING TEXT (first ~1000 words):

@@ -133,10 +133,11 @@ Extract the following sections in full:
 - Deal protections: termination fees (target AND acquirer amounts and triggers), go-shop period, matching rights, no-shop/no-solicitation
 - Expected timeline and key milestones (closing date, shareholder meeting, record date)
 - Shareholder vote details: which shareholders, threshold, record date, meeting date
-- Fairness opinion: advisor name and conclusion
-- Background of the Transaction (negotiation history)
+- Fairness opinion: advisor name, conclusion, and fee — do NOT extract the full financial analyses, methodologies, DCF tables, or comparable company details
+- Background of the Transaction (negotiation history) — key events, dates, and decisions only; skip routine procedural details
 - Pro forma financial highlights and synergy estimates
-- Top deal-specific risk factors
+- Top deal-specific risk factors — extract only the top 5-10 most material risks, skip boilerplate
+- Material U.S. Federal Income Tax Consequences — extract ONLY the conclusion on tax-free reorganization qualification; skip detailed REIT tax analysis and general tax law discussion
 - If amendment (S-4/A): what specifically changed from prior filing"""
 
 
@@ -146,7 +147,7 @@ def fetch_filing_text(source: str) -> str:
     return fetch_text_with_extraction(source, extraction_guidance=EXTRACTION_GUIDANCE)
 
 
-def summarize(text: str, model: str = "claude-opus-4-6") -> dict:
+def summarize(text: str, model: str = "claude-opus-4-8") -> dict:
     """Call Claude API to produce multi-level summary."""
     if not ANTHROPIC_API_KEY:
         raise ValueError(
@@ -260,7 +261,8 @@ def export_docx(s: dict, s3_key_suffix: str):
 
     meta = doc.add_paragraph()
     meta.add_run("Acquirer: ").bold = True
-    meta.add_run(f"{s.get('acquirer', 'N/A')} ({s.get('acquirer_ticker') or '—'})")
+    meta.add_run(
+        f"{s.get('acquirer', 'N/A')} ({s.get('acquirer_ticker') or '—'})")
     meta.add_run("    Target: ").bold = True
     meta.add_run(f"{s.get('target', 'N/A')} ({s.get('target_ticker') or '—'})")
 
@@ -317,8 +319,10 @@ def export_docx(s: dict, s3_key_suffix: str):
     if has_content(dp):
         doc.add_heading("Deal Protections", level=2)
         dp_p = doc.add_paragraph()
-        add_field(dp_p, "Target Termination Fee: ", dp.get("breakup_fee_target"))
-        add_field(dp_p, "Acquirer Termination Fee: ", dp.get("breakup_fee_acquirer"))
+        add_field(dp_p, "Target Termination Fee: ",
+                  dp.get("breakup_fee_target"))
+        add_field(dp_p, "Acquirer Termination Fee: ",
+                  dp.get("breakup_fee_acquirer"))
         add_field(dp_p, "Go-Shop: ", dp.get("go_shop"))
         add_field(dp_p, "Matching Rights: ", dp.get("matching_rights"))
         add_field(dp_p, "No-Shop: ", dp.get("no_shop"))

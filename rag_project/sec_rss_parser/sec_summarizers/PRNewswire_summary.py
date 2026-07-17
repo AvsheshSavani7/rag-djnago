@@ -328,7 +328,8 @@ def _run_fetch_fallbacks(source: str, headers: dict) -> str | None:
             elif cs_resp.status_code == 200:
                 print("  ⚠️  cloudscraper returned error-page HTML")
             else:
-                print(f"  ⚠️  cloudscraper returned HTTP {cs_resp.status_code}")
+                print(
+                    f"  ⚠️  cloudscraper returned HTTP {cs_resp.status_code}")
         except Exception as e:
             print(f"  ⚠️  cloudscraper failed: {e}")
 
@@ -482,7 +483,7 @@ def _parse_json_response(raw: str, *, context: str = "Claude response") -> dict:
         raise ValueError(f"{context}: invalid JSON: {raw[:500]!r}") from e
 
 
-def summarize(text: str, model: str = "claude-opus-4-6") -> dict:
+def summarize(text: str, model: str = "claude-opus-4-8") -> dict:
     """Call Claude API to produce multi-level summary."""
     if not text or not text.strip():
         raise ValueError("Cannot summarize: no article text extracted")
@@ -580,7 +581,7 @@ def check_target_company(acquirer: str, target: str, target_ticker: str = None) 
 
     try:
         msg = client.messages.create(
-            model="claude-opus-4-6",
+            model="claude-opus-4-8",
             max_tokens=600,
             messages=[{"role": "user", "content": prompt}]
         )
@@ -616,7 +617,7 @@ def answer_article_questions(text: str) -> dict:
 
     try:
         msg = client.messages.create(
-            model="claude-opus-4-6",
+            model="claude-opus-4-8",
             max_tokens=500,
             messages=[{"role": "user", "content": prompt}]
         )

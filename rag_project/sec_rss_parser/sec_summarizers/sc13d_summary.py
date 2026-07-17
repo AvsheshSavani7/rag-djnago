@@ -125,7 +125,7 @@ def fetch_filing_text(source: str) -> str:
     return fetch_text_with_extraction(source, extraction_guidance=EXTRACTION_GUIDANCE)
 
 
-def summarize(text: str, model: str = "claude-opus-4-6") -> dict:
+def summarize(text: str, model: str = "claude-opus-4-8") -> dict:
     """Call Claude API to produce multi-level summary."""
     if not ANTHROPIC_API_KEY:
         raise ValueError(
@@ -206,7 +206,8 @@ def export_docx(s: dict, s3_key_suffix: str):
     title.runs[0].font.size = Pt(20)
 
     meta = doc.add_paragraph()
-    add_field(meta, "Subject Company: ", s.get("subject_company"), newline=False)
+    add_field(meta, "Subject Company: ", s.get(
+        "subject_company"), newline=False)
     add_field(meta, "    Filing Type: ", s.get("filing_type"), newline=False)
 
     meta2 = doc.add_paragraph()
@@ -240,8 +241,10 @@ def export_docx(s: dict, s3_key_suffix: str):
     add_field(own_p, "Percentage Owned: ", od.get("percentage_owned"))
     add_field(own_p, "Sole Voting Power: ", od.get("sole_voting_power"))
     add_field(own_p, "Shared Voting Power: ", od.get("shared_voting_power"))
-    add_field(own_p, "Sole Dispositive Power: ", od.get("sole_dispositive_power"))
-    add_field(own_p, "Shared Dispositive Power: ", od.get("shared_dispositive_power"), newline=False)
+    add_field(own_p, "Sole Dispositive Power: ",
+              od.get("sole_dispositive_power"))
+    add_field(own_p, "Shared Dispositive Power: ", od.get(
+        "shared_dispositive_power"), newline=False)
 
     if not is_empty_value(d.get("position_change")):
         doc.add_heading("Position Change", level=2)
