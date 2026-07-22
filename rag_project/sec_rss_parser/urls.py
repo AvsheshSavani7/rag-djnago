@@ -9,6 +9,7 @@ from .views import (
     FetchSECFeedByDealCIKView,
     FetchSECGlobalFormTypeFeedView,
 )
+from .daily_feed_views import DailyFeedDateListView, DailyFeedDetailView
 
 app_name = 'sec_rss_parser'
 
@@ -44,5 +45,10 @@ urlpatterns = [
 
     # Get filing statistics
     path('stats/', SECFilingStatsView.as_view(), name='filing_stats'),
+
+    # SEC daily feed JSON (collector output) — view / download for frontend
+    path('daily-feed/dates/', DailyFeedDateListView.as_view(), name='daily_feed_dates'),
+    path('daily-feed/', DailyFeedDetailView.as_view(), name='daily_feed_today'),
+    path('daily-feed/<str:date>/', DailyFeedDetailView.as_view(), name='daily_feed_detail'),
 
 ]
