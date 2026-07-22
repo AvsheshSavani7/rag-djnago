@@ -37,6 +37,10 @@ from sec_rss_parser.sec_feed_daily_store import (
     feed_now,
     load_daily_feed,
 )
+from sec_rss_parser.sec_feed_item_utils import (
+    feed_accessions_present,
+    iter_feed_records,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -93,6 +97,7 @@ def list_feed_files(feed_dir: str) -> List[Dict[str, Any]]:
             continue
         date_key = match.group(1)
         item_count = 0
+        unique_accessions = 0
         updated_at = None
         try:
             with open(path, "r", encoding="utf-8") as handle:
@@ -101,6 +106,7 @@ def list_feed_files(feed_dir: str) -> List[Dict[str, Any]]:
                 items = data.get("items")
                 if isinstance(items, dict):
                     item_count = len(items)
+                    unique_accessions = len(feed_accessions_present(items))
                 updated_at = data.get("updated_at")
         except (json.JSONDecodeError, OSError):
             pass
@@ -116,6 +122,7 @@ def list_feed_files(feed_dir: str) -> List[Dict[str, Any]]:
             "filename": path.name,
             "size_bytes": size_bytes,
             "item_count": item_count,
+            "unique_accession_count": unique_accessions,
             "updated_at": updated_at,
         })
     return results
@@ -126,14 +133,11 @@ def _items_to_list(
     tracked_ciks: Optional[Dict[str, str]] = None,
 ) -> List[Dict[str, Any]]:
     rows: List[Dict[str, Any]] = []
-    for accession, record in items.items():
-        if not isinstance(record, dict):
-            continue
+    for record in iter_feed_records(items):
         cik = (record.get("cik_number") or "").strip()
         if tracked_ciks is not None and cik not in tracked_ciks:
             continue
         row = dict(record)
-        row["accession_number"] = accession
         if tracked_ciks is not None and cik in tracked_ciks:
             row["deal_id"] = tracked_ciks[cik]
         rows.append(row)
@@ -206,6 +210,7 @@ class DailyFeedDetailView(APIView):
         all_rows = _items_to_list(items, tracked_ciks=tracked_ciks)
         limit, offset = _pagination(request)
         page = all_rows[offset: offset + limit]
+        unique_accessions = len(feed_accessions_present(items))
 
         payload: Dict[str, Any] = {
             "success": True,
@@ -216,8 +221,10 @@ class DailyFeedDetailView(APIView):
             "exists": exists,
             "size_bytes": os.path.getsize(path) if exists else 0,
             "updated_at": data.get("updated_at"),
+            "schema_version": data.get("schema_version", 1),
             "item_count": len(all_rows),
-            "total_item_count": len(items),
+            "record_count": len(items),
+            "unique_accession_count": unique_accessions,
             "tracked_only": tracked_only,
             "limit": limit,
             "offset": offset,

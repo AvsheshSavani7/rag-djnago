@@ -87,7 +87,8 @@ Test-only counterparts (`sec_feed_collector_test.py`, `sec_feed_processor_test.p
 1. `GET getcurrent` (all forms, `count=100`) through the shared rate limiter.
 2. Parse the Atom feed → per-item `form_type`, `accession_number`, `cik`, `title`, `link`.
 3. `append_feed_items()` merges new rows into `feed_YYYYMMDD.json`, **keyed by
-   accession** (re-seen filings are no-ops). Writes are atomic (temp file + rename).
+   `cik|accession`** (multiple Atom entries per filing are kept; re-seen
+   `cik|accession` pairs are no-ops). Writes are atomic (temp file + rename).
 4. Sleep until the next tick. A slow SEC response just slows cadence — the loop is
    synchronous, so a second request never starts before the first returns.
 
@@ -104,8 +105,9 @@ date (same calendar day as EDGAR's `master.{YYYYMMDD}.idx`).
 3. **Worker pool** (`SEC_FEED_PROCESSOR_WORKERS`, default **3** in code,
    **5** in `docker-compose.yml`): each worker calls `process_items([item])` —
    one filing at a time, up to N in parallel.
-4. `build_items_from_daily_feed()` returns tracked CIK + non-excluded items;
-   excluded forms (8-K, Form 4, 13D, …) go straight to `session_done` (terminal).
+4. `build_items_from_daily_feed()` groups by accession, applies CIK filter, uses
+   the **first tracked row** per accession (one queue item per accession); excluded
+   forms (8-K, Form 4, 13D, …) go to `session_done`.
 5. Downstream `process_items()` unchanged: `AccessionLookedUp`, lock, pipeline,
    `mark_accession_processed`.
 
@@ -154,8 +156,9 @@ collector is down longer than that, those filings vanish from the live feed.
 
 The EDGAR **daily index** (`master.{YYYYMMDD}.idx`) is published **each evening
 (~10 PM ET)** with every filing for that calendar day. `reconcile_into_feed()`
-downloads it (one GET), derives each accession, and merges any missing accession
-into the feed JSON. The processor queue then handles them on the next scheduler tick.
+downloads it (one GET), applies **CIK filter first**, skips accessions already
+in `AccessionLookedUp`, then appends unprocessed rows to the feed JSON (keyed by
+`cik|accession`). The processor queue then handles them on the next scheduler tick.
 
 **SEC does not publish a complete same-day index during market hours** — the live
 collector is the intraday source; reconcile is the end-of-day backstop.
@@ -279,7 +282,23 @@ docker compose stop sec-feed-poller
 
 ---
 
-## 10. Operational rules & gotchas
+## 10. Daily feed API (frontend)
+
+Requires JWT: `Authorization: Bearer <access_token>`. Base: `/api/sec/daily-feed/`.
+
+| Endpoint | Purpose |
+|----------|---------|
+| `GET /api/sec/daily-feed/dates/` | List available `feed_YYYYMMDD.json` files |
+| `GET /api/sec/daily-feed/` | Today's feed (paginated JSON) |
+| `GET /api/sec/daily-feed/20260722/` | Specific ET calendar day |
+| `?download=1` | Download raw JSON attachment |
+| `?tracked_only=1` | Only filings for open/unknown deal CIKs |
+| `?limit=100&offset=0` | Pagination (max 500 per page) |
+| `?summary_only=1` | Metadata only, no `items` array |
+
+---
+
+## 11. Operational rules & gotchas
 
 1. **Exactly one poller instance** — one `sec_feed_poller` container only.
 2. **Disable the old CIK trigger** — unpublish n8n / cron calling

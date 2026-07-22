@@ -15,6 +15,9 @@ from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional, Tuple
 from zoneinfo import ZoneInfo
 
+from sec_rss_parser.sec_feed_item_utils import make_feed_item_key, parse_filing_role
+from sec_rss_parser.utils_8k import normalize_cik
+
 # SEC filing day + reconcile schedule timezone (matches EDGAR daily-index dates).
 SEC_FEED_TZ = ZoneInfo(os.environ.get("SEC_FEED_TIMEZONE", "America/New_York"))
 
@@ -90,6 +93,7 @@ def _empty_feed(date_str: str) -> Dict[str, Any]:
     return {
         "date": date_str,
         "updated_at": _utc_now_iso(),
+        "schema_version": 2,
         "items": {},
     }
 
@@ -145,6 +149,8 @@ def load_daily_feed(feed_dir: str, day: Optional[datetime] = None) -> Tuple[str,
         data["items"] = {}
     if "date" not in data:
         data["date"] = date_str
+    if not data.get("schema_version"):
+        data["schema_version"] = 1
     return path, data
 
 
@@ -167,9 +173,12 @@ def append_feed_items(
     day: Optional[datetime] = None,
 ) -> Tuple[int, List[str]]:
     """
-    Merge new_items into today's feed JSON keyed by accession_number.
+    Merge new_items into today's feed JSON keyed by ``cik|accession_number``.
 
-    Returns (count_added, list_of_new_accession_numbers).
+    Multiple SEC Atom entries for the same filing (Issuer + Reporting, etc.)
+    are stored as separate rows. Stage B groups by accession when processing.
+
+    Returns (count_added, list_of_new_accession_numbers for logging).
     """
     path, data = load_daily_feed(feed_dir, day)
     items = data["items"]
@@ -179,18 +188,25 @@ def append_feed_items(
     now = _utc_now_iso()
     for raw in new_items:
         acc = (raw.get("accession_number") or "").strip()
-        if not acc:
+        cik = normalize_cik(raw.get("cik_number") or "")
+        if not acc or not cik:
             continue
-        if acc in items:
+        item_key = make_feed_item_key(cik, acc)
+        if item_key in items:
             continue
         record = dict(raw)
         record["accession_number"] = acc
+        record["cik_number"] = cik
+        role = record.get("filing_role") or parse_filing_role(record.get("title"))
+        if role:
+            record["filing_role"] = role
         record["first_seen"] = now
-        items[acc] = record
+        items[item_key] = record
         added += 1
         new_accessions.append(acc)
 
     if added:
+        data["schema_version"] = 2
         atomic_write_json(path, data)
     return added, new_accessions
 

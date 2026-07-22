@@ -2,7 +2,8 @@
 SEC feed collector (production) — Stage A.
 
 Polls the global SEC `getcurrent` Atom feed on a short interval, dedupes by
-accession number, and appends new filings to sec_daily_feed/feed_YYYYMMDD.json.
+CIK + accession (composite key), and appends new filings to
+sec_daily_feed/feed_YYYYMMDD.json.
 
 The collector NEVER touches MongoDB and never runs the pipeline — it only grows
 the daily feed cache. It is designed to run as a background thread inside the
@@ -26,6 +27,7 @@ from sec_rss_parser.sec_feed_daily_store import (
     feed_path_for_date,
 )
 from sec_rss_parser.sec_rate_limit import rate_limited_get
+from sec_rss_parser.sec_feed_item_utils import parse_filing_role
 from sec_rss_parser.utils_8k import (
     SECRSSParser,
     extract_accession_from_guid,
@@ -86,6 +88,9 @@ def parse_global_all_forms(raw_xml):
         acc = item.get("accession_number") or extract_accession_from_guid(item.get("guid"))
         if acc:
             item["accession_number"] = acc
+        role = parse_filing_role(title)
+        if role:
+            item["filing_role"] = role
         items.append(item)
     return items
 

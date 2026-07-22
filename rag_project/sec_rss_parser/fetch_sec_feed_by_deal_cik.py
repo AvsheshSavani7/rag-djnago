@@ -381,6 +381,11 @@ def build_items_from_daily_feed(feed_dir, tracked_ciks, day=None, skip_accession
     Read the daily feed JSON (written by the collector) and build
     process_items()-ready item_data dicts for filings whose CIK is tracked.
 
+    Feed rows are keyed by ``cik|accession``. Multiple rows may share one
+    accession (Issuer + Reporting, etc.). This function groups by accession,
+    keeps rows whose CIK is tracked, and returns the **first** tracked row per
+    accession (one item per accession for the work queue).
+
     Returns (items_to_process, terminal_skip_accessions):
       - items_to_process: item_data dicts (tracked CIK, non-excluded form type)
       - terminal_skip_accessions: tracked CIK but excluded form type — safe to
@@ -390,32 +395,40 @@ def build_items_from_daily_feed(feed_dir, tracked_ciks, day=None, skip_accession
     cheaply on the next tick so newly-added deals are picked up automatically.
     """
     from sec_rss_parser.sec_feed_daily_store import load_daily_feed
+    from sec_rss_parser.sec_feed_item_utils import (
+        group_feed_records_by_accession,
+        pick_first_tracked_record,
+    )
 
     skip = skip_accessions or set()
     _, feed_data = load_daily_feed(feed_dir, day=day)
     items_to_process = []
-    terminal_skips = []
-    for acc, rec in (feed_data.get("items") or {}).items():
+    terminal_skip_set = set()
+    groups = group_feed_records_by_accession(feed_data.get("items") or {})
+
+    for acc, records in groups.items():
         if acc in skip:
             continue
-        cik = normalize_cik(rec.get("cik_number") or "")
-        if not cik or cik not in tracked_ciks:
+        chosen = pick_first_tracked_record(records, tracked_ciks)
+        if not chosen:
             continue
-        form_type = (rec.get("form_type") or "").strip().upper()
+        cik = normalize_cik(chosen.get("cik_number") or "")
+        form_type = (chosen.get("form_type") or "").strip().upper()
         if form_type in EXCLUDED_FORM_TYPES:
-            terminal_skips.append(acc)
+            terminal_skip_set.add(acc)
             continue
         items_to_process.append({
             "accession_number": acc,
             "cik_number": cik,
             "deal_id": tracked_ciks[cik],
-            "form_type": rec.get("form_type"),
-            "title": rec.get("title"),
-            "link": rec.get("link"),
-            "guid": rec.get("guid"),
-            "company_name": rec.get("company_name"),
+            "form_type": chosen.get("form_type"),
+            "title": chosen.get("title"),
+            "link": chosen.get("link"),
+            "guid": chosen.get("guid"),
+            "company_name": chosen.get("company_name"),
+            "filing_role": chosen.get("filing_role"),
         })
-    return items_to_process, terminal_skips
+    return items_to_process, sorted(terminal_skip_set)
 
 
 def fetch_feed_for_cik(cik, session, headers=None):

@@ -18,6 +18,7 @@ import os
 import re
 from datetime import datetime
 
+from sec_rss_parser.models import AccessionLookedUp
 from sec_rss_parser.sec_feed_daily_store import append_feed_items, feed_now
 from sec_rss_parser.sec_rate_limit import rate_limited_get
 from sec_rss_parser.sec_feed_collector import DEFAULT_HEADERS, build_session
@@ -108,10 +109,12 @@ def _accession_preview(accessions, limit=10):
 
 def reconcile_into_feed(feed_dir, day=None, session=None, tracked_ciks=None):
     """
-    Merge any filing present in the daily index but missing from the feed JSON.
+    Merge any filing present in the daily index but not yet processed.
 
-    If tracked_ciks is provided, only those CIKs are merged (keeps the feed lean);
-    otherwise every filing for the day is merged and the processor filters later.
+    Order of filters:
+      1. CIK filter (when tracked_ciks is provided)
+      2. Skip accessions already in AccessionLookedUp (terminal / processed)
+      3. Append remaining rows (keyed by cik|accession in the feed JSON)
 
     Returns (added_count, parsed_count, new_accessions).
     """
@@ -120,21 +123,35 @@ def reconcile_into_feed(feed_dir, day=None, session=None, tracked_ciks=None):
     if not text:
         return 0, 0, []
     records = parse_master_idx(text)
+    parsed_after_cik = len(records)
     if tracked_ciks is not None:
         records = [r for r in records if r["cik_number"] in tracked_ciks]
-    added, new_accs = append_feed_items(feed_dir, records, day=day)
+        parsed_after_cik = len(records)
+
+    to_add = []
+    skipped_processed = 0
+    for record in records:
+        acc = record["accession_number"]
+        if AccessionLookedUp.objects(accession_number=acc).first():
+            skipped_processed += 1
+            continue
+        to_add.append(record)
+
+    added, new_accs = append_feed_items(feed_dir, to_add, day=day)
     if added:
         logger.info(
-            "sec_daily_index: reconcile %s | parsed=%d | added=%d missed | %s",
+            "sec_daily_index: reconcile %s | cik_filtered=%d | skipped_processed=%d | added=%d missed | %s",
             day.strftime("%Y-%m-%d"),
-            len(records),
+            parsed_after_cik,
+            skipped_processed,
             added,
             _accession_preview(new_accs),
         )
     else:
         logger.info(
-            "sec_daily_index: reconcile %s | parsed=%d | added=0",
+            "sec_daily_index: reconcile %s | cik_filtered=%d | skipped_processed=%d | added=0",
             day.strftime("%Y-%m-%d"),
-            len(records),
+            parsed_after_cik,
+            skipped_processed,
         )
-    return added, len(records), new_accs
+    return added, parsed_after_cik, new_accs
