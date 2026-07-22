@@ -1,6 +1,7 @@
 services:
   django-app:
     build: .
+    image: rag-django:latest
     container_name: django_app
     restart: unless-stopped
     env_file:
@@ -12,9 +13,15 @@ services:
       # Host path: /opt/apps/logs/django  →  container path: /var/log/rag
       # Run once on VPS: mkdir -p /opt/apps/logs/django && chmod 777 /opt/apps/logs/django
       - /opt/apps/logs/django:/var/log/rag
+      # SEC daily feed JSON (collector + processor) — survives redeploys.
+      # Run once on VPS: mkdir -p /opt/apps/sec_daily_feed && chmod 777 /opt/apps/sec_daily_feed
+      - /opt/apps/sec_daily_feed:/app/rag_project/sec_rss_parser/sec_daily_feed
     environment:
       - PORT=8000
       - LOG_ROOT=/var/log/rag
+      - SEC_FEED_DAILY_DIR=/app/rag_project/sec_rss_parser/sec_daily_feed
+      - SEC_FEED_TIMEZONE=America/New_York
+      - SEC_FEED_MIDNIGHT_GRACE_MINUTES=30
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.django-app.rule=Host(`django.arbintel.cloud`)"
@@ -22,3 +29,32 @@ services:
       - "traefik.http.routers.django-app.tls=true"
       - "traefik.http.routers.django-app.tls.certresolver=letsencrypt"
       - "traefik.http.services.django-app.loadbalancer.server.port=8000"
+
+  # SEC feed poller: collector (Stage A) + processor (Stage B) in ONE process so
+  # they share the single process-wide SEC rate limiter. Reuses the web app image
+  # (built by django-app on `up --build`) — no second heavy build. No HTTP port /
+  # Traefik. Run exactly ONE replica.
+  sec-feed-poller:
+    image: rag-django:latest
+    depends_on:
+      - django-app
+    container_name: sec_feed_poller
+    restart: unless-stopped
+    env_file:
+      - .env
+    command: python manage.py run_sec_feed_poller
+    volumes:
+      # Same log + feed volumes as the web app so both see the same JSON.
+      - /opt/apps/logs/django:/var/log/rag
+      - /opt/apps/sec_daily_feed:/app/rag_project/sec_rss_parser/sec_daily_feed
+    environment:
+      - LOG_ROOT=/var/log/rag
+      - SEC_FEED_DAILY_DIR=/app/rag_project/sec_rss_parser/sec_daily_feed
+      - SEC_FEED_TIMEZONE=America/New_York
+      - SEC_FEED_MIDNIGHT_GRACE_MINUTES=30
+      - SEC_FEED_COLLECTOR_INTERVAL_SEC=1.0
+      - SEC_FEED_PROCESSOR_INTERVAL_SEC=15.0
+      - SEC_FEED_PROCESSOR_WORKERS=5
+      - SEC_FEED_DEAL_CIK_REFRESH_SEC=60.0
+      # Keep total SEC usage ≤ ~7 req/s (reserve headroom below SEC's ~10/s cap).
+      - SEC_MIN_REQ_INTERVAL=0.2

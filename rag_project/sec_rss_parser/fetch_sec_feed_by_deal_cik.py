@@ -361,6 +361,63 @@ def get_ciks_for_deal(deal):
     return ciks
 
 
+def build_tracked_ciks_map():
+    """
+    Map normalized CIK -> deal_id for every open/unknown deal (target + acquirer).
+
+    Used by the daily-feed processor (Stage B) to filter the global feed down to
+    filings we care about, in memory, at zero SEC/DB cost per item.
+    """
+    tracked = {}
+    for deal in get_open_or_unknown_deals():
+        deal_id = str(deal.id)
+        for cik in get_ciks_for_deal(deal):
+            tracked.setdefault(cik, deal_id)
+    return tracked
+
+
+def build_items_from_daily_feed(feed_dir, tracked_ciks, day=None, skip_accessions=None):
+    """
+    Read the daily feed JSON (written by the collector) and build
+    process_items()-ready item_data dicts for filings whose CIK is tracked.
+
+    Returns (items_to_process, terminal_skip_accessions):
+      - items_to_process: item_data dicts (tracked CIK, non-excluded form type)
+      - terminal_skip_accessions: tracked CIK but excluded form type — safe to
+        remember as permanently handled (form type never changes).
+
+    Filings whose CIK is not tracked are simply not returned; they are re-checked
+    cheaply on the next tick so newly-added deals are picked up automatically.
+    """
+    from sec_rss_parser.sec_feed_daily_store import load_daily_feed
+
+    skip = skip_accessions or set()
+    _, feed_data = load_daily_feed(feed_dir, day=day)
+    items_to_process = []
+    terminal_skips = []
+    for acc, rec in (feed_data.get("items") or {}).items():
+        if acc in skip:
+            continue
+        cik = normalize_cik(rec.get("cik_number") or "")
+        if not cik or cik not in tracked_ciks:
+            continue
+        form_type = (rec.get("form_type") or "").strip().upper()
+        if form_type in EXCLUDED_FORM_TYPES:
+            terminal_skips.append(acc)
+            continue
+        items_to_process.append({
+            "accession_number": acc,
+            "cik_number": cik,
+            "deal_id": tracked_ciks[cik],
+            "form_type": rec.get("form_type"),
+            "title": rec.get("title"),
+            "link": rec.get("link"),
+            "guid": rec.get("guid"),
+            "company_name": rec.get("company_name"),
+        })
+    return items_to_process, terminal_skips
+
+
 def fetch_feed_for_cik(cik, session, headers=None):
     url = SEC_FEED_URL_TEMPLATE.format(cik=cik)
     try:
