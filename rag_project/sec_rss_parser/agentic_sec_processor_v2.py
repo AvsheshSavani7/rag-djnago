@@ -20,6 +20,7 @@ import json
 import logging
 import sys
 import boto3
+from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import threading
 
@@ -177,10 +178,10 @@ class AgenticSECProcessor:
             'iteration_count': 0
         }
 
-        # Create output directories
-        os.makedirs('pdf_documents', exist_ok=True)
-        os.makedirs('new_table_of_content', exist_ok=True)
-        os.makedirs('extracted_sections', exist_ok=True)
+        # Anchor output dirs to rag_project/ so paths are stable regardless of CWD
+        self._output_base = Path(__file__).resolve().parents[1]
+        for subdir in ('pdf_documents', 'new_table_of_content', 'extracted_sections'):
+            (self._output_base / subdir).mkdir(parents=True, exist_ok=True)
 
         # Initialize S3 service
         self.s3_service = S3Service()
@@ -195,6 +196,44 @@ class AgenticSECProcessor:
         if '.' in filename:
             return filename.split('.')[0]
         return "sec_document"
+
+    def _output_path(self, subdir: str, filename: str) -> str:
+        """Return an absolute path under rag_project/<subdir>/."""
+        return str(self._output_base / subdir / filename)
+
+    def _write_toc_file(self, toc_data: List[Dict[str, Any]]) -> bool:
+        """Write TOC JSON to disk. Only sets self.toc_path after a successful write."""
+        path = self._output_path(
+            'new_table_of_content',
+            f'table_of_contents_new_{self.document_name}.json',
+        )
+        try:
+            with open(path, 'w', encoding='utf-8') as f:
+                json.dump(toc_data, f, indent=2)
+            self.toc_path = path
+            self.toc_data = toc_data
+            logger.info(f"TOC saved to: {self.toc_path}")
+            return True
+        except Exception as e:
+            logger.error(f"Failed to write TOC file: {e}")
+            return False
+
+    def _ensure_toc_file(self) -> bool:
+        """Ensure TOC JSON exists on disk, recreating from memory when possible."""
+        if self.toc_path and os.path.exists(self.toc_path):
+            return True
+        if hasattr(self, 'toc_data') and self.toc_data:
+            logger.warning(
+                "TOC file missing on disk; recreating from in-memory toc_data")
+            return self._write_toc_file(self.toc_data)
+        return False
+
+    def _load_toc(self) -> Optional[List[Dict[str, Any]]]:
+        """Load TOC from disk, falling back to in-memory toc_data."""
+        if not self._ensure_toc_file():
+            return None
+        with open(self.toc_path, 'r', encoding='utf-8') as f:
+            return json.load(f)
 
     def _create_agent(self) -> ReActAgent:
         """Create the ReAct agent with all necessary tools."""
@@ -354,11 +393,8 @@ Always check the processing state before proceeding to understand what has been 
 
             html_content = str(soup)
 
-            # Create pdf_documents directory if it doesn't exist
-            import os
-            os.makedirs("pdf_documents", exist_ok=True)
-
-            self.pdf_path = f"pdf_documents/{self.document_name}.pdf"
+            self.pdf_path = self._output_path(
+                'pdf_documents', f'{self.document_name}.pdf')
 
             async with async_playwright() as p:
                 browser = await p.chromium.launch(
@@ -420,7 +456,7 @@ Always check the processing state before proceeding to understand what has been 
             with open(self.pdf_path, 'rb') as file:
                 pdf_reader = PyPDF2.PdfReader(file)
 
-                for page_num in range(min(15, len(pdf_reader.pages))):
+                for page_num in range(min(30, len(pdf_reader.pages))):
                     page = pdf_reader.pages[page_num]
                     text = page.extract_text()
 
@@ -471,7 +507,8 @@ Do not reply with anything except true or false."""},
                     if page_num < len(pdf_reader.pages):
                         pdf_writer.add_page(pdf_reader.pages[page_num])
 
-            self.toc_pdf_path = f"pdf_documents/{self.document_name}_toc_pages.pdf"
+            self.toc_pdf_path = self._output_path(
+                'pdf_documents', f'{self.document_name}_toc_pages.pdf')
             with open(self.toc_pdf_path, 'wb') as output_file:
                 pdf_writer.write(output_file)
 
@@ -649,10 +686,8 @@ Do not reply with anything except true or false."""},
             return "Error: TOC data not available"
 
         try:
-            self.toc_path = f'new_table_of_content/table_of_contents_new_{self.document_name}.json'
-            with open(self.toc_path, 'w', encoding='utf-8') as f:
-                json.dump(self.toc_data, f, indent=2)
-            logger.info(f"TOC saved to: {self.toc_path}")
+            if not self._write_toc_file(self.toc_data):
+                return "Error saving TOC: could not write file"
 
             # Upload TOC JSON to S3
             s3_key = f"proxy-parse-json/table_of_contents_new_{self.document_name}.json"
@@ -667,7 +702,7 @@ Do not reply with anything except true or false."""},
         """Extract content for each section using the TOC."""
         logger.info("Extracting sections content...")
 
-        if not self.toc_path:
+        if not self._ensure_toc_file():
             return "Error: TOC file not available"
 
         try:
@@ -706,7 +741,10 @@ Do not reply with anything except true or false."""},
                     }
                     sections.insert(0, notice_section)
 
-            self.sections_path = f"extracted_sections/sections_with_content_html_{self.document_name}.json"
+            self.sections_path = self._output_path(
+                'extracted_sections',
+                f'sections_with_content_html_{self.document_name}.json',
+            )
             with open(self.sections_path, 'w', encoding='utf-8') as f:
                 json.dump(sections, f, indent=2, ensure_ascii=False)
 
@@ -996,13 +1034,11 @@ Chunk text to process:
         """Verify TOC titles against document headings."""
         logger.info("Verifying TOC titles against document headings...")
 
-        if not self.toc_path:
-            return "Error: TOC file not available"
+        toc = self._load_toc()
+        if toc is None:
+            return "Error: TOC data not available"
 
         try:
-            with open(self.toc_path, 'r', encoding='utf-8') as f:
-                toc = json.load(f)
-
             toc_json_str = json.dumps(toc)
             system_prompt = f"""You are a document title matching assistant.
 
@@ -1070,8 +1106,8 @@ below is my toc extracted from attached document
 
             updated_toc = update_titles(toc)
 
-            with open(self.toc_path, 'w', encoding='utf-8') as f:
-                json.dump(updated_toc, f, indent=2)
+            if not self._write_toc_file(updated_toc):
+                return "Error: could not save corrected TOC"
 
             logger.info("Title verification and correction complete")
             return f"Title verification complete. {len(title_corrections)} titles corrected."
@@ -1084,12 +1120,16 @@ below is my toc extracted from attached document
         """Fix empty sections by validating titles one by one."""
         logger.info("Fixing empty sections by validating titles...")
 
-        if not self.toc_path or not self.sections_path:
+        if not self._ensure_toc_file() or not self.sections_path:
             return "Error: TOC and sections files not available"
 
+        if not os.path.exists(self.sections_path):
+            return "Error: sections file not found on disk"
+
         try:
-            with open(self.toc_path, 'r', encoding='utf-8') as f:
-                toc = json.load(f)
+            toc = self._load_toc()
+            if toc is None:
+                return "Error: TOC data not available"
 
             processed_titles = set()
             iteration_count = 0
@@ -1169,8 +1209,9 @@ Respond with only the final title string."""
                         return False
 
                     if update_title_in_toc(toc, title, corrected_title):
-                        with open(self.toc_path, 'w', encoding='utf-8') as f:
-                            json.dump(toc, f, indent=2)
+                        if not self._write_toc_file(toc):
+                            logger.error(
+                                "Failed to save corrected TOC during empty-section fix")
 
                         # Re-extract sections
                         self.extract_sections_content()
