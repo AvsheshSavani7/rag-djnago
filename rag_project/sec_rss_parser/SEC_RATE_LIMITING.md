@@ -76,11 +76,22 @@ As a result, **all SEC RSS/feed + index‑HTML calls from these two scripts** sh
 
 ---
 
-### 3. Why this fixes the original problem
+### 3. 8-K `process-feed` worker queue (`sec_8k_work_queue.py`)
+
+n8n may call `/api/sec/process-feed/` every ~45s. The view **does not** spawn a new thread per request.
+
+- **Queue:** `maxsize=1` — at most one pending tick while workers are busy.
+- **Workers:** `SEC_8K_PROCESSOR_WORKERS` (default **1**, max **2**).
+- **API response:** `status: queued` or `already_running` (tick coalesced).
+- **Trace logs:** `LOG_TRACE_HANDLER_CACHE` (default 500) caps open trace `FileHandler`s in `dynamic_pipeline_handler.py`.
+
+---
+
+### 4. Why this fixes the original problem
 
 Original symptoms:
 
-- `process_feed_8k.py` ran every 45 minutes, `fetch_sec_feed_by_deal_cik.py` every 2 minutes, over ~150 CIKs.
+- `process_feed_8k.py` ran every 45 second, `fetch_sec_feed_by_deal_cik.py` every 3 minutes, over ~150 CIKs.
 - Each path had:
   - A `requests` session with `Retry(total=3, backoff_factor=1, status_forcelist=[429, ...])`
   - **Plus** a manual retry loop (`for attempt in range(3)`).
@@ -101,7 +112,7 @@ This combination greatly reduces the probability of sustained 429s from SEC due 
 
 ---
 
-### 4. Read timeouts and retries
+### 5. Read timeouts and retries
 
 SEC sometimes responds slowly; the client can hit **ReadTimeoutError** (previously read timeout=30s, now 45s). By default, `urllib3.Retry` also retries on read errors, so one slow request became 3 attempts and produced "Retrying (Retry(total=1, ...)) after connection broken by 'ReadTimeoutError'" in logs.
 
@@ -116,7 +127,7 @@ Result: a slow SEC response either succeeds within 45s or fails once (no retry s
 
 ---
 
-### 5. Configuration & tuning
+### 6. Configuration & tuning
 
 - **Env var**: `SEC_MIN_REQ_INTERVAL`
   - Default: `0.2` (seconds) if unset.
@@ -129,7 +140,7 @@ Recommendation: keep the default `0.2` unless you have strong evidence that you 
 
 ---
 
-### 6. Limitations / future improvements
+### 7. Limitations / future improvements
 
 - **Per‑process only**:
   - The limiter is in‑memory. If you run multiple processes/containers from the same IP, each enforces its own rps, and the combined traffic could still exceed SEC’s global limit.
@@ -148,7 +159,7 @@ Use this file as the reference when:
 
 ---
 
-### 7. Concurrency lock and crash edge cases
+### 8. Concurrency lock and crash edge cases
 
 To prevent duplicate processing when `process_feed_8k.py` and `fetch_sec_feed_by_deal_cik.py` hit the same accession at nearly the same time, we added a Mongo lock:
 

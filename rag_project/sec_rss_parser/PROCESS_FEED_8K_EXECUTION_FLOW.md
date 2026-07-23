@@ -10,8 +10,8 @@ This document describes the execution flow for the **process-feed** API and **ru
 |------|----------------|
 | **1.1** | Request hits `ProcessSECFeedView` (GET or POST). |
 | **1.2** | Optional `form_type` may be read from query params (GET) or body (POST). Currently **not used** for branching. |
-| **1.3** | A **background thread** is started; the view returns immediately with `{ success: true, message: 'SEC feed processing started in background', status: 'processing' }`. |
-| **1.4** | In the background thread: `run_8k_processor()` is always called (no form_type branch). |
+| **1.3** | Request enqueues one 8-K tick on the in-process worker pool (`sec_8k_work_queue.py`). Returns immediately with `status: queued` or `already_running` (coalesced). |
+| **1.4** | Worker(s) call `run_8k_processor()` — default **1 worker**, configurable to **2** via `SEC_8K_PROCESSOR_WORKERS`. |
 
 **Code:** `sec_rss_parser/views.py` → `ProcessSECFeedView.process_feed_request()` → `run_8k_processor()`.
 

@@ -1,13 +1,20 @@
 import logging
 import logging.handlers
+import os
 import threading
+from collections import OrderedDict
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
 
 _lock = threading.Lock()
 # (pipeline, date) → RotatingFileHandler
 _pipeline_handlers: dict = {}
-_trace_handlers: dict = {}   # absolute file path → FileHandler
+# LRU cache of trace path → FileHandler (evicted handlers are closed).
+_trace_handlers: "OrderedDict[str, logging.Handler]" = OrderedDict()
+_MAX_TRACE_HANDLERS = max(
+    50,
+    int(os.environ.get("LOG_TRACE_HANDLER_CACHE", "600")),
+)
 
 MAX_BYTES = 10 * 1024 * 1024  # 10 MB per file
 # No practical cap within a day; old date folders removed by VPS cron after 7 days
@@ -50,7 +57,8 @@ def _get_pipeline_handler(log_root: str, pipeline: str) -> logging.Handler:
             # Fall back to a local logs/ dir beside manage.py when the
             # configured log_root is not writable (e.g. local dev without /var/log/rag).
             import django.conf as _dc
-            fallback_root = getattr(_dc.settings, "BASE_DIR", Path(__file__).resolve().parents[1]) / "logs"
+            fallback_root = getattr(_dc.settings, "BASE_DIR", Path(
+                __file__).resolve().parents[1]) / "logs"
             folder = Path(fallback_root) / pipeline / "daily" / today
             folder.mkdir(parents=True, exist_ok=True)
         h = logging.handlers.RotatingFileHandler(
@@ -67,12 +75,22 @@ def _get_pipeline_handler(log_root: str, pipeline: str) -> logging.Handler:
 def _get_trace_handler(trace_path: Path) -> logging.Handler:
     """Return (cached) FileHandler for a per-accession trace file."""
     key = str(trace_path)
-    if key not in _trace_handlers:
-        trace_path.parent.mkdir(parents=True, exist_ok=True)
-        h = logging.FileHandler(trace_path, encoding="utf-8")
-        h.setFormatter(PIPELINE_FORMATTER)
-        _trace_handlers[key] = h
-    return _trace_handlers[key]
+    if key in _trace_handlers:
+        _trace_handlers.move_to_end(key)
+        return _trace_handlers[key]
+
+    trace_path.parent.mkdir(parents=True, exist_ok=True)
+    while len(_trace_handlers) >= _MAX_TRACE_HANDLERS:
+        _old_key, old_handler = _trace_handlers.popitem(last=False)
+        try:
+            old_handler.close()
+        except Exception:
+            pass
+
+    handler = logging.FileHandler(trace_path, encoding="utf-8")
+    handler.setFormatter(PIPELINE_FORMATTER)
+    _trace_handlers[key] = handler
+    return handler
 
 
 class DynamicPipelineHandler(logging.Handler):
@@ -121,5 +139,6 @@ class DynamicPipelineHandler(logging.Handler):
                     )
                     th = _get_trace_handler(trace_path)
                     th.emit(record)
+
                 except Exception:
                     self.handleError(record)

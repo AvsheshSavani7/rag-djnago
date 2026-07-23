@@ -4,6 +4,10 @@ services:
     image: rag-django:latest
     container_name: django_app
     restart: unless-stopped
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
     env_file:
       - .env
     ports:
@@ -22,6 +26,8 @@ services:
       - SEC_FEED_DAILY_DIR=/app/rag_project/sec_rss_parser/sec_daily_feed
       - SEC_FEED_TIMEZONE=America/New_York
       - SEC_FEED_MIDNIGHT_GRACE_MINUTES=30
+      # 8-K process-feed API: in-process queue (1 worker default, max 2).
+      - SEC_8K_PROCESSOR_WORKERS=1
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.django-app.rule=Host(`django.arbintel.cloud`)"
@@ -40,6 +46,10 @@ services:
       - django-app
     container_name: sec_feed_poller
     restart: unless-stopped
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
     env_file:
       - .env
     command: python manage.py run_sec_feed_poller

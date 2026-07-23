@@ -9,7 +9,7 @@ import threading
 import os
 from datetime import datetime
 from .services import SECFeedProcessor
-from .process_feed_8k import run_8k_processor
+from .sec_8k_work_queue import enqueue_8k_processor_tick
 from .fetch_sec_feed_by_deal_cik import run_fetch_sec_feed_by_deal_cik
 from .fetch_sec_global_form_type_feed import run_fetch_global_form_type_feed
 from .models import SECFiling, SECFeedStatus
@@ -38,41 +38,29 @@ class ProcessSECFeedView(APIView):
         return self.process_feed_request()
 
     def process_feed_request(self):
-        """Common method to process SEC feed in background"""
+        """Queue one 8-K processor tick (coalesced; does not spawn per-request threads)."""
         try:
-            # Get form_type from request (query params for GET, body for POST)
             form_type = None
             if hasattr(self.request, 'query_params'):
                 form_type = self.request.query_params.get('form_type')
             if not form_type and hasattr(self.request, 'data'):
                 form_type = self.request.data.get('form_type')
 
-            # Start processing in background thread
-            def process_in_background():
-                try:
-                    # Use dedicated 8-K processor if form_type is '8-K'
-                    # if form_type == '8-K':
-                    logger.info("Using dedicated 8-K processor")
-                    result = run_8k_processor()
-                    # else:
-                    #     logger.info(f"Using generic processor for form_type: {form_type}")
-                    #     processor = SECFeedProcessor(form_type=form_type)
-                    #     result = processor.process_feed()
-
-                    logger.info(
-                        f"Background SEC processing completed: {result}")
-                except Exception as e:
-                    logger.error(f"Error in background SEC processing: {e}")
-
-            thread = threading.Thread(target=process_in_background)
-            thread.daemon = True
-            thread.start()
+            queue_result = enqueue_8k_processor_tick()
+            status_value = queue_result.get("status", "queued")
+            if status_value == "already_running":
+                message = "8-K processor busy; tick coalesced (already queued or running)"
+            else:
+                message = "8-K feed processing queued"
 
             return Response({
                 'success': True,
-                'message': 'SEC feed processing started in background',
-                'status': 'processing',
-                'form_type': form_type
+                'message': message,
+                'status': status_value,
+                'form_type': form_type,
+                'active_workers': queue_result.get("active_workers", 0),
+                'pending_ticks': queue_result.get("pending_ticks", 0),
+                'workers': queue_result.get("workers", 1),
             }, status=status.HTTP_200_OK)
 
         except Exception as e:
