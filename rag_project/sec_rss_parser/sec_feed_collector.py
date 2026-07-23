@@ -24,7 +24,6 @@ from urllib3.util.retry import Retry
 from core.pipeline_logger import SEC_FEED_POLLER, start_pipeline
 from sec_rss_parser.sec_feed_daily_store import (
     append_feed_items,
-    feed_now,
     feed_path_for_date,
 )
 from sec_rss_parser.sec_rate_limit import rate_limited_get
@@ -125,41 +124,25 @@ def _fetch_global_feed(session):
         return None
 
 
-def _filing_day_et(item):
-    """Filing calendar day (America/New_York) from the Atom pubDate.
-
-    pubDate is already Eastern (e.g. '2026-07-22T21:40:03-04:00'), so its date
-    prefix IS the ET filing day. Missing/short pubDate falls back to today ET so
-    a valid filing is never silently dropped.
-    """
-    pub = (item.get("pubDate") or "")
-    return pub[:10] if len(pub) >= 10 else feed_now().strftime("%Y-%m-%d")
-
-
 def collect_once(session, feed_dir):
-    """One poll → parse → append TODAY's new filings only. Returns count written.
+    """One poll → parse → append new filings into today's feed file.
 
-    The collector writes only filings whose ET filing day == today, into today's
-    feed file — the same file the processor reads. Non-today rows (e.g. yesterday's
-    filings still lingering in getcurrent right after ET midnight) are dropped so
-    the new day's file never inherits the previous day's filings.
+    Every filing returned by getcurrent is written to the current (America/
+    New_York) day's feed file, regardless of its own filing/acceptance date.
+    Records already handled on a prior day are harmlessly re-listed here but are
+    skipped downstream by the dedup layers (AccessionLookedUp / session_done),
+    so nothing is processed twice and late-surfacing filings are never dropped.
     """
     raw = _fetch_global_feed(session)
     if not raw:
         return 0
     items = parse_global_all_forms(raw)
-
-    today_str = feed_now().strftime("%Y-%m-%d")
-    todays_items = [it for it in items if _filing_day_et(it) == today_str]
-    dropped = len(items) - len(todays_items)
-
-    added, new_accs = append_feed_items(feed_dir, todays_items)
-    if added or dropped:
+    added, new_accs = append_feed_items(feed_dir, items)
+    if added:
         logger.info(
-            "sec_feed_collector: +%d new filing(s) → %s | dropped_non_today=%d | %s",
+            "sec_feed_collector: +%d new filing(s) → %s | %s",
             added,
             os.path.basename(feed_path_for_date(feed_dir)),
-            dropped,
             ", ".join(new_accs[:5]) + ("..." if len(new_accs) > 5 else ""),
         )
     return added
