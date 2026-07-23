@@ -123,6 +123,10 @@ def reconcile_into_feed(feed_dir, day=None, session=None, tracked_ciks=None):
     if not text:
         return 0, 0, []
     records = parse_master_idx(text)
+    # Keep only rows whose "Date Filed" (YYYYMMDD) matches the target day, so a
+    # stale/misaligned index never bleeds another day's filings into this feed.
+    target_date = day.strftime("%Y%m%d")
+    records = [r for r in records if (r.get("date_filed") or "").strip() == target_date]
     parsed_after_cik = len(records)
     if tracked_ciks is not None:
         records = [r for r in records if r["cik_number"] in tracked_ciks]

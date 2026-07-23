@@ -22,10 +22,6 @@ from django import db as django_db
 
 from core.pipeline_logger import SEC_FEED_POLLER, start_pipeline
 from sec_rss_parser.models import AccessionLookedUp
-from sec_rss_parser.sec_feed_daily_store import (
-    get_feed_days_to_process,
-    is_within_midnight_grace_window,
-)
 from sec_rss_parser.fetch_sec_feed_by_deal_cik import (
     build_items_from_daily_feed,
     build_tracked_ciks_map,
@@ -89,12 +85,8 @@ class SecFeedWorkQueue:
             self.session_done.add(accession)
 
     def discover_and_enqueue(self) -> Tuple[int, int]:
-        """Scan feed file(s), enqueue new items. Returns (enqueued, terminal_skips)."""
+        """Scan today's feed file, enqueue new items. Returns (enqueued, terminal_skips)."""
         self.maybe_refresh_ciks()
-        if is_within_midnight_grace_window():
-            logger.info(
-                "sec_feed_processor: midnight grace — also scanning yesterday's feed"
-            )
 
         enqueued = 0
         terminal_count = 0
@@ -102,7 +94,10 @@ class SecFeedWorkQueue:
         with self._state_lock:
             skip_snapshot = set(self.session_done)
 
-        for day, label in get_feed_days_to_process():
+        # Processor scans ONLY the current (same-day, America/New_York) feed file.
+        # No midnight grace / yesterday scan — a filing added to yesterday's file
+        # after its last pre-midnight tick is intentionally not re-scanned (rare).
+        for day, label in [(None, "today")]:
             items, terminal_skips = build_items_from_daily_feed(
                 self.feed_dir,
                 self.tracked_ciks,

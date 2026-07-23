@@ -50,7 +50,7 @@ logger = logging.getLogger(__name__)
 
 # SEC publishes master.{YYYYMMDD}.idx each evening (~10 PM ET). Morning slot
 # backfills yesterday; late-evening slot backfills today after the index exists.
-DEFAULT_RECONCILE_SCHEDULE = "05:55:yesterday,23:30:today"
+DEFAULT_RECONCILE_SCHEDULE = "23:30:today"
 
 
 def _parse_reconcile_schedule(spec: str) -> List[Dict[str, Any]]:

@@ -40,6 +40,11 @@ def _utc_now_iso() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
 
 
+def _feed_tz_now_iso() -> str:
+    """ISO timestamp in SEC feed TZ (America/New_York — EST/EDT per DST)."""
+    return feed_now().replace(microsecond=0).isoformat()
+
+
 def default_feed_dir() -> str:
     return os.environ.get(
         "SEC_FEED_DAILY_DIR",
@@ -92,7 +97,7 @@ def get_feed_days_to_process(
 def _empty_feed(date_str: str) -> Dict[str, Any]:
     return {
         "date": date_str,
-        "updated_at": _utc_now_iso(),
+        "updated_at": _feed_tz_now_iso(),
         "schema_version": 2,
         "items": {},
     }
@@ -101,7 +106,7 @@ def _empty_feed(date_str: str) -> Dict[str, Any]:
 def _empty_processor_state(date_str: str) -> Dict[str, Any]:
     return {
         "date": date_str,
-        "updated_at": _utc_now_iso(),
+        "updated_at": _feed_tz_now_iso(),
         "handled_accessions": [],
         "pipeline_log": [],
     }
@@ -122,7 +127,7 @@ def load_json(path: str, default_factory) -> Dict[str, Any]:
 
 def atomic_write_json(path: str, data: Dict[str, Any]) -> None:
     os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
-    data["updated_at"] = _utc_now_iso()
+    data["updated_at"] = _feed_tz_now_iso()
     fd, tmp_path = tempfile.mkstemp(
         suffix=".json",
         prefix=os.path.basename(path) + ".",
@@ -185,7 +190,7 @@ def append_feed_items(
     added = 0
     new_accessions: List[str] = []
 
-    now = _utc_now_iso()
+    now = _feed_tz_now_iso()
     for raw in new_items:
         acc = (raw.get("accession_number") or "").strip()
         cik = normalize_cik(raw.get("cik_number") or "")
