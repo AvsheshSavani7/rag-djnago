@@ -118,6 +118,21 @@ def _resolve_filer_ticker(urls: List[str], deal_id: str) -> Optional[str]:
     return None
 
 
+def _resolve_pipeline_cik(
+    cik_number: Optional[str],
+    urls: List[str],
+    db: SummaryDB,
+) -> Optional[str]:
+    """Resolve deal/tracked CIK: explicit arg, then DB records, then URL path."""
+    if cik_number and str(cik_number).strip():
+        return str(cik_number).strip().zfill(10)
+    for url in urls:
+        rec = db.get_by_url(url)
+        if rec and rec.get("cik_number"):
+            return str(rec["cik_number"]).strip().zfill(10)
+    return _extract_filer_cik_from_urls(urls)
+
+
 def run_pipeline(
     urls: List[str],
     deal_id: str,
@@ -129,6 +144,7 @@ def run_pipeline(
     filings: list = None,
     single_pass: bool = True,
     company_name: str = "",
+    cik_number: Optional[str] = None,
 ) -> dict:
     """
     MongoDB + S3 pipeline. Only urls and deal_id are required.
@@ -308,16 +324,11 @@ def run_pipeline(
     logger.info(
         "10-K/10-Q pipeline: processing loop done, starting comparison step")
     print(f"\n[COMPARISON]")
-    cik_number = None
-    for url in urls:
-        rec = db.get_by_url(url)
-        if rec and rec.get("cik_number"):
-            cik_number = rec["cik_number"]
-            break
-    if not cik_number:
+    resolved_cik = _resolve_pipeline_cik(cik_number, urls, db)
+    if not resolved_cik:
         raise ValueError(
             f"Could not determine CIK number from input URLs for deal_id={deal_id}")
-    all_records = db.get_by_deal_id_and_cik(deal_id, cik_number)
+    all_records = db.get_by_deal_id_and_cik(deal_id, resolved_cik)
     processed_records = [r for r in all_records if r.get(
         "processed") and r.get("s3_json_url")]
 

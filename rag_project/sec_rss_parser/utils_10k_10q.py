@@ -314,7 +314,8 @@ def fetch_and_save_additional_10k_10q_filings(
                 log_and_print(
                     f"🔄 Running 10-K/10-Q summary pipeline for {len(urls_from_filings)} filing(s), deal_id={deal_id}...")
                 run_pipeline(urls=urls_from_filings,
-                             deal_id=deal_id, filings=filings)
+                             deal_id=deal_id, filings=filings,
+                             cik_number=cik_number)
                 log_and_print("✅ 10-K/10-Q summary pipeline completed.")
             except Exception as pipeline_e:
                 logger.exception(

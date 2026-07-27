@@ -61,6 +61,30 @@ def _doc_to_record(doc: SECFilingSummary) -> dict:
     }
 
 
+_TEN_K_TEN_Q_FORM_TYPES = ["10-K", "10-Q", "10-K/A"]
+
+
+def _find_doc_by_url_or_accession(url: str) -> Optional[SECFilingSummary]:
+    """
+    Find SECFilingSummary by exact sec_document_url, or by accession parsed from url.
+
+    Dual-filer filings (e.g. parent + subsidiary) may use different CIK paths for the
+    same accession; accession fallback keeps reads aligned with upsert_by_url.
+    """
+    if not url:
+        return None
+    doc = SECFilingSummary.objects(sec_document_url=url).first()
+    if doc:
+        return doc
+    _, acc = parse_sec_document_url(url)
+    if not acc:
+        return None
+    return SECFilingSummary.objects(
+        accession_number=acc,
+        form_type__in=_TEN_K_TEN_Q_FORM_TYPES,
+    ).first()
+
+
 class SummaryDB:
     """
     MongoDB-backed DB using SECFilingSummary.
@@ -68,15 +92,14 @@ class SummaryDB:
     """
 
     def get_by_url(self, url: str) -> Optional[dict]:
-        """Return the record matching sec_document_url, or None."""
-        doc = SECFilingSummary.objects(sec_document_url=url).first()
-        return _doc_to_record(doc)
+        """Return the record matching sec_document_url or accession from url, or None."""
+        return _doc_to_record(_find_doc_by_url_or_accession(url))
 
     def get_by_deal_id(self, deal_id: str) -> List[dict]:
         """Return all 10-K/10-Q summary records for the given deal_id."""
         docs = SECFilingSummary.objects(
             deal_id=deal_id,
-            form_type__in=["10-K", "10-Q", "10-K/A"],
+            form_type__in=_TEN_K_TEN_Q_FORM_TYPES,
         ).all()
         return [_doc_to_record(d) for d in docs]
 
@@ -87,7 +110,7 @@ class SummaryDB:
         docs = SECFilingSummary.objects(
             # deal_id=deal_id,
             cik_number__in=[cik_stripped, cik_padded],
-            form_type__in=["10-K", "10-Q", "10-K/A"],
+            form_type__in=_TEN_K_TEN_Q_FORM_TYPES,
         ).all()
         return [_doc_to_record(d) for d in docs]
 
@@ -99,17 +122,7 @@ class SummaryDB:
         Otherwise create a new SECFilingSummary with ten_k_ten_q stub.
         Returns the record as dict.
         """
-        doc = SECFilingSummary.objects(sec_document_url=url).first()
-
-        # Fallback: match by accession_number to avoid duplicates when the
-        # same filing is referenced by different URLs (index vs document).
-        if not doc:
-            _, acc = parse_sec_document_url(url)
-            if acc:
-                doc = SECFilingSummary.objects(
-                    accession_number=acc,
-                    form_type__in=["10-K", "10-Q", "10-K/A"],
-                ).first()
+        doc = _find_doc_by_url_or_accession(url)
 
         if doc:
             tq = doc.ten_k_ten_q or _default_ten_k_ten_q()
