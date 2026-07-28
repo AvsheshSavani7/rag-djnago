@@ -246,13 +246,62 @@ class EightKFeedProcessor:
                 'form_type': '8-K'
             }
 
+    def _item_cik_for_filter(self, item_data):
+        """CIK from item fields or filing link (RSS entries often lack cik_number)."""
+        cik = item_data.get('cik_number')
+        if cik:
+            return normalize_cik(cik)
+        return _extract_cik_from_url(item_data.get('link') or '')
+
+    def _pick_item_for_accession(self, accession_number, candidates):
+        """
+        Prefer the candidate whose CIK matches an open/unknown deal we follow.
+        If none match (or only one candidate), use the first feed row.
+        Still returns exactly one item so accession remains unique downstream.
+        """
+        if len(candidates) == 1:
+            return candidates[0], "single"
+
+        for item_data in candidates:
+            cik = self._item_cik_for_filter(item_data)
+            matches, deal_id = self._check_cik_matches_deal(cik)
+            if matches:
+                logger.info(
+                    f"{LOG_PREFIX} :_filter_unique_items: accession=%s reason=deal_cik_preferred "
+                    f"cik=%s deal_id=%s candidates=%s",
+                    accession_number, cik, deal_id, len(candidates),
+                )
+                log_and_print(
+                    f"{LOG_PREFIX} :_filter_unique_items: ✅ Prefer deal CIK {cik} "
+                    f"for accession {accession_number} (deal={deal_id}, "
+                    f"skipped {len(candidates) - 1} other CIK row(s))"
+                )
+                return item_data, "deal_cik_preferred"
+
+        logger.info(
+            f"{LOG_PREFIX} :_filter_unique_items: accession=%s reason=first_of_duplicates "
+            f"candidates=%s",
+            accession_number, len(candidates),
+        )
+        log_and_print(
+            f"{LOG_PREFIX} :_filter_unique_items: ⏭️ No deal CIK for accession "
+            f"{accession_number}; using first of {len(candidates)} rows"
+        )
+        return candidates[0], "first_of_duplicates"
+
     def _filter_unique_items(self, items):
         """Filter items to only include new accession numbers.
+
+        When the same accession appears with different CIKs in one feed, prefer
+        the row whose CIK matches an open/unknown deal; otherwise keep the first.
+        Still emits at most one row per accession (final store stays unique).
+
         Do not add to AccessionLookedUp here; add only after successful processing
         in _process_single_item so read timeouts / failures can be retried next run.
         """
         unique_items = []
-        seen_accessions = set()
+        by_accession = {}
+        order = []
 
         for item_data in items:
             accession_number = item_data.get(
@@ -265,6 +314,14 @@ class EightKFeedProcessor:
                     f"{LOG_PREFIX} :_filter_unique_items: ⚠️ Item without accession number: {item_data.get('title', 'N/A')}", 'warning')
                 unique_items.append(item_data)
                 continue
+
+            if accession_number not in by_accession:
+                by_accession[accession_number] = []
+                order.append(accession_number)
+            by_accession[accession_number].append(item_data)
+
+        for accession_number in order:
+            candidates = by_accession[accession_number]
 
             # Check AccessionLookedUp cache
             if AccessionLookedUp.objects(accession_number=accession_number).first():
@@ -289,18 +346,17 @@ class EightKFeedProcessor:
                             f"{LOG_PREFIX} :_filter_unique_items: Failed to save accession number to AccessionLookedUp: {e}", 'warning')
                 continue
 
-            # Check for duplicates in current batch
-            if accession_number in seen_accessions:
-                logger.info(
-                    f"{LOG_PREFIX} :_filter_unique_items: accession=%s reason=duplicate_in_batch", accession_number)
-                log_and_print(
-                    f"{LOG_PREFIX} :_filter_unique_items: ⏭️ Skipping duplicate accession in same feed: {accession_number}")
-                continue
-
-            seen_accessions.add(accession_number)
-            unique_items.append(item_data)
+            chosen, pick_reason = self._pick_item_for_accession(
+                accession_number, candidates)
+            unique_items.append(chosen)
             logger.info(
-                f"{LOG_PREFIX} :_filter_unique_items: accession=%s reason=queued", accession_number)
+                f"{LOG_PREFIX} :_filter_unique_items: accession=%s reason=queued "
+                f"pick=%s cik=%s candidates=%s",
+                accession_number,
+                pick_reason,
+                self._item_cik_for_filter(chosen),
+                len(candidates),
+            )
 
         return unique_items
 

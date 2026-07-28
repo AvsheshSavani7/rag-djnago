@@ -4,14 +4,18 @@ Fetch SEC global Atom feed for S-4 and F-4 form types (no CIK filter).
 Flow:
 1. For each form type in GLOBAL_FORM_TYPES (S-4, F-4), fetch the global SEC feed.
 2. Parse all items from the feed.
-3. Filter:
+3. Group by accession_number (same accession may appear under different CIKs).
+4. Filter:
    a. Skip accessions already in AccessionLookedUp.
-   b. Skip filings whose CIK already matches a deal's cik or acquirer_cik
-      (those are covered by fetch_sec_feed_by_deal_cik.py).
-4. For remaining items, ask LLM if the filing company matches any open deal
+   b. If ANY candidate CIK for an accession matches an open deal's cik /
+      acquirer_cik, drop the whole accession (CIK flow owns it).
+   c. Otherwise pick one row and continue.
+5. For remaining items, ask LLM if the filing company matches any open deal
    by company name / alias.
-5. If matched, inject deal_id + a discovery_note, then process through the
+6. If matched, inject deal_id + a discovery_note, then process through the
    same proxy pipeline used by fetch_sec_feed_by_deal_cik.py.
+
+API ticks are coalesced via sec_global_form_work_queue (safe for ~15–20s polls).
 
 Usage:
     cd rag_project && python sec_rss_parser/fetch_sec_global_form_type_feed.py
@@ -307,13 +311,72 @@ def _parse_global_feed(rss_content, form_type):
 # Main processing loop
 # ---------------------------------------------------------------------------
 
+def _item_cik(item_data):
+    """CIK from filing link or item fields."""
+    link = item_data.get("link") or ""
+    cik = _extract_cik_from_url(link) or item_data.get("cik_number")
+    return normalize_cik(cik) if cik else None
+
+
+def _group_items_by_accession(items):
+    """
+    Group feed rows by accession_number, preserving first-seen order.
+    Returns (ordered_accession_list, {accession: [item, ...]}).
+    """
+    by_accession = {}
+    order = []
+    for item_data in items:
+        form_type = (item_data.get("form_type") or "").strip().upper()
+        if form_type not in GLOBAL_FORM_TYPES:
+            continue
+        if not item_data.get("link"):
+            continue
+        acc = item_data.get("accession_number") or extract_accession_from_guid(
+            item_data.get("guid")
+        )
+        if not acc:
+            continue
+        if acc not in by_accession:
+            by_accession[acc] = []
+            order.append(acc)
+        by_accession[acc].append(item_data)
+    return order, by_accession
+
+
+def _pick_item_for_accession(accession_number, candidates, open_deals):
+    """
+    If any candidate CIK matches an open deal, drop the whole accession
+    (CIK-based flow owns it). Otherwise pick the first feed row.
+    Returns (item_or_None, reason, tracked_cik_or_None).
+    """
+    for item_data in candidates:
+        cik = _item_cik(item_data)
+        if _cik_is_tracked_by_deal(cik, open_deals):
+            log_and_print(
+                f"{LOG_PREFIX} ⏭️ Accession {accession_number}: CIK {cik} "
+                f"tracked in open deal — dropping all {len(candidates)} "
+                f"row(s) (CIK flow will handle)"
+            )
+            return None, "cik_tracked", cik
+
+    chosen = candidates[0]
+    if len(candidates) > 1:
+        log_and_print(
+            f"{LOG_PREFIX} Accession {accession_number}: no tracked CIK "
+            f"among {len(candidates)} rows — using first "
+            f"(cik={_item_cik(chosen)})"
+        )
+    return chosen, "first", None
+
+
 def _process_global_items(items, open_deals, dry_run=False):
     """
     Filter and process global-feed items:
-    1. Skip already-looked-up accessions.
-    2. Skip CIKs tracked by existing deals (handled by CIK flow).
-    3. LLM name-match against open deals.
-    4. Process matched items via the shared proxy pipeline.
+    1. Group by accession (same accession may have multiple CIK rows).
+    2. Skip already-looked-up accessions.
+    3. If any CIK for an accession is tracked by an open deal, drop it
+       (do not mark looked_up — CIK flow owns it).
+    4. Otherwise pick one row, LLM name-match, process via proxy pipeline.
     """
     processed = 0
     skipped_accession = 0
@@ -321,25 +384,17 @@ def _process_global_items(items, open_deals, dry_run=False):
     skipped_no_match = 0
     errors = []
 
-    for idx, item_data in enumerate(items):
+    order, by_accession = _group_items_by_accession(items)
+    log_and_print(
+        f"{LOG_PREFIX} Unique accessions to consider: {len(order)} "
+        f"(from {len(items)} feed rows)"
+    )
+
+    for idx, acc in enumerate(order):
         if idx > 0 and idx % 10 == 0:
             time.sleep(0.5)
 
-        link = item_data.get("link")
-        if not link:
-            continue
-
-        acc = item_data.get("accession_number") or extract_accession_from_guid(
-            item_data.get("guid")
-        )
-        form_type = (item_data.get("form_type") or "").strip().upper()
-
-        # Only handle our target form types
-        if form_type not in GLOBAL_FORM_TYPES:
-            continue
-
-        # Set pipeline context — all downstream log lines carry this automatically
-        start_pipeline(GLOBAL_FORM_FEED, accession=acc, doc_type=form_type)
+        candidates = by_accession[acc]
 
         # --- Filter 1: Already processed ---
         if _accession_already_looked_up(acc):
@@ -349,14 +404,20 @@ def _process_global_items(items, open_deals, dry_run=False):
             skipped_accession += 1
             continue
 
-        # --- Filter 2: CIK already in a tracked deal → let CIK flow handle it ---
-        filing_cik = _extract_cik_from_url(link) or item_data.get("cik_number")
-        if _cik_is_tracked_by_deal(filing_cik, open_deals):
-            log_and_print(
-                f"{LOG_PREFIX} ⏭️ CIK {filing_cik} is tracked in a deal — skipping (CIK flow will handle)"
-            )
+        # --- Filter 2: Any CIK tracked by open deal → drop entire accession ---
+        item_data, pick_reason, _tracked_cik = _pick_item_for_accession(
+            acc, candidates, open_deals
+        )
+        if pick_reason == "cik_tracked":
             skipped_cik += 1
             continue
+
+        link = item_data.get("link")
+        form_type = (item_data.get("form_type") or "").strip().upper()
+        filing_cik = _item_cik(item_data)
+
+        # Set pipeline context — all downstream log lines carry this automatically
+        start_pipeline(GLOBAL_FORM_FEED, accession=acc, doc_type=form_type)
 
         # --- Filter 3: Accession lock ---
         lock_owner = None
