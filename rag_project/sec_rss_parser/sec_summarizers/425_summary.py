@@ -10,7 +10,7 @@ import sys
 import os
 import io
 from pathlib import Path
-from ._naming import filing_uid
+from ._naming import filing_uid, sanitize_date_part, sanitize_filename_part
 from ._deal_context import inject_deal_context
 
 # ──── PASTE YOUR 425 URL HERE ────
@@ -293,10 +293,8 @@ def main():
     s3_json_path, s3_json_url = upload_json(result, f"425_summary_{uid}.json")
     print(f"\nJSON uploaded to S3: {s3_json_url}")
 
-    ticker = result.get("ticker", "UNKNOWN")
-    date = result.get("filing_date", "")
-    safe_ticker = re.sub(r'[^\w\-\.]', '_', ticker)
-    safe_date = date.replace("/", "-")
+    safe_ticker = sanitize_filename_part(result.get("ticker"))
+    safe_date = sanitize_date_part(result.get("filing_date"))
     docx_suffix = f"425_Summary_{safe_ticker}_{safe_date}_{uid}.docx"
     s3_docx_path, s3_docx_url = export_docx(result, docx_suffix)
     print(f"DOCX uploaded to S3: {s3_docx_url}")

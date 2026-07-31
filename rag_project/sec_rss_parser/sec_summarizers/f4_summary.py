@@ -15,7 +15,7 @@ import sys
 import os
 import io
 from pathlib import Path
-from ._naming import filing_uid
+from ._naming import filing_uid, sanitize_date_part, sanitize_filename_part
 from ._deal_context import inject_deal_context
 
 # ──── PASTE YOUR F-4 URL HERE ────
@@ -395,10 +395,8 @@ def main():
     s3_json_path, s3_json_url = upload_json(result, f"f4_summary_{uid}.json")
     print(f"\nJSON uploaded to S3: {s3_json_url}")
 
-    target_ticker = result.get("target_ticker", "UNKNOWN")
-    date = result.get("filing_date", "")
-    safe_ticker = re.sub(r'[^\w\-\.]', '_', target_ticker)
-    safe_date = date.replace("/", "-")
+    safe_ticker = sanitize_filename_part(result.get("target_ticker"))
+    safe_date = sanitize_date_part(result.get("filing_date"))
     docx_suffix = f"F4_Summary_{safe_ticker}_{safe_date}_{uid}.docx"
     s3_docx_path, s3_docx_url = export_docx(result, docx_suffix)
     print(f"DOCX uploaded to S3: {s3_docx_url}")

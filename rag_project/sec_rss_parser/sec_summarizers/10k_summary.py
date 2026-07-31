@@ -20,10 +20,10 @@ import io
 from pathlib import Path
 
 try:
-    from ._naming import filing_uid
+    from ._naming import filing_uid, sanitize_date_part, sanitize_filename_part
     from ._deal_context import inject_deal_context
 except ImportError:
-    from _naming import filing_uid
+    from _naming import filing_uid, sanitize_date_part, sanitize_filename_part
     from _deal_context import inject_deal_context
 
 # ──── PASTE YOUR 10-K/10-Q URL HERE ────
@@ -945,12 +945,9 @@ def main():
     s3_json_path, s3_json_url = upload_json(result, f"10k_summary_{uid}.json")
     print(f"\nJSON uploaded to S3: {s3_json_url}")
 
-    ticker = result.get("ticker", "UNKNOWN")
-    filing_type = result.get("filing_type", "10-K")
-    date = result.get("filing_date", "")
-    safe_type = re.sub(r'[^\w\-\.]', '_', filing_type)
-    safe_ticker = re.sub(r'[^\w\-\.]', '_', ticker)
-    safe_date = date.replace("/", "-")
+    safe_ticker = sanitize_filename_part(result.get("ticker"))
+    safe_type = sanitize_filename_part(result.get("filing_type"), "10-K")
+    safe_date = sanitize_date_part(result.get("filing_date"))
     docx_suffix = f"{safe_type}_Summary_{safe_ticker}_{safe_date}_{uid}.docx"
     s3_docx_path, s3_docx_url = export_docx(result, docx_suffix)
     print(f"DOCX uploaded to S3: {s3_docx_url}")

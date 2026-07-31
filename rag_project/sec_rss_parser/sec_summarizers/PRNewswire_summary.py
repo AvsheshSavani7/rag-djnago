@@ -12,10 +12,10 @@ import io
 from pathlib import Path
 
 try:
-    from ._naming import filing_uid
+    from ._naming import filing_uid, sanitize_date_part, sanitize_filename_part
     from ._deal_context import inject_deal_context
 except ImportError:
-    from _naming import filing_uid
+    from _naming import filing_uid, sanitize_date_part, sanitize_filename_part
     from _deal_context import inject_deal_context
 
 # ──── PASTE YOUR PRNEWSWIRE URL HERE ────
@@ -928,10 +928,8 @@ def main():
     if not isinstance(result.get("L3_detailed"), dict):
         result["L3_detailed"] = {}
 
-    target_name = result.get("target") or "UNKNOWN"
-    date = result.get("announcement_date") or ""
-    safe_target = re.sub(r'[^\w\-\.]', '_', target_name)
-    safe_date = date.replace("/", "-") if date else "unknown-date"
+    safe_target = sanitize_filename_part(result.get("target"))
+    safe_date = sanitize_date_part(result.get("announcement_date"))
     docx_suffix = f"PRNewswire_Summary_{safe_target}_{safe_date}_{uid}.docx"
     s3_docx_path, s3_docx_url = export_docx(result, docx_suffix)
     print(f"DOCX uploaded to S3: {s3_docx_url}")
