@@ -39,7 +39,7 @@ load_dotenv()
 
 logger = logging.getLogger(__name__)
 
-MODEL = "gpt-5-nano-2025-08-07"
+MODEL = "gpt-5.4-nano"
 
 
 class DocumentProcessingService:
@@ -792,6 +792,7 @@ class S3Service:
         try:
             logger.info(f"Downloading from URL: {url}")
             response = requests.get(url)
+
             logger.info(f"Response status code: {response.status_code}")
             logger.info(
                 f"Response content type: {response.headers.get('Content-Type', 'unknown')}"
@@ -905,8 +906,10 @@ class EmbeddingService:
             response = self.openai_client.embeddings.create(
                 input=texts, model="text-embedding-3-large"
             )
-            embeddings = [item.embedding for item in sorted(response.data, key=lambda x: x.index)]
-            print(f"Batch embeddings created successfully: {len(embeddings)} vectors")
+            embeddings = [item.embedding for item in sorted(
+                response.data, key=lambda x: x.index)]
+            print(
+                f"Batch embeddings created successfully: {len(embeddings)} vectors")
             return embeddings
         except Exception as e:
             print(f"Error creating batch embeddings: {str(e)}")
@@ -1097,7 +1100,8 @@ class EmbeddingService:
                     logger.info(f"Metadata for chunk {i+1}: {metadata}")
                     metadata = self.trim_metadata(metadata)
                     vectors.append(
-                        {"id": chunk_id, "values": embeddings[j], "metadata": metadata}
+                        {"id": chunk_id,
+                            "values": embeddings[j], "metadata": metadata}
                     )
 
                 # One Pinecone upsert for the entire batch
