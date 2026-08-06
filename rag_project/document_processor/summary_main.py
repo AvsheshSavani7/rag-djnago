@@ -10,6 +10,9 @@ import traceback
 from dotenv import load_dotenv
 from summary_engine import process_clause_config, write_docx_summary
 from summary_engine import RUN_CONCISE_SUMMARIES, RUN_FULSOME_SUMMARIES
+from summary_engine import (
+    set_active_model, validate_clause_models, report_clause_models,
+    get_cost_summary, MODEL_REGISTRY, DEFAULT_MODEL_KEY)
 # Load environment variables
 load_dotenv()
 
@@ -83,14 +86,36 @@ for config_name in config_files:
 # Accept JSON filename from terminal
 # =========================
 if len(sys.argv) < 2:
-    print("❌ Please provide a JSON file name as an argument.\nUsage: python summary_main.py <filename.json>")
+    print(
+        "❌ Please provide a JSON file name as an argument.\n"
+        "Usage: python summary_main.py <filename.json> [model]\n"
+        f"       model is optional; choose from: {', '.join(MODEL_REGISTRY)}\n"
+        "       when given it OVERRIDES every clause's own 'model' key\n"
+        f"       (per-clause default: {DEFAULT_MODEL_KEY})")
     sys.exit(1)
 
 json_filename = sys.argv[1]
 
+# Optional 2nd arg forces the model for every clause (CLI-only global).
+if len(sys.argv) >= 3:
+    try:
+        set_active_model(sys.argv[2])
+    except ValueError as e:
+        print(f"❌ {e}")
+        sys.exit(1)
+    print(f"🧠 Using model: {sys.argv[2]}")
+
 if not os.path.exists(json_filename):
     print(f"❌ File not found: {json_filename}")
     sys.exit(1)
+
+# Fail fast on a bad clause 'model' before any paid call, and show the plan.
+try:
+    validate_clause_models(CLAUSE_CONFIG)
+except ValueError as e:
+    print(f"❌ {e}")
+    sys.exit(1)
+report_clause_models(CLAUSE_CONFIG)
 
 with open(json_filename, "r", encoding="utf-8") as f:
     EXAMPLE_SCHEMA_DATA = json.load(f)
@@ -130,8 +155,7 @@ def process_single_clause(clause_name, clause_config):
 
         print(f"\n→ Evaluating: {clause_name}")
         result = process_clause_config(
-            clause_config, clause_name, EXAMPLE_SCHEMA_DATA,
-            provider="openai", model="gpt-4", temperature=0)
+            clause_config, clause_name, EXAMPLE_SCHEMA_DATA)
 
         if result["output"] and result["output"] != "No output generated.":
             # Skip concise summaries where view_prompt is False
@@ -206,3 +230,20 @@ write_docx_summary(
     RUN_FULSOME_SUMMARIES
 )
 print("\n✅ DOCX summary written.")
+
+# =========================
+# Cost Summary
+# =========================
+rows, grand_total = get_cost_summary()
+if rows:
+    print("\n===== 💰 LLM Cost Summary =====")
+    for r in rows:
+        print(
+            f"{r['model_key']} ({r['model_id']}): "
+            f"{r['calls']} calls | "
+            f"{r['input_tokens']:,} in + {r['output_tokens']:,} out tokens | "
+            f"${r['cost_usd']:.4f}")
+    print("------------------------------")
+    print(f"TOTAL: ${grand_total:.4f}")
+else:
+    print("\n(No token usage recorded — no cost to report.)")

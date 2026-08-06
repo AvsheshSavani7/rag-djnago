@@ -33,6 +33,7 @@ from .serializers import (
     RedditPostSerializer
 )
 from .services import FlattenProcessor, EmbeddingService, S3Service, ChatWithAIService, SummaryGenerationService
+from .summary_engine import summary_using_label, MODEL_REGISTRY
 from mongoengine import Q
 from mongoengine.errors import DoesNotExist, ValidationError
 from sec_rss_parser.models import DealDmaSummary
@@ -778,8 +779,15 @@ class SummaryEngineView(APIView):
     # Create a ThreadPoolExecutor for background tasks
     executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
 
-    def _generate_summary_background(self, deal_id, temperature, provider, model):
-        """Background task to generate summary"""
+    def _generate_summary_background(self, deal_id, model_override=None):
+        """Background task to generate summary.
+
+        model_override: optional forced model (registry key). None means each
+        clause uses its own configured model / the registry default.
+        """
+        # A forced model is recorded by name; otherwise the run is
+        # clause-config / default driven.
+        using_label = summary_using_label(model_override)
         try:
             object_id = ObjectId(deal_id)
 
@@ -788,22 +796,20 @@ class SummaryEngineView(APIView):
                 deal_id=object_id,
                 summary_status='PROCESSING',
                 summary_docx_url=None,
-                summary_using=f"{provider}-{model}",
+                summary_using=using_label,
             )
 
             summary_service = SummaryGenerationService()
             result = summary_service.generate_summary_engine(
                 deal_id=deal_id,
-                temperature=temperature,
-                provider=provider,
-                model=model
+                model_override=model_override,
             )
 
             # Update the job with the summary URL and provider info
             try:
                 job = ProcessingJob.objects.get(id=object_id)
                 job.summary_docx_url = result
-                job.summary_using = f"{provider}-{model}"
+                job.summary_using = using_label
                 job.summary_status = 'COMPLETED'
                 job.save()
 
@@ -829,7 +835,7 @@ class SummaryEngineView(APIView):
                     deal_id=object_id,
                     summary_status='FAILED',
                     summary_docx_url=None,
-                    summary_using=f"{provider}-{model}",
+                    summary_using=using_label,
                 )
 
         except Exception as e:
@@ -847,7 +853,7 @@ class SummaryEngineView(APIView):
                     deal_id=object_id,
                     summary_status='FAILED',
                     summary_docx_url=None,
-                    summary_using=f"{provider}-{model}",
+                    summary_using=using_label,
                 )
             except Exception as inner_e:
                 logger.error(f"Error updating job status: {str(inner_e)}")
@@ -863,27 +869,31 @@ class SummaryEngineView(APIView):
                         deal_id=object_id,
                         summary_status='FAILED',
                         summary_docx_url=None,
-                        summary_using=f"{provider}-{model}",
+                        summary_using=using_label,
                     )
             # Note: deal_dma_summary FAILED upsert is handled in both branches above.
 
     def post(self, request, format=None):
-        # Get request parameters
+        # Get request parameters. `model` is now OPTIONAL: when omitted, each
+        # clause uses its own configured model / the registry default. When
+        # provided it forces that model for every clause of this run.
         deal_id = request.data.get('deal_id')
-        temperature = float(request.data.get('temperature', 1))
-        provider = request.data.get('provider', 'openai')
-        model = request.data.get('model', 'gpt-5')
+        model_override = request.data.get('model')
 
         # Validate parameters
         if not deal_id:
             return Response({"error": "deal_id is required"}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Validate provider
-        valid_providers = ['openai', 'google', 'anthropic']
-        if provider.lower() not in valid_providers:
-            return Response({
-                "error": f"Invalid provider. Must be one of: {', '.join(valid_providers)}"
-            }, status=status.HTTP_400_BAD_REQUEST)
+        # Validate the forced model (if any) before starting the background job.
+        if model_override:
+            try:
+                using_label = summary_using_label(model_override)
+            except ValueError:
+                return Response({
+                    "error": f"Invalid model. Choose from: {', '.join(MODEL_REGISTRY)}"
+                }, status=status.HTTP_400_BAD_REQUEST)
+        else:
+            using_label = summary_using_label(None)
 
         try:
             # Get the job and update status
@@ -894,16 +904,14 @@ class SummaryEngineView(APIView):
 
             # Start summary generation in background
             self.executor.submit(
-                self._generate_summary_background, deal_id, temperature, provider, model)
+                self._generate_summary_background, deal_id, model_override)
 
             # Return immediate response
             return Response({
                 'id': str(deal_id),
                 'summary_status': 'PROCESSING',
-                'provider': provider,
-                'model': model,
-                'summary_using': f"{provider}-{model}",
-                'temperature': temperature,
+                'model': model_override,
+                'summary_using': using_label,
                 'message': 'Summary generation started in background.'
             }, status=status.HTTP_200_OK)
 

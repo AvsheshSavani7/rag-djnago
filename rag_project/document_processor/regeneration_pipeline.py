@@ -303,16 +303,12 @@ def _step_summary(deal_id: str, job: ProcessingJob, send_email: bool = False):
         deal_id=object_id,
         summary_status='PROCESSING',
         summary_docx_url=None,
-        summary_using="gpt-5.2-2025-12-11",
+        summary_using="from clause config",
     )
 
     summary_service = SummaryGenerationService()
-    result = summary_service.generate_summary_engine(
-        deal_id=deal_id,
-        temperature=0,
-        provider='openai',
-        model='gpt-5.2-2025-12-11',
-    )
+    # No model override — each clause uses its configured model / default.
+    result = summary_service.generate_summary_engine(deal_id=deal_id)
 
     if not result:
         job.summary_status = 'FAILED'
@@ -322,12 +318,12 @@ def _step_summary(deal_id: str, job: ProcessingJob, send_email: bool = False):
             deal_id=object_id,
             summary_status='FAILED',
             summary_docx_url=None,
-            summary_using="gpt-5.2-2025-12-11",
+            summary_using="from clause config",
         )
         raise RuntimeError("Summary generation returned None")
 
     job.summary_docx_url = result
-    job.summary_using = "gpt-5.2-2025-12-11"
+    job.summary_using = "from clause config"
     job.summary_status = 'COMPLETED'
     job.save()
 
@@ -335,7 +331,7 @@ def _step_summary(deal_id: str, job: ProcessingJob, send_email: bool = False):
         deal_id=object_id,
         summary_status='COMPLETED',
         summary_docx_url=result,
-        summary_using="gpt-5.2-2025-12-11",
+        summary_using="from clause config",
     )
     logger.info("[regenerate] summary DOCX generated: %s", result)
 

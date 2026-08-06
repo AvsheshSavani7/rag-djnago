@@ -481,7 +481,7 @@ def generate_8k_summary_async(deal_id, company_name, form_type, cik_number, sec_
                         deal_id=object_id,
                         summary_status='FAILED',
                         summary_docx_url=None,
-                        summary_using="gpt-5.2-2025-12-11",
+                        summary_using="from clause config",
                     )
                     return
 
@@ -506,23 +506,20 @@ def generate_8k_summary_async(deal_id, company_name, form_type, cik_number, sec_
                         deal_id=object_id,
                         summary_status='PROCESSING',
                         summary_docx_url=None,
-                        summary_using="gpt-5.2-2025-12-11",
+                        summary_using="from clause config",
                     )
 
                     # Generate summary
                     summary_service = SummaryGenerationService()
+                    # No model override — each clause uses its configured model / default.
                     result = summary_service.generate_summary_engine(
-                        deal_id=deal_id,
-                        temperature=0,
-                        provider='openai',
-                        model='gpt-5.2-2025-12-11'
-                    )
+                        deal_id=deal_id)
                     log_and_print(f"Result: {result}")
 
                     if result:
                         # Update job with summary URL
                         job.summary_docx_url = result
-                        job.summary_using = "gpt-5.2-2025-12-11"
+                        job.summary_using = "from clause config"
                         job.summary_status = 'COMPLETED'
                         job.save()
 
@@ -586,7 +583,7 @@ def generate_8k_summary_async(deal_id, company_name, form_type, cik_number, sec_
                             deal_id=object_id,
                             summary_status='FAILED',
                             summary_docx_url=None,
-                            summary_using=job.summary_using or "gpt-5.2-2025-12-11",
+                            summary_using=job.summary_using or "from clause config",
                         )
                         return
 
@@ -598,7 +595,7 @@ def generate_8k_summary_async(deal_id, company_name, form_type, cik_number, sec_
                         deal_id=object_id,
                         summary_status='FAILED',
                         summary_docx_url=None,
-                        summary_using="gpt-5.2-2025-12-11",
+                        summary_using="from clause config",
                     )
                     return
 
@@ -620,7 +617,7 @@ def generate_8k_summary_async(deal_id, company_name, form_type, cik_number, sec_
                     deal_id=object_id,
                     summary_status='FAILED',
                     summary_docx_url=None,
-                    summary_using="gpt-5.2-2025-12-11",
+                    summary_using="from clause config",
                 )
             except Exception:
                 # Don't mask the original error with DB issues.

@@ -18,10 +18,6 @@ import logging
 logger = logging.getLogger(__name__)
 
 try:
-    import google.generativeai as genai
-except ImportError:
-    genai = None
-try:
     import anthropic
 except ImportError:
     anthropic = None
@@ -29,6 +25,189 @@ except ImportError:
 # summary_engine.py
 RUN_CONCISE_SUMMARIES = True
 RUN_FULSOME_SUMMARIES = False  # True
+
+# =========================
+# "No answer" sentinels
+# =========================
+# Values the extractor writes to mean "this field has no real answer".
+# Compared case-insensitively, with surrounding whitespace and a trailing
+# period stripped — so "Not addressed." and "not addressed" both match.
+NOT_FOUND_SENTINELS = {
+    "not found", "na", "n/a", "not applicable", "not specified",
+    "unspecified", "not addressed", "silent", "not inferred",
+    "no mention", "none", "not_specified", "",
+}
+
+
+def _canon(v):
+    """Normalize a value for sentinel testing only — never for output.
+
+    Only None collapses to "". Other falsy values (False, 0, []) are real
+    data and must stringify normally, or `_has_content` would treat a
+    legitimate boolean False as a missing field.
+    """
+    if v is None:
+        return ""
+    return str(v).strip().rstrip(".").lower()
+
+
+def is_not_found(v):
+    """True if this value means 'no real answer'."""
+    return _canon(v) in NOT_FOUND_SENTINELS
+
+
+def _has_content(v):
+    """True if a resolved prompt field carries usable text.
+
+    Value-based, never path-based: `add_to_prompt` reads `.clause_text` in
+    most configs and `.answer` in the rest, and either can be empty *or* the
+    literal string "Not found". Both must count as no content.
+    """
+    if isinstance(v, list):
+        return any(_has_content(x) for x in v)
+    return bool(str(v).strip()) and not is_not_found(v)
+
+
+# =========================
+# Model registry + pricing
+# =========================
+# Prices are USD per 1,000,000 tokens (input, output).
+# supports_temperature=False: the model accepts only its default temperature
+# (1) and 400s on any explicit value, including 0 — so we omit the parameter.
+MODEL_REGISTRY = {
+    "gpt-5.6-sol":   {"id": "gpt-5.6-sol",   "provider": "openai",    "price_in": 5.00, "price_out": 30.00, "supports_temperature": False},
+    "gpt-5.6-terra": {"id": "gpt-5.6-terra", "provider": "openai",    "price_in": 2.00, "price_out": 12.00, "supports_temperature": False},
+    "gpt-5.6-luna":  {"id": "gpt-5.6-luna",  "provider": "openai",    "price_in": 0.20, "price_out": 1.20,  "supports_temperature": False},
+    "gpt-5.2":       {"id": "gpt-5.2-2025-12-11", "provider": "openai",    "price_in": 1.25, "price_out": 10.00},
+    "opus":          {"id": "claude-opus-4-8",    "provider": "anthropic", "price_in": 5.00, "price_out": 25.00},
+    "sonnet":        {"id": "claude-sonnet-5",    "provider": "anthropic", "price_in": 3.00, "price_out": 15.00},
+    "haiku":         {"id": "claude-haiku-4-5",   "provider": "anthropic", "price_in": 1.00, "price_out": 5.00},
+}
+
+# Which model to use, in precedence order:
+#   1. per-call model_override (API/CLI forced model)      -> highest
+#   2. clause config's "model" key
+#   3. SUMMARY_MODEL env var
+#   4. DEFAULT_MODEL_KEY below
+DEFAULT_MODEL_KEY = "gpt-5.6-terra"
+_ACTIVE_MODEL_KEY = None
+
+
+def set_active_model(key):
+    """Force the model used for every clause (CLI path only).
+
+    Server/API paths must NOT use this global — pass model_override through
+    process_clause_config instead, so concurrent deals cannot leak a model
+    into one another. Validates eagerly so a bad name fails before any call.
+    """
+    global _ACTIVE_MODEL_KEY
+    _resolve_model(key)
+    _ACTIVE_MODEL_KEY = key
+
+
+def _resolve_model(key=None):
+    key = key or _ACTIVE_MODEL_KEY or os.getenv(
+        "SUMMARY_MODEL", DEFAULT_MODEL_KEY)
+    if key in MODEL_REGISTRY:
+        return key, MODEL_REGISTRY[key]
+    for k, spec in MODEL_REGISTRY.items():  # allow passing a raw model id
+        if spec["id"] == key:
+            return k, spec
+    raise ValueError(
+        f"Unknown model '{key}'. Choose from: {', '.join(MODEL_REGISTRY)}")
+
+
+def model_for_clause(clause_config):
+    """Model key this clause should run on, honouring a CLI override."""
+    return _ACTIVE_MODEL_KEY or (clause_config or {}).get("model")
+
+
+def summary_using_label(model_override=None):
+    """Human label for the `summary_using` DB field.
+
+    A forced model (API/CLI) is recorded by its registry key; otherwise the
+    run is clause-config / default driven and no single model applies, so we
+    record the literal "from clause config".
+    """
+    if model_override:
+        return _resolve_model(model_override)[0]
+    return "from clause config"
+
+
+def validate_clause_models(clause_config_map):
+    """Resolve every configured model before any paid call runs.
+
+    A typo otherwise surfaces mid-run, after dozens of billed requests.
+    """
+    bad = []
+    for name, cfg in clause_config_map.items():
+        key = (cfg or {}).get("model")
+        if key is None:
+            continue
+        try:
+            _resolve_model(key)
+        except ValueError as e:
+            bad.append(f"  {name}: {e}")
+    if bad:
+        raise ValueError(
+            "Invalid 'model' in clause config(s):\n" + "\n".join(bad))
+
+
+def report_clause_models(clause_config_map, only_types=("Concise",)):
+    """Log which model each clause will use, before spending anything."""
+    if _ACTIVE_MODEL_KEY:
+        logger.info(f"CLI override — ALL clauses forced to: {_ACTIVE_MODEL_KEY}")
+    counts = defaultdict(int)
+    unset = 0
+    for name, cfg in clause_config_map.items():
+        if (cfg or {}).get("summary_type") not in only_types:
+            continue
+        if not _ACTIVE_MODEL_KEY and (cfg or {}).get("model") is None:
+            unset += 1
+        counts[_resolve_model(model_for_clause(cfg))[0]] += 1
+    logger.info("Model plan for this run:")
+    for k, n in sorted(counts.items(), key=lambda kv: -kv[1]):
+        logger.info(f"   {n:3d} clause(s) -> {k}")
+    if unset:
+        logger.info(
+            f"   ({unset} of these have no 'model' key — using the default"
+            f" '{DEFAULT_MODEL_KEY}')")
+
+
+# =========================
+# Usage / cost tracking
+# =========================
+# Running token totals accumulated by call_llm, keyed by friendly model name.
+USAGE_TOTALS = {}
+
+
+def _record_usage(model_key, input_tokens, output_tokens):
+    t = USAGE_TOTALS.setdefault(
+        model_key, {"calls": 0, "input_tokens": 0, "output_tokens": 0})
+    t["calls"] += 1
+    t["input_tokens"] += input_tokens or 0
+    t["output_tokens"] += output_tokens or 0
+
+
+def get_cost_summary():
+    """Return (rows, grand_total_usd) where each row is a per-model breakdown."""
+    rows = []
+    grand_total = 0.0
+    for key, t in USAGE_TOTALS.items():
+        spec = MODEL_REGISTRY[key]
+        cost = (t["input_tokens"] / 1_000_000) * spec["price_in"] \
+            + (t["output_tokens"] / 1_000_000) * spec["price_out"]
+        grand_total += cost
+        rows.append({
+            "model_key": key,
+            "model_id": spec["id"],
+            "calls": t["calls"],
+            "input_tokens": t["input_tokens"],
+            "output_tokens": t["output_tokens"],
+            "cost_usd": cost,
+        })
+    return rows, grand_total
+
 
 # =========================
 # LLM Setup
@@ -39,7 +218,6 @@ def load_api_keys():
     load_dotenv()
     api_keys = {
         'openai': os.getenv("OPENAI_API_KEY_SEC_FILING"),
-        'google': os.getenv("GOOGLE_API_KEY"),
         'anthropic': os.getenv("ANTHROPIC_API_KEY")
     }
     return api_keys
@@ -51,10 +229,6 @@ API_KEYS = load_api_keys()
 # Configure OpenAI
 if API_KEYS['openai']:
     openai.api_key = API_KEYS['openai']
-
-# Configure Google Gemini
-if API_KEYS['google'] and genai:
-    genai.configure(api_key=API_KEYS['google'])
 
 # Configure Anthropic
 if API_KEYS['anthropic'] and anthropic:
@@ -90,98 +264,99 @@ def add_business_days(start_date, business_days):
     return current_date
 
 
-def call_llm(prompt_text, model="gpt-5", temperature=1, provider="openai"):
-    """
-    Call LLM with specified provider and model
-`
+def call_llm(prompt_text, model=None, temperature=0):
+    """Call the resolved LLM (OpenAI or Anthropic) for a single clause.
+
+    The provider is derived from the registry entry, so callers never pass a
+    provider. `model` may be a registry key, a raw model id, or None (in which
+    case the precedence in _resolve_model decides).
+
     Args:
         prompt_text (str): The prompt to send to the model
-        model (str): The model name to use
-        temperature (float): Temperature for response generation
-        provider (str): The provider to use ('openai', 'google', 'anthropic')
+        model (str|None): Registry key / raw id / None
+        temperature (float): Used only for models that accept it
 
     Returns:
-        str: The model's response
+        str: The model's response text
     """
+    model_key, spec = _resolve_model(model)
+    provider = spec["provider"]
+    model_id = spec["id"]
     system_message = "You are a legal summarization assistant."
 
-    if provider.lower() == "openai":
+    if provider == "openai":
         if not API_KEYS['openai']:
             raise ValueError("OpenAI API key not found")
 
-        if model == "gpt-5":
+        kwargs = {
+            "model": model_id,
+            "messages": [
+                {"role": "system", "content": system_message},
+                {"role": "user", "content": prompt_text},
+            ],
+        }
+        # Some newer OpenAI models reject an explicit temperature and accept
+        # only their default of 1 — omit the parameter entirely for those.
+        if spec.get("supports_temperature", True):
+            kwargs["temperature"] = temperature
 
-            resp = openai.chat.completions.create(
-                model=model,  # “gpt-5", or “gpt-5-mini”, “gpt-5-nano”, or “gpt-5-chat-latest”
-                messages=[
-                    {
-                        "role": "system",
-                        "content": "You are a legal summarization assistant.",
-                    },
-                    {"role": "user", "content": prompt_text},
-                ],
-                temperature=temperature,
-                # New optional GPT-5 controls:
-                extra_headers={"OpenAI-Beta": "gpt-5-controls"},
-                reasoning_effort="medium",  # low | “medium” | “high”
-                verbosity="medium",  # “low” | “medium” | “high”
+        resp = openai.chat.completions.create(**kwargs)
+
+        usage = getattr(resp, "usage", None)
+        if usage:
+            _record_usage(
+                model_key,
+                getattr(usage, "prompt_tokens", 0),
+                getattr(usage, "completion_tokens", 0),
             )
+        return resp.choices[0].message.content.strip()
 
-            return resp.choices[0].message.content.strip()
-        else:
-
-            logger.info(f"Model1: {model}")
-            logger.info(f"Temperature1: {temperature}")
-
-            response = openai.chat.completions.create(
-                model=model,
-                messages=[
-                    {"role": "system", "content": system_message},
-                    {"role": "user", "content": prompt_text}
-                ],
-                temperature=temperature
-            )
-            return response.choices[0].message.content.strip()
-
-    elif provider.lower() == "google":
-        if not API_KEYS['google'] or not genai:
-            raise ValueError(
-                "Google API key not found or google.generativeai not installed")
-
-        # Configure the model
-        model_instance = genai.GenerativeModel(model)
-
-        # Create the prompt with system message
-        full_prompt = f"{system_message}\n\n{prompt_text}"
-
-        response = model_instance.generate_content(
-            full_prompt,
-            generation_config=genai.types.GenerationConfig(
-                temperature=temperature,
-                max_output_tokens=2048,
-            )
-        )
-        return response.text.strip()
-
-    elif provider.lower() == "anthropic":
+    elif provider == "anthropic":
         if not API_KEYS['anthropic'] or not anthropic_client or not anthropic:
             raise ValueError(
                 "Anthropic API key not found or anthropic library not installed")
 
-        response = anthropic_client.messages.create(
-            model=model,
-            max_tokens=2048,
-            temperature=temperature,
+        # NOTE: Opus/Sonnet reject `temperature` (400) — omit it entirely.
+        resp = anthropic_client.messages.create(
+            model=model_id,
+            max_tokens=4096,
             system=system_message,
-            messages=[
-                {"role": "user", "content": prompt_text}
-            ]
+            messages=[{"role": "user", "content": prompt_text}],
         )
-        return response.content[0].text.strip()
 
-    else:
-        raise ValueError(
-            f"Unsupported provider: {provider}. Supported providers are: openai, google, anthropic")
+        usage = getattr(resp, "usage", None)
+        if usage:
+            input_tokens = (
+                (getattr(usage, "input_tokens", 0) or 0)
+                + (getattr(usage, "cache_read_input_tokens", 0) or 0)
+                + (getattr(usage, "cache_creation_input_tokens", 0) or 0)
+            )
+            _record_usage(
+                model_key,
+                input_tokens,
+                getattr(usage, "output_tokens", 0),
+            )
+        # Models with extended thinking emit a ThinkingBlock *before* the
+        # answer, so content[0] is not necessarily the text. Collect every
+        # text block instead of assuming the first one.
+        text_parts = [
+            b.text for b in resp.content if getattr(b, "type", None) == "text"
+        ]
+        if not text_parts:
+            logger.warning(
+                "No text block in %s response (blocks: %s) — returning empty",
+                model_id,
+                [getattr(b, "type", "?") for b in resp.content],
+            )
+        # Thinking tokens count against max_tokens, so a long reasoning pass
+        # can truncate the answer mid-sentence — surface it rather than
+        # silently writing a half-finished summary.
+        if getattr(resp, "stop_reason", None) == "max_tokens":
+            logger.warning(
+                "%s hit max_tokens — summary may be truncated", model_id)
+        return "".join(text_parts).strip()
+
+    raise ValueError(f"Unknown provider '{provider}' for model '{model_id}'")
 
 
 def add_table_spacing(doc, before_pt=6, after_pt=6):
@@ -228,6 +403,9 @@ def extract_short_reference(references, data, fallback_to_section=True):
         val = get_nested_value(data, ref_path)
         if val is None:
             continue
+        # Never print "Not found"/"NA" as though it were a section citation.
+        if is_not_found(val):
+            continue
         if ref_path.endswith("short_reference"):
             short_refs.append(val)
         elif fallback_to_section and isinstance(val, str):
@@ -272,22 +450,59 @@ def evaluate_condition_branch(condition, data):
             v = value.strip().lower()
             if v in {"true", "1", "yes", "y"}:
                 result = True
-            elif v in {"false", "0", "no", "n", ""}:
+            elif v in {"false", "0", "no", "n", ""} or is_not_found(v):
+                # "NA"/"Not found" means no answer was located, which must
+                # not fire the true-branch.
                 result = False
             else:
-                raise ValueError(f"Cannot convert string to boolean: {value}")
+                # Extractor sometimes writes prose into a boolean field.
+                # Degrade instead of raising: nothing wraps
+                # process_clause_config, so an exception here kills the whole
+                # run and discards every clause already summarised.
+                logger.warning(
+                    "Non-boolean value %r at %s — treating as False",
+                    value,
+                    condition.get("if"),
+                )
+                result = False
         else:
             result = bool(value)
 
     elif condition["type"] == "enum":
         if isinstance(value, list):
             value_normalized = ", ".join(str(v) for v in value).strip()
+        elif isinstance(value, bool):
+            value_normalized = "true" if value else "false"
+        elif isinstance(value, (int, float)):
+            value_normalized = str(value)
         else:
             # Convert value to string first to handle booleans, None, etc.
             value_normalized = str(value) if value is not None else ""
             value_normalized = value_normalized.strip()
         enum_cases = condition.get("enum_cases", {})
-        branch = enum_cases.get(value_normalized, condition.get("default", {}))
+
+        # Tier 1: exact match — preserves all existing behaviour untouched.
+        branch = enum_cases.get(value_normalized)
+
+        # Tier 2: case-insensitive — catches "Not Found" vs "Not found".
+        # Only string keys: a few configs use a literal None key, which
+        # value_normalized (always a str) can never match anyway.
+        if branch is None:
+            ci = {k.lower(): v for k, v in enum_cases.items()
+                  if isinstance(k, str)}
+            branch = ci.get(value_normalized.lower())
+
+        # Tier 3: sentinel collapse — "NA" uses whatever not-found branch
+        # this config already declares. First match in declaration order.
+        if branch is None and is_not_found(value_normalized):
+            for k in enum_cases:
+                if isinstance(k, str) and is_not_found(k):
+                    branch = enum_cases[k]
+                    break
+
+        if branch is None:
+            branch = condition.get("default", {})
+
         if branch:
             output["triggered"] = True
 
@@ -325,7 +540,9 @@ def evaluate_condition_branch(condition, data):
             result = False
 
     elif condition["type"] == "non_empty":
-        result = value is not None and value != ""
+        # "Is there something here?" must answer no for a string whose
+        # literal meaning is "there is nothing here" ("NA", "Not found", ...).
+        result = value is not None and not is_not_found(value)
 
     if result is True and "true" in condition:
         branch = condition["true"]
@@ -400,7 +617,9 @@ def _resolve_reference_strings(reference_paths, schema_data):
     refs = []
     for path in reference_paths or []:
         val = get_nested_value(schema_data, path)
-        if val:
+        # A reference_section of "Not found"/"NA" is truthy but meaningless —
+        # querying Pinecone for it returns whatever happens to be nearest.
+        if val and not is_not_found(val):
             refs.append(val if isinstance(val, str) else str(val))
     return refs
 
@@ -606,7 +825,7 @@ def extract_section_references(text, current_sections=None):
     return list(found_sections)
 
 
-def process_clause_config(clause_config, clause_name, schema_data, provider="openai", model="gpt-4", temperature=1, deal_id=None, definitions_array=None, preamble_data=None):
+def process_clause_config(clause_config, clause_name, schema_data, deal_id=None, definitions_array=None, preamble_data=None, model_override=None):
 
     # Handle case where definitions_array might be None or empty
     if definitions_array:
@@ -816,25 +1035,31 @@ def process_clause_config(clause_config, clause_name, schema_data, provider="ope
             "=== End Preamble ===\n"
             "----\n"
             "### Entity Resolution Requirement (Mandatory Step)\n"
-            "Before you answer:\n"
+            "Before you answer, do the following SILENTLY / internally — do NOT write any of it in your response:\n"
             "1. Read the **Contract Preamble**.\n"
-            "2. Identify and record all parties and their roles:\n"
-            "- e.g., 'Parent' = James Hardie Industries plc\n"
-            "'Merger Sub' = Juno Merger Sub Inc.\n"
-            "'Company' = The AZEK Company Inc.\n"
-            "3. Replace **every alias** in your reasoning and final answer with its specific name.\n"
+            "2. Work out each party and its role in your head (e.g., internally note that 'Parent' = James Hardie Industries plc, 'Merger Sub' = Juno Merger Sub Inc., 'Company' = The AZEK Company Inc.).\n"
+            "3. In your final answer, replace **every alias** with its specific name.\n"
             "Examples:\n"
             "- Use “The AZEK Company Inc.” instead of “Company.”\n"
             "- Use “James Hardie Industries plc” instead of “Parent.”\n"
             "4. This mapping must be performed **before writing the answer** and applied throughout.\n"
-
+            "\n"
+            "### Output Rules (STRICT)\n"
+            "- Your entire response must be ONLY the requested summary sentence(s).\n"
+            "- Do NOT output the party-to-role mapping, an 'Entity mapping:' line, your reasoning, step numbers, headers, or any preamble/labels before or after the summary.\n"
+            "- Do NOT prefix the answer with '*', '-', bullet markers, or notes about how you resolved the parties.\n"
         )
 
     print(f"context_preamble: {context_preamble}")
     logger.info(f"context_preamble: {context_preamble}")
 
-    # If prompt can be built
-    if prompt_fields and "prompt_template" in clause_config:
+    # If prompt can be built.
+    # NOTE: test the *values*, not the dict. `prompt_fields` for a no-answer
+    # clause is e.g. {"right_to_control_strategy": ""} — a non-empty dict
+    # holding an empty string, which is truthy and used to slip through here,
+    # producing an empty prompt and an LLM call that narrates the gap.
+    meaningful = {k: v for k, v in prompt_fields.items() if _has_content(v)}
+    if meaningful and "prompt_template" in clause_config:
         try:
             base_prompt = clause_config["prompt_template"].format(
                 **prompt_fields) if prompt_fields else clause_config["prompt_template"]
@@ -853,13 +1078,16 @@ def process_clause_config(clause_config, clause_name, schema_data, provider="ope
                 prompt = clause_config["fallback_prompt"]
             else:
                 prompt = f"[Missing field {str(e)} for prompt generation]"
-        llm_result = call_llm(prompt, model=model,
-                              temperature=temperature, provider=provider)
+        # Precedence: per-call override (API/CLI forced) -> clause "model"
+        # key -> SUMMARY_MODEL env -> DEFAULT_MODEL_KEY (handled in call_llm).
+        clause_model = model_override or model_for_clause(clause_config)
+        llm_result = call_llm(prompt, model=clause_model)
 
         logger.info(f"llm_result: {llm_result[:100]}")
         logger.info(f"Clause Name Done: {clause_name}")
         return {
             "output": llm_result,
+            "model": _resolve_model(clause_model)[0],
             "references": short_refs,
             "used_prompt": prompt if clause_config.get("view_prompt", False) else None,
             "summary_type": clause_config.get("summary_type"),
@@ -1184,7 +1412,7 @@ if __name__ == "__main__":
 
         print(f"→ Evaluating: {clause_name}")
         result = process_clause_config(
-            clause_config, clause_name, EXAMPLE_SCHEMA_DATA, provider="openai", model="gpt-5", temperature=1)
+            clause_config, clause_name, EXAMPLE_SCHEMA_DATA)
         print(f"→ Output preview: {result['output'][:100]}")
         if result["output"] and result["output"] != "No output generated.":
             filtered_result = result.copy()

@@ -28,6 +28,8 @@ from .summary_utils.clause_config_util import ClauseConfigUtil
 from .transform_json import simplify_json
 from .summary_engine import process_clause_config, write_docx_summary
 from .summary_engine import RUN_CONCISE_SUMMARIES, RUN_FULSOME_SUMMARIES
+from .summary_engine import (
+    validate_clause_models, report_clause_models, summary_using_label)
 from .pinecone_utils import PineconeSectionFetcher
 import tempfile
 import time
@@ -2107,10 +2109,14 @@ class SummaryGenerationService:
             logger.error(traceback.format_exc())
             return []
 
-    def generate_summary_engine(self, deal_id, temperature=1, provider="openai", model="gpt-5"):
+    def generate_summary_engine(self, deal_id, model_override=None):
         """
         Generate document summaries based on schema results for the given deal_id.
         Uses the same summary generation logic as summary_main.py but with different input/output handling.
+
+        model_override: optional forced model (registry key or raw id). When
+        given it overrides every clause's own 'model' key; otherwise each
+        clause uses its configured model or the registry default.
         """
         from core.logging_context import set_pipeline_context, get_run_id, get_accession
         set_pipeline_context(
@@ -2121,9 +2127,8 @@ class SummaryGenerationService:
         )
         try:
             logger.info(f"Generating summary for deal ID: {deal_id}")
-            logger.info(f"Temperature: {temperature}")
-            logger.info(f"Provider: {provider}")
-            logger.info(f"Model: {model}")
+            logger.info(
+                f"Model override: {model_override or '(clause config / default)'}")
             try:
                 object_id = ObjectId(deal_id)
                 job = ProcessingJob.objects.get(id=object_id)
@@ -2191,6 +2196,11 @@ class SummaryGenerationService:
                 logger.info(
                     f"Loaded clause configs: {list(CLAUSE_CONFIG.keys())}")
 
+                # Fail fast on a bad clause 'model' before any paid call, and
+                # log which model each clause will run on.
+                validate_clause_models(CLAUSE_CONFIG)
+                report_clause_models(CLAUSE_CONFIG)
+
                 # Process summaries - exactly matching summary_main.py logic
                 summary_outputs = []
 
@@ -2225,9 +2235,8 @@ class SummaryGenerationService:
                         logger.info(f"\n→ Evaluating: {clause_name}")
                         result = process_clause_config(
                             clause_config, clause_name, schema_results,
-                            provider=provider, model=model, temperature=temperature,
                             definitions_array=definitions_array, preamble_data=preamble_data,
-                            deal_id=deal_id)
+                            deal_id=deal_id, model_override=model_override)
                         logger.info(f"Result: {result}")
 
                         if result["output"] and result["output"] != "No output generated.":
@@ -2364,7 +2373,7 @@ class SummaryGenerationService:
                         # Store HTTPS URL and summary provider info in MongoDB
                         s3_url = f"https://{S3_BUCKET}.s3.amazonaws.com/{docx_key}"
                         job.summary_docx_url = s3_url
-                        job.summary_using = f"{provider}-{model}"
+                        job.summary_using = summary_using_label(model_override)
                         job.save()
 
                         # Return the S3 URL
