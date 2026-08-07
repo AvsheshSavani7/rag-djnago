@@ -1272,6 +1272,19 @@ def process_8k_document_async(ex21_url, cik_number, company_name, sec_filing_id,
 
                 log_and_print(f"✅ Processing started, deal_id: {deal_id}")
 
+                # Non-blocking side pipelines (Notices extract + previous 10-Q).
+                # Log-only for now; must not affect process_document / summary flow.
+                try:
+                    from sec_rss_parser.ex21_parallel_pipelines import (
+                        start_ex21_side_pipelines,
+                    )
+                    start_ex21_side_pipelines(deal_id, extracted_json_url)
+                except Exception as side_e:
+                    log_and_print(
+                        f"⚠️ Failed to start EX-2.1 side pipelines: {side_e}",
+                        "warning",
+                    )
+
                 # Send a "success parsing" email before kicking off doc processing.
                 _send_parsing_success_email(
                     log_records=extraction_warnings,
