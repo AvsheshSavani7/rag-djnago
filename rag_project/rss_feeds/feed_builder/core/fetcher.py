@@ -34,10 +34,12 @@ BROWSER_HEADERS = {
     "Cache-Control": "max-age=0",
 }
 
-# Sites known to use Akamai / heavy bot protection on listing pages.
+# Sites known to soft-block / WAF plain requests (hang, drop, or 403).
+# When fetch_mode is auto/requests, these hosts skip straight to cffi + residential proxy.
 BOT_PROTECTED_HINTS = (
     "businesswire.com",
     "bloomberg.com",
+    "globenewswire.com",
 )
 
 # Residential proxy — read from env; falls back to reference credentials.
@@ -102,6 +104,11 @@ def _fetch_with_playwright(url: str, timeout: int) -> Optional[str]:
     except Exception as exc:
         logger.warning("playwright fetch failed for %s: %s", url, exc)
         return None
+
+
+def _needs_cffi_proxy(url: str) -> bool:
+    lower = (url or "").lower()
+    return any(hint in lower for hint in BOT_PROTECTED_HINTS)
 
 
 def _blocked_message(url: str, status_code: int) -> str:
@@ -185,21 +192,29 @@ def fetch_url(
     Fetch a URL and return (body_text, content_type, status_code).
 
     fetch_mode values:
-      auto        — requests → full bot-bypass chain on 403/429/503
+      auto        — requests → bot-bypass on 403/429/503 or timeout/connection errors
       requests    — same as auto (legacy value stored in existing feed configs)
       cffi_proxy  — skip initial requests call; go straight to curl_cffi + residential proxy.
-                    Use for known Akamai-protected sites (e.g. BusinessWire).
+                    Use for known Akamai-protected sites (e.g. BusinessWire, GlobeNewswire).
       playwright  — skip everything; use Playwright directly
+
+    Hosts in BOT_PROTECTED_HINTS auto-upgrade auto/requests → cffi_proxy so they skip
+    the failing plain-requests attempt (other feeds are unchanged).
     """
     merged_headers = {**BROWSER_HEADERS, **(headers or {})}
 
-    if fetch_mode == "playwright":
+    effective_mode = fetch_mode
+    if fetch_mode in ("auto", "requests") and _needs_cffi_proxy(url):
+        effective_mode = "cffi_proxy"
+        logger.info("Using cffi_proxy for bot-protected host: %s", url)
+
+    if effective_mode == "playwright":
         html = _fetch_with_playwright(url, timeout=timeout)
         if not html or _is_access_denied(html):
             raise FetchBlockedError(_blocked_message(url, 403))
         return html, "text/html", 200
 
-    if fetch_mode == "cffi_proxy":
+    if effective_mode == "cffi_proxy":
         html = _fetch_with_cffi(url, merged_headers, timeout, proxies=_PROXY_DICT)
         if html and not _is_akamai_blocked(html) and not _is_access_denied(html):
             return html, "text/html", 200
@@ -209,7 +224,17 @@ def fetch_url(
             return html, "text/html", 200
         raise FetchBlockedError(_blocked_message(url, 403))
 
-    response = requests.get(url, timeout=timeout, headers=merged_headers)
+    try:
+        response = requests.get(url, timeout=timeout, headers=merged_headers)
+    except (requests.exceptions.Timeout, requests.exceptions.ConnectionError) as exc:
+        # Soft-blocks often hang or drop instead of returning 403 — fall back to bypass.
+        logger.warning(
+            "Direct fetch failed for %s (%s); trying bot bypass", url, exc
+        )
+        html = _try_bot_bypass(url, merged_headers, timeout)
+        if html:
+            return html, "text/html", 200
+        raise
 
     if response.status_code in (403, 429, 503) and fetch_mode in ("auto", "requests"):
         html = _try_bot_bypass(url, merged_headers, timeout)
