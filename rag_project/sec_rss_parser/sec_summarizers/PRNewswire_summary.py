@@ -356,11 +356,69 @@ def _run_fetch_fallbacks(source: str, headers: dict) -> str | None:
     return html
 
 
+def _fetch_article_html(source: str, headers: dict) -> str | None:
+    """Fetch press-release HTML.
+
+    Prefer the shared feed-builder fetcher so bot-protected hosts
+    (GlobeNewswire, BusinessWire, …) use cffi + residential proxy, while
+    other newswires keep plain requests first. On soft-blocks (timeout /
+    connection drop / 403) that fetcher already falls back; if it still
+    fails, use cloudscraper → Jina → Playwright.
+    """
+    try:
+        from rss_feeds.feed_builder.core.fetcher import (
+            FetchBlockedError,
+            fetch_url,
+        )
+    except ImportError:
+        fetch_url = None
+        FetchBlockedError = Exception  # type: ignore[misc, assignment]
+
+    if fetch_url is not None:
+        try:
+            body, _, status = fetch_url(
+                source, timeout=30, headers=headers, fetch_mode="auto"
+            )
+            if status == 200 and body and not _html_looks_like_error_page(body, source):
+                return body
+            print("  ⚠️  Shared fetcher returned unusable HTML — trying fallbacks...")
+            return _run_fetch_fallbacks(source, headers)
+        except FetchBlockedError as e:
+            print(f"  ⚠️  Shared fetcher blocked ({e}) — trying fallbacks...")
+            return _run_fetch_fallbacks(source, headers)
+        except Exception as e:
+            print(f"  ⚠️  Shared fetcher failed ({e}) — trying fallbacks...")
+            return _run_fetch_fallbacks(source, headers)
+
+    # Standalone / no feed-builder available — legacy requests path
+    try:
+        resp = requests.get(source, headers=headers, timeout=30)
+    except (requests.exceptions.Timeout, requests.exceptions.ConnectionError) as e:
+        print(f"  ⚠️  Direct fetch failed ({e}) — trying fallbacks...")
+        return _run_fetch_fallbacks(source, headers)
+
+    if resp.status_code == 200 and not _html_looks_like_error_page(resp.text, source):
+        return resp.text
+    if resp.status_code == 200:
+        print("  ⚠️  HTTP 200 but page looks like error — trying fallbacks...")
+        return _run_fetch_fallbacks(source, headers)
+    if resp.status_code in (403, 429, 503):
+        print(f"  ⚠️  HTTP {resp.status_code} — trying fallbacks...")
+        return _run_fetch_fallbacks(source, headers)
+    try:
+        resp.raise_for_status()
+    except requests.exceptions.HTTPError as e:
+        print(f"  ⚠️  HTTP {resp.status_code} ({e}) — trying fallbacks...")
+        return _run_fetch_fallbacks(source, headers)
+    return None
+
+
 def fetch_article_text(source: str) -> str:
     """Fetch and extract article text from a press release URL or local file.
 
     Supports PRNewswire, GlobeNewswire, and BusinessWire URLs.
-    For bot-protected sites (BusinessWire) cloudscraper is used as a fallback.
+    Bot-protected hosts use the shared feed-builder fetcher (cffi + proxy);
+    other newswires still use plain requests first.
     """
     if source.startswith("http"):
         headers = {
@@ -371,31 +429,15 @@ def fetch_article_text(source: str) -> str:
             "Accept-Language": "en-US,en;q=0.9",
             "Referer": "https://www.google.com/",
         }
-        resp = requests.get(source, headers=headers, timeout=30)
-
-        html = None
-        if resp.status_code == 200 and not _html_looks_like_error_page(resp.text, source):
-            html = resp.text
-        elif resp.status_code == 200:
-            print("  ⚠️  HTTP 200 but page looks like error — trying fallbacks...")
-            html = _run_fetch_fallbacks(source, headers)
-            if html is None:
-                raise ArticleContentUnavailableError(
-                    f"Press release content unavailable or error page returned for {source}"
-                )
-        elif resp.status_code in (403, 429, 503):
-            print(f"  ⚠️  HTTP {resp.status_code} — trying fallbacks...")
-            html = _run_fetch_fallbacks(source, headers)
-            if html is None:
-                print(
-                    f"  ❌  All fetch methods failed for {source}\n"
-                    "  Save the page as HTML from your browser and pass the file path instead."
-                )
-                raise ArticleContentUnavailableError(
-                    f"Press release content unavailable or error page returned for {source}"
-                )
-        else:
-            resp.raise_for_status()
+        html = _fetch_article_html(source, headers)
+        if html is None:
+            print(
+                f"  ❌  All fetch methods failed for {source}\n"
+                "  Save the page as HTML from your browser and pass the file path instead."
+            )
+            raise ArticleContentUnavailableError(
+                f"Press release content unavailable or error page returned for {source}"
+            )
     else:
         html = Path(source).read_text()
 
