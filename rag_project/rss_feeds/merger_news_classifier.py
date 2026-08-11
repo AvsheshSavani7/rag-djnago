@@ -208,47 +208,61 @@ PROMPT_2_SELF_ANNOUNCE_EXTRACT = """Use web search or a browser to open and read
 
 ARTICLE URL: {article_url}
 
-1. Determine whether this article is a formal announcement of a NEW merger or acquisition transaction.
+You are screening for merger arbitrage situations. The question is not whether this is M&A news — most M&A news does not qualify. The question is whether a publicly listed company is being taken out in full, at defined terms, such that its shares will stop trading when the deal closes. That is the whole idea; the lists below are illustrations of it.
+1. Determine whether this article is a formal announcement of a NEW merger or acquisition transaction:
 
 Return true ONLY if the primary purpose of the article is to announce:
-• A company acquiring another company,
-• A merger agreement between companies,
-• A company acquiring a meaningful business unit, core operating assets, or intellectual property of another company.
+- A listed company is being acquired outright, whether for cash, stock, or a mix
+- Two companies are merging and one listed company's shares will be converted or
+  cancelled
+- A tender offer, exchange offer, or scheme of arrangement has been commenced for
+  all shares of a listed company
+- A parent or holder is buying in all remaining shares of a listed subsidiary or
+  affiliate it does not already own
 
-Return false if the article is only about:
-• Real estate purchases unrelated to acquiring a business,
-• Asset purchase agreements or asset-only transactions,
-• Partnerships or collaborations,
-• Financing or debt transactions,
-• Executive hires,
-• Product launches,
-• Market research reports or industry sizing/forecast publications,
-• Growth strategy commentary,
-• Retrospective discussion of past deals,
-• Industry trend commentary,
-• Regulatory filings without a new transaction announcement.
+Return false if the article does not qualify as a merger arbitrage situation with the following examples:
+- A division, segment, subsidiary, brand, product line, business unit, or
+  portfolio being sold while the seller itself keeps trading. This is the most
+  common thing to get wrong. It does not matter how large, core, or
+  transformative the unit is, and it does not matter that the parties call it an
+  acquisition — if the seller survives as a listed company, it does not qualify.
+- An asset purchase, 363 sale, IP or patent acquisition, licensing deal, or real
+  estate purchase
+- A target that is private, VC-backed, a startup, or a foreign subsidiary with no
+  separately listed shares — there is no security to trade
+- A minority or controlling stake that leaves other shares outstanding, or a
+  strategic investment
+- An LOI, MOU, term sheet, agreement in principle, or a deal described as
+  proposed, rumored, or under discussion
+- A SPAC business combination or de-SPAC
+- A partnership, collaboration, JV, financing, debt or equity raise, spinoff,
+  restructuring, executive hire, or product launch
+- A market research or industry-sizing report, growth strategy commentary,
+  industry trend piece, or retrospective on past deals
+- An amendment, price bump, competing bid, extension, regulatory update, or
+  closing announcement for a deal already announced earlier
 
 2. If and only if (1) is true, extract the deal details.
 
 Return ONLY a JSON object with these exact keys (use null for unknown):
 
-- "is_it_self_announce_merger": true or false
-- "target_name": Legal name of the company being acquired
-- "acquire_name": Legal name of the acquiring company / parent / buyer
-- "target_ticker": Stock ticker symbol of the target company (e.g. "AAPL"). null if private or unknown.
-- "acquirer_ticker": Stock ticker symbol of the acquiring company (e.g. "MSFT"). null if private or unknown.
-- "cik": Target company CIK (10 digits, leading zeros) if public; otherwise null
-- "acquirer_cik": Acquirer company CIK (10 digits, leading zeros) if public; otherwise null
-- "announce_date": Official transaction announcement or signing date in YYYY-MM-DD format
-    • This must be the deal announcement/signing date.
-    • Do NOT use article publish date unless explicitly stated as announcement date.
-    • If multiple dates exist, prefer the date of entry into the merger agreement.
-- "sec_ex_2_1_url": Direct URL to SEC EX-2.1 merger agreement document (.htm) on sec.gov
-    • Only return URL if document type is EX-2.1.
-    • Do NOT return 8-K index pages.
-    • Do NOT return S-4 cover pages.
-    • Do NOT return press releases.
-    • If no EX-2.1 exists, return null.
+"is_it_self_announce_merger": true or false
+"target_name": Legal name of the company being acquired
+"acquire_name": Legal name of the acquiring company / parent / buyer
+"target_ticker": Stock ticker symbol of the target company (e.g. "AAPL"). null if private or unknown. Use international qualifier after ticker if applicable per ONLY Bloomberg standards.
+"acquirer_ticker": Stock ticker symbol of the acquiring company (e.g. "MSFT"). null if private or unknown. Use international qualifier after ticker if applicable per ONLY Bloomberg standards.
+"cik": Target company CIK (10 digits, leading zeros) if public; otherwise null
+"acquirer_cik": Acquirer company CIK (10 digits, leading zeros) if public; otherwise null
+"announce_date": Official transaction announcement or signing date in YYYY-MM-DD format
+ • This must be the deal announcement/signing date.
+ • Do NOT use article publish date unless explicitly stated as announcement date.
+ • If multiple dates exist, prefer the date of entry into the merger agreement.
+"sec_ex_2_1_url": Direct URL to SEC EX-2.1 merger agreement document (.htm) on sec.gov
+ • Only return URL if document type is EX-2.1.
+ • Do NOT return 8-K index pages.
+ • Do NOT return S-4 cover pages.
+ • Do NOT return press releases.
+ • If no EX-2.1 exists, return null.
 
 Return only the JSON object. No explanation.
 """
@@ -415,7 +429,6 @@ def _call_llm_json_with_web_search(
             model=model,
             tools=[{"type": "web_search"}],
             input=prompt,
-            reasoning={"effort": "medium"},
         )
         result_text = None
         for item in response.output:
