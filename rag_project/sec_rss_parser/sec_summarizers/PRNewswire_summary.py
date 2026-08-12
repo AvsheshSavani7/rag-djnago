@@ -947,6 +947,9 @@ def main():
         print(f"Skipped: article content unavailable — {e}")
         return {"skipped": True, "skip_reason": str(e), "skip_type": "fetch_error"}
 
+    from ._ticker_context import apply_known_tickers
+    result = apply_known_tickers(result, DEAL_CONTEXT)
+
     # ── Intelligence Check: target company ──
     company_check = check_target_company(
         acquirer=result.get("acquirer", ""),

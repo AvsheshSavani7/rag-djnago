@@ -247,6 +247,8 @@ def main():
 
     print("Generating summary via Claude Opus...")
     result = summarize(text)
+    from ._ticker_context import apply_known_tickers
+    result = apply_known_tickers(result, DEAL_CONTEXT)
 
     print_summary(result)
 

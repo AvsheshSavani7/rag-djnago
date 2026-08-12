@@ -936,6 +936,8 @@ def main():
 
     print("Starting chunked multi-pass summarization...")
     result = summarize(text)
+    from ._ticker_context import apply_known_tickers
+    result = apply_known_tickers(result, DEAL_CONTEXT)
 
     print_summary(result)
 
