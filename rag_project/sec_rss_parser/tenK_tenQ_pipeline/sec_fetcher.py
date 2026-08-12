@@ -48,27 +48,19 @@ def resolve_sec_url(url: str) -> str:
 
 
 def fetch_sec_filing(url: str, max_retries: int = 3) -> str:
-    """Fetch the HTML content of a SEC filing with rate limiting and 429 retry."""
+    """Fetch the HTML content of a SEC filing via sticky proxy list."""
+    from sec_rss_parser.sec_proxy_fetch import proxy_get
+
     resolved_url = resolve_sec_url(url)
     print(f"  Fetching: {resolved_url}")
-    for attempt in range(max_retries):
-        response = rate_limited_get(
-            requests, resolved_url, headers=SEC_HEADERS, timeout=60
-        )
-        if response.status_code == 429:
-            wait = int(response.headers.get("Retry-After", 10 * (attempt + 1)))
-            print(
-                f"  Rate limited (429). Waiting {wait}s before retry "
-                f"{attempt + 1}/{max_retries}..."
-            )
-            time.sleep(wait)
-            continue
-        response.raise_for_status()
-        print(f"  Response: {response.status_code} ({len(response.text):,} chars)")
-        return response.text
-    raise requests.exceptions.HTTPError(
-        f"Still getting 429 after {max_retries} retries for {resolved_url}"
+    response = proxy_get(
+        resolved_url,
+        headers=SEC_HEADERS,
+        timeout=60,
+        context={"source": "tenK_tenQ.fetch_sec_filing"},
     )
+    print(f"  Response: {response.status_code} ({len(response.text):,} chars)")
+    return response.text
 
 
 def detect_filing_metadata(url: str, html: str = "") -> Tuple[str, str]:

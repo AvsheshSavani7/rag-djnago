@@ -34,8 +34,17 @@ def fetch_text(source: str, word_limit: int = 10000) -> str:
         headers = {
             "User-Agent": "MergerArbDashboard/1.0 (merger-arb-research@outlook.com)"}
 
-        resp = requests.get(source, headers=headers, timeout=60)
-        resp.raise_for_status()
+        if "sec.gov" in source.lower():
+            from sec_rss_parser.sec_proxy_fetch import proxy_get
+            resp = proxy_get(
+                source,
+                headers=headers,
+                timeout=60,
+                context={"source": "sec_summarizers.fetch_text"},
+            )
+        else:
+            resp = requests.get(source, headers=headers, timeout=60)
+            resp.raise_for_status()
 
         # Detect PDF from content-type or URL
         content_type = resp.headers.get("Content-Type", "")

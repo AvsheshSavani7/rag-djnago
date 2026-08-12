@@ -30,7 +30,7 @@ from sec_rss_parser.fetch_sec_feed_by_deal_cik import (
 
 logger = logging.getLogger(__name__)
 
-PROCESSOR_WORKERS = int(os.environ.get("SEC_FEED_PROCESSOR_WORKERS", "3"))
+PROCESSOR_WORKERS = int(os.environ.get("SEC_FEED_PROCESSOR_WORKERS", "20"))
 
 
 def _accession_preview(accessions, limit=10):

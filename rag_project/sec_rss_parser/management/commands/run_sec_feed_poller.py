@@ -1,25 +1,25 @@
 """
-Run the SEC feed poller (collector + processor + reconcile) in ONE process.
-
-All stages run as threads in the same process so they share the single
-process-wide SEC rate limiter (sec_rate_limit.py). Running them as separate
-processes would give each its own budget and can exceed SEC's ~10 req/s limit.
+Run the SEC feed poller (collector + processor + 8-K + S-4/F-4 from JSON + reconcile)
+in ONE process.
 
     Stage A (collector): polls global getcurrent every ~1s → feed_YYYYMMDD.json
-    Stage B (processor): scheduler + worker queue → process_items()
+    Stage B (processor): all-filings queue (tracked CIKs, non-8-K) → process_items()
+    Stage B2 (8-K):     ALL 8-K rows from feed JSON → process_feed_8k
+    Stage B3 (S-4/F-4): non-tracked S-4/F-4 from feed JSON → LLM match + proxy
     Reconcile (Stage C): merges EDGAR daily index into feed JSON (downtime backstop)
-        - 05:55 ET → yesterday (final index published ~10 PM prior evening)
-        - 23:30 ET → today (after SEC publishes today's master.idx ~10 PM ET)
+
+Document HTML fetches use the sticky residential proxy list (sec_proxy_fetch).
+Listing (getcurrent) still uses the process-wide rate_limited_get.
 
 Usage:
     python manage.py run_sec_feed_poller
-    python manage.py run_sec_feed_poller --no-collector      # processor only
-    python manage.py run_sec_feed_poller --no-processor      # collector only
-    python manage.py run_sec_feed_poller --no-reconcile      # disable scheduled reconcile
-    python manage.py run_sec_feed_poller --reconcile-schedule "05:55:yesterday,23:30:today"
+    python manage.py run_sec_feed_poller --no-collector
+    python manage.py run_sec_feed_poller --no-processor
+    python manage.py run_sec_feed_poller --no-8k
+    python manage.py run_sec_feed_poller --no-global-form
+    python manage.py run_sec_feed_poller --no-reconcile
 
-IMPORTANT: run exactly ONE instance (one container/replica). Two collectors
-double SEC load and duplicate work.
+IMPORTANT: run exactly ONE instance (one container/replica).
 """
 
 import argparse
@@ -44,6 +44,14 @@ from sec_rss_parser.sec_feed_daily_store import (
 from sec_rss_parser.sec_feed_processor import (
     PROCESSOR_INTERVAL_SEC,
     run_processor_loop,
+)
+from sec_rss_parser.sec_8k_feed_processor import (
+    EIGHT_K_PROCESSOR_INTERVAL_SEC,
+    run_8k_feed_processor_loop,
+)
+from sec_rss_parser.sec_global_form_feed_processor import (
+    GLOBAL_FORM_PROCESSOR_INTERVAL_SEC,
+    run_global_form_feed_processor_loop,
 )
 
 logger = logging.getLogger(__name__)
@@ -172,8 +180,26 @@ class Command(BaseCommand):
         parser.add_argument("--feed-dir", default=default_feed_dir())
         parser.add_argument("--collector-interval", type=float, default=COLLECTOR_INTERVAL_SEC)
         parser.add_argument("--processor-interval", type=float, default=PROCESSOR_INTERVAL_SEC)
+        parser.add_argument(
+            "--8k-interval",
+            dest="eight_k_interval",
+            type=float,
+            default=EIGHT_K_PROCESSOR_INTERVAL_SEC,
+        )
+        parser.add_argument(
+            "--global-form-interval",
+            dest="global_form_interval",
+            type=float,
+            default=GLOBAL_FORM_PROCESSOR_INTERVAL_SEC,
+        )
         parser.add_argument("--no-collector", action="store_true", help="Do not run Stage A")
-        parser.add_argument("--no-processor", action="store_true", help="Do not run Stage B")
+        parser.add_argument("--no-processor", action="store_true", help="Do not run Stage B all-filings")
+        parser.add_argument("--no-8k", action="store_true", help="Do not run Stage B2 8-K from JSON")
+        parser.add_argument(
+            "--no-global-form",
+            action="store_true",
+            help="Do not run Stage B3 S-4/F-4 from JSON",
+        )
         parser.add_argument("--no-reconcile", action="store_true", help="Do not run scheduled reconcile")
         parser.add_argument(
             "--reconcile-schedule",
@@ -229,6 +255,30 @@ class Command(BaseCommand):
                 target=run_reconcile_scheduler,
                 kwargs={"feed_dir": feed_dir, "stop_event": stop_event, "slots": slots},
                 name="sec-feed-reconcile",
+                daemon=True,
+            ))
+
+        if not opts["no_8k"]:
+            threads.append(threading.Thread(
+                target=run_8k_feed_processor_loop,
+                kwargs={
+                    "feed_dir": feed_dir,
+                    "interval": opts["eight_k_interval"],
+                    "stop_event": stop_event,
+                },
+                name="sec-8k-feed-processor",
+                daemon=True,
+            ))
+
+        if not opts["no_global_form"]:
+            threads.append(threading.Thread(
+                target=run_global_form_feed_processor_loop,
+                kwargs={
+                    "feed_dir": feed_dir,
+                    "interval": opts["global_form_interval"],
+                    "stop_event": stop_event,
+                },
+                name="sec-global-form-feed-processor",
                 daemon=True,
             ))
 

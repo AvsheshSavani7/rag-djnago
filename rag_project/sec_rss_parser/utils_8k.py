@@ -531,10 +531,18 @@ class SECRSSParser:
     def fetch_and_parse_html(self, html_url, form_type_from_feed=None):
         """Fetch HTML from filing link and parse all relevant information"""
         try:
-            response = rate_limited_get(
-                self.session, html_url, headers=self.headers, timeout=45
+            from sec_rss_parser.sec_proxy_fetch import proxy_get
+
+            response = proxy_get(
+                html_url,
+                headers=self.headers,
+                timeout=45,
+                session=self.session,
+                context={
+                    "form_type": form_type_from_feed or "8-K",
+                    "source": "SECRSSParser.fetch_and_parse_html",
+                },
             )
-            response.raise_for_status()
             html_content = response.text
 
             soup = BeautifulSoup(html_content, 'html.parser')

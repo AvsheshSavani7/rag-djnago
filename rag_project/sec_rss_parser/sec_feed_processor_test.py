@@ -70,9 +70,10 @@ PROXY_FORM_TYPES = [
 ]
 TEN_K_TEN_Q_FORM_TYPES = ["10-K", "10-Q", "10-K/A"]
 EXCLUDED_FORM_TYPES = [
-    "8-K", "4", "4/A", "144", "S-8", "S-8 POS",
+    "4", "4/A", "144", "S-8", "S-8 POS",
     "SCHEDULE 13D/A", "SCHEDULE 13D", "SCHEDULE 13G", "SCHEDULE 13G/A",
 ]
+EIGHT_K_FORM_TYPES = ["8-K", "8-K/A"]
 
 # Option A: decisions that must stay eligible for retry are NOT persisted to
 # handled_accessions. MongoDB (AccessionLookedUp + AccessionProcessingLock) is
@@ -294,6 +295,16 @@ def evaluate_feed_for_day(
 
         if not cik or cik not in ctx.tracked_ciks:
             decisions.append({**base, "action": "SKIP_NO_CIK_MATCH"})
+            skipped += 1
+            continue
+
+        if form_type in EIGHT_K_FORM_TYPES or (form_type or "").startswith("8-K"):
+            decisions.append({
+                **base,
+                "action": "SKIP_8K_JSON_QUEUE",
+                "deal_id": ctx.tracked_ciks[cik]["deal_id"],
+                "role": ctx.tracked_ciks[cik]["role"],
+            })
             skipped += 1
             continue
 

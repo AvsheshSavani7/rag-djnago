@@ -82,14 +82,17 @@ from sec_rss_parser.accession_lock import (
     release_accession_lock,
 )
 from sec_rss_parser.email_service.email_dispatch_service import send_report_email
-
+from sec_rss_parser.sec_proxy_fetch import proxy_get
 logger = logging.getLogger(__name__)
 
 
 PROXY_FORM_TYPES = ["DEFM14A", "DEFM14C", "PREM14A",
                     "PREM14C", "S-4", "F-4", "S-4/A", "F-4/A"]
 TEN_K_TEN_Q_FORM_TYPES = ["10-K", "10-Q", "10-K/A"]
-EXCLUDED_FORM_TYPES = ["8-K", "4", "4/A", "144",
+# 8-K is handled by the feed-JSON 8-K queue (process_feed_8k), not process_items.
+EIGHT_K_FORM_TYPES = ["8-K", "8-K/A"]
+# Terminal skips for Stage B (never enqueued; form type does not change).
+EXCLUDED_FORM_TYPES = ["4", "4/A", "144",
                        "S-8", "S-8 POS", "SCHEDULE 13D/A", "SCHEDULE 13D", "SCHEDULE 13G", "SCHEDULE 13G/A"]
 
 LOG_PREFIX = "form by cik: "
@@ -239,13 +242,14 @@ def fetch_and_parse_html_by_form_type(html_url, form_type_from_feed=None):
     Does not use services.py.
     """
     try:
-        resp = rate_limited_get(
-            requests,
+
+        resp = proxy_get(
             html_url,
             headers=DEFAULT_HEADERS,
             timeout=45,
+            context={"form_type": form_type_from_feed,
+                     "source": "fetch_and_parse_html_by_form_type"},
         )
-        resp.raise_for_status()
         soup = BeautifulSoup(resp.text, "html.parser")
         company_info = soup.find("div", class_="companyInfo")
         form_type = form_type_from_feed
@@ -414,6 +418,9 @@ def build_items_from_daily_feed(feed_dir, tracked_ciks, day=None, skip_accession
             continue
         cik = normalize_cik(chosen.get("cik_number") or "")
         form_type = (chosen.get("form_type") or "").strip().upper()
+        # Leave 8-K for the dedicated JSON 8-K queue — do NOT terminal-skip.
+        if form_type in EIGHT_K_FORM_TYPES or form_type.startswith("8-K"):
+            continue
         if form_type in EXCLUDED_FORM_TYPES:
             terminal_skip_set.add(acc)
             continue
@@ -429,6 +436,66 @@ def build_items_from_daily_feed(feed_dir, tracked_ciks, day=None, skip_accession
             "filing_role": chosen.get("filing_role"),
         })
     return items_to_process, sorted(terminal_skip_set)
+
+
+def build_8k_items_from_daily_feed(feed_dir, day=None, skip_accessions=None):
+    """
+    Read daily feed JSON and return ALL 8-K / 8-K/A rows (no deal-CIK filter).
+
+    One item per accession. Prefer a record whose CIK matches an open/unknown
+    deal when multiple cik|accession rows share the same accession; otherwise
+    keep the first. Downstream process_feed_8k still decides deal vs non-deal
+    behavior (EX-2.1, summary email, GPT, etc.).
+
+    Returns list of item_data dicts ready for EightKFeedProcessor._process_single_item.
+    """
+    from sec_rss_parser.sec_feed_daily_store import load_daily_feed
+    from sec_rss_parser.sec_feed_item_utils import group_feed_records_by_accession
+
+    skip = skip_accessions or set()
+    _, feed_data = load_daily_feed(feed_dir, day=day)
+    groups = group_feed_records_by_accession(feed_data.get("items") or {})
+
+    # Optional: prefer deal CIK when choosing among multi-CIK rows for one accession.
+    try:
+        tracked = build_tracked_ciks_map()
+    except Exception:
+        tracked = {}
+
+    items = []
+    for acc, records in groups.items():
+        if not acc or acc in skip:
+            continue
+        eight_k_recs = [
+            r for r in records
+            if ((r.get("form_type") or "").strip().upper() in EIGHT_K_FORM_TYPES
+                or (r.get("form_type") or "").strip().upper().startswith("8-K"))
+        ]
+        if not eight_k_recs:
+            continue
+
+        chosen = None
+        for r in eight_k_recs:
+            cik = normalize_cik(r.get("cik_number") or "")
+            if cik and cik in tracked:
+                chosen = r
+                break
+        if chosen is None:
+            chosen = eight_k_recs[0]
+
+        cik = normalize_cik(chosen.get("cik_number") or "")
+        items.append({
+            "accession_number": acc,
+            "cik_number": cik,
+            "deal_id": tracked.get(cik),
+            "form_type": chosen.get("form_type") or "8-K",
+            "title": chosen.get("title"),
+            "link": chosen.get("link"),
+            "guid": chosen.get("guid"),
+            "company_name": chosen.get("company_name"),
+            "filing_role": chosen.get("filing_role"),
+        })
+    return items
 
 
 def fetch_feed_for_cik(cik, session, headers=None):
@@ -1470,10 +1537,13 @@ def process_items(items):
         link = item_data.get("link")
         if not link:
             continue
-        # Skip 8-K form type entirely — handled by process_feed_8k.py which has
-        # the full EX-2.1 qualification flow (document_kind, us_listed, market_cap).
+        # Skip 8-K (dedicated JSON queue) and other excluded form types.
         feed_form_type = (item_data.get("form_type") or "").strip().upper()
-        if feed_form_type in EXCLUDED_FORM_TYPES:
+        if (
+            feed_form_type in EIGHT_K_FORM_TYPES
+            or feed_form_type.startswith("8-K")
+            or feed_form_type in EXCLUDED_FORM_TYPES
+        ):
             log_and_print(
                 f"{LOG_PREFIX} :process_items: ⏭️ Skipping excluded form type {feed_form_type}: {item_data.get('title', 'N/A')[:80]}")
             continue

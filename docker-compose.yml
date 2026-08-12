@@ -26,8 +26,9 @@ services:
       - SEC_FEED_DAILY_DIR=/app/rag_project/sec_rss_parser/sec_daily_feed
       - SEC_FEED_TIMEZONE=America/New_York
       - SEC_FEED_MIDNIGHT_GRACE_MINUTES=30
-      # 8-K process-feed API: in-process queue (1 worker default, max 2).
-      - SEC_8K_PROCESSOR_WORKERS=1
+      # 8-K process-feed API: legacy n8n path. Prefer poller's JSON 8-K queue;
+      # keep at 0/1 only if you still need the API during cutover.
+      - SEC_8K_PROCESSOR_WORKERS=0
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.django-app.rule=Host(`django.arbintel.cloud`)"
@@ -36,10 +37,10 @@ services:
       - "traefik.http.routers.django-app.tls.certresolver=letsencrypt"
       - "traefik.http.services.django-app.loadbalancer.server.port=8000"
 
-  # SEC feed poller: collector (Stage A) + processor (Stage B) in ONE process so
-  # they share the single process-wide SEC rate limiter. Reuses the web app image
-  # (built by django-app on `up --build`) — no second heavy build. No HTTP port /
-  # Traefik. Run exactly ONE replica.
+  # SEC feed poller: collector (Stage A) + all-filings processor (Stage B) +
+  # 8-K-from-JSON processor (Stage B2) + reconcile in ONE process.
+  # Document fetches use sticky residential proxies (sec_proxy_fetch).
+  # Run exactly ONE replica.
   sec-feed-poller:
     image: rag-django:latest
     depends_on:
@@ -64,7 +65,13 @@ services:
       - SEC_FEED_MIDNIGHT_GRACE_MINUTES=30
       - SEC_FEED_COLLECTOR_INTERVAL_SEC=1.0
       - SEC_FEED_PROCESSOR_INTERVAL_SEC=15.0
-      - SEC_FEED_PROCESSOR_WORKERS=5
+      - SEC_FEED_PROCESSOR_WORKERS=20
+      - SEC_FEED_8K_INTERVAL_SEC=15.0
+      - SEC_FEED_8K_WORKERS=20
+      - SEC_FEED_GLOBAL_FORM_INTERVAL_SEC=15.0
+      - SEC_FEED_GLOBAL_FORM_WORKERS=20
       - SEC_FEED_DEAL_CIK_REFRESH_SEC=60.0
-      # Keep total SEC usage ≤ ~7 req/s (reserve headroom below SEC's ~10/s cap).
+      # Listing (getcurrent) only — Archives doc fetches use sticky proxies.
       - SEC_MIN_REQ_INTERVAL=0.2
+      - SEC_PROXY_MAX_ATTEMPTS=5
+      - SEC_PROXY_TIMEOUT=12
