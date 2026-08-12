@@ -484,16 +484,23 @@ def build_8k_items_from_daily_feed(feed_dir, day=None, skip_accessions=None):
             chosen = eight_k_recs[0]
 
         cik = normalize_cik(chosen.get("cik_number") or "")
+        form_type = chosen.get("form_type") or "8-K"
         items.append({
             "accession_number": acc,
             "cik_number": cik,
             "deal_id": tracked.get(cik),
-            "form_type": chosen.get("form_type") or "8-K",
+            "form_type": form_type,
             "title": chosen.get("title"),
             "link": chosen.get("link"),
             "guid": chosen.get("guid"),
             "company_name": chosen.get("company_name"),
             "filing_role": chosen.get("filing_role"),
+            # SECFiling.description is required; Atom summary is often absent in JSON feed.
+            "description": (
+                chosen.get("description")
+                or form_type
+                or "8-K"
+            ),
         })
     return items
 
@@ -701,10 +708,14 @@ def _ensure_sec_filing(item_data):
         payload["guid"] = payload["link"]
     else:
         payload["guid"] = guid_raw[:SEC_FILING_GUID_MAX_LENGTH] if guid_raw else payload["link"]
-    # description max 50 chars
-    desc_raw = payload.get("description") or item_data.get("description") or ""
-    payload["description"] = (
-        desc_raw[:SEC_FILING_DESCRIPTION_MAX_LENGTH]) if desc_raw else ""
+    # description max 50 chars (required on SECFiling — never leave empty/missing)
+    desc_raw = (
+        payload.get("description")
+        or item_data.get("description")
+        or item_data.get("form_type")
+        or "UNKNOWN"
+    )
+    payload["description"] = str(desc_raw)[:SEC_FILING_DESCRIPTION_MAX_LENGTH]
     if not payload.get("company_name"):
         payload["company_name"] = item_data.get("company_name") or "Unknown"
     if not payload.get("form_type"):

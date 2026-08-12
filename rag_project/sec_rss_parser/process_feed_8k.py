@@ -1237,10 +1237,12 @@ class EightKFeedProcessor:
         if guid.startswith('urn:tag:sec.gov'):
             item_data['guid'] = link or ''
 
-        # Truncate description
-        desc = item_data.get('description')
-        if desc:
-            item_data['description'] = desc[:MAX_DESCRIPTION_LENGTH]
+        # description is required on SECFiling (max 50). JSON feed items often
+        # omit Atom <summary>; default to form_type so save does not ValidationError.
+        desc = (item_data.get('description') or '').strip()
+        if not desc:
+            desc = (item_data.get('form_type') or '8-K').strip() or '8-K'
+        item_data['description'] = desc[:MAX_DESCRIPTION_LENGTH]
 
         # Set following defaults
         if 'following' not in item_data:
