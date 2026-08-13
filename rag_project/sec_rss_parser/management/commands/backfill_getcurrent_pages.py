@@ -10,7 +10,7 @@ Why:
 
 This command (keep collector + evening reconcile unchanged):
   1. Fetch getcurrent Atom pages start=100,200,…,1900 (skip start=0).
-  2. Skip rows already present in today's OR yesterday's feed JSON.
+  2. Skip rows already present in today's OR previous 4 days' feed JSON.
   3. Optionally skip AccessionLookedUp (default on).
   4. Append remaining rows into TODAY's feed JSON for B/B2/B3 to pick up.
   5. Write a dedicated JSONL audit log AND a pipeline .log (logs UI).
@@ -18,11 +18,11 @@ This command (keep collector + evening reconcile unchanged):
 Usage:
     python manage.py backfill_getcurrent_pages
     python manage.py backfill_getcurrent_pages --dry-run
-    python manage.py backfill_getcurrent_pages --start 100 --end 2000 --step 100
+    python manage.py backfill_getcurrent_pages --lookback-days 4
 
 Cron (America/New_York), e.g.:
     TZ=America/New_York
-    0,30 5-7 * * 1-5 cd /app/rag_project && python manage.py backfill_getcurrent_pages
+    0 1-23 * * * cd /app/rag_project && python manage.py backfill_getcurrent_pages
 """
 
 from __future__ import annotations
@@ -57,6 +57,8 @@ from sec_rss_parser.sec_rate_limit import rate_limited_get
 from sec_rss_parser.utils_8k import normalize_cik
 
 logger = logging.getLogger(__name__)
+
+DEFAULT_LOOKBACK_DAYS = 4
 
 GETCURRENT_URL_TEMPLATE = (
     "https://www.sec.gov/cgi-bin/browse-edgar?"
@@ -121,6 +123,12 @@ def _load_known_keys(feed_dir: str, days: List[datetime]) -> Set[str]:
     return known
 
 
+def _feed_days_for_lookback(today: datetime, lookback_days: int) -> List[datetime]:
+    """Today plus the previous N calendar days in SEC feed TZ."""
+    n = max(0, int(lookback_days))
+    return [today - timedelta(days=i) for i in range(n + 1)]
+
+
 def _fetch_page(session, start: int, count: int) -> Optional[str]:
     url = GETCURRENT_URL_TEMPLATE.format(start=start, count=count)
     try:
@@ -144,19 +152,30 @@ def run_backfill(
     count: int = 100,
     skip_looked_up: bool = True,
     dry_run: bool = False,
+    lookback_days: int = DEFAULT_LOOKBACK_DAYS,
 ) -> Dict[str, Any]:
     """
     Scan getcurrent pages [start, end) and merge missing rows into today's feed.
+
+    Dedupes against today's feed JSON plus the previous ``lookback_days`` files
+    (default 4: e.g. Sunday also sees Sat/Fri/Thu/Wed).
 
     Returns a summary dict (also written to JSONL + pipeline .log).
     """
     start_pipeline(SEC_FEED_BACKFILL, doc_type="BACKFILL")
     today = feed_now()
-    yesterday = today - timedelta(days=1)
+    lookback_days = max(0, int(lookback_days))
+    feed_days = _feed_days_for_lookback(today, lookback_days)
     log_path = _backfill_log_path(feed_dir, day=today)
     run_ts = today.replace(microsecond=0).isoformat()
 
-    known = _load_known_keys(feed_dir, [today, yesterday])
+    known = _load_known_keys(feed_dir, feed_days)
+    logger.info(
+        "backfill_getcurrent: lookback_days=%d known_keys=%d days=%s",
+        lookback_days,
+        len(known),
+        ",".join(d.astimezone(SEC_FEED_TZ).strftime("%Y%m%d") for d in feed_days),
+    )
     session = build_session()
 
     to_add: List[Dict[str, Any]] = []
@@ -223,6 +242,8 @@ def run_backfill(
         "ts": run_ts,
         "timezone": str(SEC_FEED_TZ),
         "dry_run": dry_run,
+        "lookback_days": lookback_days,
+        "known_keys": len(known),
         "start": start,
         "end": end,
         "step": step,
@@ -244,8 +265,11 @@ def run_backfill(
     _append_jsonl(log_path, summary)
     start_pipeline(SEC_FEED_BACKFILL, doc_type="BACKFILL")
     logger.info(
-        "backfill_getcurrent: done | pages_ok=%d fail=%d considered=%d "
-        "skipped_known=%d skipped_looked_up=%d added=%d dry_run=%s log=%s",
+        "backfill_getcurrent: done | lookback_days=%d known_keys=%d "
+        "pages_ok=%d fail=%d considered=%d skipped_known=%d "
+        "skipped_looked_up=%d added=%d dry_run=%s log=%s",
+        lookback_days,
+        len(known),
         pages_ok,
         pages_fail,
         considered,
@@ -267,7 +291,7 @@ def run_backfill(
                 "event": "record_added",
                 "ts": run_ts,
                 "dry_run": dry_run,
-                "reason": "missing_from_today_and_yesterday",
+                "reason": "missing_from_lookback_window",
                 "feed_file": today_feed,
                 "page_start": hit.get("page_start"),
                 "accession_number": hit.get("accession_number") or acc,
@@ -301,8 +325,8 @@ def run_backfill(
 class Command(BaseCommand):
     help = (
         "Backfill today's SEC feed JSON from getcurrent pages start=100..1900 "
-        "(skip page 0). Dedupes against today+yesterday JSON. Writes JSONL "
-        "audit + pipeline log (sec_feed_backfill) for the logs UI."
+        "(skip page 0). Dedupes against today + previous 4 days of feed JSON. "
+        "Writes JSONL audit + pipeline log (sec_feed_backfill) for the logs UI."
     )
 
     def add_arguments(self, parser):
@@ -327,6 +351,16 @@ class Command(BaseCommand):
             help="Do NOT skip AccessionLookedUp (default: skip already processed)",
         )
         parser.add_argument(
+            "--lookback-days",
+            type=int,
+            default=DEFAULT_LOOKBACK_DAYS,
+            help=(
+                "Previous calendar days of feed JSON to treat as already known "
+                f"(default {DEFAULT_LOOKBACK_DAYS}; plus today). "
+                "Covers a Sunday run seeing Friday's file."
+            ),
+        )
+        parser.add_argument(
             "--dry-run",
             action="store_true",
             help="Fetch and report adds without writing the feed JSON",
@@ -341,9 +375,12 @@ class Command(BaseCommand):
             count=opts["count"],
             skip_looked_up=not opts["include_looked_up"],
             dry_run=opts["dry_run"],
+            lookback_days=opts["lookback_days"],
         )
         msg = (
-            f"getcurrent backfill | pages_ok={summary['pages_ok']} "
+            f"getcurrent backfill | lookback_days={summary['lookback_days']} "
+            f"known_keys={summary['known_keys']} "
+            f"pages_ok={summary['pages_ok']} "
             f"fail={summary['pages_fail']} considered={summary['considered']} "
             f"skipped_known={summary['skipped_known']} "
             f"skipped_looked_up={summary['skipped_looked_up']} "
