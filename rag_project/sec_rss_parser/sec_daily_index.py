@@ -19,7 +19,11 @@ import re
 from datetime import datetime
 
 from sec_rss_parser.models import AccessionLookedUp
-from sec_rss_parser.sec_feed_daily_store import append_feed_items, feed_now
+from sec_rss_parser.sec_feed_daily_store import (
+    FEED_SOURCE_DAILY_INDEX,
+    append_feed_items,
+    feed_now,
+)
 from sec_rss_parser.sec_rate_limit import rate_limited_get
 from sec_rss_parser.sec_feed_collector import DEFAULT_HEADERS, build_session
 from sec_rss_parser.utils_8k import normalize_cik
@@ -139,6 +143,7 @@ def reconcile_into_feed(feed_dir, day=None, session=None, tracked_ciks=None):
         if AccessionLookedUp.objects(accession_number=acc).first():
             skipped_processed += 1
             continue
+        record["source"] = FEED_SOURCE_DAILY_INDEX
         to_add.append(record)
 
     added, new_accs = append_feed_items(feed_dir, to_add, day=day)

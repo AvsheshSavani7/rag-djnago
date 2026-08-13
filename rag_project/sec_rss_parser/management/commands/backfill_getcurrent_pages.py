@@ -45,6 +45,7 @@ from sec_rss_parser.sec_feed_collector import (
     parse_global_all_forms,
 )
 from sec_rss_parser.sec_feed_daily_store import (
+    FEED_SOURCE_GETCURRENT_BACKFILL,
     SEC_FEED_TZ,
     append_feed_items,
     default_feed_dir,
@@ -79,7 +80,8 @@ def _backfill_log_path(feed_dir: str, day: Optional[datetime] = None) -> Path:
     date_str = d.astimezone(SEC_FEED_TZ).strftime("%Y-%m-%d")
     date_compact = d.astimezone(SEC_FEED_TZ).strftime("%Y%m%d")
 
-    log_root = getattr(settings, "LOG_ROOT", None) or os.environ.get("LOG_ROOT")
+    log_root = getattr(settings, "LOG_ROOT",
+                       None) or os.environ.get("LOG_ROOT")
     if log_root:
         folder = Path(log_root) / "sec_feed_backfill" / "daily" / date_str
     else:
@@ -174,7 +176,8 @@ def run_backfill(
         "backfill_getcurrent: lookback_days=%d known_keys=%d days=%s",
         lookback_days,
         len(known),
-        ",".join(d.astimezone(SEC_FEED_TZ).strftime("%Y%m%d") for d in feed_days),
+        ",".join(d.astimezone(SEC_FEED_TZ).strftime("%Y%m%d")
+                 for d in feed_days),
     )
     session = build_session()
 
@@ -215,6 +218,7 @@ def run_backfill(
                 known.add(key)  # don't re-check same acc this run
                 continue
             seen_this_run.add(key)
+            item["source"] = FEED_SOURCE_GETCURRENT_BACKFILL
             to_add.append(item)
             page_hits.append({
                 "accession_number": acc,
@@ -292,6 +296,7 @@ def run_backfill(
                 "ts": run_ts,
                 "dry_run": dry_run,
                 "reason": "missing_from_lookback_window",
+                "source": FEED_SOURCE_GETCURRENT_BACKFILL,
                 "feed_file": today_feed,
                 "page_start": hit.get("page_start"),
                 "accession_number": hit.get("accession_number") or acc,

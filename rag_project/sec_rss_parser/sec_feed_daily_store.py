@@ -21,6 +21,11 @@ from sec_rss_parser.utils_8k import normalize_cik
 # SEC filing day + reconcile schedule timezone (matches EDGAR daily-index dates).
 SEC_FEED_TZ = ZoneInfo(os.environ.get("SEC_FEED_TIMEZONE", "America/New_York"))
 
+# Item.source for rows added outside the live collector (page-0 getcurrent).
+# Live collector rows omit this field.
+FEED_SOURCE_GETCURRENT_BACKFILL = "getcurrent_backfill"
+FEED_SOURCE_DAILY_INDEX = "daily_index"
+
 # Minutes after ET midnight when processor also drains previous day's feed.
 MIDNIGHT_GRACE_MINUTES = int(os.environ.get("SEC_FEED_MIDNIGHT_GRACE_MINUTES", "30"))
 
