@@ -286,12 +286,12 @@ def route_and_summarize(url: str | list[str], deal_context: dict | None = None):
     Args:
         url: Single URL string or list of URLs. For a list, the first URL is
              used for classification and the full list is passed to the
-             summarizer module as FILING_URL.
+             summarizer main() as filing_url.
         deal_context: Optional pre-confirmed deal metadata dict with keys:
             primary_ticker, target_ticker, target_name, acquirer_ticker,
-            acquirer_name. When provided, these values are injected into the
-            summarizer prompt so the LLM uses them directly rather than
-            inferring them from the filing text.
+            acquirer_name. When provided, passed into the summarizer main()
+            as a local argument (thread-safe) for prompt injection and L1
+            ticker rewrite.
     """
     classify_url = url[0] if isinstance(url, list) else url
 
@@ -350,12 +350,9 @@ def route_and_summarize(url: str | list[str], deal_context: dict | None = None):
     module = importlib.import_module(
         f"sec_rss_parser.sec_summarizers.{module_name}")
 
-    # Set the URL(s) and deal context in the target module
-    module.FILING_URL = url
-    if hasattr(module, "DEAL_CONTEXT"):
-        module.DEAL_CONTEXT = deal_context or None
-
-    result = module.main()
+    # Pass URL + deal_context as local args to main() — do NOT write
+    # module.FILING_URL / module.DEAL_CONTEXT (race-prone under workers).
+    result = module.main(filing_url=url, deal_context=deal_context or None)
 
     return result
 

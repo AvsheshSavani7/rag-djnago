@@ -1682,6 +1682,7 @@ class EightKFeedProcessor:
                 f"{LOG_PREFIX} :_send_8k_summary_email:   📧 Sending 8-K summary email")
 
             from sec_rss_parser.email_templates import generate_8k_99_1_summary_email_html
+            from sec_rss_parser.sec_summarizers._ticker_context import resolve_l1_for_email
 
             deal_tickers = get_deal_tickers(
                 item_data.get('deal_id'), item_data.get('cik_number'))
@@ -1698,6 +1699,13 @@ class EightKFeedProcessor:
             email_company_name = item_data.get(
                 'email_company_name') or item_data.get('company_name') or ''
             matched_cik_label = item_data.get('matched_cik_label')
+            l1_headline = resolve_l1_for_email(
+                summary_result.get('L1_headline'),
+                primary_ticker=deal_tickers.get('ticker'),
+                matched_cik_label=matched_cik_label,
+                target_ticker=deal_tickers.get('target_ticker'),
+                acquirer_ticker=deal_tickers.get('acquirer_ticker'),
+            )
 
             summary_kind = '8-K + EX-99.1' if summary_result.get(
                 'summary_type') == 'combined' else '8-K'
@@ -1709,7 +1717,7 @@ class EightKFeedProcessor:
                 sec_url=item_data.get('link') or doc_url,
                 accession_number=item_data.get('accession_number') or '',
                 summary_kind=summary_kind,
-                l1_headline=summary_result.get('L1_headline'),
+                l1_headline=l1_headline,
                 l2_brief=summary_result.get('L2_brief'),
                 l3_detailed=summary_result.get('L3_detailed'),
                 matched_cik_label=matched_cik_label,
@@ -1767,6 +1775,7 @@ class EightKFeedProcessor:
                 f"{LOG_PREFIX} :_send_ex99_summary_email:   📧 Sending EX-99.1 summary email")
 
             from sec_rss_parser.email_templates import generate_8k_99_1_summary_email_html
+            from sec_rss_parser.sec_summarizers._ticker_context import resolve_l1_for_email
 
             deal_tickers = get_deal_tickers(
                 item_data.get('deal_id'), item_data.get('cik_number'))
@@ -1783,6 +1792,13 @@ class EightKFeedProcessor:
             email_company_name = item_data.get(
                 'email_company_name') or item_data.get('company_name') or ''
             matched_cik_label = item_data.get('matched_cik_label')
+            l1_headline = resolve_l1_for_email(
+                summary_result.get('L1_headline'),
+                primary_ticker=deal_tickers.get('ticker'),
+                matched_cik_label=matched_cik_label,
+                target_ticker=deal_tickers.get('target_ticker'),
+                acquirer_ticker=deal_tickers.get('acquirer_ticker'),
+            )
 
             subject, html_email = generate_8k_99_1_summary_email_html(
                 company_name=email_company_name,
@@ -1792,7 +1808,7 @@ class EightKFeedProcessor:
                 sec_url=item_data.get('link') or doc_url,
                 accession_number=item_data.get('accession_number') or '',
                 summary_kind='EX-99.1',
-                l1_headline=summary_result.get('L1_headline'),
+                l1_headline=l1_headline,
                 l2_brief=summary_result.get('L2_brief'),
                 matched_cik_label=matched_cik_label,
                 target_ticker=deal_tickers.get('target_ticker'),

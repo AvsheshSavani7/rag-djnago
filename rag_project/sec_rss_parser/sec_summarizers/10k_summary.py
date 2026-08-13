@@ -607,12 +607,12 @@ def extract_section(client, section: dict, retries: int = 2) -> dict:
                 return {"item": section["item"], "raw_extract": raw, "parse_error": True}
 
 
-def synthesize_extracts(client, extracts: list, filing_type: str, ticker_hint: str = "", filing_dates: dict = None) -> dict:
+def synthesize_extracts(client, extracts: list, filing_type: str, ticker_hint: str = "", filing_dates: dict = None, deal_context: dict | None = None) -> dict:
     """Pass 2: Combine section extracts into final L1/L2/L3 summary."""
     extracts_text = json.dumps(extracts, indent=2)
 
     prompt = inject_deal_context(SYNTHESIS_PROMPT.format(
-        filing_type=filing_type), DEAL_CONTEXT)
+        filing_type=filing_type), deal_context)
 
     # Inject known metadata so the model doesn't have to guess
     metadata_lines = []
@@ -645,7 +645,7 @@ def synthesize_extracts(client, extracts: list, filing_type: str, ticker_hint: s
     return json.loads(raw)
 
 
-def summarize(text: str, model: str = None) -> dict:
+def summarize(text: str, model: str = None, deal_context: dict | None = None, filing_url=None) -> dict:
     """Full multi-pass summarization pipeline.
 
     1. Detect filing type (10-K vs 10-Q)
@@ -665,6 +665,8 @@ def summarize(text: str, model: str = None) -> dict:
 
     # Step 0: Detect ticker and filing dates from header/URL
     filing_url_ref = (
+        filing_url[0] if isinstance(filing_url, list) else filing_url
+    ) if filing_url is not None else (
         FILING_URL[0] if isinstance(FILING_URL, list) else FILING_URL
     )
     ticker_hint = detect_ticker(filing_url_ref, text)
@@ -705,7 +707,8 @@ def summarize(text: str, model: str = None) -> dict:
     # Step 5: Synthesize (Pass 2)
     print(f"   Synthesizing final summary via {SYNTHESIS_MODEL}...")
     result = synthesize_extracts(
-        client, extracts, filing_type, ticker_hint=ticker_hint, filing_dates=filing_dates)
+        client, extracts, filing_type, ticker_hint=ticker_hint,
+        filing_dates=filing_dates, deal_context=deal_context)
 
     return result
 
@@ -921,8 +924,9 @@ def export_docx(s: dict, s3_key_suffix: str):
 
 # ──── MAIN ────
 
-def main():
-    source = FILING_URL
+def main(filing_url=None, deal_context: dict | None = None):
+    ctx = deal_context if deal_context is not None else DEAL_CONTEXT
+    source = filing_url if filing_url is not None else FILING_URL
     if isinstance(source, list):
         print(f"Fetching 10-K/10-Q from {len(source)} document(s)")
         for u in source:
@@ -935,13 +939,13 @@ def main():
     print(f"Extracted {total_words:,} words of text (full document)")
 
     print("Starting chunked multi-pass summarization...")
-    result = summarize(text)
+    result = summarize(text, deal_context=ctx, filing_url=source)
     from ._ticker_context import apply_known_tickers
-    result = apply_known_tickers(result, DEAL_CONTEXT)
+    result = apply_known_tickers(result, ctx)
 
     print_summary(result)
 
-    uid = filing_uid(FILING_URL)
+    uid = filing_uid(source)
     from .s3_utils import upload_json
 
     s3_json_path, s3_json_url = upload_json(result, f"10k_summary_{uid}.json")

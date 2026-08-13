@@ -1508,6 +1508,7 @@ def _route_summarize_and_save(item_data, html_data):
                     l1_headline=result.get("L1_headline"),
                     l2_brief=result.get("L2_brief"),
                     l3_detailed=result.get("L3_detailed"),
+                    ticker=deal_tickers.get("ticker"),
                     filing_date=filing_dt,
                     matched_cik_label=matched_cik_label,
                     form_affects_deal=form_affects_deal,

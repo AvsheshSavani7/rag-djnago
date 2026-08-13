@@ -109,7 +109,7 @@ def fetch_filing_text(source: str) -> str:
     return fetch_text_with_extraction(source, extraction_guidance=EXTRACTION_GUIDANCE)
 
 
-def summarize(text: str, model: str = "claude-opus-4-6") -> dict:
+def summarize(text: str, model: str = "claude-opus-4-6", deal_context: dict | None = None) -> dict:
     """Call Claude API to produce multi-level summary."""
     if not ANTHROPIC_API_KEY:
         raise ValueError(
@@ -121,7 +121,7 @@ def summarize(text: str, model: str = "claude-opus-4-6") -> dict:
         max_tokens=4096,
         messages=[{
             "role": "user",
-            "content": inject_deal_context(SUMMARY_PROMPT, DEAL_CONTEXT) + "\n\n" + text
+            "content": inject_deal_context(SUMMARY_PROMPT, deal_context) + "\n\n" + text
         }]
     )
 
@@ -243,8 +243,9 @@ def export_docx(s: dict, s3_key_suffix: str):
     return path, url
 
 
-def main():
-    source = FILING_URL
+def main(filing_url=None, deal_context: dict | None = None):
+    ctx = deal_context if deal_context is not None else DEAL_CONTEXT
+    source = filing_url if filing_url is not None else FILING_URL
 
     print(f"Fetching Exhibit 99.1 from: {source}")
 
@@ -252,13 +253,13 @@ def main():
     print(f"Extracted {len(text.split())} words of text")
 
     print("Generating summary via Claude Opus 4.5...")
-    result = summarize(text)
+    result = summarize(text, deal_context=ctx)
     from ._ticker_context import apply_known_tickers
-    result = apply_known_tickers(result, DEAL_CONTEXT)
+    result = apply_known_tickers(result, ctx)
 
     print_summary(result)
 
-    uid = filing_uid(FILING_URL)
+    uid = filing_uid(source)
     from .s3_utils import upload_json
 
     s3_json_path, s3_json_url = upload_json(result, f"991_summary_{uid}.json")

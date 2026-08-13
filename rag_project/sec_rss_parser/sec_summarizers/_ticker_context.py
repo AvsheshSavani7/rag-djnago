@@ -50,3 +50,37 @@ def apply_known_tickers(result: dict, deal_context: dict | None = None) -> dict:
         result["ticker"] = primary
 
     return result
+
+
+def resolve_l1_for_email(
+    l1_headline: str | None,
+    *,
+    primary_ticker: str | None = None,
+    matched_cik_label: str | None = None,
+    target_ticker: str | None = None,
+    acquirer_ticker: str | None = None,
+) -> str | None:
+    """Safety-net L1 rewrite at email send time using filer ticker.
+
+    Prefer explicit primary_ticker (CIK-resolved). Else derive from
+    matched_cik_label + target/acquirer tickers.
+    """
+    primary = (primary_ticker or "").strip() or None
+    if not primary:
+        label = (matched_cik_label or "").strip()
+        if label == "(acquirer)":
+            primary = (acquirer_ticker or "").strip() or None
+        elif label == "(target)":
+            primary = (target_ticker or "").strip() or None
+        else:
+            primary = (
+                (target_ticker or "").strip()
+                or (acquirer_ticker or "").strip()
+                or None
+            )
+    if not primary or not l1_headline:
+        return l1_headline
+    return apply_known_tickers(
+        {"L1_headline": l1_headline},
+        {"primary_ticker": primary},
+    ).get("L1_headline", l1_headline)

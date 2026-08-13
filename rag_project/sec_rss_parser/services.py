@@ -280,6 +280,14 @@ def send_webhook_notification(webhook_url, payload, notification_type="notificat
 def send_summary_email_via_webhook(summary_doc_url, company_name, form_type, cik_number, sec_url, accession_number, summary_kind: str, l1_headline: str = None, l2_brief: str = None, l3_detailed: str = None, ticker: str = None, filing_date=None, matched_cik_label: str = None, form_affects_deal: bool = None, target_ticker: str = None, target_name: str = None, acquirer_ticker: str = None, acquirer_name: str = None, discovery_note: str = None, dry_run: bool = False, deal_id: str = None):
     """Generate 8-K/EX-99.1 summary email HTML and send via N8N webhook. Subject uses deal target[/acquirer]; matched_cik_label is '(target)' or '(acquirer)' for Parent/Target Form in subject."""
     try:
+        from sec_rss_parser.sec_summarizers._ticker_context import resolve_l1_for_email
+        l1_headline = resolve_l1_for_email(
+            l1_headline,
+            primary_ticker=ticker,
+            matched_cik_label=matched_cik_label,
+            target_ticker=target_ticker,
+            acquirer_ticker=acquirer_ticker,
+        )
         subject, html_email = generate_8k_99_1_summary_email_html(
             company_name=company_name,
             form_type=form_type,

@@ -525,7 +525,7 @@ def _parse_json_response(raw: str, *, context: str = "Claude response") -> dict:
         raise ValueError(f"{context}: invalid JSON: {raw[:500]!r}") from e
 
 
-def summarize(text: str, model: str = "claude-opus-4-8") -> dict:
+def summarize(text: str, model: str = "claude-opus-4-8", deal_context: dict | None = None) -> dict:
     """Call Claude API to produce multi-level summary."""
     if not text or not text.strip():
         raise ValueError("Cannot summarize: no article text extracted")
@@ -540,7 +540,7 @@ def summarize(text: str, model: str = "claude-opus-4-8") -> dict:
         max_tokens=1500,
         messages=[{
             "role": "user",
-            "content": inject_deal_context(SUMMARY_PROMPT, DEAL_CONTEXT) + "\n\n" + text
+            "content": inject_deal_context(SUMMARY_PROMPT, deal_context) + "\n\n" + text
         }]
     )
 
@@ -924,8 +924,9 @@ def export_docx(s: dict, s3_key_suffix: str):
     return path, url
 
 
-def main():
-    source = FILING_URL
+def main(filing_url=None, deal_context: dict | None = None):
+    ctx = deal_context if deal_context is not None else DEAL_CONTEXT
+    source = filing_url if filing_url is not None else FILING_URL
 
     print(f"Fetching PRNewswire press release from: {source}")
 
@@ -939,7 +940,7 @@ def main():
 
     print("Generating summary via Claude Opus 4.5...")
     try:
-        result = summarize(text)
+        result = summarize(text, deal_context=ctx)
     except NotMergerPressReleaseError as e:
         print(f"Skipped: not an M&A press release — {e}")
         return {"skipped": True, "skip_reason": str(e), "skip_type": "not_ma"}
@@ -948,7 +949,7 @@ def main():
         return {"skipped": True, "skip_reason": str(e), "skip_type": "fetch_error"}
 
     from ._ticker_context import apply_known_tickers
-    result = apply_known_tickers(result, DEAL_CONTEXT)
+    result = apply_known_tickers(result, ctx)
 
     # ── Intelligence Check: target company ──
     company_check = check_target_company(
@@ -963,7 +964,7 @@ def main():
 
     print_summary(result)
 
-    uid = filing_uid(FILING_URL)
+    uid = filing_uid(source)
     from .s3_utils import upload_json
 
     s3_json_path, s3_json_url = upload_json(
