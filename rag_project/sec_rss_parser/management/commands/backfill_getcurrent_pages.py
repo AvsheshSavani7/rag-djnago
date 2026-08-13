@@ -149,7 +149,7 @@ def _fetch_page(session, start: int, count: int) -> Optional[str]:
 def run_backfill(
     feed_dir: str,
     start: int = 100,
-    end: int = 2000,
+    end: int = 4000,
     step: int = 100,
     count: int = 100,
     skip_looked_up: bool = True,
