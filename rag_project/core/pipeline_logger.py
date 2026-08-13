@@ -22,6 +22,7 @@ RSS               = "rss"
 EMAIL             = "email"
 GLOBAL_FORM_FEED  = "global_form_feed"
 SEC_FEED_POLLER   = "sec_feed_poller"
+SEC_FEED_BACKFILL = "sec_feed_backfill"
 
 
 def start_pipeline(

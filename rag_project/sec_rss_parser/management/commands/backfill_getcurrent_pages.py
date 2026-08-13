@@ -13,7 +13,7 @@ This command (keep collector + evening reconcile unchanged):
   2. Skip rows already present in today's OR yesterday's feed JSON.
   3. Optionally skip AccessionLookedUp (default on).
   4. Append remaining rows into TODAY's feed JSON for B/B2/B3 to pick up.
-  5. Write a dedicated JSONL log of every newly added record.
+  5. Write a dedicated JSONL audit log AND a pipeline .log (logs UI).
 
 Usage:
     python manage.py backfill_getcurrent_pages
@@ -37,6 +37,7 @@ from typing import Any, Dict, List, Optional, Set, Tuple
 from django.conf import settings
 from django.core.management.base import BaseCommand
 
+from core.pipeline_logger import SEC_FEED_BACKFILL, start_pipeline
 from sec_rss_parser.models import AccessionLookedUp
 from sec_rss_parser.sec_feed_collector import (
     DEFAULT_HEADERS,
@@ -147,8 +148,9 @@ def run_backfill(
     """
     Scan getcurrent pages [start, end) and merge missing rows into today's feed.
 
-    Returns a summary dict (also written to the dedicated JSONL log).
+    Returns a summary dict (also written to JSONL + pipeline .log).
     """
+    start_pipeline(SEC_FEED_BACKFILL, doc_type="BACKFILL")
     today = feed_now()
     yesterday = today - timedelta(days=1)
     log_path = _backfill_log_path(feed_dir, day=today)
@@ -238,32 +240,9 @@ def run_backfill(
         "new_accessions": new_accs[:50],
     }
 
-    # Always write run summary; write one line per added record when any.
+    # JSONL audit + pipeline .log (frontend logs_api).
     _append_jsonl(log_path, summary)
-    if added and page_hits:
-        # Map accession -> first page_hit (for logging metadata)
-        by_acc = {}
-        for hit in page_hits:
-            a = hit["accession_number"]
-            if a not in by_acc:
-                by_acc[a] = hit
-        for acc in new_accs:
-            hit = by_acc.get(acc) or {"accession_number": acc}
-            _append_jsonl(log_path, {
-                "event": "record_added",
-                "ts": run_ts,
-                "dry_run": dry_run,
-                "reason": "missing_from_today_and_yesterday",
-                "feed_file": today_feed,
-                "page_start": hit.get("page_start"),
-                "accession_number": hit.get("accession_number") or acc,
-                "cik_number": hit.get("cik_number"),
-                "form_type": hit.get("form_type"),
-                "company_name": hit.get("company_name"),
-                "title": hit.get("title"),
-                "link": hit.get("link"),
-            })
-
+    start_pipeline(SEC_FEED_BACKFILL, doc_type="BACKFILL")
     logger.info(
         "backfill_getcurrent: done | pages_ok=%d fail=%d considered=%d "
         "skipped_known=%d skipped_looked_up=%d added=%d dry_run=%s log=%s",
@@ -276,13 +255,54 @@ def run_backfill(
         dry_run,
         log_path,
     )
+    if added and page_hits:
+        by_acc = {}
+        for hit in page_hits:
+            a = hit["accession_number"]
+            if a not in by_acc:
+                by_acc[a] = hit
+        for acc in new_accs:
+            hit = by_acc.get(acc) or {"accession_number": acc}
+            record = {
+                "event": "record_added",
+                "ts": run_ts,
+                "dry_run": dry_run,
+                "reason": "missing_from_today_and_yesterday",
+                "feed_file": today_feed,
+                "page_start": hit.get("page_start"),
+                "accession_number": hit.get("accession_number") or acc,
+                "cik_number": hit.get("cik_number"),
+                "form_type": hit.get("form_type"),
+                "company_name": hit.get("company_name"),
+                "title": hit.get("title"),
+                "link": hit.get("link"),
+            }
+            _append_jsonl(log_path, record)
+            start_pipeline(
+                SEC_FEED_BACKFILL,
+                accession=record["accession_number"],
+                doc_type=(record.get("form_type") or "BACKFILL"),
+            )
+            logger.info(
+                "record_added | accession=%s cik=%s form=%s company=%s "
+                "page_start=%s feed=%s dry_run=%s",
+                record["accession_number"],
+                record.get("cik_number") or "-",
+                record.get("form_type") or "-",
+                record.get("company_name") or "-",
+                record.get("page_start"),
+                today_feed,
+                dry_run,
+            )
+
     return summary
 
 
 class Command(BaseCommand):
     help = (
         "Backfill today's SEC feed JSON from getcurrent pages start=100..1900 "
-        "(skip page 0). Dedupes against today+yesterday JSON. Writes dedicated JSONL log."
+        "(skip page 0). Dedupes against today+yesterday JSON. Writes JSONL "
+        "audit + pipeline log (sec_feed_backfill) for the logs UI."
     )
 
     def add_arguments(self, parser):
