@@ -345,7 +345,7 @@ class Command(BaseCommand):
         parser.add_argument(
             "--end",
             type=int,
-            default=2000,
+            default=4000,
             help="End offset exclusive for range() (default 2000 → last start=1900)",
         )
         parser.add_argument("--step", type=int, default=100)
