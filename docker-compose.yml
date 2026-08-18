@@ -70,6 +70,8 @@ services:
       - SEC_FEED_8K_WORKERS=20
       - SEC_FEED_GLOBAL_FORM_INTERVAL_SEC=15.0
       - SEC_FEED_GLOBAL_FORM_WORKERS=20
+      - SEC_GLOBAL_FORM_MAX_PRIOR_FILINGS=10
+      - SEC_GLOBAL_FORM_CIK_RSS_COUNT=40
       - SEC_FEED_DEAL_CIK_REFRESH_SEC=60.0
       # Listing (getcurrent) only — Archives doc fetches use sticky proxies.
       - SEC_MIN_REQ_INTERVAL=0.2

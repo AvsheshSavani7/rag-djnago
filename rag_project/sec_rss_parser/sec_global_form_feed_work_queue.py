@@ -5,7 +5,7 @@ Scheduler (every ~15s): scan feed JSON for GLOBAL_FORM_TYPES rows that are
 NOT already owned by a tracked deal CIK → enqueue new accessions.
 
 Worker pool: dequeue one item → process_one_global_form_item() (LLM match +
-proxy pipeline).
+CIK prior-filing cap + proxy pipeline).
 
 Dedup layers (enqueue only if ALL clear):
   1. session_done              — finished this process
@@ -205,9 +205,14 @@ class SecGlobalFormFeedWorkQueue:
                     dry_run=self.dry_run,
                 )
                 status = (result or {}).get("status")
-                # Terminal for this process only on success / genuine no-match.
-                # llm_error / failed / skipped_lock must remain re-enqueueable.
-                if status in ("processed", "skipped_no_match") or (
+                # Terminal for this process only on success / genuine no-match /
+                # established-filer skip. llm_error / failed / skipped_lock
+                # must remain re-enqueueable.
+                if status in (
+                    "processed",
+                    "skipped_no_match",
+                    "skipped_too_many_filings",
+                ) or (
                     acc and AccessionLookedUp.objects(accession_number=acc).first()
                 ):
                     self._mark_session_done(acc)

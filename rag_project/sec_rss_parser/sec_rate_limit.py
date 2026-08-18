@@ -17,7 +17,7 @@ from urllib.parse import urlparse
 _DEFAULT_INTERVAL = 0.2
 _MIN_INTERVAL = float(os.environ.get("SEC_MIN_REQ_INTERVAL", _DEFAULT_INTERVAL))
 
-_SEC_HOST = "www.sec.gov"
+_SEC_HOSTS = frozenset({"www.sec.gov", "data.sec.gov"})
 _lock = threading.Lock()
 _last_call = 0.0
 
@@ -27,11 +27,13 @@ def rate_limited_get(session_or_requests, url, *args, **kwargs):
     Wrapper around <session_or_requests>.get that enforces a global
     per-process rate limit for sec.gov requests.
 
-    - If the URL host is not www.sec.gov, the call is forwarded unmodified.
-    - For sec.gov URLs, calls are spaced by at least _MIN_INTERVAL seconds.
+    - If the URL host is not www.sec.gov or data.sec.gov, the call is
+      forwarded unmodified.
+    - For those SEC hosts, calls are spaced by at least _MIN_INTERVAL seconds.
     """
     parsed = urlparse(url)
-    if parsed.netloc and parsed.netloc.lower() != _SEC_HOST:
+    host = (parsed.netloc or "").lower()
+    if host and host not in _SEC_HOSTS:
         return session_or_requests.get(url, *args, **kwargs)
 
     global _last_call

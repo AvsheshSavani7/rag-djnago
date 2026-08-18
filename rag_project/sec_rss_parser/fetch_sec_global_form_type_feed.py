@@ -12,7 +12,10 @@ Flow:
    c. Otherwise pick one row and continue.
 5. For remaining items, ask LLM if the filing company matches any open deal
    by company name / alias.
-6. If matched, inject deal_id + a discovery_note, then process through the
+6. If matched, count prior filings for the filing CIK via data.sec.gov RSS.
+   More than SEC_GLOBAL_FORM_MAX_PRIOR_FILINGS (default 10) → LookedUp, stop.
+   At or below the cap (or cap=0 to disable) → continue.
+7. If still in, inject deal_id + a discovery_note, then process through the
    same proxy pipeline used by fetch_sec_feed_by_deal_cik.py.
 
 Legacy API ticks are coalesced via sec_global_form_work_queue (n8n path).
@@ -30,6 +33,7 @@ import json
 import re
 import time
 import logging
+import xml.etree.ElementTree as ET
 from datetime import datetime
 
 import django
@@ -100,6 +104,16 @@ DISCOVERY_NOTE = (
     "(not via CIK tracking)."
 )
 
+# After LLM match: skip established filers (many prior EDGAR filings).
+# SEC_GLOBAL_FORM_MAX_PRIOR_FILINGS=0 disables the gate.
+MAX_PRIOR_FILINGS_ENV = "SEC_GLOBAL_FORM_MAX_PRIOR_FILINGS"
+CIK_RSS_COUNT_ENV = "SEC_GLOBAL_FORM_CIK_RSS_COUNT"
+DEFAULT_MAX_PRIOR_FILINGS = 10
+DEFAULT_CIK_RSS_COUNT = 40
+CIK_HISTORY_RSS_URL_TEMPLATE = (
+    "https://data.sec.gov/rss?cik={cik}&count={count}"
+)
+
 
 # ---------------------------------------------------------------------------
 # Deal data helpers
@@ -112,6 +126,25 @@ def _is_dry_run(dry_run=None):
     return os.environ.get(GLOBAL_FORM_FEED_DRY_RUN_ENV, "").lower() in (
         "1", "true", "yes"
     )
+
+
+def _int_env(name, default):
+    raw = os.environ.get(name)
+    if raw is None or str(raw).strip() == "":
+        return default
+    try:
+        return int(raw)
+    except (TypeError, ValueError):
+        return default
+
+
+def _max_prior_filings():
+    """Skip after LLM match when CIK RSS count is greater than this. 0 = off."""
+    return _int_env(MAX_PRIOR_FILINGS_ENV, DEFAULT_MAX_PRIOR_FILINGS)
+
+
+def _cik_rss_count():
+    return max(1, _int_env(CIK_RSS_COUNT_ENV, DEFAULT_CIK_RSS_COUNT))
 
 
 def _company_name_from_atom_title(title):
@@ -389,6 +422,54 @@ def _accession_has_summary(accession_number):
     )
 
 
+def _xml_local_tag(elem):
+    return (elem.tag or "").split("}", 1)[-1]
+
+
+def _count_rss_or_atom_items(xml_text):
+    """Count RSS <item> nodes, falling back to Atom <entry>."""
+    root = ET.fromstring(xml_text)
+    n_items = sum(1 for e in root.iter() if _xml_local_tag(e) == "item")
+    if n_items:
+        return n_items
+    return sum(1 for e in root.iter() if _xml_local_tag(e) == "entry")
+
+
+def _cik_history_rss_url(cik):
+    return CIK_HISTORY_RSS_URL_TEMPLATE.format(
+        cik=normalize_cik(cik),
+        count=_cik_rss_count(),
+    )
+
+
+def _count_cik_prior_filings(cik):
+    """
+    Return how many filings data.sec.gov RSS lists for this CIK, or None on
+    failure (caller must retry; do not mark LookedUp).
+    """
+    cik_n = normalize_cik(cik) if cik else None
+    if not cik_n:
+        return None
+    url = _cik_history_rss_url(cik_n)
+    try:
+        resp = rate_limited_get(
+            requests, url, headers=DEFAULT_HEADERS, timeout=45
+        )
+        resp.raise_for_status()
+        if not (resp.text or "").strip():
+            log_and_print(
+                f"{LOG_PREFIX} Empty CIK history RSS for {cik_n}", "warning"
+            )
+            return None
+        return _count_rss_or_atom_items(resp.content)
+    except Exception as e:
+        log_and_print(
+            f"{LOG_PREFIX} Failed to fetch CIK history RSS for {cik_n}: {e}",
+            "warning",
+        )
+        return None
+
+
 def process_one_global_form_item(item_data, open_deals, dry_run=False):
     """
     Process a single S-4/F-4 item already selected by accession filters:
@@ -396,15 +477,17 @@ def process_one_global_form_item(item_data, open_deals, dry_run=False):
 
     Returns dict with keys: status, accession, error (optional).
     status:
-      processed | skipped_no_match | skipped_lock | llm_error | failed
+      processed | skipped_no_match | skipped_too_many_filings |
+      skipped_lock | llm_error | failed
 
     LookedUp rules (aligned with legacy behavior around emails):
       - genuine LLM no_match → LookedUp
+      - LLM match but CIK prior-filing count > cap → LookedUp
       - full success → LookedUp
       - proxy fail after a summary already exists / was sent → LookedUp
         (no retry that would re-send summary email)
-      - LLM/API errors, HTML fail, proxy fail with no summary → no LookedUp
-        (retry allowed)
+      - LLM/API errors, CIK-history RSS fail, HTML fail, proxy fail with
+        no summary → no LookedUp (retry allowed)
     """
     dry_run = _is_dry_run(dry_run)
     acc = item_data.get("accession_number") or extract_accession_from_guid(
@@ -477,6 +560,38 @@ def process_one_global_form_item(item_data, open_deals, dry_run=False):
             f"{LOG_PREFIX} ✅ Matched '{company_name}' ({form_type}) "
             f"→ deal_id={matched_deal_id}"
         )
+
+        max_prior = _max_prior_filings()
+        if max_prior > 0:
+            prior_count = _count_cik_prior_filings(filing_cik)
+            if prior_count is None:
+                log_and_print(
+                    f"{LOG_PREFIX} ⏭️ CIK history check failed for "
+                    f"{filing_cik or 'missing-cik'} ({form_type}) — "
+                    f"will retry (not marking LookedUp)",
+                    "warning",
+                )
+                return {
+                    "status": "llm_error",
+                    "accession": acc,
+                    "error": "cik_history_rss_error",
+                }
+            if prior_count > max_prior:
+                log_and_print(
+                    f"{LOG_PREFIX} ⏭️ Skipping {acc}: CIK {filing_cik} has "
+                    f"{prior_count} prior filing(s) "
+                    f"(cap={max_prior})"
+                )
+                if acc:
+                    mark_accession_processed(acc)
+                return {
+                    "status": "skipped_too_many_filings",
+                    "accession": acc,
+                }
+            log_and_print(
+                f"{LOG_PREFIX} CIK {filing_cik} prior filings={prior_count} "
+                f"(cap={max_prior}) — continuing"
+            )
 
         item_data["deal_id"] = matched_deal_id
         item_data["cik_number"] = filing_cik or item_data.get("cik_number")
@@ -656,12 +771,14 @@ def _process_global_items(items, open_deals, dry_run=False):
     2. Skip already-looked-up accessions.
     3. If any CIK for an accession is tracked by an open deal, drop it
        (do not mark looked_up — CIK flow owns it).
-    4. Otherwise pick one row, LLM name-match, process via proxy pipeline.
+    4. Otherwise pick one row, LLM name-match, optional CIK-history cap,
+       process via proxy pipeline.
     """
     processed = 0
     skipped_accession = 0
     skipped_cik = 0
     skipped_no_match = 0
+    skipped_too_many_filings = 0
     errors = []
 
     order, by_accession = _group_items_by_accession(items)
@@ -698,6 +815,8 @@ def _process_global_items(items, open_deals, dry_run=False):
             processed += 1
         elif status == "skipped_no_match":
             skipped_no_match += 1
+        elif status == "skipped_too_many_filings":
+            skipped_too_many_filings += 1
         elif status in ("failed", "llm_error"):
             errors.append({
                 "accession": result.get("accession"),
@@ -709,6 +828,7 @@ def _process_global_items(items, open_deals, dry_run=False):
         "skipped_accession": skipped_accession,
         "skipped_cik_tracked": skipped_cik,
         "skipped_no_llm_match": skipped_no_match,
+        "skipped_too_many_filings": skipped_too_many_filings,
         "errors": errors,
     }
 
@@ -790,6 +910,7 @@ def run_fetch_global_form_type_feed(dry_run=False):
         f"skipped_accession={result['skipped_accession']}, "
         f"skipped_cik_tracked={result['skipped_cik_tracked']}, "
         f"skipped_no_llm_match={result['skipped_no_llm_match']}, "
+        f"skipped_too_many_filings={result['skipped_too_many_filings']}, "
         f"errors={len(result['errors'])}"
     )
     return {
