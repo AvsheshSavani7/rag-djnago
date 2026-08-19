@@ -153,22 +153,22 @@ class SECDocumentProcessor:
         title_clean = title_clean.replace("-", " ")
 
         if "annex" in title_clean:
-            logger.info(f"title_clean annex before: {title_clean}")
+            # logger.info(f"title_clean annex before: {title_clean}")
             title_clean = self.extract_annex_title(title_clean)
-            logger.info(f"title_clean annex after: {title_clean}")
+            # logger.info(f"title_clean annex after: {title_clean}")
 
         matches_found = 0
 
         for i, line in enumerate(lines):
             if self.is_pipe_separated(line):
-                logger.info(f"line is pipe_separated: {line}")
+                # logger.info(f"line is pipe_separated: {line}")
                 continue
 
             line_text = line.strip()
             line_text = self.remove_page_references(line_text)
             line_text = line_text.replace(":", "")
             line_text = line_text.replace("-", " ")
-            logger.info(f"line_text: {line_text} {i}")
+            # logger.info(f"line_text: {line_text} {i}")
             if not self.any_entry_has_page_reference:
                 logger.info(
                     f"line_has_page_reference: {line_text},{self.any_entry_has_page_reference}")
@@ -183,8 +183,8 @@ class SECDocumentProcessor:
             # Case 1: Single-line match
             if "annex" in title_clean:
                 line_text_clean = self.clean_text(line_text)
-                logger.info(f"title_clean annex2: {title_clean}")
-                logger.info(f"line_text annex: {line_text_clean}")
+                # logger.info(f"title_clean annex2: {title_clean}")
+                # logger.info(f"line_text annex: {line_text_clean}")
 
                 # Use exact match after cleaning
                 if line_text_clean == title_clean:
@@ -222,7 +222,7 @@ class SECDocumentProcessor:
                         continue
                     combined += f" {next_line}"
                     combined_clean = combined.strip().lower()
-                    logger.info(f"combined_clean: {combined_clean}")
+                    # logger.info(f"combined_clean: {combined_clean}")
 
                     if combined_clean in title_clean:
                         if combined_clean == title_clean:
@@ -258,8 +258,8 @@ class SECDocumentProcessor:
                     continue  # Move to next line after skipping
 
             if not line_matched and currentEntry != 0:
-                logger.info(f"line_text in is_similar: {line_text}")
-                logger.info(f"title_clean in is_similar: {title_clean}")
+                # logger.info(f"line_text in is_similar: {line_text}")
+                # logger.info(f"title_clean in is_similar: {title_clean}")
                 if self.preprocess_title(line_text) in self.preprocess_title(title_clean):
                     test_combined = line_text
                     best_ratio = 0
@@ -376,11 +376,11 @@ class SECDocumentProcessor:
             actual_end_title_used indicates which title was actually used as the boundary (next_title or next_of_next_title).
             If None, it means next_title was used or there was no next title.
         """
-        logger.info(f"current_title: {current_title}")
-        logger.info(f"next_title: {next_title}")
-        logger.info(f"current_page: {current_page}")
-        logger.info(f"next_page: {next_page}")
-        logger.info(f"next_of_next_page: {next_of_next_page}")
+        # logger.info(f"current_title: {current_title}")
+        # logger.info(f"next_title: {next_title}")
+        # logger.info(f"current_page: {current_page}")
+        # logger.info(f"next_page: {next_page}")
+        # logger.info(f"next_of_next_page: {next_of_next_page}")
 
         lines = text.split('\n')
 
@@ -400,8 +400,8 @@ class SECDocumentProcessor:
             start_line = self.find_title_in_text(
                 lines, current_title, currentEntry, skip_first_n=0)
 
-        logger.info(
-            f"start_line: {start_line}, current_title: {current_title}, skip_first: {skip_first}")
+        # logger.info(
+        #     f"start_line: {start_line}, current_title: {current_title}, skip_first: {skip_first}")
 
         if start_line is None:
             return None
@@ -446,7 +446,7 @@ class SECDocumentProcessor:
                     content_length = len(content.split())
                     logger.info(
                         f"content_length: {content_length}, max-min: {content_aprox_length_max}, {content_aprox_length_min}")
-                    logger.info(f"next_title find: {next_title}")
+                    # logger.info(f"next_title find: {next_title}")
 
                     # If content is too long, try next_of_next_title
                     if content_aprox_length_max is not None and content_length > content_aprox_length_max:
@@ -472,8 +472,8 @@ class SECDocumentProcessor:
                             remaining_lines, next_title, currentEntry)
                         if next_occurrence is not None:
                             end_line += next_occurrence
-                            logger.info(
-                                f"Found better match for next title at line {end_line}")
+                            # logger.info(
+                            #     f"Found better match for next title at line {end_line}")
                             continue
                         else:
                             logger.info(
@@ -507,8 +507,28 @@ class SECDocumentProcessor:
                 content = '\n'.join(lines[start_line+1:end_line-1]).strip()
                 remaining_text = '\n'.join(lines[end_line-1:]).strip()
             else:
-                content = '\n'.join(lines[start_line+1:]).strip()
-                remaining_text = ""
+                # Neither next_title nor next_of_next_title was found.
+                # Cap content by the page-estimated word limit so that the rest
+                # of the document is preserved as remaining_text for subsequent
+                # sections. Without this cap, the entire document would be consumed
+                # here and every later section would find an empty text to search.
+                if content_aprox_length_max is not None:
+                    word_count = 0
+                    estimated_end = len(lines)
+                    for k, ln in enumerate(lines[start_line + 1:], start=start_line + 1):
+                        word_count += len(ln.split())
+                        if word_count > content_aprox_length_max:
+                            estimated_end = k
+                            break
+                    # logger.info(
+                    #     f"end_line not found for '{current_title}', capping at estimated "
+                    #     f"line {estimated_end} ({content_aprox_length_max} word limit)")
+                    content = '\n'.join(
+                        lines[start_line + 1:estimated_end]).strip()
+                    remaining_text = '\n'.join(lines[estimated_end:]).strip()
+                else:
+                    content = '\n'.join(lines[start_line + 1:]).strip()
+                    remaining_text = ""
 
         else:
             content = '\n'.join(lines[start_line+1:]).strip()
@@ -669,7 +689,7 @@ class SECDocumentProcessor:
 
             # Fetch and extract text from SEC document
             self.all_text = self.fetch_sec_document()
-            logger.info(f"all_text: {self.all_text}")
+            # logger.info(f"all_text: {self.all_text}")
 
             logger.info(f"Successfully fetched and converted SEC document")
 
@@ -768,7 +788,7 @@ class SECDocumentProcessor:
 
 if __name__ == "__main__":
     # Example SEC document URL
-    sec_url = "https://www.sec.gov/Archives/edgar/data/718877/000110465922025210/tm225196-3_prem14a.htm#tP1AO"
+    sec_url = "https://www.sec.gov/Archives/edgar/data/733269/000110465926077011/0001104659-26-077011-index.htm"
     toc_path = 'new_table_of_content/table_of_contents_new_Activision.json'
 
     try:

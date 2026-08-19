@@ -145,20 +145,26 @@ class S3Service:
 
 
 class AgenticSECProcessor:
-    def __init__(self, sec_url: str, max_workers: int = 8):
+    def __init__(
+        self,
+        sec_url: str,
+        max_workers: int = 8,
+        document_name: str = None,
+    ):
         """
         Initialize the agentic SEC processor.
 
         Args:
             sec_url: URL of the SEC document
             max_workers: Maximum number of parallel workers for table cleaning (default: 8)
+            document_name: Optional S3/local stem. Defaults to the HTML filename.
         """
         self.sec_url = sec_url
         self.max_workers = max_workers
         self.pdf_path = None
         self.toc_path = None
         self.sections_path = None
-        self.document_name = self._extract_document_name()
+        self.document_name = document_name or self._extract_document_name()
         self.notice_data = None  # Store notice content for later integration
 
         # S3 URLs for storing files

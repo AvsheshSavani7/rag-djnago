@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import copy
 import json
+import logging
 import os
 import re
 import time
@@ -15,6 +16,8 @@ from urllib.parse import unquote, urlsplit
 
 import requests
 from playwright.sync_api import Page, sync_playwright
+
+logger = logging.getLogger(__name__)
 
 
 # ============================================================
@@ -39,9 +42,9 @@ CHROMIUM_EXECUTABLE = os.environ.get(
 SEC_USER_AGENT = os.environ.get(
     "MNA_SEC_USER_AGENT",
     (
-        "Mozilla/5.0 "
-        "(compatible; SEC document parser; "
-        "contact: your-email@example.com)"
+        "MNA-Finder/1.0 "
+        "(https://teqnodux.com; "
+        "contact: ashish.kachadiya@teqnodux.com)"
     ),
 )
 
@@ -3441,6 +3444,12 @@ class DocumentExtractionPipeline:
         """
         accession = accession_from_url(url)
         output_dir.mkdir(parents=True, exist_ok=True)
+        logger.info(
+            "parser=claude start url=%s accession=%s output_dir=%s",
+            url,
+            accession,
+            output_dir,
+        )
         last_error = ""
         last_stage = "initialization"
         last_logs: dict[str, Any] = {}
@@ -3762,6 +3771,25 @@ class DocumentExtractionPipeline:
                     for result in (title_results or [])
                 )
 
+                logger.info(
+                    "parser=claude done status=%s accession=%s "
+                    "matched=%s/%s mode=%s output=%s",
+                    status,
+                    accession,
+                    matched_count,
+                    len(entries),
+                    extraction_mode,
+                    output_path,
+                )
+                logger.info(
+                    "parser=claude logs=%s",
+                    json.dumps(
+                        logs,
+                        ensure_ascii=False,
+                        separators=(",", ":"),
+                    ),
+                )
+
                 return {
                     "status": status,
                     "url": url,
@@ -3834,6 +3862,12 @@ class DocumentExtractionPipeline:
                 "message": last_error,
             }
 
+        logger.warning(
+            "parser=claude failed accession=%s stage=%s reason=%s",
+            accession,
+            last_stage,
+            last_error,
+        )
         return {
             "status": "error",
             "url": url,
@@ -3937,63 +3971,65 @@ def main() -> None:
 
         status = result.get("status")
 
-        print(
-            "LOGS " + json.dumps(
+        logger.info(
+            "LOGS %s",
+            json.dumps(
                 result.get("logs", {}),
                 ensure_ascii=False,
                 separators=(",", ":"),
-            )
+            ),
         )
 
         if status == "success":
             successes += 1
 
-            print(
-                f"[{index}/{len(urls)}] "
-                f"SUCCESS "
-                f"{result['accession']} | "
-                f"matched="
-                f"{result['matched_count']}/"
-                f"{result['title_count']} | "
-                f"mode="
-                f"{result['extraction_mode']} | "
-                f"output="
-                f"{result['text_output']}"
+            logger.info(
+                "[%s/%s] SUCCESS %s | matched=%s/%s | mode=%s | output=%s",
+                index,
+                len(urls),
+                result["accession"],
+                result["matched_count"],
+                result["title_count"],
+                result["extraction_mode"],
+                result["text_output"],
             )
 
         elif status == "partial":
             partials += 1
 
-            print(
-                f"[{index}/{len(urls)}] "
-                f"PARTIAL "
-                f"{result['accession']} | "
-                f"matched="
-                f"{result['matched_count']}/"
-                f"{result['title_count']} | "
-                f"mode="
-                f"{result['extraction_mode']} | "
-                f"output="
-                f"{result['text_output']}"
+            logger.info(
+                "[%s/%s] PARTIAL %s | matched=%s/%s | mode=%s | output=%s",
+                index,
+                len(urls),
+                result["accession"],
+                result["matched_count"],
+                result["title_count"],
+                result["extraction_mode"],
+                result["text_output"],
             )
 
         else:
             failures += 1
 
-            print(
-                f"[{index}/{len(urls)}] "
-                f"FAILED "
-                f"{result.get('accession', 'unknown')} | "
-                f"{result.get('reason', 'Unknown error')}"
+            logger.error(
+                "[%s/%s] FAILED %s | %s",
+                index,
+                len(urls),
+                result.get("accession", "unknown"),
+                result.get("reason", "Unknown error"),
             )
 
-    print(
-        "Done. "
-        f"Success={successes}, "
-        f"Partial={partials}, "
-        f"Failed={failures}"
+    logger.info(
+        "Done. Success=%s, Partial=%s, Failed=%s",
+        successes,
+        partials,
+        failures,
     )
 
 
 if __name__ == "__main__":
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s %(levelname)s %(name)s %(message)s",
+    )
     main()

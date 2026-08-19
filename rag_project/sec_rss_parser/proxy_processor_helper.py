@@ -4,7 +4,7 @@ V2: Works directly with SECFilingSummary (no ProxyDocument, no sync layer).
 
 Flow:
 1. process_sec_document_for_filing_summary() - creates/updates SECFilingSummary.proxy
-2. process_proxy_async() - runs agentic processor, updates SECFilingSummary.proxy
+2. process_proxy_async() - Claude parse first, agentic fallback, then Pinecone/summary
 3. process_sections_with_pinecone_v2() - uploads to Pinecone, updates SECFilingSummary.proxy
 4. generate_proxy_summary_v2() - generates summary doc, updates SECFilingSummary.proxy
 """
@@ -14,7 +14,7 @@ from sec_rss_parser.proxy_summary_service_v2 import (
     is_sc14d_chronological_summary_only_form,
 )
 from sec_rss_parser.sec_processor_and_pinecone_v2 import SectionProcessorV2
-from sec_rss_parser.agentic_sec_processor_v2 import AgenticSECProcessor
+from sec_rss_parser.agentic_sec_processor_v2 import AgenticSECProcessor, S3Service
 from sec_rss_parser.models import SECFilingSummary, SECFiling
 from sec_rss_parser.utils_8k import (
     get_ticker_for_deal_and_cik,
@@ -24,14 +24,20 @@ from sec_rss_parser.utils_8k import (
 )
 from sec_rss_parser.email_templates import _build_proxy_background_summary_email_subject
 from sec_rss_parser.email_service.email_dispatch_service import send_report_email
+from core.exception_email import send_exception_email
+from core.pipeline_logger import PROXY
 import os
 import sys
+import json
 import logging
 import threading
 import time
 import re
+import shutil
+import tempfile
 import requests
 from datetime import datetime
+from pathlib import Path
 
 # Django setup
 import django
@@ -44,6 +50,11 @@ logger = logging.getLogger(__name__)
 
 N8N_WEBHOOK_SEND_TO_ALL = os.environ.get(
     "N8N_WEBHOOK_SEND_TO_ALL", "https://n8n.arbintel.cloud/webhook/3ff1b0ea-7114-4dda-940e-95ce81e08017")
+
+PROXY_EMPTY_PERCENTAGE_FAIL = 45.0
+CLAUDE_OUTPUT_DIR = Path(
+    os.environ.get("MNA_DOCUMENT_OUTPUT_DIR", "/tmp/claude_proxy_parse")
+)
 
 
 def initial_proxy_payload(company_name=None):
@@ -113,7 +124,7 @@ def reset_proxy_node_only(filing_summary, step="all"):
     return filing_summary
 
 
-def rerun_proxy_pipeline(filing_summary_id, sync=False, step="all", skip_email=True):
+def rerun_proxy_pipeline(filing_summary_id, sync=False, step="all", skip_email=False):
     """
     Re-run proxy pipeline for an existing SECFilingSummary without touching L1/L2/L3.
 
@@ -376,6 +387,241 @@ def process_sec_document_for_filing_summary(
         return None
 
 
+def _document_name_from_proxy_url(proxy_sec_url):
+    filename = (proxy_sec_url or "").rstrip("/").split("/")[-1].split("#")[0]
+    if "." in filename:
+        return filename.rsplit(".", 1)[0]
+    return "sec_document"
+
+
+def _sanitize_s3_token(value, fallback=""):
+    token = re.sub(r"[^A-Za-z0-9._-]+", "_", str(value or "").strip())
+    token = token.strip("._-")
+    return token or fallback
+
+
+def _cik_accession_from_proxy_url(proxy_sec_url):
+    match = re.search(
+        r"/data/(\d+)/(\d{18})/",
+        proxy_sec_url or "",
+        re.IGNORECASE,
+    )
+    if not match:
+        return "", ""
+    raw_acc = match.group(2)
+    accession = f"{raw_acc[:10]}-{raw_acc[10:12]}-{raw_acc[12:]}"
+    return normalize_cik(match.group(1)), accession
+
+
+def _proxy_s3_document_name(filing_summary=None, proxy_sec_url=None):
+    """Unique S3 stem: {cik}_{accession}_{form_type}."""
+    url_cik, url_acc = _cik_accession_from_proxy_url(proxy_sec_url)
+    cik = _sanitize_s3_token(
+        normalize_cik(getattr(filing_summary, "cik_number", None) or "")
+        or url_cik,
+        fallback="cik",
+    )
+    accession = _sanitize_s3_token(
+        getattr(filing_summary, "accession_number", None) or url_acc,
+        fallback="accession",
+    )
+    form_type = _sanitize_s3_token(
+        getattr(filing_summary, "form_type", None),
+        fallback="PROXY",
+    )
+    name = f"{cik}_{accession}_{form_type}"
+    if name == "cik_accession_PROXY":
+        return _document_name_from_proxy_url(proxy_sec_url)
+    return name
+
+
+def _cleanup_claude_run_dir(run_dir):
+    if not run_dir:
+        return
+    try:
+        shutil.rmtree(run_dir, ignore_errors=True)
+        logger.info("cleaned claude parse dir %s", run_dir)
+    except Exception as e:
+        logger.warning("failed to clean claude parse dir %s: %s", run_dir, e)
+
+
+def _count_empty_sections(nodes):
+    """Walk nested title/content/subsection JSON; return (total, empty)."""
+    total = 0
+    empty = 0
+    for item in nodes or []:
+        if not isinstance(item, dict):
+            continue
+        total += 1
+        if not str(item.get("content") or "").strip():
+            empty += 1
+        nested_total, nested_empty = _count_empty_sections(
+            item.get("subsection") or []
+        )
+        total += nested_total
+        empty += nested_empty
+    return total, empty
+
+
+def _send_proxy_parse_error_email(
+    parser,
+    filing_summary,
+    proxy_sec_url,
+    error_message,
+    extra=None,
+    exception=None,
+):
+    """Internal alert; never raises. Does not stop fallback."""
+    try:
+        proxy_data = (filing_summary.proxy or {}) if filing_summary else {}
+        send_exception_email(
+            pipeline=PROXY,
+            error_message=error_message,
+            context={
+                "parser": parser,
+                "proxy_sec_url": proxy_sec_url,
+                "accession_number": getattr(
+                    filing_summary, "accession_number", None
+                ),
+                "company_name": proxy_data.get("company_name"),
+                "form_type": getattr(filing_summary, "form_type", None),
+                "deal_id": getattr(filing_summary, "deal_id", None),
+                "sec_filing_summary_id": (
+                    str(filing_summary.id) if filing_summary else None
+                ),
+            },
+            extra_data=extra,
+            exception=exception,
+            email_type="proxy_parse_failed",
+        )
+    except Exception as email_e:
+        logger.error(
+            "Failed to send proxy parse error email parser=%s: %s",
+            parser,
+            email_e,
+        )
+
+
+def _try_claude_proxy_parse(proxy_sec_url, document_name=None):
+    """
+    First-flow parse via claude_with_logging.
+
+    Returns (results, processing_state, fail_info).
+    On success fail_info is None. On failure results/processing_state are None.
+    Local output is written to a per-run temp dir and removed after S3 upload
+    (or on any failure).
+    """
+    from sec_rss_parser.claude_with_logging import DocumentExtractionPipeline
+
+    run_dir = None
+    doc_name = document_name or _document_name_from_proxy_url(proxy_sec_url)
+    try:
+        CLAUDE_OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+        run_dir = Path(
+            tempfile.mkdtemp(prefix="claude_", dir=str(CLAUDE_OUTPUT_DIR))
+        )
+        raw = DocumentExtractionPipeline().process(
+            url=proxy_sec_url,
+            output_dir=run_dir,
+            debug=False,
+        )
+        status = (raw or {}).get("status")
+        if status not in ("success", "partial"):
+            return None, None, {
+                "reason": (raw or {}).get("reason") or f"claude status={status}",
+                "status": status,
+                "logs": (raw or {}).get("logs"),
+            }
+
+        text_path = (raw or {}).get("text_output")
+        if not text_path or not Path(text_path).exists():
+            return None, None, {
+                "reason": "claude text_output missing",
+                "status": status,
+                "logs": (raw or {}).get("logs"),
+            }
+
+        with open(text_path, encoding="utf-8") as f:
+            sections = json.load(f)
+        if not isinstance(sections, list) or not sections:
+            return None, None, {
+                "reason": "claude sections JSON empty",
+                "status": status,
+                "logs": (raw or {}).get("logs"),
+            }
+
+        total, empty = _count_empty_sections(sections)
+        empty_pct = (empty / total * 100.0) if total else 100.0
+        if empty_pct > PROXY_EMPTY_PERCENTAGE_FAIL:
+            return None, None, {
+                "reason": (
+                    f"claude empty_percentage {empty_pct:.1f}% "
+                    f"> {PROXY_EMPTY_PERCENTAGE_FAIL}"
+                ),
+                "status": status,
+                "empty_percentage": empty_pct,
+                "total_sections": total,
+                "empty_sections": empty,
+                "logs": (raw or {}).get("logs"),
+            }
+
+        s3 = S3Service()
+        sections_url = s3.upload_json(
+            sections,
+            f"proxy-parse-json/sections_with_content_html_{doc_name}.json",
+        )
+        toc_url = None
+        toc_path = (raw or {}).get("toc_output")
+        if toc_path and Path(toc_path).exists():
+            with open(toc_path, encoding="utf-8") as f:
+                toc = json.load(f)
+            toc_url = s3.upload_json(
+                toc,
+                f"proxy-parse-json/table_of_contents_new_{doc_name}.json",
+            )
+
+        if not sections_url:
+            return None, None, {
+                "reason": "claude S3 sections upload returned empty URL",
+                "status": status,
+                "logs": (raw or {}).get("logs"),
+            }
+
+        processing_state = {
+            "pdf_created": False,
+            "toc_found": True,
+            "toc_extracted": bool(toc_url),
+            "sections_extracted": True,
+            "empty_percentage": empty_pct,
+            "iteration_count": 1,
+            "total_sections": total,
+            "empty_sections": empty,
+            "parser": "claude",
+        }
+        results = {
+            "s3_urls": {
+                "pdf_url": None,
+                "toc_pdf_url": None,
+                "toc_json_url": toc_url,
+                "sections_json_url": sections_url,
+            },
+            "empty_percentage": empty_pct,
+            "agent_response": (
+                f"claude: {status} matched={raw.get('matched_count')}/"
+                f"{raw.get('title_count')} mode={raw.get('extraction_mode')}"
+            ),
+        }
+        return results, processing_state, None
+    except Exception as e:
+        logger.exception("parser=claude exception url=%s", proxy_sec_url)
+        return None, None, {
+            "reason": str(e),
+            "exception_type": type(e).__name__,
+        }
+    finally:
+        _cleanup_claude_run_dir(run_dir)
+
+
 def process_proxy_async(
     filing_summary_id,
     proxy_sec_url,
@@ -411,38 +657,89 @@ def process_proxy_async(
         filing_summary.proxy = proxy_data
         filing_summary.save()
 
-        logger.info(f"Starting agentic SEC processing for {filing_summary_id}")
+        logger.info(
+            "Starting proxy parse (claude first, agentic fallback) for %s url=%s",
+            filing_summary_id,
+            proxy_sec_url,
+        )
 
-        # Initialize the processor
-        processor = AgenticSECProcessor(proxy_sec_url)
+        parser_used = "claude"
+        document_name = _proxy_s3_document_name(
+            filing_summary, proxy_sec_url
+        )
+        logger.info("proxy S3 document_name=%s", document_name)
+        results, processing_state, claude_fail = _try_claude_proxy_parse(
+            proxy_sec_url,
+            document_name=document_name,
+        )
+        if results is None:
+            parser_used = "agentic"
+            logger.warning(
+                "parser=claude failed (%s); falling back to agentic",
+                (claude_fail or {}).get("reason"),
+            )
+            _send_proxy_parse_error_email(
+                parser="claude",
+                filing_summary=filing_summary,
+                proxy_sec_url=proxy_sec_url,
+                error_message=(claude_fail or {}).get("reason")
+                or "claude parse failed",
+                extra=claude_fail,
+            )
+            processor = AgenticSECProcessor(
+                proxy_sec_url,
+                document_name=document_name,
+            )
+            results = processor.process_document()
+            processing_state = dict(processor.processing_state or {})
+            processing_state.setdefault("parser", "agentic")
+        else:
+            logger.info(
+                "parser=claude succeeded empty%%=%.1f sections_json=%s",
+                results.get("empty_percentage", 0),
+                (results.get("s3_urls") or {}).get("sections_json_url"),
+            )
 
-        # Process the document
-        results = processor.process_document()
-
-        # Update filing summary with results
-        empty_percentage = results.get('empty_percentage', 100.0)
+        empty_percentage = results.get("empty_percentage", 100.0)
         proxy_data["empty_percentage"] = empty_percentage
-        proxy_data["agent_response"] = results.get('agent_response', '')
-        proxy_data["processing_state"] = processor.processing_state
-        proxy_data["s3_urls"] = results.get('s3_urls', {})
-        proxy_data["total_sections"] = processor.processing_state.get(
-            'total_sections', 0)
-        proxy_data["empty_sections"] = processor.processing_state.get(
-            'empty_sections', 0)
-        proxy_data["iteration_count"] = processor.processing_state.get(
-            'iteration_count', 0)
+        proxy_data["agent_response"] = results.get("agent_response", "")
+        proxy_data["processing_state"] = processing_state
+        proxy_data["s3_urls"] = results.get("s3_urls", {})
+        proxy_data["total_sections"] = (processing_state or {}).get(
+            "total_sections", 0
+        )
+        proxy_data["empty_sections"] = (processing_state or {}).get(
+            "empty_sections", 0
+        )
+        proxy_data["iteration_count"] = (processing_state or {}).get(
+            "iteration_count", 0
+        )
+        proxy_data["parser"] = parser_used
 
-        # Check if empty percentage is too high (>40%)
-        if empty_percentage > 40.0:
-            # Mark as failed due to high empty percentage
+        if empty_percentage > PROXY_EMPTY_PERCENTAGE_FAIL:
+            error_message = (
+                f"Processing failed: Empty percentage too high "
+                f"({empty_percentage:.1f}% > {PROXY_EMPTY_PERCENTAGE_FAIL:g}%) "
+                f"parser={parser_used}"
+            )
             proxy_data["proxy_parsing_status"] = "failed"
-            proxy_data[
-                "error_message"] = f'Processing failed: Empty percentage too high ({empty_percentage:.1f}% > 40%)'
+            proxy_data["error_message"] = error_message
             proxy_data["completed_at"] = datetime.utcnow()
             filing_summary.proxy = proxy_data
             filing_summary.save()
 
-            # Update SEC filing status to Failed
+            if parser_used == "agentic":
+                _send_proxy_parse_error_email(
+                    parser="agentic",
+                    filing_summary=filing_summary,
+                    proxy_sec_url=proxy_sec_url,
+                    error_message=error_message,
+                    extra={
+                        "empty_percentage": empty_percentage,
+                        "s3_urls": results.get("s3_urls"),
+                    },
+                )
+
             try:
                 sec_filing = SECFiling.objects(
                     _id=filing_summary.accession_number).first()
@@ -450,13 +747,21 @@ def process_proxy_async(
                     sec_filing.following_status = "Failed"
                     sec_filing.save()
                     logger.info(
-                        f"Updated SEC filing with following_status='Failed' due to high empty percentage")
+                        "Updated SEC filing with following_status='Failed' "
+                        "due to high empty percentage"
+                    )
             except Exception as e:
                 logger.error(
                     f"Error updating SEC filing status to Failed: {str(e)}")
 
             logger.warning(
-                f"Processing failed for {filing_summary_id}: Empty percentage {empty_percentage:.1f}% exceeds 40% threshold")
+                "Processing failed for %s: Empty percentage %.1f%% "
+                "exceeds %.1f%% threshold parser=%s",
+                filing_summary_id,
+                empty_percentage,
+                PROXY_EMPTY_PERCENTAGE_FAIL,
+                parser_used,
+            )
 
         else:
             # Empty percentage is acceptable, proceed with completion
@@ -479,7 +784,10 @@ def process_proxy_async(
                     f"Error updating SEC filing status to Completed: {str(e)}")
 
             logger.info(
-                f"Successfully completed processing. Empty percentage: {empty_percentage:.1f}%")
+                "Successfully completed processing. Empty percentage: %.1f%% parser=%s",
+                empty_percentage,
+                parser_used,
+            )
 
             # Start Pinecone processing if sections JSON URL is available
             s3_urls = results.get('s3_urls', {})
@@ -521,31 +829,40 @@ def process_proxy_async(
 
     except Exception as e:
         # Update filing summary status to failed
+        failed_summary = None
         try:
-            filing_summary = SECFilingSummary.objects(
+            failed_summary = SECFilingSummary.objects(
                 _id=filing_summary_id).first()
-            if filing_summary:
-                proxy_data = filing_summary.proxy or {}
+            if failed_summary:
+                proxy_data = failed_summary.proxy or {}
                 proxy_data["proxy_parsing_status"] = "failed"
                 proxy_data["error_message"] = str(e)
                 proxy_data["completed_at"] = datetime.utcnow()
-                filing_summary.proxy = proxy_data
-                filing_summary.save()
+                proxy_data["parser"] = proxy_data.get("parser") or "agentic"
+                failed_summary.proxy = proxy_data
+                failed_summary.save()
 
-            # Update SEC filing status to Failed
-            try:
-                sec_filing = SECFiling.objects(
-                    _id=filing_summary.accession_number).first()
-                if sec_filing:
-                    sec_filing.following_status = "Failed"
-                    sec_filing.save()
-                    logger.info(
-                        f"Updated SEC filing with following_status='Failed'")
-            except Exception as sec_error:
-                logger.error(
-                    f"Error updating SEC filing status to Failed: {str(sec_error)}")
-        except:
+                try:
+                    sec_filing = SECFiling.objects(
+                        _id=failed_summary.accession_number).first()
+                    if sec_filing:
+                        sec_filing.following_status = "Failed"
+                        sec_filing.save()
+                        logger.info(
+                            f"Updated SEC filing with following_status='Failed'")
+                except Exception as sec_error:
+                    logger.error(
+                        f"Error updating SEC filing status to Failed: {str(sec_error)}")
+        except Exception:
             pass
+
+        _send_proxy_parse_error_email(
+            parser="agentic",
+            filing_summary=failed_summary,
+            proxy_sec_url=proxy_sec_url,
+            error_message=str(e),
+            exception=e,
+        )
 
         logger.error(
             f"Error processing proxy document {filing_summary_id}: {str(e)}")
