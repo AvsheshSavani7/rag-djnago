@@ -732,6 +732,7 @@ class EightKFeedProcessor:
                 log_and_print(
                     f"{LOG_PREFIX} :_process_single_item: ❌ Failed to parse HTML for: {html_url}", 'error')
                 self.error_count += 1
+                # Index proxy failed — do not LookedUp; next processor tick retries.
                 return
 
             # Merge HTML data into item_data; always use filer CIK from URL.

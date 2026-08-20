@@ -246,11 +246,11 @@ def fetch_and_parse_html_by_form_type(html_url, form_type_from_feed=None):
         resp = proxy_get(
             html_url,
             headers=DEFAULT_HEADERS,
-            timeout=45,
             context={"form_type": form_type_from_feed,
                      "source": "fetch_and_parse_html_by_form_type"},
         )
         soup = BeautifulSoup(resp.text, "html.parser")
+        resp.close()
         company_info = soup.find("div", class_="companyInfo")
         form_type = form_type_from_feed
         if not form_type:
@@ -1586,59 +1586,61 @@ def process_items(items):
                     "warning",
                 )
                 continue
-        html_data = fetch_and_parse_html_by_form_type(
-            link, form_type_from_feed=item_data.get("form_type")
-        )
-        logger.info(f"{LOG_PREFIX} :process_items: html_data={html_data}")
-        if not html_data:
-            errors.append({"accession": item_data.get(
-                "accession_number"), "message": "Failed to parse HTML"})
-            continue
-
-           # Preserve deal CIK (from parse_atom_to_items) before HTML overwrites it.
-        # We use deal_cik for saving SECFilingSummary and email; html_data has filer CIK.
-        # deal_cik = item_data.get("cik_number")
-        # Always use filer CIK extracted from the filing URL.
-        item_data.update(html_data)
-        # if deal_cik is not None:
-        #     item_data["cik_number"] = deal_cik
-        item_data["cik_number"] = _extract_cik_from_url(
-            link) or item_data.get("cik_number")
-        item_data["deal_id"] = item_data.get(
-            "deal_id") or _deal_id_for_cik(item_data.get("cik_number"))
-        filing, _ = _ensure_sec_filing(item_data)
-        form_type = (item_data.get("form_type") or "").strip().upper()
-        logger.info(f"{LOG_PREFIX} :process_items: form_type={form_type}")
-        if not form_type:
-            form_type = (html_data.get("form_type") or "").strip().upper()
-        # Route-and-summarize for any form type: save to DB (8-K/99.1 logic) and send summary email
         try:
-            _route_summarize_and_save(item_data, html_data)
-        except Exception as summary_e:
-            log_and_print(
-                f"{LOG_PREFIX} :process_items: ⚠️ Route summary failed (continuing): {summary_e}", "warning")
-            logger.exception(
-                f"{LOG_PREFIX} :process_items: _route_summarize_and_save error={summary_e}")
-        try:
-            if form_type in PROXY_FORM_TYPES:
-                logger.info(
-                    f"{LOG_PREFIX} :process_items: form_type={form_type} handling proxy (comparison or standalone)")
-                _handle_proxy_form_by_type(item_data, html_data, filing)
-            elif form_type in TEN_K_TEN_Q_FORM_TYPES:
-                logger.info(
-                    f"{LOG_PREFIX} :process_items: form_type={form_type} processing 10-K/10-Q item")
-                _process_ten_k_ten_q_item(item_data, html_data, filing)
+            html_data = fetch_and_parse_html_by_form_type(
+                link, form_type_from_feed=item_data.get("form_type")
+            )
+            logger.info(f"{LOG_PREFIX} :process_items: html_data={html_data}")
+            if not html_data:
+                errors.append({"accession": item_data.get(
+                    "accession_number"), "message": "Failed to parse HTML"})
+                # Index proxy failed — do not LookedUp; next processor tick retries.
+                continue
 
-            logger.info(f"{LOG_PREFIX} :process_items: accession_number={acc}")
-            processed += 1
-            # Only add to lookup after successful processing so read timeouts/failures can retry next run
-            if acc:
-                mark_accession_processed(acc)
-        except Exception as e:
-            errors.append({"accession": item_data.get(
-                "accession_number"), "message": str(e)})
-            log_and_print(
-                f"{LOG_PREFIX} :process_items: ❌ Error processing item: {e}", "error")
+            # Preserve deal CIK (from parse_atom_to_items) before HTML overwrites it.
+            # We use deal_cik for saving SECFilingSummary and email; html_data has filer CIK.
+            # deal_cik = item_data.get("cik_number")
+            # Always use filer CIK extracted from the filing URL.
+            item_data.update(html_data)
+            # if deal_cik is not None:
+            #     item_data["cik_number"] = deal_cik
+            item_data["cik_number"] = _extract_cik_from_url(
+                link) or item_data.get("cik_number")
+            item_data["deal_id"] = item_data.get(
+                "deal_id") or _deal_id_for_cik(item_data.get("cik_number"))
+            filing, _ = _ensure_sec_filing(item_data)
+            form_type = (item_data.get("form_type") or "").strip().upper()
+            logger.info(f"{LOG_PREFIX} :process_items: form_type={form_type}")
+            if not form_type:
+                form_type = (html_data.get("form_type") or "").strip().upper()
+            # Route-and-summarize for any form type: save to DB (8-K/99.1 logic) and send summary email
+            try:
+                _route_summarize_and_save(item_data, html_data)
+            except Exception as summary_e:
+                log_and_print(
+                    f"{LOG_PREFIX} :process_items: ⚠️ Route summary failed (continuing): {summary_e}", "warning")
+                logger.exception(
+                    f"{LOG_PREFIX} :process_items: _route_summarize_and_save error={summary_e}")
+            try:
+                if form_type in PROXY_FORM_TYPES:
+                    logger.info(
+                        f"{LOG_PREFIX} :process_items: form_type={form_type} handling proxy (comparison or standalone)")
+                    _handle_proxy_form_by_type(item_data, html_data, filing)
+                elif form_type in TEN_K_TEN_Q_FORM_TYPES:
+                    logger.info(
+                        f"{LOG_PREFIX} :process_items: form_type={form_type} processing 10-K/10-Q item")
+                    _process_ten_k_ten_q_item(item_data, html_data, filing)
+
+                logger.info(f"{LOG_PREFIX} :process_items: accession_number={acc}")
+                processed += 1
+                # Only add to lookup after successful processing so read timeouts/failures can retry next run
+                if acc:
+                    mark_accession_processed(acc)
+            except Exception as e:
+                errors.append({"accession": item_data.get(
+                    "accession_number"), "message": str(e)})
+                log_and_print(
+                    f"{LOG_PREFIX} :process_items: ❌ Error processing item: {e}", "error")
         finally:
             if acc and lock_owner:
                 release_accession_lock(acc, lock_owner)

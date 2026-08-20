@@ -536,14 +536,13 @@ class SECRSSParser:
             response = proxy_get(
                 html_url,
                 headers=self.headers,
-                timeout=45,
-                session=self.session,
                 context={
                     "form_type": form_type_from_feed or "8-K",
                     "source": "SECRSSParser.fetch_and_parse_html",
                 },
             )
             html_content = response.text
+            response.close()
 
             soup = BeautifulSoup(html_content, 'html.parser')
             company_info = soup.find('div', class_='companyInfo')

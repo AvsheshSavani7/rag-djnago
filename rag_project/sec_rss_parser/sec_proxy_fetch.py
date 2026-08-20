@@ -19,6 +19,8 @@ import time
 from typing import Any, Dict, List, Optional, Tuple
 
 import requests
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +37,11 @@ DEFAULT_HEADERS = {
     "User-Agent": "MNA-Finder/1.0 (https://teqnodux.com; contact: ashish.kachadiya@teqnodux.com)",
     "Accept-Encoding": "gzip, deflate",
     "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+    "Connection": "close",
 }
+
+# One CONNECT per GET; do not retry at urllib3 (proxy_get already retries).
+_NO_RETRY = Retry(total=0, connect=0, read=0, redirect=0, status=0, other=0)
 
 
 class ProxyFetchError(RuntimeError):
@@ -82,7 +88,8 @@ class ProxyPool:
         until = time.time() + DEPRIORITIZE_SEC
         with self._lock:
             self._cooldown_until[label] = until
-        logger.warning("sec_proxy_fetch: deprioritized %s for %.0fs", label, DEPRIORITIZE_SEC)
+        logger.warning(
+            "sec_proxy_fetch: deprioritized %s for %.0fs", label, DEPRIORITIZE_SEC)
 
 
 _pool_lock = threading.Lock()
@@ -144,7 +151,22 @@ def _send_fail_email(
             email_type="sec_proxy_fetch_failed",
         )
     except Exception:
-        logger.exception("sec_proxy_fetch: failed to send failure email for %s", url)
+        logger.exception(
+            "sec_proxy_fetch: failed to send failure email for %s", url)
+
+
+def _one_shot_session() -> requests.Session:
+    """Fresh session with no keep-alive pool so each GET frees the proxy thread."""
+    sess = requests.Session()
+    sess.trust_env = False
+    adapter = HTTPAdapter(
+        pool_connections=1,
+        pool_maxsize=1,
+        max_retries=_NO_RETRY,
+    )
+    sess.mount("http://", adapter)
+    sess.mount("https://", adapter)
+    return sess
 
 
 def proxy_get(
@@ -158,21 +180,28 @@ def proxy_get(
     """
     GET ``url`` through the sticky proxy list (max MAX_ATTEMPTS).
 
+    Never reuses a caller Session (``session`` is ignored) so CONNECT tunnels
+    are not kept in urllib3 pools. Body is fully read, then the socket is closed.
+
     On total failure: emails via send_exception_email, then raises ProxyFetchError.
     """
+    del session  # never pool through a long-lived Session
     pool = get_proxy_pool()
-    hdrs = headers or DEFAULT_HEADERS
+    hdrs = dict(headers or DEFAULT_HEADERS)
+    hdrs["Connection"] = "close"
     to = TIMEOUT if timeout is None else timeout
-    getter = session.get if session is not None else requests.get
 
     attempt_log: List[Dict[str, Any]] = []
     last_exc: Optional[BaseException] = None
 
     for attempt in range(1, MAX_ATTEMPTS + 1):
         _, proxy_dict, label = pool.pick()
+        sess = _one_shot_session()
+        resp: Optional[requests.Response] = None
         try:
-            resp = getter(url, headers=hdrs, proxies=proxy_dict, timeout=to)
+            resp = sess.get(url, headers=hdrs, proxies=proxy_dict, timeout=to)
             resp.raise_for_status()
+            _ = resp.content  # consume so the CONNECT can close
             logger.info(
                 "sec_proxy_fetch: attempt %d/%d via %s -> %s | %s",
                 attempt, MAX_ATTEMPTS, label, resp.status_code, url[:120],
@@ -180,6 +209,8 @@ def proxy_get(
             return resp
         except Exception as e:  # noqa: BLE001
             last_exc = e
+            if resp is not None:
+                resp.close()
             pool.deprioritize(label)
             attempt_log.append({
                 "attempt": attempt,
@@ -193,6 +224,8 @@ def proxy_get(
             )
             if attempt < MAX_ATTEMPTS:
                 time.sleep(BACKOFF_BASE * attempt)
+        finally:
+            sess.close()
 
     assert last_exc is not None
     _send_fail_email(url, attempt_log, last_exc, context=context)
