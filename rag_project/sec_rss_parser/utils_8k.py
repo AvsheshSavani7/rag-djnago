@@ -205,12 +205,8 @@ class SECRSSParser:
         self.form_type = "8-K"
         self.headers = {
             "User-Agent": "MNA-Finder/1.0 (https://teqnodux.com; contact: ashish.kachadiya@teqnodux.com)",
-            'Accept': 'application/atom+xml, application/xml, text/xml, */*',
-            'Accept-Language': 'en-US,en;q=0.9',
-            'Accept-Encoding': 'gzip, deflate, br',
-            'Connection': 'keep-alive',
-            'Upgrade-Insecure-Requests': '1',
-            'Referer': 'https://www.sec.gov/',
+            "Accept": "application/atom+xml, application/xml, text/xml, */*",
+            "Referer": "https://www.sec.gov/",
         }
 
         self.form_types = FORM_TYPES
