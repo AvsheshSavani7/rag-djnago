@@ -10,6 +10,7 @@ Flow:
    - 8-K: SKIPPED here — handled entirely by process_feed_8k.py (which has full EX-2.1 flow).
    - PROXY_FORM_TYPES: process via proxy_processor_helper.process_sec_document_for_filing_summary(), 
      which creates/updates SECFilingSummary.proxy directly (no ProxyDocument, no sync).
+   - SC 14D9: L1/L2/L3 then heading parser + Item 4 JSON background (Pinecone fallback) + 5Q summary (not PROXY_FORM_TYPES).
    - TEN_K_TEN_Q_FORM_TYPES: save to sec_filing_summary.ten_k_ten_q (minimal record).
    - Other: generate summary (no email), save to sec_filing_summary.other_filings.
    - change per second fetch 7 to 5
@@ -88,6 +89,7 @@ logger = logging.getLogger(__name__)
 
 PROXY_FORM_TYPES = ["DEFM14A", "DEFM14C", "PREM14A",
                     "PREM14C", "S-4", "F-4", "S-4/A", "F-4/A"]
+SC14D9_FORM_TYPE = "SC 14D9"
 TEN_K_TEN_Q_FORM_TYPES = ["10-K", "10-Q", "10-K/A"]
 # 8-K is handled by the feed-JSON 8-K queue (process_feed_8k), not process_items.
 EIGHT_K_FORM_TYPES = ["8-K", "8-K/A"]
@@ -1163,6 +1165,69 @@ def _process_proxy_item(item_data, html_data, filing):
         log_and_print("❌ Failed to start proxy processing", "error")
 
 
+def _process_sc14d9_item(item_data, html_data, filing):
+    """After L1/L2/L3: parse SC 14D9, Pinecone (Q&A), then 5Q + Item 4 JSON background summary."""
+    form_type = (
+        item_data.get("form_type") or html_data.get("form_type") or ""
+    ).strip().upper()
+    if form_type != SC14D9_FORM_TYPE:
+        logger.info(
+            f"{LOG_PREFIX} :_process_sc14d9_item: form_type={form_type} is not {SC14D9_FORM_TYPE}")
+        return
+    cik_number = item_data.get("cik_number") or html_data.get("cik_number")
+    if not cik_number:
+        logger.info(
+            f"{LOG_PREFIX} :_process_sc14d9_item: cik_number not found")
+        return
+    xbrl_files = html_data.get("xbrl_files") or item_data.get("xbrl_files") or []
+    link = item_data.get("link") or html_data.get("link") or ""
+    sc14d9_url = _pick_single_doc_url_for_form(xbrl_files, SC14D9_FORM_TYPE, link)
+    if not sc14d9_url:
+        sc14d9_file = find_file_by_type(xbrl_files, [SC14D9_FORM_TYPE])
+        sc14d9_url = normalize_sec_url((sc14d9_file or {}).get("url"))
+    if not sc14d9_url:
+        log_and_print(
+            f"{LOG_PREFIX} :_process_sc14d9_item: ⚠️ No SC 14D9 HTM file for {item_data.get('company_name')}",
+            "warning",
+        )
+        return
+    filing_date = html_data.get("filing_date") or item_data.get("filing_date")
+    if isinstance(filing_date, datetime):
+        filing_date = filing_date.strftime("%Y-%m-%d")
+    else:
+        filing_date = str(filing_date) if filing_date else ""
+    sec_filling_id = str(filing.id) if filing else None
+    if not sec_filling_id:
+        log_and_print(
+            f"{LOG_PREFIX} :_process_sc14d9_item: ⚠️ No sec_filling_id", "warning")
+        return
+    company_name = html_data.get("company_name") or item_data.get("company_name") or ""
+    deal_id = item_data.get("deal_id") or _deal_id_for_cik(cik_number)
+    accession_number = item_data.get("accession_number") or html_data.get("accession_number")
+    logger.info(
+        f"{LOG_PREFIX} :_process_sc14d9_item: accession={accession_number} url={sc14d9_url}"
+    )
+    result = process_sec_document_for_filing_summary(
+        cik_number=cik_number,
+        company_name=company_name,
+        sec_filling_id=sec_filling_id,
+        filing_date=filing_date,
+        form_type=SC14D9_FORM_TYPE,
+        proxy_sec_url=sc14d9_url,
+        deal_id=deal_id,
+        accession_number=accession_number,
+    )
+    if result:
+        log_and_print(
+            f"{LOG_PREFIX} :_process_sc14d9_item: ✅ SC 14D9 processing started: {result.get('sec_filing_summary_id')}"
+        )
+    else:
+        log_and_print(
+            f"{LOG_PREFIX} :_process_sc14d9_item: ❌ Failed to start SC 14D9 processing",
+            "error",
+        )
+
+
 def _process_ten_k_ten_q_item(item_data, html_data, filing):
     """
     Fetch and save 10-K/10-Q filings from SEC API.
@@ -1565,7 +1630,7 @@ def process_items(items):
         # Set pipeline context per item — all downstream log lines carry this automatically
         from core.pipeline_logger import start_pipeline
         _form = feed_form_type or "UNKNOWN"
-        if feed_form_type in PROXY_FORM_TYPES:
+        if feed_form_type in PROXY_FORM_TYPES or feed_form_type == SC14D9_FORM_TYPE:
             _pipeline_name = "proxy"
         elif feed_form_type in TEN_K_TEN_Q_FORM_TYPES:
             _pipeline_name = "ten_k_ten_q"
@@ -1626,6 +1691,10 @@ def process_items(items):
                     logger.info(
                         f"{LOG_PREFIX} :process_items: form_type={form_type} handling proxy (comparison or standalone)")
                     _handle_proxy_form_by_type(item_data, html_data, filing)
+                elif form_type == SC14D9_FORM_TYPE:
+                    logger.info(
+                        f"{LOG_PREFIX} :process_items: form_type={form_type} handling SC 14D9 parse + summary")
+                    _process_sc14d9_item(item_data, html_data, filing)
                 elif form_type in TEN_K_TEN_Q_FORM_TYPES:
                     logger.info(
                         f"{LOG_PREFIX} :process_items: form_type={form_type} processing 10-K/10-Q item")

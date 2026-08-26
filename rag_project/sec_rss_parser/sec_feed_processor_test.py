@@ -121,6 +121,8 @@ def _route_label(form_type: str) -> str:
     ft = (form_type or "").strip().upper()
     if ft in PROXY_FORM_TYPES:
         return "proxy_pipeline"
+    if ft == "SC 14D9":
+        return "sc14d9_pipeline"
     if ft in TEN_K_TEN_Q_FORM_TYPES:
         return "ten_k_ten_q_pipeline"
     return "other_sec_feed_pipeline"

@@ -13,13 +13,24 @@ import os
 import anthropic
 import pinecone
 import openai
+import requests
 from dotenv import load_dotenv
 from docx import Document
 from proxy_processor.merger_background_8_cleaned_format import ProxyBackgroundAnalyzer, DOCXFormatter
 from sec_rss_parser.agentic_sec_processor_v2 import S3Service
 from proxy_processor.arb_summary_doc_new_02_Dec_25 import QueryProcessor, _QUESTION_SECTION_FILTERS
 from sec_rss_parser.models import SECFilingSummary
+from sec_rss_parser.extract_sc14d9_background import (
+    extract_sc14d9_background,
+    sections_from_payload,
+)
 import re
+
+SC14D9_ITEM4_TITLE_VARIANTS = (
+    "ITEM 4. THE SOLICITATION OR RECOMMENDATION",
+    "ITEM 4. The Solicitation or Recommendation",
+    "Item 4. The Solicitation or Recommendation",
+)
 # Helper functions (copied from arb_summary_doc_new_02_Dec_25.py to avoid circular imports)
 
 
@@ -232,10 +243,13 @@ logger = logging.getLogger(__name__)
 
 
 def is_sc14d_chronological_summary_only_form(form_type: Optional[str]) -> bool:
-    """True for SC 14D family filings (tender offer / related schedules)."""
+    """True for SC 14D family filings except exact SC 14D9 (full 5Q + background)."""
     if not form_type:
         return False
-    return form_type.strip().upper().startswith("SC 14D")
+    ft = form_type.strip().upper()
+    if ft == "SC 14D9":
+        return False
+    return ft.startswith("SC 14D")
 
 
 class ProxySummaryServiceV2:
@@ -249,17 +263,177 @@ class ProxySummaryServiceV2:
             api_key=os.environ.get("OPENAI_API_KEY_SEC_FILING")
         )
 
+    def _format_background_chunk_document(self, background_chunks: list) -> str:
+        document_parts = []
+        for i, result in enumerate(background_chunks, 1):
+            document_parts.append(f"[Chunk {i}]")
+            document_parts.append(result.get("text") or "")
+            document_parts.append("")
+        document_text = "\n".join(document_parts)
+        logger.info(f"Document length: {len(document_text):,} characters")
+        return document_text
+
+    def _sc14d9_sections_json_url(self, filing_rec) -> str:
+        proxy_data = (filing_rec.proxy or {}) if filing_rec else {}
+        return ((proxy_data.get("s3_urls") or {}).get("sections_json_url") or "").strip()
+
+    def _load_sc14d9_sections(self, filing_rec) -> list:
+        sections_url = self._sc14d9_sections_json_url(filing_rec)
+        if not sections_url:
+            logger.warning("SC 14D9 background: no sections_json_url on proxy.s3_urls")
+            return []
+        logger.info("SC 14D9 background: downloading parse JSON %s", sections_url)
+        response = requests.get(sections_url, timeout=60)
+        response.raise_for_status()
+        return sections_from_payload(response.json())
+
+    def _get_sc14d9_background_from_json(self, filing_rec) -> tuple:
+        """Slice Item 4 chronology from parse JSON. Returns (text, item4_title)."""
+        try:
+            sections = self._load_sc14d9_sections(filing_rec)
+        except Exception as err:
+            logger.warning("SC 14D9 background: parse JSON load failed: %s", err)
+            return "", None
+        if not sections:
+            return "", None
+        result = extract_sc14d9_background(sections)
+        text = (result.get("text") or "").strip()
+        item4_title = result.get("item4_title")
+        if text:
+            logger.info(
+                "SC 14D9 background: JSON slice method=%s chars=%s start=%r end=%r",
+                result.get("method"),
+                len(text),
+                result.get("start_heading"),
+                result.get("end_heading"),
+            )
+            return text, item4_title
+        logger.warning(
+            "SC 14D9 background: JSON slice failed reason=%s item4=%r",
+            result.get("reason"),
+            item4_title,
+        )
+        return "", item4_title
+
+    def _get_sc14d9_background_chunks(
+        self,
+        index,
+        dummy_vector,
+        sec_filing_summary_id: str,
+        item4_title: Optional[str] = None,
+    ) -> str:
+        """Item 4 title filter first; semantic query fallback. No merger-title filters."""
+        titles = []
+        if item4_title:
+            titles.append(item4_title)
+        for variant in SC14D9_ITEM4_TITLE_VARIANTS:
+            if variant not in titles:
+                titles.append(variant)
+        logger.info(
+            "SC 14D9 background: filtering Pinecone titles=%s", titles
+        )
+        search_response = index.query(
+            vector=dummy_vector,
+            top_k=50,
+            include_metadata=True,
+            filter={
+                "sec_filing_summary_id": sec_filing_summary_id,
+                "title": {"$in": titles},
+            },
+        )
+        background_chunks = []
+        for match in search_response.matches:
+            background_chunks.append({
+                "score": match.score,
+                "text": match.metadata.get("original_text", ""),
+                "id": match.id,
+            })
+        logger.info("Found %s SC 14D9 Item 4 chunks", len(background_chunks))
+
+        if not background_chunks:
+            logger.warning(
+                "No Item 4 title chunks for SC 14D9; semantic fallback"
+            )
+            query = (
+                "ITEM 4 THE SOLICITATION OR RECOMMENDATION "
+                "board recommendation of the tender offer "
+                "background of the solicitation or recommendation "
+                "reasons for the recommendation fairness opinion "
+                "chronology of negotiations alternatives considered"
+            )
+            query_embedding = self.openai_client.embeddings.create(
+                input=query,
+                model="text-embedding-3-large",
+            )
+            query_embedding = query_embedding.data[0].embedding
+            search_response = index.query(
+                vector=query_embedding,
+                top_k=15,
+                include_metadata=True,
+                filter={"sec_filing_summary_id": sec_filing_summary_id},
+            )
+            for match in search_response.matches:
+                background_chunks.append({
+                    "score": match.score,
+                    "text": match.metadata.get("original_text", ""),
+                    "id": match.id,
+                })
+            logger.info(
+                "Found %s SC 14D9 semantic background chunks",
+                len(background_chunks),
+            )
+
+        return self._format_background_chunk_document(background_chunks)
+
     def get_background_chunks_by_filing_id(self, sec_filing_summary_id: str) -> str:
         """Get background section chunks using sec_filing_summary_id filter"""
         try:
             logger.info(
                 f"Searching for background chunks (Filing Summary ID: {sec_filing_summary_id})")
 
+            form_type = ""
+            filing_rec = None
+            try:
+                filing_rec = SECFilingSummary.objects(
+                    _id=sec_filing_summary_id).first()
+                if filing_rec:
+                    form_type = (filing_rec.form_type or "").strip().upper()
+            except Exception as lookup_err:
+                logger.warning(
+                    "Could not load form_type for background chunk search: %s",
+                    lookup_err,
+                )
+
+            if form_type == "SC 14D9":
+                json_text, item4_title = self._get_sc14d9_background_from_json(
+                    filing_rec
+                )
+                if json_text:
+                    logger.info(
+                        "Document length: %s characters", f"{len(json_text):,}"
+                    )
+                    return json_text
+                logger.info(
+                    "SC 14D9 background: falling back to Pinecone Item 4"
+                )
+                pc = pinecone.Pinecone(api_key=os.environ.get("PINECONE_API_KEY"))
+                index_name = os.environ.get(
+                    "PINECONE_INDEX_NAME_PROXY", "contract-chunks")
+                index = pc.Index(index_name)
+                dummy_vector = [0.0] * 3072
+                return self._get_sc14d9_background_chunks(
+                    index,
+                    dummy_vector,
+                    sec_filing_summary_id,
+                    item4_title=item4_title,
+                )
+
             # Initialize Pinecone
             pc = pinecone.Pinecone(api_key=os.environ.get("PINECONE_API_KEY"))
             index_name = os.environ.get(
                 "PINECONE_INDEX_NAME_PROXY", "contract-chunks")
             index = pc.Index(index_name)
+            dummy_vector = [0.0] * 3072
 
             # Search for background section chunks using title filters
             filters = [
@@ -408,10 +582,10 @@ class ProxySummaryServiceV2:
 
             if not document_text:
                 logger.warning(
-                    "No background chunks found, skipping summary generation")
+                    "No background text found, skipping summary generation")
                 return {
                     "success": False,
-                    "error": "No background chunks found in Pinecone"
+                    "error": "No background text found",
                 }
 
             # Step 2: Generate merger background analysis
