@@ -44,7 +44,7 @@ _FETCH_HEADERS = {
 
 
 def _fetch_html_playwright(url: str, timeout_ms: int = 20000) -> Optional[str]:
-    """Fetch HTML using headless Chrome."""
+    """Fetch HTML using headless Chrome. Does not use the RSS residential proxy."""
     if not sync_playwright:
         return None
     try:
@@ -52,7 +52,8 @@ def _fetch_html_playwright(url: str, timeout_ms: int = 20000) -> Optional[str]:
             browser = p.chromium.launch(
                 headless=True,
                 args=["--no-sandbox", "--disable-dev-shm-usage",
-                      "--disable-blink-features=AutomationControlled"],
+                      "--disable-blink-features=AutomationControlled",
+                      "--disable-http2"],
             )
             try:
                 context = browser.new_context(

@@ -4,12 +4,15 @@ Usage: python PRNewswire_summary.py
 """
 
 import anthropic
+import logging
 import re
 import json
 import sys
 import os
 import io
 from pathlib import Path
+
+logger = logging.getLogger(__name__)
 
 try:
     from ._naming import filing_uid, sanitize_date_part, sanitize_filename_part
@@ -125,6 +128,8 @@ _HTML_ERROR_MARKERS = (
     "access denied",
     "error 404",
     "404 not found",
+    "warning: target url returned error",
+    "failed to fetch the url",
 )
 
 
@@ -150,18 +155,42 @@ def _looks_like_non_ma_refusal(raw: str) -> bool:
     return any(marker in lower for marker in _NON_MA_REFUSAL_MARKERS)
 
 
+def _visible_word_count(html: str) -> int:
+    text = re.sub(r"<script[\s\S]*?</script>", " ", html or "", flags=re.I)
+    text = re.sub(r"<style[\s\S]*?</style>", " ", text, flags=re.I)
+    text = re.sub(r"<[^>]+>", " ", text)
+    return len(text.split())
+
+
 def _html_looks_like_error_page(html: str, url: str = "") -> bool:
-    """True when raw HTML appears to be an error/unavailable page rather than article content."""
+    """True when raw HTML appears to be an error/unavailable page rather than article content.
+
+    Jina Reader and similar proxies return cleaned article HTML without BusinessWire
+    CSS classes (bw-release-story). Do not treat short cleaned HTML as an error page
+    when it still has substantial prose.
+    """
     if not html or not html.strip():
         return True
     lower = html.lower()
     if any(marker in lower for marker in _HTML_ERROR_MARKERS):
         return True
+    if "edgesuite.net" in lower and "reference #" in html:
+        return True
     url_lower = (url or "").lower()
     if "businesswire.com" in url_lower:
-        if "bw-release-story" not in lower and "bw-release-body" not in lower:
-            if "unavailable" in lower or len(html) < 8000:
-                return True
+        has_release_body = (
+            "bw-release-story" in lower or "bw-release-body" in lower
+        )
+        if has_release_body:
+            return False
+        # Native BW challenge shells are tiny; cleaned Jina articles are not.
+        if _visible_word_count(html) < 40:
+            logger.warning(
+                "BusinessWire HTML looks like a stub/challenge for %s (%s chars)",
+                url,
+                len(html),
+            )
+            return True
     return False
 
 
@@ -265,6 +294,11 @@ PRESS RELEASE TEXT:
 {text}"""
 
 
+def _warn_fetch(message: str) -> None:
+    logger.warning(message)
+    print(f"  ⚠️  {message}")
+
+
 def _fetch_with_jina(url: str) -> str:
     """Fetch a page via Jina Reader (r.jina.ai).
 
@@ -272,7 +306,7 @@ def _fetch_with_jina(url: str) -> str:
     Cloudflare bot protection that blocks direct requests and headless browsers.
     Returns HTML for BeautifulSoup to parse.
     """
-    print("  ⚠️  Retrying with Jina Reader (r.jina.ai)...")
+    _warn_fetch(f"Retrying with Jina Reader (r.jina.ai) for {url}")
     jina_url = f"https://r.jina.ai/{url}"
     resp = requests.get(
         jina_url,
@@ -285,7 +319,21 @@ def _fetch_with_jina(url: str) -> str:
 
 def _fetch_with_playwright(url: str) -> str:
     """Fetch a page using a real headless Chromium browser (last-resort fallback)."""
-    print("  ⚠️  Retrying with Playwright (headless Chromium)...")
+    _warn_fetch(f"Retrying with Playwright (headless Chromium) for {url}")
+    try:
+        from rss_feeds.feed_builder.core.fetcher import fetch_html_with_playwright
+    except ImportError:
+        fetch_html_with_playwright = None
+
+    if fetch_html_with_playwright:
+        html = fetch_html_with_playwright(url, timeout=60)
+        if not html:
+            raise RuntimeError("Playwright returned no HTML")
+        return html
+
+    if not _playwright_available:
+        raise RuntimeError("Playwright is not installed")
+
     with _sync_playwright() as p:
         browser = p.chromium.launch(
             headless=True,
@@ -293,13 +341,14 @@ def _fetch_with_playwright(url: str) -> str:
                 "--disable-blink-features=AutomationControlled",
                 "--disable-dev-shm-usage",
                 "--no-sandbox",
+                "--disable-http2",
             ],
         )
         context = browser.new_context(
             user_agent=(
                 "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
                 "AppleWebKit/537.36 (KHTML, like Gecko) "
-                "Chrome/120.0.0.0 Safari/537.36"
+                "Chrome/124.0.0.0 Safari/537.36"
             ),
             viewport={"width": 1280, "height": 800},
             locale="en-US",
@@ -315,45 +364,97 @@ def _fetch_with_playwright(url: str) -> str:
 
 
 def _run_fetch_fallbacks(source: str, headers: dict) -> str | None:
-    """Try cloudscraper → Jina → Playwright. Return HTML or None."""
+    """Try Jina → cloudscraper → Playwright. Return HTML or None.
+
+    For BusinessWire, skip re-fetching the same blocked URL via Jina; the
+    shared fetcher already tried that. Wire-copy reprints are handled separately.
+    """
     html = None
+    is_businesswire = "businesswire.com" in (source or "").lower()
 
-    if _cloudscraper_mod is not None:
-        try:
-            print("  ⚠️  Retrying with cloudscraper...")
-            scraper = _cloudscraper_mod.create_scraper()
-            cs_resp = scraper.get(source, headers=headers, timeout=30)
-            if cs_resp.status_code == 200 and not _html_looks_like_error_page(cs_resp.text, source):
-                html = cs_resp.text
-            elif cs_resp.status_code == 200:
-                print("  ⚠️  cloudscraper returned error-page HTML")
-            else:
-                print(
-                    f"  ⚠️  cloudscraper returned HTTP {cs_resp.status_code}")
-        except Exception as e:
-            print(f"  ⚠️  cloudscraper failed: {e}")
-
-    if html is None:
+    if not is_businesswire:
         try:
             candidate = _fetch_with_jina(source)
             if not _html_looks_like_error_page(candidate, source):
                 html = candidate
             else:
-                print("  ⚠️  Jina Reader returned error-page HTML")
+                _warn_fetch("Jina Reader returned error-page HTML")
         except Exception as e:
-            print(f"  ⚠️  Jina Reader failed: {e}")
+            _warn_fetch(f"Jina Reader failed: {e}")
 
-    if html is None and _playwright_available:
+    if html is None and _cloudscraper_mod is not None:
+        try:
+            _warn_fetch("Retrying with cloudscraper...")
+            scraper = _cloudscraper_mod.create_scraper()
+            cs_resp = scraper.get(source, headers=headers, timeout=30)
+            if cs_resp.status_code == 200 and not _html_looks_like_error_page(cs_resp.text, source):
+                html = cs_resp.text
+            elif cs_resp.status_code == 200:
+                _warn_fetch("cloudscraper returned error-page HTML")
+            else:
+                _warn_fetch(f"cloudscraper returned HTTP {cs_resp.status_code}")
+        except Exception as e:
+            _warn_fetch(f"cloudscraper failed: {e}")
+
+    if html is None and not is_businesswire:
         try:
             candidate = _fetch_with_playwright(source)
             if not _html_looks_like_error_page(candidate, source):
                 html = candidate
             else:
-                print("  ⚠️  Playwright returned error-page HTML")
+                _warn_fetch("Playwright returned error-page HTML")
         except Exception as e:
-            print(f"  ⚠️  Playwright failed: {e}")
+            _warn_fetch(f"Playwright failed: {e}")
 
     return html
+
+
+_BW_SLUG_RE = re.compile(
+    r"businesswire\.com/news/home/\d+/[a-z]{2}/([^/?#]+)",
+    re.I,
+)
+
+
+def _businesswire_reprint_urls(source: str) -> list[str]:
+    """Same BusinessWire release is often mirrored on wire-copy sites that are not Akamai-blocked."""
+    match = _BW_SLUG_RE.search(source or "")
+    if not match:
+        return []
+    slug = re.sub(r"[^a-z0-9\-]+", "", match.group(1).lower())
+    if len(slug) < 12:
+        return []
+    return [
+        f"https://www.marketnewsdesk.com/index.php/{slug}/",
+    ]
+
+
+def _fetch_businesswire_reprint(source: str, headers: dict) -> str | None:
+    """BusinessWire-only: fetch a wire reprint when businesswire.com itself is WAF-blocked.
+
+    Does not run for PRNewswire or GlobeNewswire URLs.
+    """
+    if "businesswire.com" not in (source or "").lower():
+        return None
+    for reprint_url in _businesswire_reprint_urls(source):
+        _warn_fetch(f"Trying BusinessWire wire reprint {reprint_url}")
+        try:
+            resp = requests.get(reprint_url, headers=headers, timeout=30)
+            if resp.status_code == 200 and not _html_looks_like_error_page(resp.text, reprint_url):
+                logger.info("Fetched BusinessWire reprint from %s", reprint_url)
+                return resp.text
+            _warn_fetch(
+                f"Wire reprint HTTP {resp.status_code} or error-page HTML for {reprint_url}"
+            )
+        except Exception as e:
+            _warn_fetch(f"Wire reprint failed for {reprint_url}: {e}")
+        try:
+            candidate = _fetch_with_jina(reprint_url)
+            if not _html_looks_like_error_page(candidate, reprint_url):
+                logger.info("Fetched BusinessWire reprint via Jina from %s", reprint_url)
+                return candidate
+        except Exception as e:
+            _warn_fetch(f"Jina wire reprint failed for {reprint_url}: {e}")
+    return None
 
 
 def _fetch_article_html(source: str, headers: dict) -> str | None:
@@ -362,8 +463,8 @@ def _fetch_article_html(source: str, headers: dict) -> str | None:
     Prefer the shared feed-builder fetcher so bot-protected hosts
     (GlobeNewswire, BusinessWire, …) use cffi + residential proxy, while
     other newswires keep plain requests first. On soft-blocks (timeout /
-    connection drop / 403) that fetcher already falls back; if it still
-    fails, use cloudscraper → Jina → Playwright.
+    connection drop / 403) that fetcher already falls back (including Jina
+    and Playwright). If it still fails, retry Jina → cloudscraper → Playwright.
     """
     try:
         from rss_feeds.feed_builder.core.fetcher import (
@@ -374,6 +475,10 @@ def _fetch_article_html(source: str, headers: dict) -> str | None:
         fetch_url = None
         FetchBlockedError = Exception  # type: ignore[misc, assignment]
 
+    reprint = _fetch_businesswire_reprint(source, headers)
+    if reprint:
+        return reprint
+
     if fetch_url is not None:
         try:
             body, _, status = fetch_url(
@@ -381,14 +486,13 @@ def _fetch_article_html(source: str, headers: dict) -> str | None:
             )
             if status == 200 and body and not _html_looks_like_error_page(body, source):
                 return body
-            print("  ⚠️  Shared fetcher returned unusable HTML — trying fallbacks...")
-            return _run_fetch_fallbacks(source, headers)
+            _warn_fetch("Shared fetcher returned unusable HTML — trying fallbacks...")
         except FetchBlockedError as e:
-            print(f"  ⚠️  Shared fetcher blocked ({e}) — trying fallbacks...")
-            return _run_fetch_fallbacks(source, headers)
+            _warn_fetch(f"Shared fetcher blocked ({e}) — trying fallbacks...")
         except Exception as e:
-            print(f"  ⚠️  Shared fetcher failed ({e}) — trying fallbacks...")
-            return _run_fetch_fallbacks(source, headers)
+            _warn_fetch(f"Shared fetcher failed ({e}) — trying fallbacks...")
+
+        return _run_fetch_fallbacks(source, headers)
 
     # Standalone / no feed-builder available — legacy requests path
     try:
