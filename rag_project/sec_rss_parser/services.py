@@ -449,7 +449,8 @@ def send_8k_summary_email(deal_id, company_name, form_type, cik_number, sec_url,
         log_and_print("📤 Sending org-aware email (sec_dma_summary)")
         result = send_report_email(
             report_type="sec_dma_summary",
-            payload=payload
+            payload=payload,
+            unsubscribe_deal_id=deal_id,
         )
         log_and_print(
             f"✅ Org-aware email done — orgs_sent={result['orgs_sent']}/{result['orgs_processed']}"

@@ -671,9 +671,17 @@ class EightKFeedProcessor:
                 f"{LOG_PREFIX} :_generate_8k_summary_and_send: ❌ 8-K summary generation failed: {e}", 'error')
 
     def _process_single_item(self, item_data):
-        """Process a single 8-K item"""
+        """Process a single 8-K item.
+
+        Optional item_data flags (manual reprocess only; production workers omit them):
+          _force_reprocess  — run even if AccessionLookedUp / lock already exists
+          _force_summary    — generate L1/L2/L3 even if CIK is not on an open deal
+          _deal_id_override — use this deal_id instead of the CIK lookup
+          email_dry_run     — build the summary email but do not send it
+        """
         accession_number = item_data.get(
             'accession_number') or extract_accession_from_guid(item_data.get('guid'))
+        force_reprocess = bool(item_data.get('_force_reprocess'))
 
         # Set pipeline context — propagates automatically to all threads spawned here
         from core.pipeline_logger import start_pipeline, SEC_8K
@@ -685,15 +693,24 @@ class EightKFeedProcessor:
                 accession_number, source="process_feed_8k"
             )
             if not lock_owner:
-                logger.info(
-                    f"{LOG_PREFIX} :_process_single_item: accession=%s step=skip reason=lock_or_looked_up",
-                    accession_number,
-                )
-                log_and_print(
-                    f"{LOG_PREFIX} :_process_single_item: ⏭️ Skipping {accession_number} (in-progress by another worker or already finalized)"
-                )
-                self.skipped_count += 1
-                return
+                if force_reprocess:
+                    logger.warning(
+                        f"{LOG_PREFIX} :_process_single_item: accession=%s step=force_reprocess bypassing lock_or_looked_up",
+                        accession_number,
+                    )
+                    log_and_print(
+                        f"{LOG_PREFIX} :_process_single_item: ⚠️ Force reprocess {accession_number} (already looked-up or locked)"
+                    )
+                else:
+                    logger.info(
+                        f"{LOG_PREFIX} :_process_single_item: accession=%s step=skip reason=lock_or_looked_up",
+                        accession_number,
+                    )
+                    log_and_print(
+                        f"{LOG_PREFIX} :_process_single_item: ⏭️ Skipping {accession_number} (in-progress by another worker or already finalized)"
+                    )
+                    self.skipped_count += 1
+                    return
         try:
             html_url = item_data.get('link')
             logger.info(f"{LOG_PREFIX} :_process_single_item: accession=%s step=start title=%s link=%s",
@@ -750,6 +767,12 @@ class EightKFeedProcessor:
             cik_number = item_data.get('cik_number')
             cik_matches_deal, deal_id = self._check_cik_matches_deal(
                 cik_number)
+            override_deal_id = (item_data.get('_deal_id_override') or '').strip()
+            if override_deal_id:
+                deal_id = override_deal_id
+                cik_matches_deal = True
+            elif item_data.get('_force_summary'):
+                cik_matches_deal = True
             item_data['deal_id'] = deal_id
             item_data['cik_matches_deal'] = cik_matches_deal
 
@@ -1317,7 +1340,8 @@ class EightKFeedProcessor:
             _report_type = "sec_new_deal_announcement" if use_filing_webhook else "sec_new_deal_announced_without_threshold"
             send_report_email(
                 report_type=_report_type,
-                payload=payload
+                payload=payload,
+                unsubscribe_deal_id=item_data.get("deal_id"),
             )
             logger.info(f"{LOG_PREFIX} :_send_ex21_email: accession=%s step=org_aware_sent report_type=%s",
                         accession_number, _report_type)
@@ -1743,6 +1767,14 @@ class EightKFeedProcessor:
             # send_webhook_notification(
             #     N8N_WEBHOOK_URL_8K_SUMMARY_L123, payload, "8-K summary email"
             # )  # TODO: comment out after org-aware send is stable
+            if item_data.get('email_dry_run'):
+                logger.info(
+                    f"{LOG_PREFIX} :_send_8k_summary_email: accession=%s step=dry_run subject=%s",
+                    accession_number, subject)
+                log_and_print(
+                    f"{LOG_PREFIX} :_send_8k_summary_email: 🧪 Dry-run: not sending email. Subject: {subject}")
+                return
+
             logger.info(
                 f"{LOG_PREFIX} :_send_8k_summary_email: accession=%s step=sent", accession_number)
             log_and_print(
@@ -1832,6 +1864,14 @@ class EightKFeedProcessor:
             # send_webhook_notification(
             #     N8N_WEBHOOK_URL_8K_SUMMARY, payload, "EX-99.1 summary email"
             # )  # TODO: comment out after org-aware send is stable
+            if item_data.get('email_dry_run'):
+                logger.info(
+                    f"{LOG_PREFIX} :_send_ex99_summary_email: accession=%s step=dry_run subject=%s",
+                    accession_number, subject)
+                log_and_print(
+                    f"{LOG_PREFIX} :_send_ex99_summary_email: 🧪 Dry-run: not sending email. Subject: {subject}")
+                return
+
             logger.info(
                 f"{LOG_PREFIX} :_send_ex99_summary_email: accession=%s step=sent", accession_number)
             log_and_print(
@@ -1956,6 +1996,31 @@ L3 DETAILED:
                 f"{LOG_PREFIX} :_extract_press_release_data: ❌ Press Release extraction failed: {e}",
                 'error'
             )
+
+
+def reprocess_8k_item(
+    item_data,
+    *,
+    force_summary=True,
+    dry_run_email=False,
+    deal_id=None,
+):
+    """
+    Re-run production 8-K processing for one filing.
+
+    Same path as the feed worker: fetch index HTML, upsert SECFiling /
+    SECFilingSummary (L1/L2/L3 + S3), send the summary email.
+    Bypasses AccessionLookedUp so an already-seen accession can be retried.
+    """
+    item = dict(item_data)
+    item['_force_reprocess'] = True
+    item['_force_summary'] = bool(force_summary)
+    item['email_dry_run'] = bool(dry_run_email)
+    if deal_id:
+        item['_deal_id_override'] = str(deal_id)
+    processor = EightKFeedProcessor()
+    processor._process_single_item(item)
+    return processor
 
 
 def run_8k_processor(rss_content=None, rss_file=None):

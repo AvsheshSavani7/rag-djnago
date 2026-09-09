@@ -5,7 +5,8 @@ Organisation-aware email sending via the n8n webhook.
 
 Flow
 ----
-send_report_email(report_type, payload, org_id=None, deal_id=None)
+send_report_email(report_type, payload, org_id=None, deal_id=None,
+                  unsubscribe_deal_id=None)
   1. Find active organization(s).
   2. Check organization_notification_settings — keep only those where
      enabled_report_types contains the given report_type.
@@ -13,7 +14,9 @@ send_report_email(report_type, payload, org_id=None, deal_id=None)
      — keep only those whose report_types list contains the report_type.
      If deal_id is provided, further filter to recipients whose
      allowed_deal_ids list contains the deal_id.
-  4. POST one webhook request per org (with its recipients list).
+  4. If a deal_id is known (unsubscribe_deal_id or deal_id), append an
+     unsubscribe footer to the HTML body.
+  5. POST one webhook request per org (with its recipients list).
 
 MongoDB collections (default DB)
 ---------------------------------
@@ -36,6 +39,7 @@ import requests
 from bson import ObjectId
 
 from rag_project.db_utils import get_default_db
+from .unsubscribe import append_unsubscribe_footer
 
 logger = logging.getLogger(__name__)
 
@@ -49,6 +53,7 @@ logger = logging.getLogger(__name__)
 
 class _ForceEmailPipelineFilter(logging.Filter):
     """Stamps every record with pipeline='email' so it routes to email/ log folder."""
+
     def filter(self, record: logging.LogRecord) -> bool:
         record.pipeline = "email"
         if not hasattr(record, "run_id"):
@@ -147,7 +152,7 @@ def _get_recipients(
 
 
 def _send_to_webhook(webhook_url: str, payload: dict) -> bool:
-    """POST payload to the n8n webhook. Returns True on success."""
+    """POST payload to the n8n webhook. Returns True on success.//"""
     try:
         response = requests.post(
             webhook_url,
@@ -240,6 +245,7 @@ def send_report_email(
     org_id: Optional[str] = None,
     webhook_url: Optional[str] = None,
     deal_id: Optional[str] = None,
+    unsubscribe_deal_id: Optional[str] = None,
 ) -> dict:
     """
     Send an email for the given report_type to all eligible recipients.
@@ -262,7 +268,12 @@ def send_report_email(
         When provided, only recipients whose ``allowed_deal_ids`` list contains
         this deal_id will receive the email. Recipients without the deal_id are
         excluded at the query level. If omitted, no deal-level filtering is
-        applied (existing behaviour).
+        applied (existing behaviour). Also used as the unsubscribe footer
+        deal_id when ``unsubscribe_deal_id`` is not set.
+    unsubscribe_deal_id : str, optional
+        Deal id for the email-footer unsubscribe URL. Use this when a deal_id
+        is known but should not filter recipients (e.g. a newly created deal).
+        Defaults to ``deal_id``.
 
     Returns
     -------
@@ -285,6 +296,13 @@ def send_report_email(
             "TESTING_N8N_HOOK is not set. "
             "Add it to your .env file before calling send_report_email."
         )
+
+    footer_deal_id = unsubscribe_deal_id or deal_id
+    if footer_deal_id and payload.get("html"):
+        payload = {
+            **payload,
+            "html": append_unsubscribe_footer(payload["html"], footer_deal_id),
+        }
 
     db, client = get_default_db()
 
@@ -329,7 +347,8 @@ def send_report_email(
                 continue
 
             # Step 3 – get subscribed recipients (filtered by deal_id if provided)
-            recipients = _get_recipients(db, org_id_str, report_type, deal_id=deal_id)
+            recipients = _get_recipients(
+                db, org_id_str, report_type, deal_id=deal_id)
             if not recipients:
                 logger.info(
                     "Org '%s' has no active recipients for '%s' — skipping.",
